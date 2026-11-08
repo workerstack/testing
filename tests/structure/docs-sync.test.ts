@@ -1,11 +1,11 @@
 import { readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
-import { FLAGS } from "../../src/cli/flags.ts"
-import { configRules } from "../../src/config/validate.ts"
-import { DEFECTS } from "../../src/reference/defects/table.ts"
-import { RUN_FINDING_IDS } from "../../src/runtime/check-ids.ts"
-import { CHECKS } from "../../src/runtime/checks/registry.ts"
+import { FLAGS } from "../../src/api/cli/flags.ts"
+import { configRules } from "../../src/api/config/validate.ts"
+import { DEFECTS } from "../../src/api/reference/defects/table.ts"
+import { RUN_FINDING_IDS } from "../../src/api/runtime/check-ids.ts"
+import { CHECKS } from "../../src/api/runtime/checks/registry.ts"
 
 /*
  * Every name a user can meet (a check id, a defect, a CLI flag, a top-level config field, an `x-*`
@@ -14,7 +14,7 @@ import { CHECKS } from "../../src/runtime/checks/registry.ts"
  */
 
 const ROOT = join(import.meta.dirname, "..", "..")
-const doc = (name: string): string => readFileSync(join(ROOT, "docs", name), "utf8")
+const doc = (name: string): string => readFileSync(join(ROOT, "docs", "api", name), "utf8")
 
 function sourcesUnder(dir: string): string[] {
 	return readdirSync(join(ROOT, dir), { recursive: true, withFileTypes: true })
@@ -28,14 +28,14 @@ const reserved = (tag: string): boolean => tag === "x-oat" || tag.startsWith("x-
 
 /* The tags oat reads: every `"x-…"` literal in the spec layer, less the one media type and the reserved namespace. */
 function tagsRead(): string[] {
-	const tags = sourcesUnder("src/spec").flatMap((text) =>
+	const tags = sourcesUnder("src/api/spec").flatMap((text) =>
 		[...text.matchAll(/"(x-[a-z0-9-]+)"/g)].map((m) => m[1] ?? ""),
 	)
 	return [...new Set(tags)].filter((tag) => tag !== "x-www-form-urlencoded" && !reserved(tag)).toSorted()
 }
 
-/* The names an entry module exports, values and types alike: `src/index.ts` by default. */
-function publicExports(entry: readonly string[] = ["src", "index.ts"]): string[] {
+/* The names an entry module exports, values and types alike: `src/api/index.ts` by default. */
+function publicExports(entry: readonly string[] = ["src", "api", "index.ts"]): string[] {
 	const text = readFileSync(join(ROOT, ...entry), "utf8")
 	const names = [...text.matchAll(/export (?:type )?\{([^}]*)\}/g)].flatMap((m) =>
 		(m[1] ?? "")
@@ -108,7 +108,7 @@ const SURFACES: Readonly<Record<string, Surface>> = {
 	},
 	"steps exports": {
 		doc: "steps.md",
-		names: () => publicExports(["src", "steps", "index.ts"]),
+		names: () => publicExports(["src", "api", "steps", "index.ts"]),
 		written: (name) => name,
 		undocumented: [],
 	},

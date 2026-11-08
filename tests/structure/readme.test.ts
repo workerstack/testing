@@ -5,8 +5,8 @@ import { describe, expect, it } from "vitest"
 /*
  * The README is the front page: what oat is, how to start, how auth is declared, what a run's
  * verdicts and exit codes mean, a CI sketch, the limits that matter most, and where every other doc
- * is. It stays about 120 lines; the full limits live in docs/limits.md and the run walkthrough in
- * docs/model.md, so nothing the README drops is lost.
+ * is. It stays about 120 lines; the full limits live in docs/api/limits.md and the run walkthrough in
+ * docs/api/model.md, so nothing the README drops is lost.
  */
 
 const ROOT = join(import.meta.dirname, "..", "..")
@@ -53,16 +53,16 @@ describe("the README", () => {
 	})
 
 	it("links every top-level doc from its index", () => {
-		const docs = readdirSync(join(ROOT, "docs")).filter((name) => name.endsWith(".md"))
+		const docs = readdirSync(join(ROOT, "docs", "api")).filter((name) => name.endsWith(".md"))
 		const index = section("Docs")
-		expect(docs.filter((name) => !index.includes(`(docs/${name})`))).toEqual([])
+		expect(docs.filter((name) => !index.includes(`(docs/api/${name})`))).toEqual([])
 	})
 
-	it("keeps what it no longer says: the full limits in docs/limits.md, the run walkthrough in docs/model.md", () => {
-		expect(section("Limits")).toContain("(docs/limits.md)")
-		expect(read("docs", "limits.md")).toContain("Default request timeout is 180s")
-		expect(read("docs", "limits.md")).toContain("A long `Retry-After` is not waited for")
-		expect(read("docs", "model.md")).toContain("## How a run works")
-		expect(read("docs", "model.md")).toContain("**Teardown** everything the run created")
+	it("keeps what it no longer says: the full limits in docs/api/limits.md, the run walkthrough in docs/api/model.md", () => {
+		expect(section("Limits")).toContain("(docs/api/limits.md)")
+		expect(read("docs", "api", "limits.md")).toContain("Default request timeout is 180s")
+		expect(read("docs", "api", "limits.md")).toContain("A long `Retry-After` is not waited for")
+		expect(read("docs", "api", "model.md")).toContain("## How a run works")
+		expect(read("docs", "api", "model.md")).toContain("**Teardown** everything the run created")
 	})
 })

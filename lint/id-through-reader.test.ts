@@ -19,19 +19,19 @@ const lines = (file: string): number[] => reportsOf(rule, { [file]: SOURCE }).ma
 
 describe("oat/id-through-reader", () => {
 	it("reports an identity read as text without the reader", () => {
-		expect(lines("src/runtime/checks.ts")).toEqual([4, 5])
+		expect(lines("src/api/runtime/checks.ts")).toEqual([4, 5])
 	})
 
 	it("allows it in the module that owns the reader", () => {
-		expect(lines("src/runtime/world/records.ts")).toEqual([])
+		expect(lines("src/api/runtime/world/records.ts")).toEqual([])
 	})
 
 	it("leaves the reference backend's own rows alone", () => {
-		expect(lines("src/reference/listing/run.ts")).toEqual([])
+		expect(lines("src/api/reference/listing/run.ts")).toEqual([])
 	})
 
 	it("fails oxlint through the oat plugin entry", () => {
-		const reports = oxlintReports("id-through-reader", { "src/runtime/checks.ts": SOURCE })
+		const reports = oxlintReports("id-through-reader", { "src/api/runtime/checks.ts": SOURCE })
 		expect(reports.map((report) => report.line)).toEqual([4, 5])
 	})
 })

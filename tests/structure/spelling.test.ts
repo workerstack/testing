@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
-import { enGbWords, QUOTED_FILES } from "../support/spelling.ts"
+import { enGbWords, QUOTED_FILES } from "../api/support/spelling.ts"
 
 /*
  * oat is written in en-US: code, identifiers, messages, tests and docs. Each tracked text file is

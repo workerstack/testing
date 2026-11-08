@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
-import { wallClockExpectations } from "../support/wall-clock.ts"
+import { wallClockExpectations } from "../api/support/wall-clock.ts"
 
 /*
  * A unit test's verdict never depends on how fast the host runs. An expectation that reads the
@@ -31,7 +31,7 @@ describe("wall-clock expectations", () => {
 	})
 
 	it("holds every unit test to it", () => {
-		const files = execFileSync("git", ["ls-files", "src/**/*.test.ts", "lint/**/*.test.ts"], {
+		const files = execFileSync("git", ["ls-files", "src/api/**/*.test.ts", "lint/**/*.test.ts"], {
 			cwd: ROOT,
 			encoding: "utf8",
 		})

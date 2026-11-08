@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
-import { packedManifests } from "../support/npm-pack.ts"
+import { packedManifests } from "../api/support/npm-pack.ts"
 
-const manifest = { files: [{ path: "dist/cli.js" }] }
+const manifest = { files: [{ path: "dist/api/cli.js" }] }
 
 describe("packedManifests", () => {
 	it("reads the manifests past a banner npm 10 prints before the JSON", () => {

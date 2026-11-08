@@ -36,11 +36,16 @@ export function barrels(files: Readonly<Record<string, string>>): string[] {
 
 describe("the architecture rules", () => {
 	it("find a vaguely named module and a whole-module re-export", () => {
-		expect(vagueNames(["src/utils.ts", "src/spec/helpers/x.ts", "src/misc.test.ts", "src/runtime/utility.ts"])).toEqual(
-			["src/utils.ts", "src/spec/helpers/x.ts", "src/misc.test.ts"],
-		)
-		expect(barrels({ "src/a.ts": 'export * from "./b.ts"\nexport { c } from "./c.ts"\n' })).toEqual([
-			'src/a.ts: export * from "./b.ts"',
+		expect(
+			vagueNames([
+				"src/api/utils.ts",
+				"src/api/spec/helpers/x.ts",
+				"src/api/misc.test.ts",
+				"src/api/runtime/utility.ts",
+			]),
+		).toEqual(["src/api/utils.ts", "src/api/spec/helpers/x.ts", "src/api/misc.test.ts"])
+		expect(barrels({ "src/api/a.ts": 'export * from "./b.ts"\nexport { c } from "./c.ts"\n' })).toEqual([
+			'src/api/a.ts: export * from "./b.ts"',
 		])
 	})
 
@@ -62,6 +67,6 @@ describe("the architecture rules", () => {
 		expect(section).toContain(`nesting depth ${limit("max-depth")}`)
 		expect(section).toContain(`${maxParams} parameters`)
 		expect(section).toMatch(/errors, config\/types → security, steps → spec/)
-		expect(section).toContain("tests/targets/anyrow.md")
+		expect(section).toContain("tests/api/targets/anyrow.md")
 	})
 })

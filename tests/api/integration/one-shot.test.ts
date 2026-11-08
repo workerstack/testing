@@ -1,0 +1,139 @@
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http"
+import type { AddressInfo } from "node:net"
+import { afterEach, describe, expect, it } from "vitest"
+import { judgeDefect } from "../../../src/api/conformance/matrix/cases.ts"
+import type { OpenApiDocument } from "../../../src/api/spec/types.ts"
+import { run } from "../../../src/api/runtime/run/index.ts"
+import { listening } from "../../../src/api/conformance/harness/launch.ts"
+
+const DEFECT_VERDICTS = new Set(["BACKEND_BUG", "SECURITY", "SPEC_BUG"])
+
+let open: Array<{ close: () => Promise<void> }> = []
+afterEach(async () => {
+	for (const server of open) await server.close()
+	open = []
+})
+
+function spec(): OpenApiDocument {
+	const ok = { "200": { description: "ok" } }
+	return {
+		components: { securitySchemes: { bearer: { scheme: "bearer", type: "http" } } },
+		info: { title: "one-shot", version: "1" },
+		openapi: "3.1.0",
+		paths: {
+			/* Public by declaration: an operation the document leaves unsecured says nothing either way. */
+			"/health": { get: { operationId: "gateway.health", responses: ok, security: [] } },
+			"/v1/needs-query": {
+				get: {
+					operationId: "needs.query",
+					parameters: [{ in: "query", name: "token", required: true, schema: { type: "string" } }],
+					responses: ok,
+				},
+			},
+			"/v1/private": {
+				get: { operationId: "private.read", responses: ok, security: [{ bearer: [] }] },
+			},
+		},
+	} as OpenApiDocument
+}
+
+async function serve(healthStatus: number): Promise<{ hits: string[]; url: string }> {
+	const hits: string[] = []
+	const document = spec()
+	const server = createServer((req: IncomingMessage, res: ServerResponse) => {
+		const url = new URL(req.url ?? "/", "http://127.0.0.1")
+		const method = (req.method ?? "GET").toUpperCase()
+		const authed = req.headers.authorization === "Bearer alpha"
+		/* A request to the private read without alpha's credential is a security probe's: it is refused. */
+		const refused = url.pathname === "/v1/private" && !authed
+		hits.push(`${method} ${url.pathname}${refused ? " refused" : ""}`)
+		if (url.pathname === "/openapi.json" && method === "GET") {
+			res.writeHead(200, { "content-type": "application/json" })
+			res.end(JSON.stringify(document))
+			return
+		}
+		if (url.pathname === "/health" && method === "GET") {
+			res.writeHead(healthStatus, { "content-type": "application/json" })
+			res.end(JSON.stringify({ ok: healthStatus === 200 }))
+			return
+		}
+		if (refused) {
+			res.writeHead(401, { "content-type": "application/json" })
+			res.end(JSON.stringify({ error: "unauthorized" }))
+			return
+		}
+		if (url.pathname === "/v1/private" && method === "GET") {
+			res.writeHead(200, { "content-type": "application/json" })
+			res.end(JSON.stringify({ ok: true }))
+			return
+		}
+		if (url.pathname === "/v1/needs-query" && method === "GET" && url.searchParams.get("token") !== null) {
+			res.writeHead(200, { "content-type": "application/json" })
+			res.end(JSON.stringify({ ok: true }))
+			return
+		}
+		res.writeHead(500, { "content-type": "application/json" })
+		res.end(JSON.stringify({ error: "should not have been called" }))
+	})
+	await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve))
+	const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
+	open.push({ close: () => new Promise<void>((resolve) => server.close(() => resolve())) })
+	return { hits, url }
+}
+
+async function runAt(baseUrl: string) {
+	return run({
+		baseUrl,
+		principals: { alpha: {} },
+		security: { bearer: { static: "alpha" } },
+		seed: 1,
+		spec: `${baseUrl}/openapi.json`,
+	})
+}
+
+describe("a public read with no id", () => {
+	it("holds the public read anonymously and grades the rest at the contract tier", async () => {
+		const { hits, url } = await serve(200)
+		const result = await runAt(url)
+		const defects = result.findings.filter((finding) => DEFECT_VERDICTS.has(finding.verdict))
+		expect(defects).toEqual([])
+		const health = result.scope.operations.find((op) => op.operationId === "gateway.health")
+		expect(health?.status).toBe("passed")
+		expect(health?.checks.passed).toContain("response.public-get-returns-success")
+		/* Each operation is called once as alpha; the private read is also probed without a credential
+		 * and with an invalid one, and both probes are refused. */
+		expect(hits.filter((hit) => hit !== "GET /openapi.json").sort()).toEqual([
+			"GET /health",
+			"GET /v1/needs-query",
+			"GET /v1/private",
+			"GET /v1/private refused",
+			"GET /v1/private refused",
+		])
+		for (const id of ["needs.query", "private.read"]) {
+			const row = result.scope.operations.find((op) => op.operationId === id)
+			expect(row?.status).toBe("passed")
+			expect(row?.tier).toBe("contract")
+		}
+	})
+
+	it("reports a public read that does not return its success status", async () => {
+		const { url } = await serve(500)
+		const result = await runAt(url)
+		const health = result.scope.operations.find((op) => op.operationId === "gateway.health")
+		expect(health?.status).toBe("failed")
+		expect(result.findings.map((finding) => finding.summary)).toContain(
+			"a public read did not return its success status",
+		)
+	})
+
+	it("the reference backend is caught only when the public read fails", async () => {
+		const failed = await judgeDefect("PUBLIC_GET_NOT_SUCCESS", {
+			backend: "memory",
+			dialect: "postgrest",
+			via: listening,
+		})
+		expect(failed.error).toBeUndefined()
+		expect(failed.detected).toBe(true)
+		expect(failed.spurious).toEqual([])
+	}, 60_000)
+})

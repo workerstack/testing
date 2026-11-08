@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
-import { ENTRY_POINTS } from "../support/coverage-scope.ts"
+import { ENTRY_POINTS } from "../api/support/coverage-scope.ts"
 
 /*
  * Coverage skips a process's entry points, so each must stay provably thin: imports, re-exports and

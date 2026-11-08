@@ -39,7 +39,7 @@ oat run --config oat.config.ts                            # tests the running AP
 
 `doctor` names every coverage gap and the tag that would close it. To see oat find bugs first, run
 the bundled demo API with planted defects (`oat serve --defects STALE_LIST,PATCH_REPLACES`) and
-point `labs/local.config.ts` at the URL it prints.
+point `labs/api/local.config.ts` at the URL it prints.
 
 ## Authentication
 
@@ -112,22 +112,22 @@ The report is written to `.oat/runs/latest/oat-report.json`; read it to sort fin
 - Leftover rows on a shared database poison the numeric and filter checks: wipe them between runs.
 - Webhooks, callbacks and links are not followed, and URL `$ref`s are not fetched.
 
-The full list, with what you see and what to do instead, is in [docs/limits.md](docs/limits.md).
+The full list, with what you see and what to do instead, is in [docs/api/limits.md](docs/api/limits.md).
 
 ## Docs
 
-- [Commands](docs/commands.md): `run`, `doctor`, `plan`, `init`, `serve`, `conformance`
-- [Configuration](docs/configuration/reference.md): every field; then [principals and security](docs/configuration/principals-and-security.md), [hooks](docs/configuration/hooks.md), [origins and uploads](docs/configuration/origins-and-uploads.md)
-- [Migrating to 0.25](docs/migrating-0.25.md): the removed config fields, and relative paths now read from the config's folder
-- [How oat reads a document](docs/model.md): how a run works, entities, seeding, query grammars
-- [OpenAPI tags](docs/tags.md): every `x-*` tag and what it unlocks
-- [Checks and verdicts](docs/checks.md): what each check needs and asserts
-- [Reports](docs/reports.md): `oat-report.json`, `matrix.json`, repro scripts, progress logs
-- [Programmatic API](docs/api.md); [step builders](docs/steps.md): typed scenario steps from `@lovrozagar/oat/steps`
-- [Assumptions](docs/assumptions.md): what oat assumes, and how to declare an exception
-- [Limits](docs/limits.md): what oat cannot do, and what to do instead
-- [Reference defects](docs/reference-defects.md): the named lies `oat serve --defects` can tell
-- [Releasing](docs/releasing.md): how a tag publishes to npm with provenance, and the steps to cut one
+- [Commands](docs/api/commands.md): `run`, `doctor`, `plan`, `init`, `serve`, `conformance`
+- [Configuration](docs/api/configuration/reference.md): every field; then [principals and security](docs/api/configuration/principals-and-security.md), [hooks](docs/api/configuration/hooks.md), [origins and uploads](docs/api/configuration/origins-and-uploads.md)
+- [Migrating to 0.25](docs/api/migrating-0.25.md): the removed config fields, and relative paths now read from the config's folder
+- [How oat reads a document](docs/api/model.md): how a run works, entities, seeding, query grammars
+- [OpenAPI tags](docs/api/tags.md): every `x-*` tag and what it unlocks
+- [Checks and verdicts](docs/api/checks.md): what each check needs and asserts
+- [Reports](docs/api/reports.md): `oat-report.json`, `matrix.json`, repro scripts, progress logs
+- [Programmatic API](docs/api/api.md); [step builders](docs/api/steps.md): typed scenario steps from `@lovrozagar/oat/steps`
+- [Assumptions](docs/api/assumptions.md): what oat assumes, and how to declare an exception
+- [Limits](docs/api/limits.md): what oat cannot do, and what to do instead
+- [Reference defects](docs/api/reference-defects.md): the named lies `oat serve --defects` can tell
+- [Releasing](docs/api/releasing.md): how a tag publishes to npm with provenance, and the steps to cut one
 
 ## License
 

@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, utimesSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
-import { removeStaleRuns } from "../support/temp-root.ts"
+import { removeStaleRuns } from "../api/support/temp-root.ts"
 
 /* A killed run never removes its root; the next one clears roots a day old, and nothing else. */
 

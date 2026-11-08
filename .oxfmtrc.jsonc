@@ -26,7 +26,7 @@
 		"GEMINI.md",
 		".oxfmtrc.jsonc",
 		"oat-out/**",
-		"labs/node_modules/**",
-		"labs/schema/**"
+		"labs/api/node_modules/**",
+		"labs/api/schema/**"
 	]
 }

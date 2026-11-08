@@ -1,6 +1,6 @@
 import { defineConfig } from "vitest/config"
 import floors from "./coverage-floors.json" with { type: "json" }
-import { COVERAGE_EXCLUDE, COVERAGE_INCLUDE } from "./tests/support/coverage-scope.ts"
+import { COVERAGE_EXCLUDE, COVERAGE_INCLUDE } from "./tests/api/support/coverage-scope.ts"
 
 /*
  * Two projects. `unit`: colocated tests beside their module, socket-free, the only source of
@@ -9,19 +9,19 @@ import { COVERAGE_EXCLUDE, COVERAGE_INCLUDE } from "./tests/support/coverage-sco
  */
 export default defineConfig({
 	test: {
-		globalSetup: ["tests/support/temp-root.ts"],
+		globalSetup: ["tests/api/support/temp-root.ts"],
 		/* GitHub Actions sets this for the test step itself; a test that runs `oat run` must not append to
 		 * CI's own job summary. A test of the summary sets its own path. */
 		env: { GITHUB_STEP_SUMMARY: "" },
 		testTimeout: 20_000,
 		execArgv: ["--expose-gc"],
 		projects: [
-			{ extends: true, test: { name: "unit", include: ["src/**/*.test.ts", "lint/**/*.test.ts"] } },
+			{ extends: true, test: { name: "unit", include: ["src/api/**/*.test.ts", "lint/**/*.test.ts"] } },
 			{
 				extends: true,
 				test: {
 					name: "integration",
-					include: ["tests/{integration,regression,structure}/**/*.test.ts"],
+					include: ["tests/{api/integration,api/regression,structure}/**/*.test.ts"],
 					/* A hook here starts a server or runs oat whole (a golden run takes seconds); under a
 					 * loaded host the 10s default timed one out with nothing wrong. 120s is over ten times
 					 * the slowest such hook, so only a hang reaches it. */

@@ -60,13 +60,13 @@ describe("doc links", () => {
 
 describe("the configuration docs", () => {
 	it("are split into principals and security, hooks, origins and uploads, and the reference", () => {
-		const pages = readdirSync(join(ROOT, "docs", "configuration")).toSorted()
+		const pages = readdirSync(join(ROOT, "docs", "api", "configuration")).toSorted()
 		expect(pages).toEqual(["hooks.md", "origins-and-uploads.md", "principals-and-security.md", "reference.md"])
-		expect(existsSync(join(ROOT, "docs", "configuration.md"))).toBe(false)
+		expect(existsSync(join(ROOT, "docs", "api", "configuration.md"))).toBe(false)
 	})
 
 	it("come with a migration guide naming 0.25's breaking change to relative paths", () => {
-		const guide = readFileSync(join(ROOT, "docs", "migrating-0.25.md"), "utf8")
+		const guide = readFileSync(join(ROOT, "docs", "api", "migrating-0.25.md"), "utf8")
 		expect(guide).toMatch(/relative `spec`/)
 		expect(guide).toMatch(/`outDir`/)
 		expect(guide).toMatch(/config's (own )?folder/)
