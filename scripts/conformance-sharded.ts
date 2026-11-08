@@ -32,7 +32,7 @@ const { values, positionals } = parseArgs({
 const out = resolve(values.out ?? mkdtempSync(join(tmpdir(), "oat-conformance-")))
 const skip = new Set((values["skip-backend"] ?? "").split(",").filter(Boolean))
 const jobs = values.jobs === undefined ? [] : ["--jobs", values.jobs]
-const cli = resolve(import.meta.dirname, "..", "dist", "cli.js")
+const cli = resolve(import.meta.dirname, "..", "dist", "api", "cli.js")
 
 function conformance(flags: readonly string[]): number {
 	return spawnSync("node", [cli, "conformance", ...flags], { stdio: "inherit" }).status ?? 1
