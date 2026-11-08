@@ -62,7 +62,7 @@ async function readsUpdatesAndRefuses() {
 	const anonymous = result.client.transcript.find((exchange) => exchange.status === 401)
 	expect(anonymous?.requestHeaders["authorization"]).toBeUndefined()
 	const patched = result.client.transcript.find((exchange) => exchange.method === "PATCH")
-	expect(patched?.requestBody).toEqual({ first_name: "Oat" })
+	expect(patched?.requestBody).toEqual({ first_name: "Tst" })
 }
 
 async function reportsOpenCallerRoute() {

@@ -31,7 +31,7 @@ export interface EntityRun {
 	 * shares a parent record with another could see that entity's writes through it.
 	 */
 	ancestors: AncestorCache
-	/** Identities this entity's collection is known to hold; no create oat sends may reuse one. */
+	/** Identities this entity's collection is known to hold; no create the API tester sends may reuse one. */
 	taken: Set<string>
 	/**
 	 * Cohort variants the backend refused. A check that stands down for want of cohort data says
@@ -40,21 +40,21 @@ export interface EntityRun {
 	lostVariants: string[]
 }
 
-/** The records the entity's checks run against, and what oat knows about them. */
+/** The records the entity's checks run against, and what the API tester knows about them. */
 export interface World {
 	scope: Scope
 	records: Record_[]
-	/** Records oat did not write: every write-path check sits out rather than assert against them. */
+	/** Records the API tester did not write: every write-path check sits out rather than assert against them. */
 	degraded: boolean
 	/** Adopted after a unique conflict: the unique-conflict checks still run against the row. */
 	uniqueAdopted: boolean
 	/** The create answered with an acknowledgment rather than the record. */
 	createAcknowledged: boolean
-	/** The records are the bodies oat sent: no read showed what the server stored. */
+	/** The records are the bodies the API tester sent: no read showed what the server stored. */
 	recordsUnverified?: true
 }
 
-/** A world of records oat did not create: read from what the list already returns. */
+/** A world of records the API tester did not create: read from what the list already returns. */
 export function degradedWorld(existing: { records: Record_[]; scope: Record<string, string> }): World {
 	return {
 		createAcknowledged: false,

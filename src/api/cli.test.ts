@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-/* The executable: run as the program it starts the CLI; imported, as by bin/oat.js, it only offers `start`. */
+/* The executable: run as the program it starts the CLI; imported, as by bin/testing.js, it only offers `start`. */
 
 const argv = process.argv
 
@@ -28,7 +28,7 @@ describe("the cli entry", () => {
 		} finally {
 			process.stderr.write = write
 		}
-		expect(written.join("")).toMatch(/^oat: unknown command "frobnicate"/)
+		expect(written.join("")).toMatch(/^testing api: unknown command "frobnicate"/)
 		expect(process.exitCode).toBe(2)
 	})
 })

@@ -25,9 +25,9 @@ describe("xQuery", () => {
 	it("names the field that is wrong, and what is wrong with it", () => {
 		expect(xQuery("x")).toBe("must be an object")
 		expect(xQuery({ grammar: "bogus" })).toBe('"grammar" must be one of "postgrest", "colon", "equality"')
-		expect(xQuery({ grammar: { term: 1 } })).toMatch(/^"grammar" is a template oat cannot read: /)
+		expect(xQuery({ grammar: { term: 1 } })).toMatch(/^"grammar" is a template the API tester cannot read: /)
 		expect(xQuery({ sortGrammar: "up" })).toBe('"sortGrammar" must be one of "dotted", "prefixed", "colon", "spaced"')
-		expect(xQuery({ sortGrammar: { term: 1 } })).toMatch(/^"sortGrammar" is a template oat cannot read: /)
+		expect(xQuery({ sortGrammar: { term: 1 } })).toMatch(/^"sortGrammar" is a template the API tester cannot read: /)
 		expect(xQuery({ filterable: 5 })).toMatch(/"filterable" must be an array/)
 		expect(xQuery({ maxLimit: "x" })).toBe('"maxLimit" must be a positive integer')
 		expect(xQuery({ sortable: [{ type: "date" }] })).toBe('"sortable" has a row that needs "field"')

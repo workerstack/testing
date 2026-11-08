@@ -2,11 +2,11 @@
  * Schema-driven fixture generation: the discriminating cohort.
  *
  * Valid-random data cannot test a query engine: `ilike` needs a substring, `order` needs a total
- * order, escaping needs metacharacters. oat seeds a *cohort* — one record per variant, each shaped
+ * order, escaping needs metacharacters. The API tester seeds a *cohort* — one record per variant, each shaped
  * so some query assertion has signal — and derives everything from a seed so a failing run is
  * exactly reproducible.
  *
- * The values themselves come from `generate.ts`, the one place oat invents data, from the request
+ * The values themselves come from `generate.ts`, the one place the API tester invents data, from the request
  * schema as `spec/schema.ts` normalizes it. Every body is checked against that schema before it
  * leaves; one that cannot be made valid is a gap naming the operation and the field, never a
  * request the document forbids.
@@ -84,7 +84,7 @@ export function isOverflowError(error: unknown): boolean {
 export interface CohortOptions {
 	/** The operation an overflow names; default "unknown". */
 	operationId?: string
-	/** Recursive schemas the document refers to as `oat-defs#/$defs/<name>`. */
+	/** Recursive schemas the document refers to as `testing-defs#/$defs/<name>`. */
 	defs?: Record<string, JsonSchema>
 	/** Per-run token for values that must not collide with an earlier run's. */
 	nonce?: string
@@ -94,7 +94,7 @@ export interface CohortOptions {
 
 /**
  * The request schema as any writer may fill it: readOnly properties gone, and an optional property
- * marked x-privileged left out, since only the highest rank may set it (`ordinary`). Every body oat
+ * marked x-privileged left out, since only the highest rank may set it (`ordinary`). Every body the API tester
  * makes or cuts from a record is read through this.
  */
 export function ordinaryRequestSchema(schema: JsonSchema): JsonSchema
@@ -135,7 +135,7 @@ export function buildCohort(bodySchema: JsonSchema | boolean, seed: number, opti
 		})
 		if (!result.ok) throw new FixtureOverflow(operationId, result.pointer, result.reason)
 		const body = isObject(result.value) ? result.value : {}
-		/* The self-check: a body oat invented must satisfy the document before it is sent. */
+		/* The self-check: a body the API tester invented must satisfy the document before it is sent. */
 		if (typeof schema === "object" && !isVacuous(schema)) {
 			const errors = instanceErrors(schema, body, options.defs)
 			if (errors.length > 0) throw new FixtureOverflow(operationId, "/", errors.slice(0, 3).join("; "))

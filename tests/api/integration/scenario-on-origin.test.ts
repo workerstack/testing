@@ -90,10 +90,10 @@ const scenario: Scenario = {
 	id: "store",
 	origin: "files",
 	steps: [
-		{ bind: { name: "oat.txt" }, operationId: "file.put", saveAs: { stored: "$.tag" } },
+		{ bind: { name: "testing.txt" }, operationId: "file.put", saveAs: { stored: "$.tag" } },
 		{
 			assert: { equals: "{stored}", from: "$.tag", observes: ["file.put"] },
-			bind: { name: "oat.txt" },
+			bind: { name: "testing.txt" },
 			operationId: "file.get",
 		},
 	],
@@ -133,8 +133,8 @@ describe("a run over two origins, its transcript spooled", () => {
 	for (const interrupted of [false, true]) {
 		it(`leaves no spool behind${interrupted ? " when it is interrupted" : ""}: every client's, the secondary origin's included`, async () => {
 			const { files, main } = await servers()
-			const dir = mkdtempSync(join(tmpdir(), "oat-origins-spool-"))
-			const spools = () => readdirSync(dir).filter((name) => name.startsWith("oat-transcript-"))
+			const dir = mkdtempSync(join(tmpdir(), "testing-origins-spool-"))
+			const spools = () => readdirSync(dir).filter((name) => name.startsWith("testing-transcript-"))
 			const stop = new AbortController()
 			let most = 0
 			/* Watches the spool, and stops the run once the file store has answered its support steps. */

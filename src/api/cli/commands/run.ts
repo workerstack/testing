@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises"
 import { dirname, join, resolve } from "node:path"
-import type { OatConfig } from "../../config/types/config.ts"
+import type { ApiConfig } from "../../config/types/config.ts"
 import { messageOf } from "../../errors/message.ts"
 import { UsageError } from "../../errors/usage-error.ts"
 import { type BaselineFile, parseBaseline } from "../../runtime/baseline.ts"
@@ -33,7 +33,7 @@ export interface RunDeps {
 	signals: SignalSource
 }
 
-/** Loaded when a run starts, not when the CLI does: `oat help` should not pay for it. */
+/** Loaded when a run starts, not when the CLI does: `testing api help` should not pay for it. */
 export async function runPipeline(options: RunOptions): Promise<RunResult> {
 	const { run } = await import("../../runtime/run/index.ts")
 	return run(options)
@@ -42,37 +42,37 @@ export async function runPipeline(options: RunOptions): Promise<RunResult> {
 const PROCESS: RunDeps = { run: runPipeline, signals: process }
 
 /**
- * `oat run --config <file>`: tests the backend the config names, and writes the run folder — the
+ * `testing api run --config <file>`: tests the backend the config names, and writes the run folder — the
  * reports, the progress files and, unless asked not to, the exchange journal. The exit code says
  * what the run found.
  */
 export async function commandRun(writer: Writer, flags: Args["flags"], deps: RunDeps = PROCESS): Promise<number> {
 	const configPath = str(flags, "config")
 	if (configPath === undefined) {
-		writer.err(`oat: run requires --config\n\n${USAGE}`)
+		writer.err(`testing api: run requires --config\n\n${USAGE}`)
 		return EXIT.usage
 	}
 	const formats = reportFormats(flags)
 	if (typeof formats === "string") {
-		writer.err(`oat: ${formats}\n`)
+		writer.err(`testing api: ${formats}\n`)
 		return EXIT.usage
 	}
 	const read = await readConfig(configPath, true)
 	if ("problem" in read) {
-		writer.err(`oat: ${read.problem}\n`)
+		writer.err(`testing api: ${read.problem}\n`)
 		return EXIT.usage
 	}
 	/* The config's checks already refused one without principals: the run has someone to act as. */
 	const { config } = read
 	const baseline = await baselineOf(config, configPath)
 	if (typeof baseline === "string") {
-		writer.err(`oat: ${baseline}\n`)
+		writer.err(`testing api: ${baseline}\n`)
 		return EXIT.usage
 	}
 	return started(writer, { baseline, config, configPath, deps, flags, formats })
 }
 
-/** The reports `--report` names, or why one is not a report oat writes. */
+/** The reports `--report` names, or why one is not a report the API tester writes. */
 function reportFormats(flags: Args["flags"]): ReportFormat[] | string {
 	const named = list(flags, "report") ?? []
 	const unknown = named.find((name) => !(REPORT_FORMATS as readonly string[]).includes(name))
@@ -81,7 +81,7 @@ function reportFormats(flags: Args["flags"]): ReportFormat[] | string {
 }
 
 /** Known findings, relative to the config file like every other path in it — or why they cannot be read. */
-async function baselineOf(config: OatConfig, configPath: string): Promise<BaselineFile | undefined | string> {
+async function baselineOf(config: ApiConfig, configPath: string): Promise<BaselineFile | undefined | string> {
 	if (config.baseline === undefined) return undefined
 	const path = resolve(dirname(resolve(configPath)), config.baseline)
 	try {
@@ -92,7 +92,7 @@ async function baselineOf(config: OatConfig, configPath: string): Promise<Baseli
 }
 
 interface Start {
-	config: OatConfig
+	config: ApiConfig
 	configPath: string
 	flags: Args["flags"]
 	baseline: BaselineFile | undefined
@@ -118,7 +118,7 @@ async function started(writer: Writer, start: Start): Promise<number> {
 		exchangeDir: savesExchanges(config, flags) ? outDir : undefined,
 		onProgress: progress.onProgress,
 		signal: stop.signal,
-		warn: (message) => writer.err(`oat: ${message}\n`),
+		warn: (message) => writer.err(`testing api: ${message}\n`),
 	})
 	let result: RunResult
 	try {
@@ -158,7 +158,7 @@ async function started(writer: Writer, start: Start): Promise<number> {
 	return by === undefined ? exitCode(result) : signalExit(by)
 }
 
-function savesExchanges(config: OatConfig, flags: Args["flags"]): boolean {
+function savesExchanges(config: ApiConfig, flags: Args["flags"]): boolean {
 	const profile = str(flags, "profile") ?? config.profile
 	return resolveSaveExchanges({
 		...(flags["no-save-exchanges"] === true ? { flag: false } : flags["save-exchanges"] === true ? { flag: true } : {}),
@@ -170,7 +170,7 @@ function savesExchanges(config: OatConfig, flags: Args["flags"]): boolean {
 /** A run refused before it could start — the document, or a principal's sign-in. Anything else is a bug. */
 function refused(writer: Writer, error: unknown): number {
 	if (error instanceof FencedError) {
-		writer.err(`oat: ${error.message}\n`)
+		writer.err(`testing api: ${error.message}\n`)
 		return EXIT.failed
 	}
 	if (!(error instanceof UsageError)) throw error

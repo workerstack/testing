@@ -52,7 +52,7 @@ describe("resolveRequest: an operation step", () => {
 	it("refuses an operation the document lacks", async () => {
 		const { ctx } = stepStage(answered)
 		await expect(resolveRequest(ctx, { operationId: "nope" }, {}, 2)).rejects.toThrow(
-			'oat: auth step 3 names operation "nope", which is not in the document',
+			'testing api: auth step 3 names operation "nope", which is not in the document',
 		)
 	})
 })
@@ -100,11 +100,11 @@ describe("resolveRequest: a raw step", () => {
 		]
 		for (const step of sends) {
 			await expect(resolveRequest(ctx, step, scope, 1)).rejects.toThrow(
-				"oat: step 2's placeholder {realm-name} has no value: no bind, saveAs or earlier step fills it",
+				"testing api: step 2's placeholder {realm-name} has no value: no bind, saveAs or earlier step fills it",
 			)
 		}
 		await expect(resolveRequest(ctx, { operationId: "orgs.get" }, {}, 0)).rejects.toThrow(
-			"oat: step 1's placeholder {org} has no value",
+			"testing api: step 1's placeholder {org} has no value",
 		)
 	})
 
@@ -112,7 +112,7 @@ describe("resolveRequest: a raw step", () => {
 		const { ctx } = stepStage(answered)
 		const wait: AuthStep = { outOfBand: { address: "a", as: "t", kind: "otp" } }
 		await expect(resolveRequest(ctx, wait, {}, 0)).rejects.toThrow(
-			"oat: auth step 1 declares neither an operationId nor a method and path",
+			"testing api: auth step 1 declares neither an operationId nor a method and path",
 		)
 	})
 })
@@ -130,11 +130,11 @@ describe("resolveRequest: origins", () => {
 	it("refuses an origin the config does not declare, naming the ones it does", async () => {
 		const { ctx } = stepStage(answered)
 		await expect(resolveRequest(ctx, { method: "GET", origin: "app", path: "/" }, {}, 0)).rejects.toThrow(
-			'oat: auth step 1 names origin "app", which is not in config.origins (known: sso)',
+			'testing api: auth step 1 names origin "app", which is not in config.origins (known: sso)',
 		)
 		const { originClients: _, ...alone } = ctx
 		await expect(resolveRequest(alone, { method: "GET", origin: "app", path: "/" }, {}, 0)).rejects.toThrow(
-			/^oat: auth step 1 names origin "app", which is not in config\.origins$/,
+			/^testing api: auth step 1 names origin "app", which is not in config\.origins$/,
 		)
 	})
 })

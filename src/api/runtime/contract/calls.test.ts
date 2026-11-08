@@ -64,7 +64,7 @@ describe("runContractCalls", () => {
 			"unresolved param thing_id: no response this run saw carried one, and hooks.resolvePathValue did not answer",
 		])
 		expect([...(input.grades.needs.get("things.upload") ?? [])]).toEqual([
-			"needs a text/csv body oat cannot build without a scenario",
+			"needs a text/csv body the API tester cannot build without a scenario",
 		])
 		expect([...(input.grades.needs.get("things.blob") ?? [])]).toEqual(["unresolved query param b"])
 		expect(input.grades.ran.has("things.purge")).toBe(false)
@@ -103,7 +103,7 @@ describe("runContractCalls and declared styles", () => {
 		await runContractCalls(input)
 		expect(sent.map((request) => `${request.method} ${request.path}`)).toEqual(["GET /m;v=red"])
 		expect([...(input.grades.needs.get("m.trace") ?? [])]).toEqual([
-			"fetch refuses TRACE (a cross-site tracing guard), so oat lists the operation but never sends it",
+			"fetch refuses TRACE (a cross-site tracing guard), so the API tester lists the operation but never sends it",
 		])
 	})
 })
@@ -224,7 +224,7 @@ describe("runContractCalls and the principal's own record", () => {
 			sent.map((request) => [request.path, request.options.as, Object.keys(request.options.body as object).toSorted()]),
 		).toEqual([["/users/me", { principal: "disposable-own-record" }, ["display_name", "email", "password"]]])
 		expect([...(input.grades.needs.get("user.update") ?? [])]).toEqual([
-			"user.update would change password on alpha's own record, which alpha signs in with: oat never sends that, and its path names the principal's own record",
+			"user.update would change password on alpha's own record, which alpha signs in with: the API tester never sends that, and its path names the principal's own record",
 		])
 	})
 
@@ -237,7 +237,7 @@ describe("runContractCalls and the principal's own record", () => {
 		await runContractCalls(input)
 		expect(sent).toEqual([])
 		expect([...(input.grades.needs.get("me.update") ?? [])]).toEqual([
-			"me.update would change email on alpha's own record, which alpha signs in with: oat never sends that, and no disposable principal could send it: the document marks no x-fresh-principal operation",
+			"me.update would change email on alpha's own record, which alpha signs in with: the API tester never sends that, and no disposable principal could send it: the document marks no x-fresh-principal operation",
 		])
 	})
 })
@@ -313,8 +313,8 @@ describe("runContractCalls and sign-in operations", () => {
 		expect(JSON.stringify(body)).not.toContain("admin@company.com")
 		expect(body).toEqual({
 			client: generated["client"],
-			email: "oat-nonexistent-n0@example.invalid",
-			password: "oat-nonexistent-n0",
+			email: "testing-nonexistent-n0@example.invalid",
+			password: "testing-nonexistent-n0",
 		})
 	})
 

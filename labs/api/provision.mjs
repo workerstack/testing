@@ -90,7 +90,7 @@ function d1EnvKey(worldId) {
 }
 
 function dbName(worldId) {
-	return `oat-labs-${worldId}`
+	return `testing-labs-${worldId}`
 }
 
 let envText = ""

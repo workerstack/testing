@@ -1,4 +1,4 @@
-/* en-GB spellings in text, identifiers included, for the structure test that holds oat to en-US. */
+/* en-GB spellings in text, identifiers included, for the structure test that holds the API tester to en-US. */
 
 /* The en-GB spellings, inflections spelled out, so no correct en-US word can ever match. */
 const EN_GB: ReadonlySet<string> = /* @__PURE__ */ new Set(

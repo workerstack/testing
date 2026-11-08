@@ -19,7 +19,7 @@ import { buildModel } from "../../../src/api/spec/graph/build.ts"
 import { dereference } from "../../../src/api/spec/load/dereference.ts"
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts"
 import { Redactor } from "../../../src/api/security/redact.ts"
-import { latestJournal, latestReport, oat, referenceConfig, tempDirs } from "../support/cli-run.ts"
+import { latestJournal, latestReport, tester, referenceConfig, tempDirs } from "../support/cli-run.ts"
 
 /* A JSON answer, or a bare status; headers a test sets on `res` first go out with it. */
 function send(res: ServerResponse, status: number, body?: unknown): void {
@@ -296,17 +296,17 @@ describe("rate-limit rules for a documented operation", () => {
 	})
 })
 
-const dirs = tempDirs("oat-rate-limit-")
+const dirs = tempDirs("testing-rate-limit-")
 afterAll(dirs.removeAll)
 
-/* `oat run --only table` against a reference whose listings declare `x-rate-limit`. */
+/* `testing api run --only table` against a reference whose listings declare `x-rate-limit`. */
 async function runDeclared(defects: string[]) {
 	const server = await createMemoryServer({ defects })
 	try {
 		const dir = await dirs.make()
 		const config = await referenceConfig(dir, server.url)
 		const runs = join(dir, "runs")
-		const { code, out } = await oat(["run", "--config", config, "--out", runs, "--only", "table", "--quiet"])
+		const { code, out } = await tester(["run", "--config", config, "--out", runs, "--only", "table", "--quiet"])
 		return { code, runs, text: out }
 	} finally {
 		await server.close()

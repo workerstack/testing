@@ -29,7 +29,7 @@ const { values, positionals } = parseArgs({
 		"skip-backend": { type: "string" },
 	},
 })
-const out = resolve(values.out ?? mkdtempSync(join(tmpdir(), "oat-conformance-")))
+const out = resolve(values.out ?? mkdtempSync(join(tmpdir(), "testing-conformance-")))
 const skip = new Set((values["skip-backend"] ?? "").split(",").filter(Boolean))
 const jobs = values.jobs === undefined ? [] : ["--jobs", values.jobs]
 const cli = resolve(import.meta.dirname, "..", "dist", "api", "cli.js")
@@ -68,7 +68,7 @@ if (values.list === true) {
 if (values.leg !== undefined) {
 	const shard = conformanceShards().find((candidate) => candidate.name === values.leg)
 	if (shard === undefined) {
-		console.error(`oat: no conformance shard named ${values.leg}`)
+		console.error(`testing api: no conformance shard named ${values.leg}`)
 		process.exit(2)
 	}
 	process.exit(runShard(shard, positionals))
@@ -76,7 +76,7 @@ if (values.leg !== undefined) {
 
 const planned = await runnable()
 if (typeof planned === "string") {
-	console.error(`oat: ${planned}`)
+	console.error(`testing api: ${planned}`)
 	process.exit(2)
 }
 const timings: Array<{ name: string; code: number; seconds: number }> = []

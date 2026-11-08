@@ -5,7 +5,12 @@ import { RefusedAnswer } from "./answer.ts"
 import { acquireMint } from "./mint.ts"
 
 const mint: MintRecipe = {
-	body: { label: "oat {principal.email}", note: "for {scopes}", scopes: "{scopes}", tags: ["oat", 1, null] },
+	body: {
+		label: "the API tester {principal.email}",
+		note: "for {scopes}",
+		scopes: "{scopes}",
+		tags: ["testing", 1, null],
+	},
 	from: "$.key",
 	operationId: "apiKey.create",
 	revoke: "apiKey.revoke",
@@ -21,10 +26,10 @@ describe("acquireMint", () => {
 		expect(recorded.calls).toEqual([
 			{
 				body: {
-					label: "oat ann@x.io",
+					label: "the API tester ann@x.io",
 					note: "for rows:read rows:write",
 					scopes: ["rows:read", "rows:write"],
-					tags: ["oat", 1, null],
+					tags: ["testing", 1, null],
 				},
 				as: AS_JWT,
 				operationId: "apiKey.create",

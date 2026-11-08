@@ -1,7 +1,7 @@
 /**
  * Declared query capabilities — the catalog every list check consults.
  *
- * oat does not own which fields, operators, search modes, or nulls policies an API supports.
+ * The API tester does not own which fields, operators, search modes, or nulls policies an API supports.
  * Those are declared on `x-query`, in `config.query` / `config.entities`, or harvested.
  * Missing capability → the check does not apply. New surface is never inferred.
  */

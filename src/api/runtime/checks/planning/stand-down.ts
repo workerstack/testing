@@ -7,14 +7,14 @@ import { cannot, type Plan } from "../core/plan.ts"
 
 /* ------------------------------------------------------------------- helpers */
 
-/** What a check that predicts stored values from the cohort's fields needs, when the records are what oat sent. */
+/** What a check that predicts stored values from the cohort's fields needs, when the records are what the API tester sent. */
 export const STORED_FIELDS_UNKNOWN: string =
 	"records read back from the server: the create answered without the record and there was no item read, " +
-	"so the cohort holds only the bodies oat sent"
+	"so the cohort holds only the bodies the API tester sent"
 
 /**
  * The stand-down for a check that works out from a record's fields what the server must answer —
- * which records a filter selects, which hold a null — when the records are the bodies oat sent
+ * which records a filter selects, which hold a null — when the records are the bodies the API tester sent
  * (`recordsUnverified`): a field the server defaulted or normalized would read as a defect.
  * `undefined` when the records are the server's.
  */

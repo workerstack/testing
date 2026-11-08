@@ -1,4 +1,4 @@
-/** A tag oat could not resolve, named so the report can say which tag would close the gap. */
+/** A tag the API tester could not resolve, named so the report can say which tag would close the gap. */
 
 export interface Gap {
 	operationId: string

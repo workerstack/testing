@@ -1,4 +1,4 @@
-/** A value for each string `format` oat knows, deterministic in the variant, index and nonce. */
+/** A value for each string `format` the API tester knows, deterministic in the variant, index and nonce. */
 
 import { slug } from "./text.ts"
 import type { Context } from "./types.ts"
@@ -51,12 +51,12 @@ function partsOf(ctx: Context, distinct: boolean): Parts {
 
 type Maker = (parts: Parts) => string
 
-const email: Maker = (p) => `oat-${p.slug}-${p.i}${p.tail}@example.test`
+const email: Maker = (p) => `testing-${p.slug}-${p.i}${p.tail}@example.test`
 const uri: Maker = (p) => `https://example.test/${p.slug}-${p.i}${p.tail}`
 const hostname: Maker = (p) => `host-${p.i}${p.tail}.example.test`
 
 const FORMATS: Readonly<Record<string, Maker>> = {
-	byte: (p) => Buffer.from(`oat ${p.i}`).toString("base64"),
+	byte: (p) => Buffer.from(`testing ${p.i}`).toString("base64"),
 	date: (p) => p.date,
 	"date-time": (p) => `${p.date}T${p.time}`,
 	email,
@@ -74,7 +74,7 @@ const FORMATS: Readonly<Record<string, Maker>> = {
 	uuid: (p) => uuidFrom(p.salt),
 }
 
-/** A value for each `format` oat knows; `undefined` for one it does not. */
+/** A value for each `format` the API tester knows; `undefined` for one it does not. */
 export function formatted(format: string, ctx: Context, distinct: boolean): string | undefined {
 	return Object.hasOwn(FORMATS, format) ? (FORMATS[format] as Maker)(partsOf(ctx, distinct)) : undefined
 }

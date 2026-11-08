@@ -51,7 +51,7 @@ export const immutableRejected: Check<{
 			return standDown("a documented feature gate refused the request")
 		const refused = judgeRefusal(ctx, this.id, ["validation", "conflict"], patched)
 		if (refused !== null) return refused
-		/* An accepted write to a key — a tenant, a parent — can move the record outside every scope oat
+		/* An accepted write to a key — a tenant, a parent — can move the record outside every scope the API tester
 		 * can reach, whether or not the echo shows it. */
 		ctx.recordMoved?.(
 			ctx.entityName,

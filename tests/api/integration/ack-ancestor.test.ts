@@ -5,10 +5,10 @@ import { run } from "../../../src/api/runtime/run/index.ts"
 import type { JsonSchema, OpenApiDocument } from "../../../src/api/spec/types.ts"
 
 /*
- * Two ways a client-chosen identity with an acknowledgment-only create can trip oat:
+ * Two ways a client-chosen identity with an acknowledgment-only create can trip the API tester:
  *  - as a parent: notes live under a folder, and the folder's create answers `{ success: true }`.
- *    oat must still make the folder, use the id it sent once a read confirms it, and remove it.
- *  - in a small id space: every create oat sends, checks included, must avoid the ids its own
+ *    The API tester must still make the folder, use the id it sent once a read confirms it, and remove it.
+ *  - in a small id space: every create the API tester sends, checks included, must avoid the ids its own
  *    seeded records already hold, or the backend answers 409 and the check learns nothing.
  */
 
@@ -237,7 +237,7 @@ describe("an acknowledgment-only parent with a client-chosen id", () => {
 })
 
 describe("a small client-chosen id space", () => {
-	it("never makes a check collide with an id oat's own records hold", async () => {
+	it("never makes a check collide with an id the API tester's own records hold", async () => {
 		const { result } = await runAgainst(5)
 		expect(result.inconclusive.filter((entry) => /answered 409/.test(entry.reason))).toEqual([])
 	})

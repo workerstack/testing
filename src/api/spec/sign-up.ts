@@ -5,9 +5,9 @@
  * credential store never renews a login by calling one again.
  *
  * An unmarked sign-up is an open POST named as a sign-up, or an open collection create that takes a
- * password and resets, recovers or changes none. oat ledgers what it sends there like any sign-up,
+ * password and resets, recovers or changes none. The API tester ledgers what it sends there like any sign-up,
  * so an account it makes on an untagged document is named, never left silent. Tagging the
- * operation lets oat sign in as the account and remove it.
+ * operation lets the API tester sign in as the account and remove it.
  */
 
 import { requestSchema } from "./collection/request.ts"

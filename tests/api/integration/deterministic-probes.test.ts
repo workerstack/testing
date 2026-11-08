@@ -11,7 +11,7 @@ import type { OpenApiDocument } from "../../../src/api/spec/types.ts"
 import { listening } from "../../../src/api/conformance/harness/launch.ts"
 
 /*
- * What oat sends is a function of its inputs: the same seed and nonce give the same bodies. A salt
+ * What the API tester sends is a function of its inputs: the same seed and nonce give the same bodies. A salt
  * drawn from the shared transcript, or from a counter every concurrent check advances, made a probe
  * depend on whatever else happened to run — the same run could send a different body, and a
  * verdict could change with the load on the machine.

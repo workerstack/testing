@@ -14,7 +14,7 @@ import { Redactor } from "../../../src/api/security/redact.ts"
 /*
  * A hook that sees every request before it leaves the process and may refuse it. A refused
  * request never reaches the backend, is never read as the backend's answer, and is listed in the
- * result; by default it fails the run, because what oat was asked to test was not all tested.
+ * result; by default it fails the run, because what the API tester was asked to test was not all tested.
  */
 
 const noDeletes = (request: FenceRequest): FenceDecision =>

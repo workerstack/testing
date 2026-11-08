@@ -18,9 +18,11 @@ describe("resolveProfile", () => {
 
 	it("refuses a name nothing defines, listing what is known once", () => {
 		expect(() => resolveProfile("nope", { cheap: {}, mine: {} })).toThrow(
-			'oat: profile "nope" is not defined. Known: cheap, full, mine',
+			'testing api: profile "nope" is not defined. Known: cheap, full, mine',
 		)
-		expect(() => resolveProfile("nope", undefined)).toThrow('oat: profile "nope" is not defined. Known: cheap, full')
+		expect(() => resolveProfile("nope", undefined)).toThrow(
+			'testing api: profile "nope" is not defined. Known: cheap, full',
+		)
 	})
 })
 

@@ -7,7 +7,7 @@ describe("principalOf", () => {
 		const { input } = stage(notesApi(notes()))
 		expect(principalOf(input, scenario([]), "beta").scope).toEqual({})
 		expect(() => principalOf(input, scenario([]), "gamma")).toThrow(
-			'oat: scenario "flow" names principal "gamma", which is not configured',
+			'testing api: scenario "flow" names principal "gamma", which is not configured',
 		)
 	})
 })

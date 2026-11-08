@@ -84,7 +84,7 @@ interface Probe {
 	reread: () => Promise<Exchange>
 }
 
-/** A write that crossed the boundary: SECURITY where the document declares it, AMBIGUITY where oat inferred it. */
+/** A write that crossed the boundary: SECURITY where the document declares it, AMBIGUITY where the API tester inferred it. */
 function breach(
 	{ check, ctx }: Probe,
 	op: OperationModel,
@@ -101,7 +101,7 @@ function breach(
 	return ctx.findings.report({
 		check,
 		detail:
-			`${detail} oat inferred tenant scoping from the "${op.tenantParam}" path parameter; ` +
+			`${detail} the API tester inferred tenant scoping from the "${op.tenantParam}" path parameter; ` +
 			"declare x-tenant so the same result is SECURITY.",
 		entity: ctx.entityName,
 		evidence,

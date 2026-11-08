@@ -13,7 +13,7 @@ export type Fresh = ClientIdCreate | { withheld: string }
 
 /**
  * A create meant to succeed, from `validBody`, sent as `principal`, unless a higher rank alone may
- * send it (`privilegedBar`): then it is `withheld`, why. A client-chosen identity oat never saw can
+ * send it (`privilegedBar`): then it is `withheld`, why. A client-chosen identity the API tester never saw can
  * still be taken, by another tenant's record in an id space that spans tenants, so a 409 on such a
  * body is sent again under a fresh one (`createWithClientId`), and `exhausted` says why when every
  * attempt was refused. A body with no identity of its own gets its 409 back: that conflict is about

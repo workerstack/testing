@@ -1,6 +1,6 @@
 /*
  * The sign-up side of auth.privileged-field-ignored. Anyone may sign up, so a sign-up must not make
- * an account holding a property only the highest rank may set. oat signs one account up through the
+ * an account holding a property only the highest rank may set. The API tester signs one account up through the
  * document's sign-up (the operation marked x-fresh-principal, or one it leaves unmarked): a body
  * generated from its schema, each marked property set to the value that grants the privilege. Then
  * it reads back whether that took, by the first read that shows it: the account's own read, the
@@ -74,7 +74,7 @@ export function signUpPlan(ctx: OperationContext): Plan<SignUpProbe> {
 
 /*
  * The value each marked property is set to: its `const`, its enum's one member, or `true` for a
- * boolean. Any other property says nothing of which value is privileged, and oat never guesses one.
+ * boolean. Any other property says nothing of which value is privileged, and the API tester never guesses one.
  */
 function valuesOf(ctx: OperationContext, schema: JsonSchema): Plan<Array<[string, unknown]>> {
 	const values: Array<[string, unknown]> = []
@@ -83,7 +83,10 @@ function valuesOf(ctx: OperationContext, schema: JsonSchema): Plan<Array<[string
 		if (property !== undefined && Object.hasOwn(property, "const")) values.push([path, property.const])
 		else if (Array.isArray(property?.enum) && property.enum.length === 1) values.push([path, property.enum[0]])
 		else if (property?.type === "boolean") values.push([path, true])
-		else return cannot(`${path}: no value oat can tell is privileged (no const, no one-member enum, not a boolean)`)
+		else
+			return cannot(
+				`${path}: no value the API tester can tell is privileged (no const, no one-member enum, not a boolean)`,
+			)
 	}
 	return ready(values)
 }

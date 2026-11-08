@@ -1,4 +1,4 @@
-/** Hostile spec fixtures about what oat models from a document: envelopes, names, composition, references, query roles. */
+/** Hostile spec fixtures about what the API tester models from a document: envelopes, names, composition, references, query roles. */
 
 import type { SpecFixture } from "./types.ts"
 import { okResponse } from "./documents.ts"
@@ -97,7 +97,7 @@ function allofComposedResponse(): SpecFixture {
 		},
 		expectOperations: 1,
 		name: "allof-composed-response",
-		why: "composition hides the collection behind allOf; oat should degrade, never throw",
+		why: "composition hides the collection behind allOf; the API tester should degrade, never throw",
 	}
 }
 

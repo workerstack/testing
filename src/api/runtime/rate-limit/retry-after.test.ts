@@ -40,13 +40,13 @@ describe("describeServerError", () => {
 		expect(describeServerError(answered(500, named))).toBe("answered with a server error (500)")
 	})
 
-	it("names the wait a 503 asked for past the limit, which oat did not wait out", () => {
+	it("names the wait a 503 asked for past the limit, which the API tester did not wait out", () => {
 		const exceeded = answered(503, {
 			responseHeaders: { "retry-after": "86400" },
 			retryAfterExceeded: { limitMs: 60_000, waitMs: 86_400_000 },
 		})
 		expect(describeServerError(exceeded)).toBe(
-			"was unavailable (503) and asked oat to wait 24h, longer than network.maxRetryAfterMs (1m)",
+			"was unavailable (503) and asked the API tester to wait 24h, longer than network.maxRetryAfterMs (1m)",
 		)
 	})
 })
@@ -131,7 +131,7 @@ describe("describeStatus", () => {
 		expect(describeStatus(answered(409))).toBe("409")
 		expect(describeStatus(answered(429, { responseHeaders: { "retry-after": "5" } }))).toBe("429")
 		expect(describeStatus(answered(429, { retryAfterExceeded: { limitMs: 60_000, waitMs: 86_400_000 } }))).toBe(
-			"429 and asked oat to wait 24h, longer than network.maxRetryAfterMs (1m)",
+			"429 and asked the API tester to wait 24h, longer than network.maxRetryAfterMs (1m)",
 		)
 	})
 })

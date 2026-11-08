@@ -10,7 +10,7 @@ describe("okResponse", () => {
 })
 
 describe("documentFixtures", () => {
-	it("each says why it is hostile, and what oat must find when that is known", () => {
+	it("each says why it is hostile, and what the API tester must find when that is known", () => {
 		for (const fixture of documentFixtures()) {
 			expect(fixture.why).not.toBe("")
 			expect(fixture.expectOperations).toBeGreaterThanOrEqual(0)

@@ -1,6 +1,6 @@
 /**
  * The document as a run sees it: the config's overlay applied, then everything outside `allow`
- * removed. One function, so `run`, `plan` and `doctor` cannot disagree about what oat may call.
+ * removed. One function, so `run`, `plan` and `doctor` cannot disagree about what the API tester may call.
  */
 
 import type { PrincipalEntry, Recipe } from "../config/types/security.ts"

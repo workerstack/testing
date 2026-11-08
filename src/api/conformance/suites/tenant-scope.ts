@@ -20,7 +20,7 @@ const CATALOG_PRINCIPALS: PrincipalsConfig = {
 	beta: { scope: { workspace_id: "ws_b" }, tenant: "ws_b", token: "tok_beta" },
 }
 
-/** oat run once against a fresh public catalog. */
+/** testing api run once against a fresh public catalog. */
 async function catalogRun(via: Via): Promise<RunResult> {
 	const hosted = await via.host(publicCatalog())
 	try {

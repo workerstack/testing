@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased
+
+### Changed (breaking)
+
+- oat is now `@workerstack/testing`, and oat itself is its `/api` subpath, the API tester. Every name
+  changed; [the migration guide](docs/api/migrating-from-oat.md) lists each one, old to new:
+  - `npm i -D @workerstack/testing`; imports come from `@workerstack/testing/api` and
+    `@workerstack/testing/api/steps`, and the package has no root export. `OatConfig` is `ApiConfig`.
+  - The binary is `testing`: `testing api <command>` replaces `oat <command>`, and `testing` alone
+    lists the subpaths. Messages start `testing api:`.
+  - `testing api init` writes `testing.api.config.ts` with `TESTING_API_*` env names. Runs go to
+    `.testing/api/runs/<datetime>/` with `report.md` and `report.json`; kept credentials to
+    `.testing/api/credentials.json`; the default baseline is `testing.api.baseline.json`.
+  - The matrix kind is `testing.api.matrix` and the JUnit suite `testing.api.run`. The loader's
+    working keys are `x-testing-*`, and the reference backend's bypass header is `x-testing-fresh`.
+  - Values the tester generates carry `testing-` and `testing_` (`testing-absent-…`,
+    `testing-baseline-…@example.test`, `testing_unknown_parameter`).
+  - The tester's own env vars are `TESTING_API_DEFER_ENV` and `TESTING_API_HEAP_SNAPSHOTS`.
+- `testing api baseline --from` and `testing api diff` pointed at a run folder from before the rename
+  (it holds `oat-report.json`) say so and name the migration guide, instead of reporting a missing
+  `report.json`.
+
 ## 0.31.0
 
 ### Added

@@ -145,7 +145,7 @@ export interface Stopped {
 
 /**
  * Why an error left a check unresolved, reported where it is a cause: the network down, a fenced
- * request, a value oat did not have, a write that would change how a principal signs in, a
+ * request, a value the API tester did not have, a write that would change how a principal signs in, a
  * credential that would not refresh. `undefined` for any other
  * error, which the caller reports as a check that could not complete.
  */

@@ -11,7 +11,7 @@ const MESSAGE = "terminal output belongs to src/api/cli/writer.ts; write through
 export const rule: Rule = {
 	create(context: Context) {
 		const file = repoPath(context.filename)
-		if (!file.includes("/src/api/") || file.endsWith(WRITER) || isTestCode(file)) return {}
+		if (!file.includes("/src/") || file.endsWith(WRITER) || isTestCode(file)) return {}
 		return {
 			MemberExpression(node: Member) {
 				if (node.object.type !== "Identifier") return

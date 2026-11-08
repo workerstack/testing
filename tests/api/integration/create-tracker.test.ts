@@ -10,7 +10,7 @@ import { renderTeardown } from "../../../src/api/runtime/teardown/render.ts"
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts"
 
 /*
- * Every create oat sends as a configured principal is that principal's to remove. A probe that
+ * Every create the API tester sends as a configured principal is that principal's to remove. A probe that
  * writes under another tenant's root, a create declared as PUT, a scenario's create: each one the
  * backend accepts leaves a record, and teardown removes it with the credential that made it. A
  * create sent with a credential no principal holds belongs to whoever sent it, not to the ledger.

@@ -8,7 +8,7 @@ describe("the TOTP setup route", () => {
 		const second = (await call("POST", "/v1/me/2fa")).body as Record<string, string>
 		expect(first["secret"]).toMatch(/^[A-Z2-7]{32}$/)
 		expect(first["otpauth_uri"]).toMatch(
-			new RegExp(`^otpauth://totp/oat-reference:[^?]+\\?secret=${first["secret"]}&issuer=oat-reference$`),
+			new RegExp(`^otpauth://totp/testing-reference:[^?]+\\?secret=${first["secret"]}&issuer=testing-reference$`),
 		)
 		expect(first["qr_code"]).toMatch(/^data:image\/png;base64,/)
 		expect(second["secret"]).not.toBe(first["secret"])

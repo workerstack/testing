@@ -77,7 +77,7 @@ function changeFrom(header: string, url: URL, host: string): CookieChange | null
 }
 
 /**
- * A cookie jar that behaves like a browser's, as far as oat's flows can tell: a cookie goes back
+ * A cookie jar that behaves like a browser's, as far as the API tester's flows can tell: a cookie goes back
  * only to the host (or `Domain`) and `Path` that set it, only over https when `Secure`, and is
  * forgotten when the server deletes it — an empty value, `Max-Age=0`, or an `Expires` in the past.
  */

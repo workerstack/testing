@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { rule } from "./index-purity.ts"
 import { oxlintReports, reportsOf } from "./rule-harness.ts"
 
-describe("oat/index-purity", () => {
+describe("testing/index-purity", () => {
 	it("allows only named re-exports in an index", () => {
 		const fixture = {
 			"src/api/index.ts": [
@@ -34,7 +34,7 @@ describe("oat/index-purity", () => {
 		expect(reportsOf(rule, fixture)).toEqual([])
 	})
 
-	it("fails oxlint through the oat plugin entry", () => {
+	it("fails oxlint through the testing plugin entry", () => {
 		expect(oxlintReports("index-purity", { "src/api/index.ts": 'export * from "./a.ts"\n' }).length).toBe(1)
 	})
 })

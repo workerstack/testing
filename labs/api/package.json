@@ -1,7 +1,7 @@
 {
-	"name": "oat-labs",
+	"name": "testing-labs",
 	"private": true,
-	"description": "A family of real Hono backends — tiny through platform — for iterating oat",
+	"description": "A family of real Hono backends — tiny through platform — for iterating the API tester",
 	"type": "module",
 	"scripts": {
 		"provision": "node provision.mjs",

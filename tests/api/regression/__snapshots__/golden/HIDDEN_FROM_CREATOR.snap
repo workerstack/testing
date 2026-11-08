@@ -185,7 +185,7 @@
       "added": [
         {
           "check": "payload.string-survives",
-          "detail": "\"note\" was sent \"oat-payload-NONCE\" and read back undefined.",
+          "detail": "\"note\" was sent \"testing-payload-NONCE\" and read back undefined.",
           "entity": "row",
           "operations": [
             "row.get",

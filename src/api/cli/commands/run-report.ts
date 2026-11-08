@@ -63,7 +63,7 @@ export function reportInput({ result, baseUrl, startedAt, durationMs }: Finished
 }
 
 /** Where `--keep-credentials` writes, from the working directory: beside the default runs root, never in a run folder. */
-export const KEPT_CREDENTIALS = ".oat/credentials.json"
+export const KEPT_CREDENTIALS = ".testing/api/credentials.json"
 
 /* Readable by its owner alone, even where the file was already there. */
 async function writePrivate(path: string, text: string): Promise<void> {
@@ -91,8 +91,8 @@ export async function writeReports(finished: Finished, input: ReportInput): Prom
 	const { result, outDir, baseUrl, startedAt } = finished
 	const at = (name: string): string => resolve(outDir, name)
 	await writePrivate(at("principals.json"), `${JSON.stringify({ principals: result.principals }, null, 2)}\n`)
-	await writeFile(at("oat-report.md"), renderMarkdown(input))
-	await writeFile(at("oat-report.json"), renderJson(input))
+	await writeFile(at("report.md"), renderMarkdown(input))
+	await writeFile(at("report.json"), renderJson(input))
 	if (junitAsked(finished)) await writeFile(at("junit.xml"), renderJunit(input))
 	const graph = buildMatrixGraphFromReport(input)
 	await writeFile(at("matrix.html"), renderPoster(graph))
@@ -128,7 +128,7 @@ export async function appendStepSummary(
 	try {
 		await appendFile(path, renderStepSummary(input, { runDir }))
 	} catch (error) {
-		writer.err(`oat: could not write the step summary: ${messageOf(error)}\n`)
+		writer.err(`testing api: could not write the step summary: ${messageOf(error)}\n`)
 	}
 }
 
@@ -139,7 +139,7 @@ export function printSummary(writer: Writer, finished: Finished, input: ReportIn
 	writer.out(renderConsole(input))
 	for (const line of renderTeardown(result.teardown, result.created)) writer.out(`${line}\n`)
 	writer.out(`  confidence: ${at("report.html")}\n`)
-	writer.out(`  report: ${at("oat-report.md")}\n`)
+	writer.out(`  report: ${at("report.md")}\n`)
 	writer.out(`  matrix: ${at("matrix.html")}\n`)
 	writer.out(`  graph:  ${at("matrix.json")}\n`)
 	if (junitAsked(finished)) writer.out(`  junit: ${at("junit.xml")}\n`)

@@ -64,7 +64,7 @@ const ITEM = {
 	type: "object",
 }
 
-/* A page size up to 50, and a page number with no maximum: what makes oat read it as one. */
+/* A page size up to 50, and a page number with no maximum: what makes the API tester read it as one. */
 const SCHEMAS: Readonly<Record<string, Record<string, unknown>>> = {
 	limit: { maximum: 50, minimum: 1, type: "integer" },
 	page: { minimum: 1, type: "integer" },

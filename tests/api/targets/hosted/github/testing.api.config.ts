@@ -1,14 +1,14 @@
 /*
  * GitHub's REST API against a throwaway repository: a manual target that needs the user's secrets
- * (never run by `test:targets`). Written with `oat init`, then filled in.
+ * (never run by `test:targets`). Written with `testing api init`, then filled in.
  *
  * GitHub's description declares no security scheme, so the overlay declares the bearer token every
  * call sends. The run is scoped to labels and milestones, which a repository creates and deletes
  * freely; use a repository that holds nothing else.
  *
- *   OAT_GITHUB_TOKEN=<fine-grained token: Issues read+write on that repository> \
- *   OAT_GITHUB_OWNER=<a throwaway org> OAT_GITHUB_REPO=<its throwaway repository> \
- *     oat run --config tests/api/targets/hosted/github/oat.config.ts
+ *   TESTING_API_GITHUB_TOKEN=<fine-grained token: Issues read+write on that repository> \
+ *   TESTING_API_GITHUB_OWNER=<a throwaway org> TESTING_API_GITHUB_REPO=<its throwaway repository> \
+ *     testing api run --config tests/api/targets/hosted/github/testing.api.config.ts
  */
 import { defineConfig, env } from "../../../../../src/api/index.ts"
 
@@ -22,9 +22,9 @@ export default defineConfig({
 		security: [{ bearer: [] }],
 		securitySchemes: { bearer: { scheme: "bearer", type: "http" } },
 	},
-	security: { bearer: { static: env("OAT_GITHUB_TOKEN") } },
+	security: { bearer: { static: env("TESTING_API_GITHUB_TOKEN") } },
 	principals: {
-		alpha: { scope: { owner: env("OAT_GITHUB_OWNER"), repo: env("OAT_GITHUB_REPO") } },
+		alpha: { scope: { owner: env("TESTING_API_GITHUB_OWNER"), repo: env("TESTING_API_GITHUB_REPO") } },
 	},
 	ops: [
 		"issues/list-labels-for-repo",

@@ -500,7 +500,7 @@
       "added": [
         {
           "check": "sort.invalid-direction-rejected",
-          "detail": "order=label_oatsideways returned 200 in ascending order, so the direction was read as ascending. A direction the declared grammar does not have must be refused, not guessed.",
+          "detail": "order=label_testingsideways returned 200 in ascending order, so the direction was read as ascending. A direction the declared grammar does not have must be refused, not guessed.",
           "entity": "row",
           "operations": [
             "row.list"
@@ -514,7 +514,7 @@
             {
               "method": "GET",
               "status": 200,
-              "url": "http://reference.test/v1/projects/proj_alpha/tables/table_ID/rows?take=5&arrange=label_oatsideways"
+              "url": "http://reference.test/v1/projects/proj_alpha/tables/table_ID/rows?take=5&arrange=label_testingsideways"
             }
           ],
           "summary": "an unknown sort direction is accepted",
@@ -522,7 +522,7 @@
         },
         {
           "check": "sort.invalid-direction-rejected",
-          "detail": "order=name_oatsideways returned 200 in ascending order, so the direction was read as ascending. A direction the declared grammar does not have must be refused, not guessed.",
+          "detail": "order=name_testingsideways returned 200 in ascending order, so the direction was read as ascending. A direction the declared grammar does not have must be refused, not guessed.",
           "entity": "job",
           "operations": [
             "job.list"
@@ -536,7 +536,7 @@
             {
               "method": "GET",
               "status": 200,
-              "url": "http://reference.test/v1/projects/proj_alpha/jobs?take=100&arrange=name_oatsideways"
+              "url": "http://reference.test/v1/projects/proj_alpha/jobs?take=100&arrange=name_testingsideways"
             }
           ],
           "summary": "an unknown sort direction is accepted",
@@ -544,7 +544,7 @@
         },
         {
           "check": "sort.invalid-direction-rejected",
-          "detail": "order=name_oatsideways returned 200 in ascending order, so the direction was read as ascending. A direction the declared grammar does not have must be refused, not guessed.",
+          "detail": "order=name_testingsideways returned 200 in ascending order, so the direction was read as ascending. A direction the declared grammar does not have must be refused, not guessed.",
           "entity": "table",
           "operations": [
             "table.list"
@@ -558,7 +558,7 @@
             {
               "method": "GET",
               "status": 200,
-              "url": "http://reference.test/v1/projects/proj_alpha/tables?take=100&arrange=name_oatsideways"
+              "url": "http://reference.test/v1/projects/proj_alpha/tables?take=100&arrange=name_testingsideways"
             }
           ],
           "summary": "an unknown sort direction is accepted",

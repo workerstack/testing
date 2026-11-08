@@ -1,8 +1,8 @@
 import type { OpenApiDocument } from "../types.ts"
 
-/** Where recursive schemas live after dereferencing: `$ref: "oat-defs#/$defs/<name>"`. */
-export const DEFS_ID = "oat-defs"
-export const DEFS_KEY = "x-oat-defs"
+/** Where recursive schemas live after dereferencing: `$ref: "testing-defs#/$defs/<name>"`. */
+export const DEFS_ID = "testing-defs"
+export const DEFS_KEY = "x-testing-defs"
 
 /** The recursive schemas a dereferenced document refers to, by name. Empty when there are none. */
 export function documentDefs(doc: OpenApiDocument): Record<string, Record<string, unknown>> {

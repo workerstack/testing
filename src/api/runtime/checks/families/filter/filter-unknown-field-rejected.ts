@@ -24,7 +24,7 @@ export const unknownFilterRejected: Check<{ unknownField: Record<string, string>
 		const unknownField =
 			conv(ctx).filter === undefined
 				? null
-				: filterTerm(conv(ctx), { field: "oat_no_such_field_xyz", op: "eq", value: 1 })
+				: filterTerm(conv(ctx), { field: "testing_no_such_field_xyz", op: "eq", value: 1 })
 		return unknownField === null ? cannot() : ready({ unknownField })
 	},
 	id: "filter.unknown-field-rejected",

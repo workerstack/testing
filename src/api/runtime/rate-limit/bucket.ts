@@ -37,7 +37,7 @@ export class RateBucket {
 			this.tokens = Math.min(this.rps, this.tokens + ((after - this.last) / 1000) * this.rps)
 			this.last = after
 			if (this.tokens >= 1) {
-				/* A cooldown wait is not room — oat did not believe it was under its own pace. */
+				/* A cooldown wait is not room — the API tester did not believe it was under its own pace. */
 				hadRoom = now >= this.cooldownUntil
 				this.tokens -= 1
 				return

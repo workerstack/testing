@@ -9,7 +9,7 @@ import { CHECKS } from "../../src/api/runtime/checks/registry.ts"
 
 /*
  * Every name a user can meet (a check id, a defect, a CLI flag, a top-level config field, an `x-*`
- * tag oat reads, a public export) appears in the doc that explains it. Names undocumented today
+ * tag the API tester reads, a public export) appears in the doc that explains it. Names undocumented today
  * are listed below; the lists only shrink: documenting one fails the test until it leaves its list.
  */
 
@@ -23,10 +23,10 @@ function sourcesUnder(dir: string): string[] {
 		.map((entry) => readFileSync(join(entry.parentPath, entry.name), "utf8"))
 }
 
-/* `x-oat-*` is oat's own namespace: keys the loader writes into the working document, never a tag a user writes. */
-const reserved = (tag: string): boolean => tag === "x-oat" || tag.startsWith("x-oat-")
+/* `x-testing-*` is the API tester's own namespace: keys the loader writes into the working document, never a tag a user writes. */
+const reserved = (tag: string): boolean => tag === "x-testing" || tag.startsWith("x-testing-")
 
-/* The tags oat reads: every `"x-…"` literal in the spec layer, less the one media type and the reserved namespace. */
+/* The tags the API tester reads: every `"x-…"` literal in the spec layer, less the one media type and the reserved namespace. */
 function tagsRead(): string[] {
 	const tags = sourcesUnder("src/api/spec").flatMap((text) =>
 		[...text.matchAll(/"(x-[a-z0-9-]+)"/g)].map((m) => m[1] ?? ""),
@@ -131,7 +131,7 @@ describe("docs name nothing the code lacks", () => {
 		expect(listed.filter((id) => !ids.has(id))).toEqual([])
 	})
 
-	it("every x-* name tags.md mentions is one oat reads", () => {
+	it("every x-* name tags.md mentions is one the API tester reads", () => {
 		const read = new Set(tagsRead())
 		const mentioned = new Set(
 			[...doc("tags.md").matchAll(/(?<![\w-])(x-[a-z0-9]+(?:-[a-z0-9]+)*)/g)].map((m) => m[1] ?? ""),

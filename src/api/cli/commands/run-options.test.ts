@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest"
-import type { OatConfig } from "../../config/types/config.ts"
+import type { ApiConfig } from "../../config/types/config.ts"
 import type { BaselineFile } from "../../runtime/baseline.ts"
 import { overridesOf, type RunSetting, runOptionsOf } from "./run-options.ts"
 
 /* The run's options: the config as written, the flags over it, and what the command set up. */
 
-const config: OatConfig = {
+const config: ApiConfig = {
 	baseUrl: "http://api.test",
 	principals: { alpha: { tenant: "t1" } },
 	spec: "openapi.json",
@@ -13,7 +13,7 @@ const config: OatConfig = {
 
 const setting = (extra: Partial<RunSetting> = {}): RunSetting => ({
 	baseline: undefined,
-	configPath: "/cfg/oat.config.ts",
+	configPath: "/cfg/testing.api.config.ts",
 	exchangeDir: undefined,
 	onProgress: () => undefined,
 	signal: new AbortController().signal,
@@ -46,7 +46,7 @@ describe("runOptionsOf", () => {
 			maxInFlight: 9,
 			network: { retries: 1 },
 			seed: 5,
-		} as OatConfig
+		} as ApiConfig
 		expect(runOptionsOf(written, {}, setting())).toMatchObject({
 			cohortSize: 3,
 			hooks,
@@ -113,7 +113,7 @@ describe("runOptionsOf overrides", () => {
 describe("runOptionsOf edge cases", () => {
 	it("has no principals for a config that names none", () => {
 		const { principals: _none, ...bare } = config
-		expect(runOptionsOf(bare as OatConfig, {}, setting()).principals).toEqual({})
+		expect(runOptionsOf(bare as ApiConfig, {}, setting()).principals).toEqual({})
 	})
 
 	it("drops target lists that name nothing", () => {

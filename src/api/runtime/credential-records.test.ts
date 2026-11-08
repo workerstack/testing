@@ -80,7 +80,7 @@ describe("mintedRecords", () => {
 			minted({ id: "x-1" }, { operationId: "token.mint" }),
 			minted({ id: "x-2" }, { operationId: "gone.mint" }),
 		]
-		/* A mint the document places in no entity, or no operation at all, holds no record oat can name. */
+		/* A mint the document places in no entity, or no operation at all, holds no record the API tester can name. */
 		const mintOps = new Set(["apiKey.create", "token.mint", "gone.mint"])
 		expect(mintedRecords({ exchanges, mintOps, model: MODEL })).toEqual([])
 	})

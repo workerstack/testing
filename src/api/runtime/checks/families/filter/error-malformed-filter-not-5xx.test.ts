@@ -25,7 +25,7 @@ describe("error.malformed-filter-not-5xx", () => {
 	it("judges a well-formed filter on an unknown field when the backend accepts malformed syntax", async () => {
 		const crashes = stage({ behavior: { policy: { malformed: "drop", unknown: 500 } }, records: COHORT })
 		expect(await runCheck(check, crashes.ctx)).toMatchObject({ kind: "finding" })
-		expect(filters(crashes.sent)).toEqual(["((((", "oat_no_such_field_xyz.eq.1"])
+		expect(filters(crashes.sent)).toEqual(["((((", "testing_no_such_field_xyz.eq.1"])
 		expect(only(crashes.findings).detail).toContain("returned 500")
 		const refuses = stage({ behavior: { policy: { malformed: "drop", unknown: 400 } }, records: COHORT })
 		expect(await runCheck(check, refuses.ctx)).toEqual({ kind: "asserted" })

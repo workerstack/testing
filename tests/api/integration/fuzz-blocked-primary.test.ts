@@ -9,8 +9,8 @@ import { run } from "../../../src/api/runtime/run/index.ts"
 /*
  * Combination fuzzing, CI seed 40807199544, combination 585000. DISPOSABLE_KILLS_CALLER's logout
  * revokes the suite caller and refuses every fresh sign-in, so auth.privileged-field-ignored cannot
- * send its signup: oat signs the caller in again, is refused, and reports the check BLOCKED, naming
- * it. That is the check saying why it could not conclude, not oat going quiet, and the fuzz must
+ * send its signup: the API tester signs the caller in again, is refused, and reports the check BLOCKED, naming
+ * it. That is the check saying why it could not conclude, not the API tester going quiet, and the fuzz must
  * read it so: PRIVILEGED_FIELD_WRITABLE is unresolved there, never missed.
  */
 const COMBINATION_585000: DefectName[] = [

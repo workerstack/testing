@@ -1,12 +1,12 @@
 /** `defineConfig`: the typed entry point of a config file. */
 
-import type { OatConfig } from "../types/config.ts"
+import type { ApiConfig } from "../types/config.ts"
 
 /**
  * Identity function that gives a config file full type checking and editor completion.
  *
  * ```ts
- * import { defineConfig, env } from "@lovrozagar/oat"
+ * import { defineConfig, env } from "@workerstack/testing/api"
  *
  * export default defineConfig({
  *   spec: "https://api.example.com/openapi.json",
@@ -16,6 +16,6 @@ import type { OatConfig } from "../types/config.ts"
  * })
  * ```
  */
-export function defineConfig(config: OatConfig): OatConfig {
+export function defineConfig(config: ApiConfig): ApiConfig {
 	return config
 }

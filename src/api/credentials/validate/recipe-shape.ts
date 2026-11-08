@@ -33,7 +33,7 @@ const validExpiry = (value: unknown): boolean =>
 		? value > 0
 		: isRaw<Exclude<Recipe["expiresIn"], number | undefined>>(value) && typeof value.from === "string"
 
-/** An extra placement oat can send: a known location, a name, and a template that holds the credential. */
+/** An extra placement the API tester can send: a known location, a name, and a template that holds the credential. */
 export const validPlacement = (value: unknown): value is ExtraPlacement =>
 	isRaw<ExtraPlacement>(value) &&
 	LOCATIONS.has(value.in) &&

@@ -27,13 +27,13 @@ export interface CaseResult {
 	leaked?: number
 	/** Records that existed before the run and were deleted or changed by it. */
 	bystanders?: string[]
-	/** Ids oat ledgered for teardown that the backend never created. */
+	/** Ids the API tester ledgered for teardown that the backend never created. */
 	strayLedger?: string[]
 	/** Records left behind that teardown neither named as failed nor counted as unidentified. */
 	unreported?: string[]
 	/** What teardown named as left behind, as `entity id`: each one a leftover the run reported. */
 	reported?: string[]
-	/** Checks that would have sent a value oat did not have (the text "undefined"), as `check@entity`. */
+	/** Checks that would have sent a value the API tester did not have (the text "undefined"), as `check@entity`. */
 	missingValues?: string[]
 	/** Checks that ran and could not reach a verdict, as `check@entity: reason`. */
 	inconclusive?: string[]
@@ -57,19 +57,19 @@ interface Observed {
 }
 
 /**
- * Checks that would have sent a value oat did not have, as `check@entity`. A request made from a
- * value oat did not have is refused before it leaves; any such check is a hole in oat, whatever
+ * Checks that would have sent a value the API tester did not have, as `check@entity`. A request made from a
+ * value the API tester did not have is refused before it leaves; any such check is a hole in the API tester, whatever
  * the backend did.
  */
 export function missingValuesOf(inconclusive: readonly Inconclusive[]): string[] {
 	return inconclusive
-		.filter((item) => item.reason.startsWith("oat had no value"))
+		.filter((item) => item.reason.startsWith("the API tester had no value"))
 		.map((item) => `${item.check}@${item.entity}`)
 }
 
-/** oat run once against the reference with `defects` injected, and what it left in the backend. */
+/** testing api run once against the reference with `defects` injected, and what it left in the backend. */
 async function observe(defects: DefectName[], target: Target, untagged: boolean): Promise<Observed> {
-	/* A defect behind an opt-in shows only with it on, in the reference and in oat both. */
+	/* A defect behind an opt-in shows only with it on, in the reference and in the API tester both. */
 	const optIn = optInFor(defects)
 	const server = await launch(target, { defects, untagged, ...optIn.reference })
 	try {
@@ -84,11 +84,11 @@ async function observe(defects: DefectName[], target: Target, untagged: boolean)
 			...reach(server),
 		})
 		/* A tester that litters is one nobody runs twice against anything real, so this is asserted,
-		 * not assumed — and read from the backend, not from oat's ledger. */
+		 * not assumed — and read from the backend, not from the API tester's ledger. */
 		const after = await server.snapshot()
 		const leakedRecords = leftBehind(before, after)
 		return {
-			/* oat changes only what it made, and ledgers only what the backend made for it. */
+			/* The API tester changes only what it made, and ledgers only what the backend made for it. */
 			bystanders: damagedBystanders(before, after),
 			checksRun: result.checksRun,
 			entitiesTested: result.entitiesTested,
@@ -98,7 +98,7 @@ async function observe(defects: DefectName[], target: Target, untagged: boolean)
 			missingValues: missingValuesOf(result.inconclusive),
 			reported: (result.teardown?.failed ?? []).map((failure) => `${failure.entity} ${failure.id}`),
 			strayLedger: ledgeredNotCreated(result.teardown?.records ?? [], server.createdIds()),
-			/* Whatever the defect let through, a record oat leaves behind is one it must name. */
+			/* Whatever the defect let through, a record the API tester leaves behind is one it must name. */
 			unreported: unreportedLeftovers(leakedRecords, result.teardown),
 		}
 	} finally {
@@ -129,7 +129,7 @@ export function portableResult(result: CaseResult): CaseResult {
 
 /**
  * The two clean baselines of a leg: tagged, then with every meta tag stripped. The tagged one comes
- * first — everything downstream is meaningless if it is not clean. oat must stay quiet without the
+ * first — everything downstream is meaningless if it is not clean. The API tester must stay quiet without the
  * tags too, running on heuristics alone: a fallback that invents findings would make the tool
  * unusable on any spec that has not been annotated yet.
  */
@@ -200,7 +200,7 @@ export async function judgeDefect(
 		const real = findings.filter((f) => f.verdict !== "COVERAGE_GAP")
 		return {
 			...verdict,
-			/* A defect that by design rewrites other rows is the backend's doing, not oat's. */
+			/* A defect that by design rewrites other rows is the backend's doing, not the API tester's. */
 			bystanders: excused.has(defect) ? [] : bystanders,
 			checksRun,
 			detected: real.some((f) => f.check === verdict.expected),

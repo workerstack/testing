@@ -18,7 +18,7 @@ describe("sort.unknown-field-rejected judges", () => {
 	it("passes a backend that refuses ordering on an undeclared field", async () => {
 		const staged = stage(sortUnknownFieldRejected)
 		expect(await staged.run()).toEqual({ kind: "asserted" })
-		expect(staged.sent.map((sent) => sent.options.query)).toEqual([{ limit: 5, order: "oat_no_such_sort_xyz.asc" }])
+		expect(staged.sent.map((sent) => sent.options.query)).toEqual([{ limit: 5, order: "testing_no_such_sort_xyz.asc" }])
 	})
 
 	it("fails a backend that drops the unknown field and serves its default order", async () => {
@@ -29,7 +29,7 @@ describe("sort.unknown-field-rejected judges", () => {
 			summary: "unknown sort field is silently ignored",
 		})
 		expect(staged.sent.map((sent) => sent.options.query)).toEqual([
-			{ limit: 5, order: "oat_no_such_sort_xyz.asc" },
+			{ limit: 5, order: "testing_no_such_sort_xyz.asc" },
 			{ limit: 5 },
 		])
 	})

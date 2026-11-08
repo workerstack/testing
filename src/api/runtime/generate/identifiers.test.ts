@@ -25,14 +25,14 @@ describe("absentIdentifier", () => {
 		/* Not an object: any token will do. */
 		expect(absentIdentifier("not a schema", "n")).toMatchObject({
 			ok: true,
-			value: expect.stringMatching(/^oat-absent-/),
+			value: expect.stringMatching(/^testing-absent-/),
 		})
 	})
 
 	it("makes a formatted string identity in its format", () => {
 		expect(absentIdentifier({ format: "email", type: "string" }, "n")).toEqual({
 			ok: true,
-			value: "oat-baseline-9001@example.test",
+			value: "testing-baseline-9001@example.test",
 		})
 	})
 
@@ -41,8 +41,8 @@ describe("absentIdentifier", () => {
 	})
 
 	it("sends one token when it meets the length and pattern, and none otherwise", () => {
-		const token = `oat-absent-${nonceNumber("n").toString(36)}`
-		expect(absentIdentifier({ pattern: "^oat-", type: "string" }, "n")).toEqual({ ok: true, value: token })
+		const token = `testing-absent-${nonceNumber("n").toString(36)}`
+		expect(absentIdentifier({ pattern: "^testing-", type: "string" }, "n")).toEqual({ ok: true, value: token })
 		expect(absentIdentifier({ maxLength: 3, type: "string" }, "n")).toMatchObject({ ok: false })
 		expect(absentIdentifier({ minLength: 200, type: "string" }, "n")).toMatchObject({ ok: false })
 		expect(absentIdentifier({ pattern: "^[0-9]+$", type: "string" }, "n")).toMatchObject({ ok: false })

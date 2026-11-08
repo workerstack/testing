@@ -6,13 +6,13 @@ import { bufferWriter } from "../../../src/api/cli/writer.ts"
 import { PRINCIPALS, SECURITY } from "../../../src/api/conformance/matrix/principals.ts"
 
 /*
- * `oat` as a user runs it, in process: argv in, the exit code and every line it printed out. A run
+ * `the API tester` as a user runs it, in process: argv in, the exit code and every line it printed out. A run
  * writes `<out>/<datetime>/` and points `<out>/latest` at it, so a test reads the run it just made
  * through `latest`.
  */
 
-/** One `oat …` invocation: its exit code, and stdout and stderr in the order they were written. */
-export async function oat(argv: readonly string[]): Promise<{ code: number; out: string }> {
+/** One `the API tester …` invocation: its exit code, and stdout and stderr in the order they were written. */
+export async function tester(argv: readonly string[]): Promise<{ code: number; out: string }> {
 	const writer = bufferWriter()
 	const code = await main(argv, { writer })
 	return { code, out: writer.text() }
@@ -33,10 +33,10 @@ export function tempDirs(prefix: string): { make: () => Promise<string>; removeA
 	}
 }
 
-/** `oat.config.json` in `dir`, made if missing, for the reference at `url`, with `extra` laid over the defaults. */
+/** `testing.api.config.json` in `dir`, made if missing, for the reference at `url`, with `extra` laid over the defaults. */
 export async function referenceConfig(dir: string, url: string, extra: Record<string, unknown> = {}): Promise<string> {
 	await mkdir(dir, { recursive: true })
-	const path = join(dir, "oat.config.json")
+	const path = join(dir, "testing.api.config.json")
 	const config = {
 		baseUrl: url,
 		principals: PRINCIPALS,
@@ -49,7 +49,7 @@ export async function referenceConfig(dir: string, url: string, extra: Record<st
 	return path
 }
 
-/** A finding as `oat-report.json` holds it. */
+/** A finding as `report.json` holds it. */
 export interface ReportFinding {
 	check: string
 	entity: string
@@ -60,7 +60,7 @@ export interface ReportFinding {
 	known?: { reason: string }
 }
 
-/** The fields of `oat-report.json` these tests read. */
+/** The fields of `report.json` these tests read. */
 export interface SavedRunReport {
 	outcome: { exitCode: number; reason: string; result: string }
 	findings: ReportFinding[]
@@ -87,7 +87,7 @@ export interface SavedRunReport {
 
 /** The report of the run `out/latest` points at. */
 export async function latestReport(out: string): Promise<SavedRunReport> {
-	return JSON.parse(await readFile(join(out, "latest", "oat-report.json"), "utf8")) as SavedRunReport
+	return JSON.parse(await readFile(join(out, "latest", "report.json"), "utf8")) as SavedRunReport
 }
 
 /** One line of a run's `exchanges.jsonl`. */

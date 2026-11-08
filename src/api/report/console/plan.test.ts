@@ -61,7 +61,7 @@ describe("plan as text", () => {
 		expect(lines).toContain("  roots — no create operation, must be supplied before a run:")
 		expect(lines).toContain("    table                        x-unique: [name]")
 		expect(lines).toContain("    table                        JSON token → invite.accept")
-		expect(lines).toContain("  declared grammars — how oat writes this entity's filter and sort terms:")
+		expect(lines).toContain("  declared grammars — how the API tester writes this entity's filter and sort terms:")
 		expect(lines.some((line) => line.startsWith("    table                        filter  template"))).toBe(true)
 		expect(lines.some((line) => line.startsWith("    table                        sort    template"))).toBe(true)
 		expect(lines.at(-1)).toBe("")
@@ -209,8 +209,8 @@ describe("plan and credentials", () => {
 		expect(plan(model, false, { credentials, scope })).toContain(
 			"1 check(s)  jwt | apiKey[rows:read] (alpha via jwt)\n",
 		)
-		const json = JSON.parse(plan(model, true, { credentials, unsetEnv: ["OAT_JWT_TOKEN"] }))
-		expect(json.unsetEnv).toEqual(["OAT_JWT_TOKEN"])
+		const json = JSON.parse(plan(model, true, { credentials, unsetEnv: ["TESTING_API_JWT_TOKEN"] }))
+		expect(json.unsetEnv).toEqual(["TESTING_API_JWT_TOKEN"])
 		expect(json.security.operations[2].satisfiedBy).toEqual({ alternative: 0, principal: "alpha" })
 	})
 })

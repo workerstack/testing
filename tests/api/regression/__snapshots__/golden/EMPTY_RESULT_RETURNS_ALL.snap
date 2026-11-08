@@ -784,7 +784,7 @@
             {
               "method": "GET",
               "status": 200,
-              "url": "http://reference.test/v1/projects/proj_alpha/tables/table_ID/rows?limit=5&filter=id.eq.oat-absent-NONCE"
+              "url": "http://reference.test/v1/projects/proj_alpha/tables/table_ID/rows?limit=5&filter=id.eq.testing-absent-NONCE"
             }
           ],
           "summary": "filter that cannot match returns records anyway",
@@ -801,7 +801,7 @@
             {
               "method": "GET",
               "status": 200,
-              "url": "http://reference.test/v1/projects/proj_alpha/jobs?limit=100&filter=id.eq.oat-absent-NONCE"
+              "url": "http://reference.test/v1/projects/proj_alpha/jobs?limit=100&filter=id.eq.testing-absent-NONCE"
             }
           ],
           "summary": "filter that cannot match returns records anyway",
@@ -818,7 +818,7 @@
             {
               "method": "GET",
               "status": 200,
-              "url": "http://reference.test/v1/projects/proj_alpha/tables?limit=100&filter=id.eq.oat-absent-NONCE"
+              "url": "http://reference.test/v1/projects/proj_alpha/tables?limit=100&filter=id.eq.testing-absent-NONCE"
             }
           ],
           "summary": "filter that cannot match returns records anyway",
@@ -840,7 +840,7 @@
             {
               "method": "GET",
               "status": 200,
-              "url": "http://reference.test/v1/projects/proj_alpha/tables/table_ID/rows?limit=5&q=zzqqxx-oat-no-NONCE-token"
+              "url": "http://reference.test/v1/projects/proj_alpha/tables/table_ID/rows?limit=5&q=zzqqxx-testing-no-NONCE-token"
             }
           ],
           "summary": "free-text search returns records that cannot match",
@@ -862,7 +862,7 @@
             {
               "method": "GET",
               "status": 200,
-              "url": "http://reference.test/v1/projects/proj_alpha/jobs?limit=100&q=zzqqxx-oat-no-NONCE-token"
+              "url": "http://reference.test/v1/projects/proj_alpha/jobs?limit=100&q=zzqqxx-testing-no-NONCE-token"
             }
           ],
           "summary": "free-text search returns records that cannot match",
@@ -884,7 +884,7 @@
             {
               "method": "GET",
               "status": 200,
-              "url": "http://reference.test/v1/projects/proj_alpha/tables?limit=100&q=zzqqxx-oat-no-NONCE-token"
+              "url": "http://reference.test/v1/projects/proj_alpha/tables?limit=100&q=zzqqxx-testing-no-NONCE-token"
             }
           ],
           "summary": "free-text search returns records that cannot match",

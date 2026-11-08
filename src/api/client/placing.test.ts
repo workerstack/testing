@@ -356,18 +356,18 @@ const wireOf = (resolution: Resolution) => ({
 
 describe("requestCredential: a deferred env literal", () => {
 	it("throws rather than send a ${NAME} literal as a credential, alone or in a basic pair", async () => {
-		const token = { ...sendingOf("${OAT_JWT_TOKEN}") }
+		const token = { ...sendingOf("${TESTING_API_JWT_TOKEN}") }
 		await expect(requestCredential(wireOf(token), { actor: { principal: "alpha" }, route: R }).next()).rejects.toThrow(
-			"oat: the jwt credential is the unset variable ${OAT_JWT_TOKEN}; a run never defers env, so this is a bug",
+			"testing api: the jwt credential is the unset variable ${TESTING_API_JWT_TOKEN}; a run never defers env, so this is a bug",
 		)
-		const pair = { ...sendingOf("x"), sentValues: { basic: "${OAT_USER}:${OAT_PASS}" } }
+		const pair = { ...sendingOf("x"), sentValues: { basic: "${TESTING_API_USER}:${TESTING_API_PASS}" } }
 		await expect(requestCredential(wireOf(pair), { actor: { principal: "alpha" }, route: R }).next()).rejects.toThrow(
-			"the basic credential is the unset variable ${OAT_USER}",
+			"the basic credential is the unset variable ${TESTING_API_USER}",
 		)
 	})
 
 	it("sends a value that only contains such a pattern among other text", async () => {
-		const near = sendingOf("a${OAT_JWT_TOKEN}")
+		const near = sendingOf("a${TESTING_API_JWT_TOKEN}")
 		const placed = await requestCredential(wireOf(near), { actor: { principal: "alpha" }, route: R }).next()
 		expect(placed.schemes).toEqual(["jwt"])
 		const lower = sendingOf("${lower}")

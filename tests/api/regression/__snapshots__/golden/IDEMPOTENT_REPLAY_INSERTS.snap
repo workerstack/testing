@@ -205,7 +205,7 @@
       "added": [
         {
           "check": "idempotency.replay-does-not-duplicate",
-          "detail": "the replay carrying Idempotency-Key: \"oat-idem-NONCE-job\" answered with the original job job_ID, yet the collection went from 15 to 16 records. The response hides a duplicate the retry still made.",
+          "detail": "the replay carrying Idempotency-Key: \"testing-idem-NONCE-job\" answered with the original job job_ID, yet the collection went from 15 to 16 records. The response hides a duplicate the retry still made.",
           "entity": "job",
           "operations": [
             "job.create"
@@ -237,7 +237,7 @@
         },
         {
           "check": "idempotency.replay-does-not-duplicate",
-          "detail": "the replay carrying Idempotency-Key: \"oat-idem-NONCE-row\" answered with the original row row_ID, yet the collection went from 15 to 16 records. The response hides a duplicate the retry still made.",
+          "detail": "the replay carrying Idempotency-Key: \"testing-idem-NONCE-row\" answered with the original row row_ID, yet the collection went from 15 to 16 records. The response hides a duplicate the retry still made.",
           "entity": "row",
           "operations": [
             "row.create"
@@ -269,7 +269,7 @@
         },
         {
           "check": "idempotency.replay-does-not-duplicate",
-          "detail": "the replay carrying Idempotency-Key: \"oat-idem-NONCE-table\" answered with the original table table_ID, yet the collection went from 18 to 19 records. The response hides a duplicate the retry still made.",
+          "detail": "the replay carrying Idempotency-Key: \"testing-idem-NONCE-table\" answered with the original table table_ID, yet the collection went from 18 to 19 records. The response hides a duplicate the retry still made.",
           "entity": "table",
           "operations": [
             "table.create"

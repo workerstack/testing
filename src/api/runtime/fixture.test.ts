@@ -304,7 +304,7 @@ describe("buildCohort's self-check", () => {
 	})
 
 	it("passes definitions and the nonce through, salting distinct fields", () => {
-		const schema = { properties: { name: { $ref: "oat-defs#/$defs/Name" } }, required: ["name"], type: "object" }
+		const schema = { properties: { name: { $ref: "testing-defs#/$defs/Name" } }, required: ["name"], type: "object" }
 		const options = { defs: { Name: { type: "string" } }, distinct: new Set(["name"]), nonce: "n1" }
 		const [member] = buildCohort(schema, 1, { ...options, variants: ["baseline"] })
 		expect(String(member?.body["name"])).toContain("n1")

@@ -19,7 +19,7 @@ import type { OpenApiDocument } from "../../../src/api/spec/types.ts"
 import { actingClient } from "../support/acting-client.ts"
 
 /*
- * A delete that answers 2xx proves only that the backend said so. After the unwind oat reads each
+ * A delete that answers 2xx proves only that the backend said so. After the unwind the API tester reads each
  * list once more: a record still listed is a leftover, named with why, so nobody believes a shared
  * backend is clean when it is not. It is a fact about teardown, not a finding — the checks already
  * judge whether delete removes a record.

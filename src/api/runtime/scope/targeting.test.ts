@@ -38,13 +38,15 @@ describe("targetPattern", () => {
 
 	it("refuses an origin that is not configured, naming the known ones", () => {
 		expect(() => targetPattern(targeting({ origins: new Map([["cdn", model]]) }), "api:row.get")).toThrow(
-			'oat: --ops "api:row.get" names origin "api", which is not configured. Known: cdn.',
+			'testing api: --ops "api:row.get" names origin "api", which is not configured. Known: cdn.',
 		)
 		expect(() => targetPattern(targeting({ origins: new Map() }), "api:row.get")).toThrow(
-			'oat: --ops "api:row.get" names origin "api", which is not configured.',
+			'testing api: --ops "api:row.get" names origin "api", which is not configured.',
 		)
 		/* Without origins, a prefixed id is just an id the primary may not have. */
-		expect(() => targetPattern(targeting(), "api:row.get")).toThrow('oat: --ops "api:row.get" matches no operation.')
+		expect(() => targetPattern(targeting(), "api:row.get")).toThrow(
+			'testing api: --ops "api:row.get" matches no operation.',
+		)
 	})
 
 	it("reads a colon in an unnamed operation's path as the path, whatever the method's case", () => {
@@ -60,7 +62,7 @@ describe("targetPattern", () => {
 
 	it("refuses an exact target the profile excludes, and drops glob matches it excludes", () => {
 		expect(() => targetPattern(targeting({ exclusion }), "job.start")).toThrow(
-			"oat: target job.start is excluded by --profile cheap (x-cost: high). Drop it from --ops or run --profile full.",
+			"testing api: target job.start is excluded by --profile cheap (x-cost: high). Drop it from --ops or run --profile full.",
 		)
 		const t = targeting({ exclusion })
 		targetPattern(t, "job.*")
@@ -96,7 +98,7 @@ describe("targetEntity", () => {
 
 	it("refuses an entity nobody models, suggesting from every origin", () => {
 		expect(() => targetEntity(targeting(), "tabel")).toThrow(
-			'oat: --only "tabel" names no entity. Did you mean: table?',
+			'testing api: --only "tabel" names no entity. Did you mean: table?',
 		)
 		expect(() => targetEntity(targeting({ origins: new Map([["cdn", model]]) }), "jbo")).toThrow(/Did you mean: job/)
 	})

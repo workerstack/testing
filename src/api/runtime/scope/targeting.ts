@@ -37,7 +37,7 @@ function admit(t: Targeting, candidate: Candidate): void {
 	}
 	if (candidate.exact) {
 		throw new ScopeError(
-			`oat: target ${candidate.label} is excluded by --profile ${exclusion.profile} (${reason}). ` +
+			`testing api: target ${candidate.label} is excluded by --profile ${exclusion.profile} (${reason}). ` +
 				`Drop it from --ops or run --profile full.`,
 		)
 	}
@@ -72,7 +72,7 @@ export function targetPattern(t: Targeting, pattern: string): void {
 	) {
 		const known = [...input.origins.keys()]
 		throw new ScopeError(
-			`oat: --ops "${pattern}" names origin "${originId}", which is not configured.` +
+			`testing api: --ops "${pattern}" names origin "${originId}", which is not configured.` +
 				(known.length === 0 ? "" : ` Known: ${known.join(", ")}.`),
 		)
 	}
@@ -105,6 +105,6 @@ export function targetEntity(t: Targeting, name: string): void {
 			...model.entities.keys(),
 			...[...(input.origins?.values() ?? [])].flatMap((m) => [...m.entities.keys()]),
 		]
-		throw new ScopeError(`oat: --only "${name}" names no entity.${didYouMean(name, known)}`)
+		throw new ScopeError(`testing api: --only "${name}" names no entity.${didYouMean(name, known)}`)
 	}
 }

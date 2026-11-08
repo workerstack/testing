@@ -97,7 +97,7 @@ describe("readBackCreated", () => {
 		)
 	})
 
-	it("is unverified, reading nothing, with no item read, one oat may not call, or one it cannot address", async () => {
+	it("is unverified, reading nothing, with no item read, one the API tester may not call, or one it cannot address", async () => {
 		const none = readBack({ document: { read: false } })
 		expect(await none.result).toMatchObject({ unverified: "no item read" })
 		expect(none.sent).toEqual([])

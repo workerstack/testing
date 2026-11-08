@@ -31,7 +31,7 @@ interface Ledgered {
 
 async function runAgainst(more: Partial<RunOptions> = {}) {
 	reference = await createMemoryServer()
-	folder = await mkdtemp(join(tmpdir(), "oat-accounts-"))
+	folder = await mkdtemp(join(tmpdir(), "testing-accounts-"))
 	const accountsFile = join(folder, "accounts.json")
 	const before = await reference.snapshot()
 	const result = await run({
@@ -61,7 +61,7 @@ describe("the accounts a run signs up", () => {
 		expect(made(ledger).length).toBeGreaterThanOrEqual(2)
 		/* Generated, each carries the run's nonce: no two runs send the same one. */
 		for (const email of emails(ledger))
-			expect(email).toMatch(/^oat-baseline-0-[0-9a-f]{8}(\d+|privileged)@example\.test$/)
+			expect(email).toMatch(/^testing-baseline-0-[0-9a-f]{8}(\d+|privileged)@example\.test$/)
 		expect(new Set(emails(ledger)).size).toBe(made(ledger).length)
 		expect(made(ledger).map((entry) => entry.status)).toEqual(made(ledger).map(() => "removed"))
 		expect(leaked).toEqual([])

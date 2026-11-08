@@ -6,10 +6,10 @@
  * empty token. The second principal is optional — but it is what makes the tenant-isolation checks
  * possible; without one they are skipped rather than silently passed.
  *
- *   oat run --config labs/api/minimal.config.ts
+ *   testing api run --config labs/api/minimal.config.ts
  *
  * Written as `from "../../dist/api/index.js"` only because this file lives inside the repository —
- * in your own project it is `from "@lovrozagar/oat"`.
+ * in your own project it is `from "@workerstack/testing/api"`.
  */
 
 import { defineConfig, env } from "../../dist/api/index.js"
@@ -18,7 +18,7 @@ export default defineConfig({
 	baseUrl: "https://api.example.com",
 	principals: {
 		alpha: {
-			/* Path parameters oat cannot create for itself. */
+			/* Path parameters the API tester cannot create for itself. */
 			scope: { project_id: env("PROJECT_A") },
 			tenant: env("PROJECT_A"),
 			token: env("API_TOKEN"),

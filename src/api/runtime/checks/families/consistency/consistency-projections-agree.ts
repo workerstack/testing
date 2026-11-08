@@ -54,7 +54,7 @@ export const projectionsAgree: Check<{
 		 *
 		 * Server-generated fields are excluded deliberately: a progress counter, a derived row
 		 * count or a status the backend advances can legitimately differ between two reads taken
-		 * moments apart, and since oat tests entities concurrently a derived value may move
+		 * moments apart, and since the API tester tests entities concurrently a derived value may move
 		 * mid-check for reasons no read path is responsible for. Comparing those across
 		 * projections measures timing, not consistency.
 		 */
@@ -100,7 +100,7 @@ export const projectionsAgree: Check<{
 			)
 		}
 		/*
-		 * The item route read *now* is the reference, not the value oat submitted at seed time.
+		 * The item route read *now* is the reference, not the value the API tester submitted at seed time.
 		 * A backend is entitled to normalize what it stores — trimming, case-folding, rounding —
 		 * and holding every projection to the submitted value would report that as inconsistency.
 		 * The claim being tested is that the read paths agree with each other, which is exactly
@@ -114,7 +114,7 @@ export const projectionsAgree: Check<{
 			return ctx.findings.backend(this.id, ctx.entityName, {
 				summary: "the same record carries different values depending on how it is read",
 				detail:
-					`${ctx.entityName} ${id} has "${field}" = ${JSON.stringify(value)} on the record oat ` +
+					`${ctx.entityName} ${id} has "${field}" = ${JSON.stringify(value)} on the record the API tester ` +
 					`created, but ${disagreeing
 						.map((entry) => `the ${entry.projection} returns ${JSON.stringify(entry.value)}`)
 						.join(", and ")}. At least one read path is serving something the others are not; ` +

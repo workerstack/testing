@@ -8,8 +8,8 @@ import { createMemoryServer } from "../../../src/api/reference/http/engines.ts"
 import { referenceToken } from "../support/reference-auth.ts"
 
 /*
- * `oat init` as a user meets it: a starter config from the reference's document, `oat doctor` on
- * that config before and after its env vars are set, then `oat run` with the reference's credentials
+ * `testing api init` as a user meets it: a starter config from the reference's document, `testing api doctor` on
+ * that config before and after its env vars are set, then `testing api run` with the reference's credentials
  * in those vars. The config imports the package as an installed one would, from a stand-in that
  * re-exports this checkout's entry point.
  */
@@ -27,14 +27,14 @@ let scoped: string
 
 beforeAll(async () => {
 	server = await createMemoryServer()
-	dir = await mkdtemp(join(tmpdir(), "oat-init-"))
-	config = join(dir, "oat.config.ts")
+	dir = await mkdtemp(join(tmpdir(), "testing-init-"))
+	config = join(dir, "testing.api.config.ts")
 	scoped = join(dir, "scoped.config.ts")
-	const pkg = join(dir, "node_modules", "@lovrozagar", "oat")
+	const pkg = join(dir, "node_modules", "@workerstack", "testing")
 	await mkdir(pkg, { recursive: true })
 	await writeFile(
 		join(pkg, "package.json"),
-		JSON.stringify({ exports: "./index.ts", name: "@lovrozagar/oat", type: "module" }),
+		JSON.stringify({ exports: { "./api": "./index.ts" }, name: "@workerstack/testing", type: "module" }),
 	)
 	await writeFile(join(pkg, "index.ts"), `export * from ${JSON.stringify(ENTRY)}\n`)
 	await writeFile(join(dir, "openapi.json"), await (await fetch(`${server.url}/v1/openapi/spec`)).text())
@@ -46,7 +46,7 @@ afterAll(async () => {
 	await rm(dir, { force: true, recursive: true })
 })
 
-async function oat(...argv: string[]): Promise<{ code: number; out: string }> {
+async function tester(...argv: string[]): Promise<{ code: number; out: string }> {
 	const writer = bufferWriter()
 	const code = await main(argv, { writer })
 	return { code, out: writer.text() }
@@ -64,36 +64,36 @@ async function referenceCredentials(): Promise<{ apiKey: string; jwt: string }> 
 	return { apiKey: `ApiKey ${((await minted.json()) as { key: string }).key}`, jwt }
 }
 
-describe("oat init, then doctor and run on what it wrote", () => {
+describe("testing api init, then doctor and run on what it wrote", () => {
 	it("writes a recipe per scheme and names every env var it reads", async () => {
 		const spec = join(dir, "openapi.json")
-		const written = await oat("init", "--spec", spec, "--out", config)
+		const written = await tester("init", "--spec", spec, "--out", config)
 		expect(written).toEqual({
 			code: 0,
-			out: `  wrote ${config} — 2 schemes, 1 principal\n    set OAT_BASE_URL, OAT_API_KEY_KEY, OAT_JWT_TOKEN\n    next: oat doctor --config ${config}\n`,
+			out: `  wrote ${config} — 2 schemes, 1 principal\n    set TESTING_API_BASE_URL, TESTING_API_API_KEY_KEY, TESTING_API_JWT_TOKEN\n    next: testing api doctor --config ${config}\n`,
 		})
 		const text = await readFile(config, "utf8")
 		expect(text).toContain(`spec: ${JSON.stringify(spec)},`)
-		expect(text).toContain('baseUrl: env("OAT_BASE_URL"),')
-		expect(text).toContain('apiKey: { static: env("OAT_API_KEY_KEY") },')
-		expect(text).toContain('jwt: { static: env("OAT_JWT_TOKEN") },')
+		expect(text).toContain('baseUrl: env("TESTING_API_BASE_URL"),')
+		expect(text).toContain('apiKey: { static: env("TESTING_API_API_KEY_KEY") },')
+		expect(text).toContain('jwt: { static: env("TESTING_API_JWT_TOKEN") },')
 		/* The project has no create, so init stubs it as the principal's scope, commented until filled. */
 		expect(text).toContain('\t\t\t// scope: { project_id: "" },\n')
 		expect(text).toMatch(/\t\t\t\/\/ project_id unlocks table\.list, .+ and \d+ more\n/)
-		expect((await oat("init", "--spec", spec, "--out", config)).code).toBe(2)
+		expect((await tester("init", "--spec", spec, "--out", config)).code).toBe(2)
 	})
 
 	it("doctor names the unset vars, then shows every scheme's recipe once they are set", async () => {
-		const unset = await oat("doctor", "--config", config)
+		const unset = await tester("doctor", "--config", config)
 		expect(unset.out).toContain(
-			"  env        OAT_BASE_URL, OAT_API_KEY_KEY, OAT_JWT_TOKEN not set — a run stops until they are\n",
+			"  env        TESTING_API_BASE_URL, TESTING_API_API_KEY_KEY, TESTING_API_JWT_TOKEN not set — a run stops until they are\n",
 		)
 		for (const line of SECURITY_LINES) expect(unset.out).toMatch(line)
 		const { apiKey, jwt } = await referenceCredentials()
-		vi.stubEnv("OAT_BASE_URL", server.url)
-		vi.stubEnv("OAT_API_KEY_KEY", apiKey)
-		vi.stubEnv("OAT_JWT_TOKEN", jwt)
-		const set = await oat("doctor", "--config", config)
+		vi.stubEnv("TESTING_API_BASE_URL", server.url)
+		vi.stubEnv("TESTING_API_API_KEY_KEY", apiKey)
+		vi.stubEnv("TESTING_API_JWT_TOKEN", jwt)
+		const set = await tester("doctor", "--config", config)
 		expect(set.out).toContain("  security — 2 schemes\n")
 		for (const line of SECURITY_LINES) expect(set.out).toMatch(line)
 		expect(set.out).not.toContain("not set — a run stops")
@@ -104,7 +104,7 @@ describe("oat init, then doctor and run on what it wrote", () => {
 		/* A new file: this process already imported the config at its own path, and keeps that module. */
 		const text = await readFile(config, "utf8")
 		await writeFile(scoped, text.replace('// scope: { project_id: "" },', 'scope: { project_id: "proj_alpha" },'))
-		const filled = await oat("doctor", "--config", scoped)
+		const filled = await tester("doctor", "--config", scoped)
 		expect(filled.out).not.toContain("roots required in config")
 		expect(filled.out).toContain(`    ${"project_id".padEnd(20)} principal scope\n`)
 		expect(filled.code).toBe(0)
@@ -112,12 +112,12 @@ describe("oat init, then doctor and run on what it wrote", () => {
 })
 
 /* After the describe above: the config it wrote and filled, with the vars it set. */
-describe("oat run on the config init wrote and the stub filled", () => {
+describe("testing api run on the config init wrote and the stub filled", () => {
 	it("runs against the reference with the vars set, and blames it for nothing on a correct backend", async () => {
-		const ran = await oat("run", "--config", scoped, "--out", join(dir, "runs"), "--quiet")
-		const reportPath = /^ {2}report: (.+)oat-report\.md$/m.exec(ran.out)?.[1]
+		const ran = await tester("run", "--config", scoped, "--out", join(dir, "runs"), "--quiet")
+		const reportPath = /^ {2}report: (.+)report\.md$/m.exec(ran.out)?.[1]
 		expect(reportPath).toBeDefined()
-		const report = JSON.parse(await readFile(`${reportPath}oat-report.json`, "utf8")) as {
+		const report = JSON.parse(await readFile(`${reportPath}report.json`, "utf8")) as {
 			findings: Array<{ check: string; detail: string; verdict: string }>
 			scope: { operations: Array<{ operationId: string; status: string }> }
 		}

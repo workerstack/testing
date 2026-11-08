@@ -3,7 +3,7 @@
  * and no scenario graded is called once with a request built from its own schema. A documented
  * success whose body matches the schema passes at the `contract` tier — the weakest honest
  * claim, and the report says so. A server error or a body that breaks the schema fails. A
- * refused request leaves it untested with the refusal as the reason, because a request oat
+ * refused request leaves it untested with the refusal as the reason, because a request the API tester
  * guessed is not proof the backend is wrong; that operation needs a scenario.
  */
 

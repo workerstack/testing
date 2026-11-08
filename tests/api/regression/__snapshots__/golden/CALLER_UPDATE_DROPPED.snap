@@ -106,7 +106,7 @@
       "added": [
         {
           "check": "auth.self-is-the-caller",
-          "detail": "profile.update set first_name to \"Oat\", and the next profile.get returned 200 with \"Ada\".",
+          "detail": "profile.update set first_name to \"Tst\", and the next profile.get returned 200 with \"Ada\".",
           "entity": "profile",
           "operations": [
             "profile.get",

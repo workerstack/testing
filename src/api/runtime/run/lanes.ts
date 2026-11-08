@@ -59,7 +59,7 @@ async function runLane(run: LaneRun, lane: readonly EntityModel[]): Promise<void
 			try {
 				await testEntity(ctx, entity)
 			} catch (error) {
-				/* An error oat did not expect must not skip teardown: it is reported, and the run
+				/* An error the API tester did not expect must not skip teardown: it is reported, and the run
 				 * carries on to remove what it made and write its report. */
 				ctx.findings.blocked("run.error" satisfies RunFindingId, entity.name, {
 					summary: `testing "${entity.name}" stopped on an unexpected error`,
@@ -86,7 +86,7 @@ function noteStop(run: LaneRun): void {
 		state.interrupted = true
 		findings.gap("run.interrupted" satisfies RunFindingId, "run", {
 			summary: `stopped before ${remaining}`,
-			detail: "the run was interrupted; what was tested is reported, and what oat created is removed",
+			detail: "the run was interrupted; what was tested is reported, and what the API tester created is removed",
 		})
 		return
 	}
@@ -100,7 +100,7 @@ function noteStop(run: LaneRun): void {
  * Entities grouped into lanes that can be tested side by side.
  *
  * Two entities share a lane when one can observe the other's writes: one's collection lives
- * under the other's (a child, created inside a parent oat also makes), an operation of one
+ * under the other's (a child, created inside a parent the API tester also makes), an operation of one
  * invalidates a route of the other, or one's effects, waits or async polls land on the other.
  * Inside a lane entities keep their order and run one after another; lanes share nothing, so
  * nothing one does can turn up as a finding in another.

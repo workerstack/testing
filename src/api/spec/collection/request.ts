@@ -1,4 +1,4 @@
-/** The request body an operation takes: which media type oat sends, and its schema. */
+/** The request body an operation takes: which media type the API tester sends, and its schema. */
 
 import type { OperationObject, JsonSchema } from "../types.ts"
 import { asSchema, effective } from "./effective.ts"
@@ -11,7 +11,7 @@ export interface RequestContent {
 
 type Media = NonNullable<NonNullable<OperationObject["requestBody"]>["content"]>[string] | null
 
-/* An object, or a reference oat cannot see into: either has properties of its own. */
+/* An object, or a reference the API tester cannot see into: either has properties of its own. */
 function objectLike(schema: JsonSchema | null): boolean {
 	return schema !== null && (schema.type === "object" || schema.properties !== undefined || schema.$ref !== undefined)
 }
@@ -40,7 +40,7 @@ function mediaRank(mediaType: string, media: Media, hasJson: boolean): number {
 }
 
 /**
- * The request body oat sends: `preferred` when the operation documents it, else the best-ranked
+ * The request body the API tester sends: `preferred` when the operation documents it, else the best-ranked
  * one. Prefers multipart, then urlencoded, then JSON, then the first listed type: file ops often
  * document both JSON and a form, and the form is the real contract. A form that cannot carry the
  * body (`formCarries`) gives way to JSON documented beside it.

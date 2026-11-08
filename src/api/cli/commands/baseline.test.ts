@@ -1,9 +1,10 @@
-import { readFileSync, symlinkSync } from "node:fs"
+import { mkdirSync, readFileSync, symlinkSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 import type { Flags } from "../flags.ts"
 import { bufferWriter } from "../writer.ts"
 import { folder, json, savedRun } from "../__fixtures__/files.ts"
+import { LEGACY_REPORT } from "../legacy-run.ts"
 import { commandBaseline } from "./baseline.ts"
 
 /* A run's root-cause findings, written as the baseline the next runs measure against. */
@@ -22,7 +23,7 @@ describe("commandBaseline", () => {
 		const dir = folder()
 		const run = savedRun(dir, "2026-10-18T00-00-00Z", { findings: [finding] })
 		symlinkSync(run, join(dir, "latest"))
-		const out = join(dir, "oat.baseline.json")
+		const out = join(dir, "testing.api.baseline.json")
 		const writer = bufferWriter()
 		expect(await commandBaseline(writer, { from: join(dir, "latest"), out })).toBe(0)
 		expect(writer.text()).toBe(`  1 known finding → ${out}\n`)
@@ -35,13 +36,13 @@ describe("commandBaseline", () => {
 		expect(again.text()).toContain("2 known findings")
 	})
 
-	it("writes oat.baseline.json in the working folder by default", async () => {
+	it("writes testing.api.baseline.json in the working folder by default", async () => {
 		const dir = folder()
 		const cwd = process.cwd()
 		process.chdir(dir)
 		try {
 			expect(await commandBaseline(bufferWriter(), { from: savedRun(dir, "run", { findings: [] }) })).toBe(0)
-			expect(readFileSync(join(dir, "oat.baseline.json"), "utf8")).toContain('"entries"')
+			expect(readFileSync(join(dir, "testing.api.baseline.json"), "utf8")).toContain('"entries"')
 		} finally {
 			process.chdir(cwd)
 		}
@@ -50,8 +51,8 @@ describe("commandBaseline", () => {
 	it("refuses without a run, with an unreadable or listless report, and over an existing file", async () => {
 		const dir = folder()
 		const refusals: Array<[Flags, RegExp]> = [
-			[{}, /^oat: baseline needs --from/],
-			[{ from: join(dir, "missing") }, /^oat: cannot read .*oat-report\.json: /],
+			[{}, /^testing api: baseline needs --from/],
+			[{ from: join(dir, "missing") }, /^testing api: cannot read .*report\.json: /],
 			[{ from: savedRun(dir, "empty", { findings: "none" }) }, /holds no findings list/],
 			[
 				{ from: savedRun(dir, "ok", { findings: [] }), out: json(dir, "taken.json", "{}") },
@@ -73,7 +74,22 @@ describe("commandBaseline", () => {
 		const from = savedRun(dir, "newer", { findings: [finding], schemaVersion: 2 })
 		expect(await commandBaseline(newer, { from, out: join(dir, "b.json") })).toBe(2)
 		expect(newer.text()).toBe(
-			`oat: ${join(dir, "newer", "oat-report.json")} is report schemaVersion 2; this oat reads 1 — upgrade oat\n`,
+			`testing api: ${join(dir, "newer", "report.json")} is report schemaVersion 2; this the API tester reads 1 — upgrade the API tester\n`,
 		)
+	})
+})
+
+/* A run folder written before the package was renamed is not read: the CLI names the move. */
+describe("commandBaseline from an old run", () => {
+	it("names a run folder from before the rename instead of a missing report", async () => {
+		const dir = folder()
+		mkdirSync(join(dir, "old"))
+		const old = json(join(dir, "old"), LEGACY_REPORT, "{}")
+		const writer = bufferWriter()
+		expect(await commandBaseline(writer, { from: join(dir, "old") })).toBe(2)
+		expect(writer.text()).toBe(
+			`testing api: ${join(dir, "old")} is a run from before the rename (it holds ${LEGACY_REPORT}); those are not read. See docs/api/migrating-from-oat.md\n`,
+		)
+		expect(old).toContain(LEGACY_REPORT)
 	})
 })

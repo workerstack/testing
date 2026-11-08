@@ -35,9 +35,9 @@ function nobodyOf(body: Record<string, unknown>, { nonce, schema }: { nonce: str
 
 /**
  * Repeated failed logins are throttled. Opt-in (`optIn`, which the security stage enforces), since a
- * throttle that counts by address can slow every login from the machine running oat for a while.
+ * throttle that counts by address can slow every login from the machine running the API tester for a while.
  * Anchored on the login step of a login recipe, it sends failed logins anonymously for one identity
- * no account can hold (`oat-nonexistent-<nonce>`, at `example.invalid` where the field is an email),
+ * no account can hold (`testing-nonexistent-<nonce>`, at `example.invalid` where the field is an email),
  * never a principal's, until the login answers 429 or the cap.
  */
 export const loginThrottled: OperationCheck<Record<string, unknown>> = defineCheck<Record<string, unknown>>({

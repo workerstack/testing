@@ -41,7 +41,7 @@ function headOf(input: ReportInput): string[] {
 	const { outcome, reason } = runVerdict(input)
 	const redactor = input.client.redactor
 	const lines = [
-		`## oat: ${outcome} (exit ${EXIT[outcome]})`,
+		`## testing api: ${outcome} (exit ${EXIT[outcome]})`,
 		"",
 		`\`${inline(input.baseUrl, redactor)}\` · profile ${input.profile ?? "full"} · ` +
 			`${input.checksRun.length} checks · ${input.entitiesTested.length} entities · ` +
@@ -127,7 +127,7 @@ function rendered(parts: Parts, shownFindings: number, shownUntested: number): s
 		if (shownUntested < untested.length) lines.push(`- ${more(untested.length - shownUntested)}`)
 		lines.push(...untested.slice(0, shownUntested), "", "</details>", "")
 	}
-	lines.push(`Full report: \`${runDir}/oat-report.md\``)
+	lines.push(`Full report: \`${runDir}/report.md\``)
 	return `${lines.join("\n")}\n`
 }
 
@@ -166,7 +166,7 @@ export function renderStepSummary(input: ReportInput, where: { runDir: string })
 	const blocked = input.findings.filter((finding) => finding.verdict === "BLOCKED").length
 	const parts: Parts = {
 		findings: findingRows(input),
-		gapLine: gaps + blocked === 0 ? null : `${gaps} coverage gaps · ${blocked} blocked, listed in oat-report.md`,
+		gapLine: gaps + blocked === 0 ? null : `${gaps} coverage gaps · ${blocked} blocked, listed in report.md`,
 		head: headOf(input),
 		runDir: where.runDir,
 		untested: untestedRows(input),

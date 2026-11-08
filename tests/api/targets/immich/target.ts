@@ -6,10 +6,10 @@ import { answers, type Target } from "../target.ts"
  * Their sessions and API keys come from the config's recipes.
  */
 
-const ADMIN = { email: "admin@oat.test", name: "Admin", password: "oat-admin-password" }
+const ADMIN = { email: "admin@testing.test", name: "Admin", password: "testing-admin-password" }
 const USERS = {
-	ALPHA: { email: "alpha@oat.test", name: "Alpha", password: "oat-alpha-password" },
-	BETA: { email: "beta@oat.test", name: "Beta", password: "oat-beta-password" },
+	ALPHA: { email: "alpha@testing.test", name: "Alpha", password: "testing-alpha-password" },
+	BETA: { email: "beta@testing.test", name: "Beta", password: "testing-beta-password" },
 }
 
 async function post(url: string, body: unknown, token?: string): Promise<Record<string, unknown>> {

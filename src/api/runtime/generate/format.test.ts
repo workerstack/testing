@@ -34,9 +34,9 @@ describe("formatted", () => {
 	})
 
 	it("addresses, hosts and URLs carry the nonce only when distinct", () => {
-		expect(formatted("email", ctx("null-heavy"), false)).toBe("oat-null-heavy-13@example.test")
-		expect(formatted("idn-email", ctx("baseline"), true)).toBe("oat-baseline-13-n0@example.test")
-		expect(formatted("email", ctx("baseline", 13, null), true)).toBe("oat-baseline-13@example.test")
+		expect(formatted("email", ctx("null-heavy"), false)).toBe("testing-null-heavy-13@example.test")
+		expect(formatted("idn-email", ctx("baseline"), true)).toBe("testing-baseline-13-n0@example.test")
+		expect(formatted("email", ctx("baseline", 13, null), true)).toBe("testing-baseline-13@example.test")
 		for (const format of ["uri", "url", "iri", "uri-reference", "iri-reference"]) {
 			expect(formatted(format, ctx("baseline"), true)).toBe("https://example.test/baseline-13-n0")
 		}
@@ -47,7 +47,7 @@ describe("formatted", () => {
 	it("addresses on the documentation networks, and bytes as base64", () => {
 		expect(formatted("ipv4", ctx("baseline", 251), false)).toBe("192.0.2.2")
 		expect(formatted("ipv6", ctx("baseline"), false)).toBe("2001:db8::14")
-		expect(formatted("byte", ctx("baseline", 1), false)).toBe(Buffer.from("oat 1").toString("base64"))
+		expect(formatted("byte", ctx("baseline", 1), false)).toBe(Buffer.from("testing 1").toString("base64"))
 	})
 
 	it("UUIDs from the variant and index, and the nonce when distinct", () => {

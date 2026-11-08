@@ -7,7 +7,7 @@ describe("MissingValueError", () => {
 		expect([error.name, error.where, error.message]).toEqual([
 			"MissingValueError",
 			"the path parameter {table_id}",
-			"oat had no value for the path parameter {table_id}",
+			"the API tester had no value for the path parameter {table_id}",
 		])
 	})
 })

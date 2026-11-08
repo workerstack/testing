@@ -16,7 +16,7 @@ describe("--ops recall", () => {
 		expect(results.map((r) => r.ok)).toEqual([true])
 	}, 600_000)
 
-	it("switches on a defect's opt-in, in the reference and in oat, for the targeted run", async () => {
+	it("switches on a defect's opt-in, in the reference and in the API tester, for the targeted run", async () => {
 		const results = await runScopeSuite(inProcess, ["LOGIN_NOT_THROTTLED"], { LOGIN_NOT_THROTTLED: ["auth.token"] })
 		expect(results.map((r) => [r.ok, r.detail])).toEqual([[true, "--ops auth.token: reported, status failed"]])
 	}, 600_000)

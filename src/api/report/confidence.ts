@@ -134,9 +134,9 @@ export function renderConfidenceHtml(
 		.join("")
 	return (
 		`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">` +
-		`<title>oat confidence</title><style>${STYLE}</style></head><body><main>` +
+		`<title>the API tester confidence</title><style>${STYLE}</style></head><body><main>` +
 		`<h1>What this run proves</h1><p class="meta">${escape(run.baseUrl)} · ${escape(run.generatedAt)} · ${total} operations · ` +
-		`<a href="oat-report.md">full report</a> · <a href="matrix.html">matrix</a></p>` +
+		`<a href="report.md">full report</a> · <a href="matrix.html">matrix</a></p>` +
 		`<nav class="bar">${bar}</nav>${sections}</main></body></html>\n`
 	)
 }

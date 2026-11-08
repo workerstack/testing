@@ -3,8 +3,8 @@ import { damagedBystanders, ledgeredNotCreated, leftBehind, unreportedLeftovers 
 import type { TeardownReport } from "../runtime/teardown/types.ts"
 import { DAMAGES_BYSTANDERS } from "../reference/defects/bystanders.ts"
 /*
- * A record left behind is a fault in oat unless oat said so: teardown names it as failed, or a
- * create oat could not identify accounts for it. Anything else left in the backend is silent litter.
+ * A record left behind is a fault in the API tester unless the API tester said so: teardown names it as failed, or a
+ * create the API tester could not identify accounts for it. Anything else left in the backend is silent litter.
  */
 
 const report = (over: Partial<TeardownReport>): TeardownReport => ({
@@ -46,9 +46,9 @@ describe("unreportedLeftovers", () => {
 })
 
 /*
- * Two rules every conformance case is held to, beside "leaves nothing behind": oat never deletes
+ * Two rules every conformance case is held to, beside "leaves nothing behind": the API tester never deletes
  * or changes a record it did not create, and every id it ledgered for teardown is one the backend
- * created during the run. The second is what an id oat merely sent breaks.
+ * created during the run. The second is what an id the API tester merely sent breaks.
  */
 
 describe("leftBehind", () => {

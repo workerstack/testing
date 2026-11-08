@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { inProcess, type Via } from "./harness/launch.ts"
 import { type FuzzCase, runFuzz, runPrecision } from "./fuzz.ts"
 
-/* A reference that starts, but whose transport fails every request: oat's run fails, not the pass. */
+/* A reference that starts, but whose transport fails every request: the API tester's run fails, not the pass. */
 const unreachable: Via = {
 	...inProcess,
 	launch: async (backend, options) => ({
@@ -27,7 +27,7 @@ describe("runFuzz", () => {
 		expect(again?.injected).toEqual(result?.injected)
 	}, 120_000)
 
-	it("switches on a drawn defect's opt-in, in the reference and in oat", async () => {
+	it("switches on a drawn defect's opt-in, in the reference and in the API tester", async () => {
 		/* Seed 49 draws LOGIN_NOT_THROTTLED alone, which shows only with login throttling on. */
 		const [result] = await runFuzz({ cases: 1, maxDefects: 1, seed: 49, via: inProcess })
 		expect(result).toMatchObject({ injected: ["LOGIN_NOT_THROTTLED"], missed: [], ok: true })

@@ -48,7 +48,7 @@ describe("PgStore.create", () => {
 		const { pg } = await store()
 		const [made, table] = pg.statements
 		expect(made?.database).toBe("postgres")
-		expect(made?.query).toMatch(/^CREATE DATABASE "oat_ref_\d+_[a-z0-9]+"$/)
+		expect(made?.query).toMatch(/^CREATE DATABASE "testing_ref_\d+_[a-z0-9]+"$/)
 		expect(table).toEqual({
 			database: made?.query.slice('CREATE DATABASE "'.length, -1),
 			query:
@@ -203,8 +203,8 @@ describe("PgStore.close", () => {
 describe("connectPostgres", () => {
 	it("opens a lazy postgres.js pool on the named database, its notices silenced", async () => {
 		const log = vi.spyOn(console, "log").mockImplementation(() => {})
-		const sql = connectPostgres("oat_probe", 3)
-		expect(sql.options).toMatchObject({ database: "oat_probe", max: 3 })
+		const sql = connectPostgres("testing_probe", 3)
+		expect(sql.options).toMatchObject({ database: "testing_probe", max: 3 })
 		sql.options.onnotice({ message: "relation already exists" } as never)
 		expect(log).not.toHaveBeenCalled()
 		await sql.end({ timeout: 0 })

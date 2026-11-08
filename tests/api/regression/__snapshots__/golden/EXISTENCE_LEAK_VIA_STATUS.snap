@@ -295,7 +295,7 @@
             {
               "method": "GET",
               "status": 404,
-              "url": "http://reference.test/v1/projects/proj_beta/jobs/oat-absent-NONCE"
+              "url": "http://reference.test/v1/projects/proj_beta/jobs/testing-absent-NONCE"
             }
           ],
           "summary": "the denial status reveals whether a record exists",
@@ -317,7 +317,7 @@
             {
               "method": "GET",
               "status": 404,
-              "url": "http://reference.test/v1/projects/proj_beta/tables/table_ID/rows/oat-absent-NONCE"
+              "url": "http://reference.test/v1/projects/proj_beta/tables/table_ID/rows/testing-absent-NONCE"
             }
           ],
           "summary": "the denial status reveals whether a record exists",
@@ -339,7 +339,7 @@
             {
               "method": "GET",
               "status": 404,
-              "url": "http://reference.test/v1/projects/proj_beta/tables/oat-absent-NONCE"
+              "url": "http://reference.test/v1/projects/proj_beta/tables/testing-absent-NONCE"
             }
           ],
           "summary": "the denial status reveals whether a record exists",
@@ -361,7 +361,7 @@
             {
               "method": "GET",
               "status": 404,
-              "url": "http://reference.test/v1/projects/proj_beta/webhooks/oat-absent-NONCE"
+              "url": "http://reference.test/v1/projects/proj_beta/webhooks/testing-absent-NONCE"
             }
           ],
           "summary": "the denial status reveals whether a record exists",

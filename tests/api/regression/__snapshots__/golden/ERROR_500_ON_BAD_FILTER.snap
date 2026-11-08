@@ -761,7 +761,7 @@
             {
               "method": "GET",
               "status": 500,
-              "url": "http://reference.test/v1/projects/proj_alpha/jobs?limit=100&filter=oat_no_such_field_xyz.eq.1"
+              "url": "http://reference.test/v1/projects/proj_alpha/jobs?limit=100&filter=testing_no_such_field_xyz.eq.1"
             }
           ],
           "summary": "unknown filter field produces a server error",
@@ -778,7 +778,7 @@
             {
               "method": "GET",
               "status": 500,
-              "url": "http://reference.test/v1/projects/proj_alpha/tables/table_ID/rows?limit=5&filter=oat_no_such_field_xyz.eq.1"
+              "url": "http://reference.test/v1/projects/proj_alpha/tables/table_ID/rows?limit=5&filter=testing_no_such_field_xyz.eq.1"
             }
           ],
           "summary": "unknown filter field produces a server error",
@@ -795,7 +795,7 @@
             {
               "method": "GET",
               "status": 500,
-              "url": "http://reference.test/v1/projects/proj_alpha/tables?limit=100&filter=oat_no_such_field_xyz.eq.1"
+              "url": "http://reference.test/v1/projects/proj_alpha/tables?limit=100&filter=testing_no_such_field_xyz.eq.1"
             }
           ],
           "summary": "unknown filter field produces a server error",
@@ -815,7 +815,7 @@
               "url": "http://reference.test/v1/projects/proj_alpha/jobs?limit=10&filter=%28%28%28%28"
             }
           ],
-          "summary": "requests oat sent to be refused drew statuses the document does not declare",
+          "summary": "requests the API tester sent to be refused drew statuses the document does not declare",
           "verdict": "SPEC_BUG"
         },
         {
@@ -832,7 +832,7 @@
               "url": "http://reference.test/v1/projects/proj_alpha/tables/table_ID/rows?limit=5&filter=%28%28%28%28"
             }
           ],
-          "summary": "requests oat sent to be refused drew statuses the document does not declare",
+          "summary": "requests the API tester sent to be refused drew statuses the document does not declare",
           "verdict": "SPEC_BUG"
         },
         {
@@ -849,7 +849,7 @@
               "url": "http://reference.test/v1/projects/proj_alpha/tables?limit=10&filter=%28%28%28%28"
             }
           ],
-          "summary": "requests oat sent to be refused drew statuses the document does not declare",
+          "summary": "requests the API tester sent to be refused drew statuses the document does not declare",
           "verdict": "SPEC_BUG"
         }
       ]

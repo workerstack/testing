@@ -35,7 +35,7 @@ export function readTenantParam(endpoint: Endpoint, gaps?: GapCollector): string
 	return guess
 }
 
-/** Path parameters declared as roots — resources oat cannot create and must be given. */
+/** Path parameters declared as roots — resources the API tester cannot create and must be given. */
 export function readRootParams(op: OperationObject): string[] {
 	const params = (op.parameters ?? []) as ParameterObject[]
 	return params.filter((p) => p.in === "path" && (p as Record<string, unknown>)["x-root"] === true).map((p) => p.name)

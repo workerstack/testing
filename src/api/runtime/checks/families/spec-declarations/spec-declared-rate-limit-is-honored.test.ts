@@ -68,7 +68,7 @@ describe("spec.declared-rate-limit-is-honored run", () => {
 		expect(judged).toEqual([["listWidgets"]])
 	})
 
-	it("reports a declared rate refused while oat's bucket still had room, once per category", async () => {
+	it("reports a declared rate refused while the API tester's bucket still had room, once per category", async () => {
 		const writes: Pacing = { ...declaredRoom, rateLimitCategory: "writes" }
 		const { findings, outcome } = await judge([
 			...Array.from({ length: 4 }, () => sentTo("listWidgets", 429, declaredRoom)),
@@ -90,7 +90,7 @@ describe("spec.declared-rate-limit-is-honored run", () => {
 		expect(findings.findings[0]?.summary).toBe('the declared "unknown" rate limit is not honored')
 	})
 
-	it("ignores a 429 under a configured rate, or after oat's own bucket made the request wait", async () => {
+	it("ignores a 429 under a configured rate, or after the API tester's own bucket made the request wait", async () => {
 		const { findings, outcome } = await judge(
 			[
 				sentTo("listWidgets", 429, { ...declaredRoom, rateLimitSource: "config" }),

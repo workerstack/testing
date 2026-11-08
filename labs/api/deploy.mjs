@@ -5,7 +5,7 @@
  *   node labs/api/deploy.mjs tiny shop
  *
  * Uses wrangler (labs/api/node_modules). Auth is CLOUDFLARE_API_TOKEN from .env.
- * Prints the https URL oat should hit next.
+ * Prints the https URL the API tester should hit next.
  */
 import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { dirname, join } from "node:path"
@@ -64,7 +64,7 @@ for (const id of requested) {
 	}
 	const dir = join(here, ".deploy", id)
 	await mkdir(dir, { recursive: true })
-	const name = `oat-labs-${id}`
+	const name = `testing-labs-${id}`
 	const toml = `name = "${name}"
 main = "../../worker.ts"
 compatibility_date = "2026-01-15"
@@ -98,6 +98,6 @@ console.log("deployed")
 for (const [id, url] of Object.entries(urls)) {
 	console.log(`  ${id}  ${url}`)
 	console.log(
-		`    LAB_URL=${url} node dist/api/cli.js run --config labs/api/oat.config.ts --out .oat/runs/labs/https-${id}`,
+		`    LAB_URL=${url} node dist/api/cli.js run --config labs/api/testing.api.config.ts --out .testing/api/runs/labs/https-${id}`,
 	)
 }

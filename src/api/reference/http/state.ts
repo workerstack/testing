@@ -59,7 +59,7 @@ export interface ReferenceOptions {
 	defects?: string[]
 	untagged?: boolean
 	dialect?: string
-	/** A correct API shape oat was not written against — by name, or spelled out. */
+	/** A correct API shape the API tester was not written against — by name, or spelled out. */
 	shape?: string | ReferenceShape
 	/** Answer 429 with Retry-After once one identity fails 5 logins within a minute. */
 	throttleLogins?: boolean

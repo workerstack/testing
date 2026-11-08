@@ -91,7 +91,7 @@ describe("the listing store under HIDDEN_FROM_CREATOR", () => {
 		const tagged = Object.assign(new MemoryStore(), { label: "memory" })
 		const state = await referenceState({ defects: ["HIDDEN_FROM_CREATOR"] }, async () => tagged)
 		const row = state.entities.find((entity) => entity.name === "row") as EntityDef
-		await state.listingStore.insert(row, { id: "r1", label: "oat-payload-probe", table_id: "t" })
+		await state.listingStore.insert(row, { id: "r1", label: "testing-payload-probe", table_id: "t" })
 		await state.listingStore.insert(row, { id: "r2", label: "shown", table_id: "t" })
 		const all: SelectPlan = {
 			collation: "binary",

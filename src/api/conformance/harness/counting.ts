@@ -6,7 +6,7 @@
  */
 
 import type { ProgressHandler, ProgressSnapshot } from "../../runtime/progress/types.ts"
-import { run as runOat, type RunOptions, type RunResult } from "../../runtime/run/index.ts"
+import { run as runTester, type RunOptions, type RunResult } from "../../runtime/run/index.ts"
 import { SAFE } from "../../spec/methods.ts"
 import type { Hosted, Via } from "./launch.ts"
 
@@ -124,7 +124,7 @@ export function requestLines(requests: Requests): string {
 }
 
 /**
- * `via`, counting each request oat sends to what it launches or hosts: through that thing's own
+ * `via`, counting each request the API tester sends to what it launches or hosts: through that thing's own
  * transport, or through `socket` when it is reached behind one. A leg counts the same way on
  * either transport, so its request volume compares across runs.
  */
@@ -156,15 +156,15 @@ export function counting(via: Via, socket: typeof fetch = globalThis.fetch): Cou
 }
 
 /**
- * oat's run, as every conformance leg sends it. A run whose transport a counter wraps hands that
+ * The API tester's run, as every conformance leg sends it. A run whose transport a counter wraps hands that
  * counter its requests by source once it answers: read from its transcript and the stages its
  * progress passed through, so attributing them sends nothing.
  */
 export async function run(options: RunOptions): Promise<RunResult> {
 	const transport = options.network?.fetch
-	if (!attributing(transport)) return runOat(options)
+	if (!attributing(transport)) return runTester(options)
 	const progress = marker()
-	const result = await runOat({
+	const result = await runTester({
 		...options,
 		onProgress: (snap) => {
 			progress.onProgress(snap)

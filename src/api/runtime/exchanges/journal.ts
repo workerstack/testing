@@ -6,7 +6,7 @@
  *   exchanges/<requestId>.json   full exchange (headers + described / spilled bodies)
  *   blobs/<sha256>               content-addressed bytes (multipart, binary, oversized text)
  *
- * Redaction is on by default. This is oat's journal, not a HAR file.
+ * Redaction is on by default. This is the API tester's journal, not a HAR file.
  */
 
 import { existsSync } from "node:fs"

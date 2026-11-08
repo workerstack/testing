@@ -174,7 +174,7 @@ describe("untestableEntityReason and credentials", () => {
 
 	it("names what a cohort is missing", () => {
 		expect(untestableEntityReason({ ...row, trackable: false }, model, none)).toBe(
-			'"row" has no records oat can identify after create',
+			'"row" has no records the API tester can identify after create',
 		)
 		expect(untestableEntityReason(omit(row, "create", "list"), model, none)).toBe(
 			'"row" has no list operation and no create operation',
@@ -213,11 +213,11 @@ describe("untestableReason", () => {
 		expect(
 			untestableReason(model.byOperationId.get("row.create") as OperationModel, model, new Set(["row.create"])),
 		).toBe("no-applicable-check: no check judges row.create")
-		/* Rows whose records oat cannot identify after a create. */
+		/* Rows whose records the API tester cannot identify after a create. */
 		const row = { ...entityOf(model, "row"), trackable: false }
 		const untrackable = { ...model, entities: new Map([...model.entities, ["row", row]]) }
 		expect(untestableReason(model.byOperationId.get("row.create") as OperationModel, untrackable, none)).toBe(
-			'entity-not-testable: "row" has no records oat can identify after create',
+			'entity-not-testable: "row" has no records the API tester can identify after create',
 		)
 	})
 })
@@ -234,7 +234,7 @@ describe("untestableEntityReason for an entity with no list", () => {
 			'"row" has no list operation and no read operation',
 		)
 		expect(untestableEntityReason({ ...omit(row, "list"), trackable: false }, model, none)).toBe(
-			'"row" has no records oat can identify after create',
+			'"row" has no records the API tester can identify after create',
 		)
 		expect(untestableEntityReason(omit(row, "list"), model, new Set(["row.create"]))).toBe(
 			'"row" has no list operation and no create other than the sign-up the auth flow sends',

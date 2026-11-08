@@ -221,7 +221,7 @@
       "added": [
         {
           "check": "idempotency.replay-does-not-duplicate",
-          "detail": "two identical POSTs carrying Idempotency-Key: \"oat-idem-NONCE-job\" produced job job_ID and job_ID. The header is declared, so clients will retry on timeouts assuming it protects them; every such retry silently duplicates the record.",
+          "detail": "two identical POSTs carrying Idempotency-Key: \"testing-idem-NONCE-job\" produced job job_ID and job_ID. The header is declared, so clients will retry on timeouts assuming it protects them; every such retry silently duplicates the record.",
           "entity": "job",
           "operations": [
             "job.create"
@@ -243,7 +243,7 @@
         },
         {
           "check": "idempotency.replay-does-not-duplicate",
-          "detail": "two identical POSTs carrying Idempotency-Key: \"oat-idem-NONCE-row\" produced row row_ID and row_ID. The header is declared, so clients will retry on timeouts assuming it protects them; every such retry silently duplicates the record.",
+          "detail": "two identical POSTs carrying Idempotency-Key: \"testing-idem-NONCE-row\" produced row row_ID and row_ID. The header is declared, so clients will retry on timeouts assuming it protects them; every such retry silently duplicates the record.",
           "entity": "row",
           "operations": [
             "row.create"

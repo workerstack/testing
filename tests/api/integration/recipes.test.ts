@@ -239,12 +239,12 @@ async function oauthRun(security: SecurityConfig, principals: PrincipalsConfig) 
 describe("an oauth2 recipe", () => {
 	it("performs the client-credentials grant at the declared token URL and sends that token", async () => {
 		const { result, seen } = await oauthRun(
-			{ oauth: { oauth2: { clientId: "oat-client", clientSecret: "s3cret", flow: "clientCredentials" } } },
+			{ oauth: { oauth2: { clientId: "testing-client", clientSecret: "s3cret", flow: "clientCredentials" } } },
 			{ alpha: {} },
 		)
 		expect(status(result, "items.read")).toBe("passed")
 		expect(seen.forms[0]).toEqual({
-			client_id: "oat-client",
+			client_id: "testing-client",
 			client_secret: "s3cret",
 			grant_type: "client_credentials",
 			scope: "items:read",
@@ -261,7 +261,7 @@ describe("an oauth2 recipe", () => {
 			{
 				oauth: {
 					oauth2: {
-						clientId: "oat-client",
+						clientId: "testing-client",
 						flow: "password",
 						password: "{principal.password}",
 						username: "{principal.email}",
@@ -272,7 +272,7 @@ describe("an oauth2 recipe", () => {
 		)
 		expect(status(result, "items.read")).toBe("passed")
 		expect(seen.forms[0]).toEqual({
-			client_id: "oat-client",
+			client_id: "testing-client",
 			grant_type: "password",
 			password: "alpha-pass",
 			scope: "items:read",

@@ -141,7 +141,7 @@ describe("security recipe options", () => {
 		])
 	})
 
-	it("refuse a recipe for a scheme oat cannot send", () => {
+	it("refuse a recipe for a scheme the API tester cannot send", () => {
 		const mtls = view({ ...keycloak, components: { securitySchemes: { m: { type: "mutualTLS" } } } })
 		expect(problems({ security: { m: { static: "x" } } }, mtls)).toEqual([
 			"security.m: mutualTLS is a TLS client certificate, not a request credential",

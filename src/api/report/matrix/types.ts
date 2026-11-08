@@ -66,8 +66,8 @@ export interface EntityMatrix {
 }
 
 export interface MatrixGraph {
-	kind: "oat.matrix"
-	/** The same version `oat-report.json` states. */
+	kind: "testing.api.matrix"
+	/** The same version `report.json` states. */
 	schemaVersion: typeof REPORT_SCHEMA_VERSION
 	read: {
 		purpose: string

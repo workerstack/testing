@@ -58,7 +58,7 @@ export interface RateLimitTag {
 
 /**
  * `x-rate-limit: { category: string, rps?: number }` — read defensively, like every other tag,
- * because the shape is the emitting app's policy to own, not oat's to assume. A category alone
+ * because the shape is the emitting app's policy to own, not the API tester's to assume. A category alone
  * (no `rps`) still groups operations sharing one budget; a config-level rate can complete it.
  */
 export function readRateLimit(op: OperationObject): RateLimitTag | null {

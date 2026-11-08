@@ -6,7 +6,7 @@ import { bufferWriter } from "../../src/api/cli/writer.ts"
 import { NODE_FLOOR } from "../../src/api/errors/node-floor.ts"
 
 /*
- * oat runs as shipped: plain `node`, no flag. The floor is the first Node where `node:sqlite`, a
+ * The API tester runs as shipped: plain `node`, no flag. The floor is the first Node where `node:sqlite`, a
  * `.ts` config and the QUERY method all work that way, and every place that names it says the same.
  */
 
@@ -32,7 +32,7 @@ describe("the Node floor", () => {
 		)
 		const writer = bufferWriter()
 		judgeSkipped(writer, {}, [{ backend: "sqlite" }])
-		expect(writer.text()).toContain(`oat needs ${NODE_FLOOR} or later`)
+		expect(writer.text()).toContain(`the API tester needs ${NODE_FLOOR} or later`)
 	})
 
 	it("is proved in CI on exactly that version: unit and sqlite conformance, on a job pinned to it", () => {

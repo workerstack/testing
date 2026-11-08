@@ -540,7 +540,7 @@
             {
               "method": "GET",
               "status": 200,
-              "url": "http://reference.test/v1/projects/proj_alpha/jobs?limit=5&order=oat_no_such_sort_xyz.asc"
+              "url": "http://reference.test/v1/projects/proj_alpha/jobs?limit=5&order=testing_no_such_sort_xyz.asc"
             }
           ],
           "summary": "unknown sort field is silently ignored",
@@ -562,7 +562,7 @@
             {
               "method": "GET",
               "status": 200,
-              "url": "http://reference.test/v1/projects/proj_alpha/tables/table_ID/rows?limit=5&order=oat_no_such_sort_xyz.asc"
+              "url": "http://reference.test/v1/projects/proj_alpha/tables/table_ID/rows?limit=5&order=testing_no_such_sort_xyz.asc"
             }
           ],
           "summary": "unknown sort field is silently ignored",
@@ -584,7 +584,7 @@
             {
               "method": "GET",
               "status": 200,
-              "url": "http://reference.test/v1/projects/proj_alpha/tables?limit=5&order=oat_no_such_sort_xyz.asc"
+              "url": "http://reference.test/v1/projects/proj_alpha/tables?limit=5&order=testing_no_such_sort_xyz.asc"
             }
           ],
           "summary": "unknown sort field is silently ignored",

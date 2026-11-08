@@ -1,5 +1,5 @@
 import { isRaw, isRecord, type RawOf } from "../../config/types/raw.ts"
-import type { OatConfig, OriginSpec } from "../../config/types/config.ts"
+import type { ApiConfig, OriginSpec } from "../../config/types/config.ts"
 import { mappedPairs, type OriginSchemes } from "../origin-recipes.ts"
 import type { ResolvedSecurity } from "../../spec/security/requirements.ts"
 import type { SecurityScheme } from "../../spec/security/schemes.ts"
@@ -7,7 +7,7 @@ import { declaredSchemes } from "./principals.ts"
 
 /* The config's secondary origins, as recipe validation reads them: each one's mapping, schemes and operations. */
 
-type Config = RawOf<OatConfig>
+type Config = RawOf<ApiConfig>
 
 /** What these checks read from a document: its schemes, and what each operation's security asks. */
 interface SpecView {

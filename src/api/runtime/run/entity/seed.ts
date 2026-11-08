@@ -18,7 +18,7 @@ export interface SeedPlan {
 /**
  * The entity's world, or `null` when there is nothing to test it against (the reason already
  * reported). A scenario-owned create, an excluded create and a missing create all read what
- * exists; only a create oat may send seeds a cohort of its own.
+ * exists; only a create the API tester may send seeds a cohort of its own.
  */
 export async function seedWorld(run: EntityRun, plan: SeedPlan): Promise<World | null> {
 	const { createOp, ctx, entity } = run
@@ -44,7 +44,7 @@ export async function seedWorld(run: EntityRun, plan: SeedPlan): Promise<World |
 /**
  * Invite is not a fixture create; register / x-fresh-principal already ran in auth. The invite
  * check is the only thing that POSTs a grant, and it uses inviteAs. The entity is read as listed,
- * under a parent oat makes when the list path names one the roots do not.
+ * under a parent the API tester makes when the list path names one the roots do not.
  */
 async function listedWorld(run: EntityRun, plan: SeedPlan): Promise<World> {
 	const listedRoots = await listedRootsOf(run, plan)
@@ -62,7 +62,7 @@ async function listedRootsOf(run: EntityRun, plan: SeedPlan): Promise<Record<str
 	if (plan.needsListedCohort) return listParent()
 	if (plan.inviteOnly || collectionOp.pathParams.every((param) => roots[param] !== undefined)) return roots
 	/* A table's exports, a webhook's deliveries: nobody creates one directly, but the list sits
-	 * under a parent oat can make, and every check on the entity goes through it. A parent oat
+	 * under a parent the API tester can make, and every check on the entity goes through it. A parent the API tester
 	 * cannot make leaves the scope as it was, and the gap says which. */
 	try {
 		return await listParent()

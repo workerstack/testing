@@ -4,7 +4,7 @@ import { oxlintReports, reportsOf } from "./rule-harness.ts"
 
 const MESSAGE = "terminal output belongs to src/api/cli/writer.ts; write through the writer"
 
-describe("oat/no-console", () => {
+describe("testing/no-console", () => {
 	it("flags console and the process streams in src", () => {
 		const fixture = {
 			"src/api/runtime/a.ts": [
@@ -31,7 +31,7 @@ describe("oat/no-console", () => {
 		expect(reportsOf(rule, fixture)).toEqual([])
 	})
 
-	it("fails oxlint through the oat plugin entry", () => {
+	it("fails oxlint through the testing plugin entry", () => {
 		expect(oxlintReports("no-console", { "src/api/runtime/a.ts": 'console.log("x")\n' }).length).toBe(1)
 	})
 })

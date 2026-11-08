@@ -4,7 +4,7 @@
  * - a suite per entity (`operations` for one with none, `<origin>:<entity>` on a secondary origin);
  * - a case per (operation, check): passed, a failure for a failing root cause, or skipped for a
  *   known finding, a coverage gap, an inconclusive check or a blocked one, each check once;
- * - an `oat.run` suite for findings no operation case holds, and for a run that failed or may have
+ * - an `testing.api.run` suite for findings no operation case holds, and for a run that failed or may have
  *   left records behind, so the JUnit outcome agrees with the exit code.
  * Every text and attribute goes through the run's redactor, then XML escaping. No CDATA is used.
  */
@@ -28,7 +28,7 @@ interface Case {
 	result: Result
 }
 
-const RUN_SUITE = "oat.run"
+const RUN_SUITE = "testing.api.run"
 const RUN_CLASS = "run"
 const EVIDENCE_LINES = 5
 
@@ -80,7 +80,7 @@ function evidenceLine(exchange: Exchange, redactor: Redactor): string {
 function bodyOf(finding: Finding, redactor: Redactor): string {
 	const lines = [finding.detail, ...finding.evidence.slice(0, EVIDENCE_LINES).map((e) => evidenceLine(e, redactor))]
 	const more = finding.evidence.length - EVIDENCE_LINES
-	if (more > 0) lines.push(`… ${more} more exchanges in oat-report.json`)
+	if (more > 0) lines.push(`… ${more} more exchanges in report.json`)
 	return lines.join("\n")
 }
 
@@ -241,7 +241,7 @@ export function renderJunit(input: ReportInput): string {
 	const all = suites.flatMap(([, list]) => list)
 	const lines = [
 		'<?xml version="1.0" encoding="UTF-8"?>',
-		`<testsuites name="oat" tests="${all.length}" failures="${count(all, "failure")}" errors="${count(all, "error")}"` +
+		`<testsuites name="testing api" tests="${all.length}" failures="${count(all, "failure")}" errors="${count(all, "error")}"` +
 			` time="${(input.durationMs / 1000).toFixed(3)}">`,
 	]
 	for (const [name, list] of suites) {

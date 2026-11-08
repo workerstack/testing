@@ -10,7 +10,7 @@ describe("optInFor", () => {
 		expect(optInFor(["STALE_LIST"])).toEqual({ reference: {}, run: {} })
 	})
 
-	it("turns the reference's throttle on, and oat's login-throttled check, for an unthrottled login", () => {
+	it("turns the reference's throttle on, and the API tester's login-throttled check, for an unthrottled login", () => {
 		expect(optInFor(["LOGIN_NOT_THROTTLED"])).toEqual({
 			reference: { throttleLogins: true },
 			run: { checks: { "auth.login-throttled": true } },

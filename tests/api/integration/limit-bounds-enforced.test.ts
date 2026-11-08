@@ -6,7 +6,7 @@ import { run } from "../../../src/api/runtime/run/index.ts"
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts"
 
 /*
- * A page size out of range may be clamped or refused; both are honest contracts, so oat does not
+ * A page size out of range may be clamped or refused; both are honest contracts, so the API tester does not
  * pick one for an API. When the document declares `limitOutOfRange: reject`, a page size of 0 or
  * past the maximum that comes back 200 breaks that promise, and is a finding.
  */

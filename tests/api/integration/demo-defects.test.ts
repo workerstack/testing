@@ -8,8 +8,8 @@ import type { DefectName } from "../../../src/api/reference/defects/table.ts"
 import { run } from "../../../src/api/runtime/run/index.ts"
 
 /*
- * The shipped demo injects a handful of defects to show a first-time user what oat finds. A defect
- * it injects but never reports tells that user oat missed it. Its default defects, principals and
+ * The shipped demo injects a handful of defects to show a first-time user what the API tester finds. A defect
+ * it injects but never reports tells that user the API tester missed it. Its default defects, principals and
  * security are read from labs/api/demo.mjs itself, then its run is repeated in process against the
  * same reference: every defect it injects must be reported under the check that diagnoses it.
  */

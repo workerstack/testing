@@ -1,5 +1,5 @@
 /**
- * Every oat tag, checked against its shape.
+ * Every the API tester tag, checked against its shape.
  *
  * Readers stay defensive — a tag they cannot use is ignored — but ignoring it silently meant a
  * typo read as an absence: `x-destructive: yes` was simply not destructive. A tag that is present
@@ -44,7 +44,7 @@ const ASYNC = {
 	until: text,
 } satisfies FieldsOf<AsyncSpec>
 
-/* A record's path is any path oat reads; `[*]` fans out over a list's rows, so it may stand only
+/* A record's path is any path the API tester reads; `[*]` fans out over a list's rows, so it may stand only
  * where rows are: right after a top-level key (`$.hits[*].document`). */
 const recordPath: Check = (value) => {
 	const problem = text(value)
@@ -125,18 +125,22 @@ const OPERATION_TAGS: Readonly<Record<string, Check>> = {
 	"x-wait": (value) => checkShape(value, WAIT, ["operationId"]),
 }
 
-/** Records a gap for every oat tag on `op` (and its parameters) that is present but malformed. */
+/** Records a gap for every the API tester tag on `op` (and its parameters) that is present but malformed. */
 export function validateTags(op: OperationObject, operationId: string, gaps: GapCollector): void {
 	const record = op as Record<string, unknown>
 	for (const [tag, check] of Object.entries(OPERATION_TAGS)) {
 		if (record[tag] === undefined) continue
 		const problem = check(record[tag])
-		if (problem !== null) gaps.record(operationId, tag, `${tag} ${problem}; oat cannot use it`)
+		if (problem !== null) gaps.record(operationId, tag, `${tag} ${problem}; the API tester cannot use it`)
 	}
 	for (const parameter of (op.parameters ?? []) as ParameterObject[]) {
 		const root = (parameter as Record<string, unknown>)["x-root"]
 		if (root !== undefined && typeof root !== "boolean") {
-			gaps.record(operationId, "x-root", `x-root on "${parameter.name}" must be true or false; oat cannot use it`)
+			gaps.record(
+				operationId,
+				"x-root",
+				`x-root on "${parameter.name}" must be true or false; the API tester cannot use it`,
+			)
 		}
 	}
 }

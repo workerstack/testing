@@ -123,7 +123,7 @@ describe("tag validation", () => {
 			},
 		})
 		const found = model.gaps.gaps.map((gap) => gap.detail)
-		expect(found).toContain("x-destructive must be true or false; oat cannot use it")
+		expect(found).toContain("x-destructive must be true or false; the API tester cannot use it")
 		expect(found.some((detail) => detail.startsWith("x-cost must be one of"))).toBe(true)
 		expect(found.some((detail) => detail.startsWith("x-invalidate must be an array of routes"))).toBe(true)
 		expect(model.byOperationId.get("notes.delete")?.destructive).toBe(true)
@@ -131,7 +131,7 @@ describe("tag validation", () => {
 
 	it("checks x-query field by field, and accepts a well-formed one", () => {
 		expect(gapsFor({ grammar: "bogus" })).toEqual([
-			'x-query "grammar" must be one of "postgrest", "colon", "equality"; oat cannot use it',
+			'x-query "grammar" must be one of "postgrest", "colon", "equality"; the API tester cannot use it',
 		])
 		expect(gapsFor({ filterable: 5 })[0]).toMatch(/"filterable" must be an array/)
 		expect(gapsFor({ maxLimit: "x" })[0]).toMatch(/"maxLimit" must be a positive integer/)
@@ -163,7 +163,7 @@ describe("security on the model", () => {
 })
 
 describe("x-cleanup routes", () => {
-	it("records an operation oat never sends as a gap, and joins it to no entity", () => {
+	it("records an operation the API tester never sends as a gap, and joins it to no entity", () => {
 		const model = modelOf({
 			"/v1/notes": { get: { operationId: "notes.list", responses: ok(list(member)) } },
 			"/v1/notes/{note_id}": {
@@ -233,7 +233,7 @@ describe("buildModel query parameter names", () => {
 		expect(conventionsOf(model)?.filter).toBe("where")
 		expect(model.gaps.gaps).toContainEqual({
 			detail:
-				'params.filter names "filtr_by", which the operation does not declare; oat finds the filter parameter by its aliases',
+				'params.filter names "filtr_by", which the operation does not declare; the API tester finds the filter parameter by its aliases',
 			operationId: "notes.list",
 			tag: "x-query",
 		})
@@ -282,7 +282,7 @@ describe("buildModel envelope field names", () => {
 		expect(model.gaps.gaps).toContainEqual({
 			detail:
 				'envelope.nextCursor names "next_after", which the response envelope does not declare; ' +
-				"oat finds the nextCursor field by its aliases",
+				"the API tester finds the nextCursor field by its aliases",
 			operationId: "events.list",
 			tag: "x-query",
 		})

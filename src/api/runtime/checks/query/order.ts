@@ -44,7 +44,7 @@ export function compareScalars(a: unknown, b: unknown): number {
 }
 
 /**
- * The ways a backend may order text. oat cannot know a backend's collation, so an order is
+ * The ways a backend may order text. The API tester cannot know a backend's collation, so an order is
  * judged sorted when it is sorted under one of these — and, once the backend has shown which,
  * under that one from then on.
  */

@@ -6,7 +6,7 @@ const MESSAGE =
 	"module-scope state needs `// per-process-constant: <reason>` with an allowlisted reason (" +
 	"compiled-schema, async-context)"
 
-describe("oat/no-module-state: what is state", () => {
+describe("testing/no-module-state: what is state", () => {
 	it("flags module-scope let, var and constructed objects in src", () => {
 		const fixture = {
 			"src/api/runtime/a.ts": "let count = 0\nexport var flag = true\nexport const memo = new WeakMap()\n",
@@ -42,7 +42,7 @@ describe("oat/no-module-state: what is state", () => {
 	})
 })
 
-describe("oat/no-module-state: reasons and scope", () => {
+describe("testing/no-module-state: reasons and scope", () => {
 	it("rejects an unlisted reason, a reason on a later line, and a comment that is not a reason", () => {
 		const fixture = {
 			"src/api/runtime/a.ts": [
@@ -67,7 +67,7 @@ describe("oat/no-module-state: reasons and scope", () => {
 		expect(reportsOf(rule, fixture)).toEqual([])
 	})
 
-	it("fails oxlint through the oat plugin entry", () => {
+	it("fails oxlint through the testing plugin entry", () => {
 		const source = "let x = 0\nexport const S: ReadonlySet<string> = new Set()\nconst m = new Map()\n"
 		const reports = oxlintReports("no-module-state", { "src/api/runtime/a.ts": source })
 		expect(reports.map(({ line }) => line)).toEqual([1, 3])

@@ -12,7 +12,7 @@ describe("filter.unknown-field-rejected", () => {
 	it("asserts when a term on an undeclared field is refused", async () => {
 		const { ctx, findings, sent } = stage({ records: COHORT })
 		expect(await runCheck(check, ctx)).toEqual({ kind: "asserted" })
-		expect(filters(sent)).toEqual(["-", "oat_no_such_field_xyz.eq.1"])
+		expect(filters(sent)).toEqual(["-", "testing_no_such_field_xyz.eq.1"])
 		expect(findings.findings).toEqual([])
 	})
 

@@ -16,13 +16,13 @@ import {
 } from "./target.ts"
 
 /*
- * oat against real APIs: each target's stack up from pinned images, prepared as a fresh install
+ * The API tester against real APIs: each target's stack up from pinned images, prepared as a fresh install
  * would be, run once with its config. A run must finish (exit 0 or 1, never `failed`) and report
  * exactly the findings in its expected.json: one missing is a lost catch, one extra is a false
- * positive or a defect nobody judged. `OAT_TARGETS=keycloak,vampi` runs some of them.
+ * positive or a defect nobody judged. `TESTING_API_TARGETS=keycloak,vampi` runs some of them.
  */
 
-const asked = targetsAsked(process.env["OAT_TARGETS"])
+const asked = targetsAsked(process.env["TESTING_API_TARGETS"])
 const names = readdirSync(TARGETS_DIR, { withFileTypes: true })
 	.filter((entry) => entry.isDirectory() && existsSync(join(TARGETS_DIR, entry.name, "target.ts")))
 	.map((entry) => entry.name)
@@ -37,10 +37,10 @@ describe.each(names)("%s", (name) => {
 		const target = ((await import(join(TARGETS_DIR, name, "target.ts"))) as { default: Target }).default
 		await ensureVendored(join(TARGETS_DIR, name), target.vendored ?? [])
 		compose(name, ["up", "-d", "--wait", "--quiet-pull"])
-		out = await mkdtemp(join(tmpdir(), `oat-target-${name}-`))
+		out = await mkdtemp(join(tmpdir(), `testing-target-${name}-`))
 		run = await runTarget(name, await target.prepare(target.baseUrl), out)
-		/* `OAT_TARGETS_SUMMARY=<dir>` keeps each run's console summary, which the run's folder does not outlive. */
-		const summary = process.env["OAT_TARGETS_SUMMARY"]
+		/* `TESTING_API_TARGETS_SUMMARY=<dir>` keeps each run's console summary, which the run's folder does not outlive. */
+		const summary = process.env["TESTING_API_TARGETS_SUMMARY"]
 		if (summary !== undefined) {
 			await writeFile(join(summary, `${name}.txt`), `exit ${run.code}\n${run.out}`)
 			await writeFile(join(summary, `${name}.report.json`), JSON.stringify(run.report, null, 1))

@@ -28,7 +28,7 @@ describe("commandServe", () => {
 		const writer = bufferWriter()
 		expect(await commandServe(writer, {}, deps)).toBe(0)
 		expect(started).toEqual([{ backend: "memory", options: { defects: [], untagged: false } }])
-		expect(writer.text()).toContain("oat demo API — memory\n")
+		expect(writer.text()).toContain("the API tester demo API — memory\n")
 		expect(writer.text()).toContain("defects  none — a correct backend")
 		expect(writer.text()).toContain("dialect  postgrest")
 		expect(closed).toEqual(["memory"])
@@ -42,7 +42,7 @@ describe("commandServe", () => {
 			backend: "sqlite",
 			options: { defects: ["A", "B"], dialect: "classic", untagged: true },
 		})
-		expect(writer.text()).toContain("oat demo API — sqlite (untagged spec)")
+		expect(writer.text()).toContain("the API tester demo API — sqlite (untagged spec)")
 		expect(writer.text()).toContain("defects  A, B")
 	})
 })

@@ -1,6 +1,6 @@
 /**
  * Generates the reference backend's OpenAPI document from the entity model, fully annotated with
- * the meta tags in the README. This is the "ideal citizen" spec: everything oat wants to know
+ * the meta tags in the README. This is the "ideal citizen" spec: everything the API tester wants to know
  * is declared, so a run against the clean baseline exercises the tag path rather than the
  * heuristic fallbacks. The conformance suite also serves stripped variants to test the fallbacks.
  */
@@ -48,7 +48,7 @@ export function buildSpec(dialect: Dialect = POSTGREST, ctx: SpecContext = DEFAU
 	const paths = buildPaths(ctx, dialect)
 	const rest = { security: ROOT_SECURITY }
 	/* 3.2: the search route is a QUERY operation, a Path Item field since OAS 3.2. */
-	const head = { info: { title: "oat reference backend", version: "1.0.0" }, openapi: "3.2.0" }
+	const head = { info: { title: "the API tester reference backend", version: "1.0.0" }, openapi: "3.2.0" }
 	/* Key order is the layout: a document is free to define its components before its paths, and
 	 * to declare path parameters once on the path item rather than on every operation. */
 	if (ctx.shape.specLayout === true) {
@@ -68,7 +68,7 @@ function strip(node: unknown): unknown {
 	return out
 }
 
-/** Variant with every oat meta tag removed — exercises the heuristic fallbacks. */
+/** Variant with every the API tester meta tag removed — exercises the heuristic fallbacks. */
 export function buildUntaggedSpec(dialect: Dialect = POSTGREST, ctx: SpecContext = DEFAULT_CONTEXT): Json {
 	return strip(buildSpec(dialect, ctx)) as Json
 }

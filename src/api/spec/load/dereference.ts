@@ -17,7 +17,7 @@ import { type Dereferencing, walk } from "./walk.ts"
  *
  * A schema that refers to itself, directly or through others, cannot be inlined: the result would
  * be a cyclic object that no serializer can print and no generator can bound. Such a reference
- * becomes `$ref: "oat-defs#/$defs/<name>"` and the schema is stored once under `x-oat-defs`, which
+ * becomes `$ref: "testing-defs#/$defs/<name>"` and the schema is stored once under `x-testing-defs`, which
  * the validator registers with AJV and the generator follows to a bounded depth.
  */
 export function dereference(doc: OpenApiDocument): {

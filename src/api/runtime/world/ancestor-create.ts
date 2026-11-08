@@ -154,7 +154,7 @@ export async function createOne(
 		...(options.readable === undefined ? {} : { readable: options.readable }),
 	})
 	if (made !== null) return { adopted: false, record: made.record }
-	/* Made, but by no id oat can read: the caller cannot use it, and teardown cannot remove it. */
+	/* Made, but by no id the API tester can read: the caller cannot use it, and teardown cannot remove it. */
 	options.onUnidentified?.(createOp.entity ?? createOp.operationId, createOp.operationId, exchange)
 	return { adopted: false, record: {} }
 }

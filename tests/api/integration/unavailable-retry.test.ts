@@ -7,7 +7,7 @@ import type { OpenApiDocument } from "../../../src/api/spec/types.ts"
 import { Redactor } from "../../../src/api/security/redact.ts"
 
 /*
- * A 503 that names when to come back is a cue a well-behaved client follows: wait, ask again. oat
+ * A 503 that names when to come back is a cue a well-behaved client follows: wait, ask again. The API tester
  * does the same, within a budget; a 503 that outlasts it, or that names no wait, stands, and the
  * run fails the operation as unavailable rather than calling it a crash.
  */

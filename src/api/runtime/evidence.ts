@@ -1,7 +1,7 @@
 /**
  * The exchanges behind a matrix pass. A check that passed proved a property; the report also
  * names the call and the later exchange that shows it, so a reader can audit the claim without
- * trusting oat. Bodies are read through the client, which may have moved older ones to disk.
+ * trusting the API tester. Bodies are read through the client, which may have moved older ones to disk.
  */
 
 import type { OperationModel, SpecModel } from "../spec/graph/types.ts"

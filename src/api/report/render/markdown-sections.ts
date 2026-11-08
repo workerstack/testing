@@ -9,7 +9,7 @@ import { byVerdict, VERDICT_LABEL } from "./verdicts.ts"
 /** A finding the baseline named. */
 type KnownFinding = Finding & { known: NonNullable<Finding["known"]> }
 
-/** Records oat made and cannot remove: first, since someone has to clean them up by hand. */
+/** Records the API tester made and cannot remove: first, since someone has to clean them up by hand. */
 export function leftoverSections(input: ReportInput, redactor: Redactor): string[] {
 	const unidentified = input.teardown?.unidentified ?? []
 	const unremoved = input.teardown?.failed ?? []

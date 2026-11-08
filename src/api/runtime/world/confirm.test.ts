@@ -5,8 +5,8 @@ import { notes } from "./__fixtures__/documents.ts"
 import { confirmSubmitted } from "./confirm.ts"
 
 /*
- * An id oat only sent proves nothing: the server may have ignored it. `confirmSubmitted` trusts it
- * only once the entity's read, under that id, returns that id with every scalar field oat sent.
+ * An id the API tester only sent proves nothing: the server may have ignored it. `confirmSubmitted` trusts it
+ * only once the entity's read, under that id, returns that id with every scalar field the API tester sent.
  */
 
 const scope = { projectId: "p1" }
@@ -133,7 +133,7 @@ describe("confirmSubmitted, comparing fields", () => {
 		expect(await confirm({ body: stored, status: 200 }, sent).result).toBeNull()
 	})
 
-	it("compares a boolean field oat sent", async () => {
+	it("compares a boolean field the API tester sent", async () => {
 		const stored = { done: true, id: "n1" }
 		expect(await confirm({ body: stored, status: 200 }, { done: true, id: "n1" }).result).toEqual(stored)
 		expect(await confirm({ body: { done: false, id: "n1" }, status: 200 }, { done: true, id: "n1" }).result).toBeNull()

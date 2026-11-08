@@ -71,7 +71,7 @@ describe("layout", () => {
 		expect(unshipped(ROOT, manifest, graph)).toEqual([])
 		/* The list phases 3 to 7.1 shipped with: the check names what it left out. */
 		const narrow = [
-			"bin/oat.js",
+			"bin/testing.js",
 			"dist/api/cli.js",
 			"dist/api/index.js",
 			"dist/api/index.d.ts",

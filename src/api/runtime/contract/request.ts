@@ -209,7 +209,7 @@ export function queryValues(
 }
 
 /**
- * The request body, or `null` when the operation needs one oat cannot build (and is skipped). A
+ * The request body, or `null` when the operation needs one the API tester cannot build (and is skipped). A
  * sign-in's fields that name the principal carry an identity no account holds: a generated value
  * can be a real account's (a documented `enum` of one admin address), and failed sign-ins count
  * toward its lockout.
@@ -222,7 +222,10 @@ export function bodyOf(
 	const content = requestContent(raw)
 	if (content === null) return { body: undefined }
 	if (!content.mediaType.includes("json")) {
-		input.grades.skipped([op.operationId], `needs a ${content.mediaType} body oat cannot build without a scenario`)
+		input.grades.skipped(
+			[op.operationId],
+			`needs a ${content.mediaType} body the API tester cannot build without a scenario`,
+		)
 		return null
 	}
 	/* The schema `requestSchemaOf` reads, from the same raw operation. One variant asked for, one

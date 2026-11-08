@@ -8,7 +8,7 @@ import { defineConfig, env } from "../../../../src/api/index.ts"
  *
  * Scope: documents in a tenant's collection, API keys, and the collections a tenant can read.
  * The search route is the documents' list; each row wraps its document, which `recordPath`
- * points inside (`$.hits[*].document`). No alias oat knows names Typesense's filter parameter, so
+ * points inside (`$.hits[*].document`). No alias the API tester knows names Typesense's filter parameter, so
  * `x-query.params` does: the filter checks run through `filter_by`. Collection writes stay out of
  * the document (`allow`): the run works inside the collections target.ts made.
  */

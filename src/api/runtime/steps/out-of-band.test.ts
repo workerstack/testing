@@ -35,7 +35,7 @@ describe("resolveOutOfBandValue", () => {
 		await expect(
 			resolveOutOfBandValue(undefined, "a@x.test", { kind: "email-verify", label: 'principal "a"' }),
 		).rejects.toThrow(
-			'oat: principal "a" needs a "email-verify" value delivered outside HTTP, but the config declares no ' +
+			'testing api: principal "a" needs a "email-verify" value delivered outside HTTP, but the config declares no ' +
 				"resolveOutOfBand hook.",
 		)
 	})
@@ -70,6 +70,6 @@ describe("resolveOutOfBandValue", () => {
 	it("gives up after the last attempt with the worst-case wait", async () => {
 		await expect(
 			resolveOutOfBandValue(async () => "", "a@x.test", { kind: "otp", label: "x", outOfBand: quick }),
-		).rejects.toThrow('oat: no "otp" value arrived for a@x.test after 2 attempts (~2ms worst-case wait).')
+		).rejects.toThrow('testing api: no "otp" value arrived for a@x.test after 2 attempts (~2ms worst-case wait).')
 	})
 })

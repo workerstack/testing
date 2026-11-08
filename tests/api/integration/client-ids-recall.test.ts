@@ -3,7 +3,7 @@ import { judgeDefect } from "../../../src/api/conformance/matrix/cases.ts"
 import { listening } from "../../../src/api/conformance/harness/launch.ts"
 
 /*
- * Behind the client-ids shape the create answers only `{ success: true }`. A record oat could not
+ * Behind the client-ids shape the create answers only `{ success: true }`. A record the API tester could not
  * confirm is not a record: treating that acknowledgment as one put a phantom with no fields into
  * the cohort, and checks that reason about the cohort (nulls, sort) reported a correct backend.
  */

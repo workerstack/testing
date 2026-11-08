@@ -18,7 +18,7 @@ export const sortUnknownFieldRejected: Check = defineCheck({
 	async run(ctx): Promise<Outcome> {
 		const result = await list(
 			asProbe(ctx),
-			q(ctx, { limit: 5, order: sortTerm(conv(ctx), { direction: "asc", field: "oat_no_such_sort_xyz" }) }),
+			q(ctx, { limit: 5, order: sortTerm(conv(ctx), { direction: "asc", field: "testing_no_such_sort_xyz" }) }),
 		)
 		if (result.exchange.status >= 500) {
 			return ctx.findings.backend(this.id, ctx.entityName, {

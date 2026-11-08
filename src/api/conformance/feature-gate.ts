@@ -137,7 +137,7 @@ const CASES: readonly GateCase[] = [
 	},
 ]
 
-/** oat's findings against a fresh harness, reached through `via`. */
+/** The API tester's findings against a fresh harness, reached through `via`. */
 async function against(via: Via, gate: GateCase): Promise<Finding[]> {
 	const hosted = await via.host(featureGateHarness(gate.harness))
 	try {

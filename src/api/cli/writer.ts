@@ -1,5 +1,5 @@
 /*
- * The one owner of terminal output. Everything oat prints goes through a writer, so a command can
+ * The one owner of terminal output. Everything the API tester prints goes through a writer, so a command can
  * be run with its output captured, and the progress line and the report never interleave.
  */
 

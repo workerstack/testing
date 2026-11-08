@@ -68,7 +68,7 @@ describe("filter.ilike-is-case-insensitive", () => {
 	})
 })
 
-describe("filter.ilike-is-case-insensitive: records oat sent, never read back", () => {
+describe("filter.ilike-is-case-insensitive: records the API tester sent, never read back", () => {
 	it("stands down, since what the server stored is not known", () => {
 		const { ctx } = stage({ doc: DOC, records: COHORT })
 		expect(check.plan(ctx).ok).toBe(true)

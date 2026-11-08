@@ -48,7 +48,7 @@ function supportOf(model: SpecModel, scope: TargetScope): Set<string> {
 	return support
 }
 
-/** The scope a run would take, with no network: what `oat plan --ops` prints. */
+/** The scope a run would take, with no network: what `testing api plan --ops` prints. */
 export function planScope(model: SpecModel, scope: TargetScope): ScopePlan {
 	const checks = checksFor(model, scope)
 	const support = supportOf(model, scope)

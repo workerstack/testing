@@ -3,7 +3,7 @@
  *
  * Root causes are matched by `findingKey`, so a defect two runs both found reads as persisting
  * though its ids and ports differ; operations are matched by id, so a target that passed before
- * and fails now stands out. Reports from other oat versions may lack fields: a missing `scope`
+ * and fails now stands out. Reports from other the API tester versions may lack fields: a missing `scope`
  * makes coverage not comparable rather than an error.
  */
 
@@ -22,7 +22,7 @@ export interface SavedFinding {
 }
 
 export interface SavedReport {
-	/** Absent in a 0.24 report, which this oat still reads. */
+	/** Absent in a 0.24 report, which this the API tester still reads. */
 	schemaVersion?: number
 	findings: SavedFinding[]
 	scope?: { operations: Array<{ operationId?: string; status: string }> }
@@ -30,13 +30,13 @@ export interface SavedReport {
 }
 
 /**
- * Why this oat cannot read the saved report at `file`, or `undefined` when it can: one with no
- * `schemaVersion` (0.24) or with the one this oat writes. A later shape is refused, not misread.
+ * Why this the API tester cannot read the saved report at `file`, or `undefined` when it can: one with no
+ * `schemaVersion` (0.24) or with the one this the API tester writes. A later shape is refused, not misread.
  */
 export function schemaRefusal(saved: { schemaVersion?: unknown }, file: string): string | undefined {
 	const version = saved.schemaVersion
 	if (version === undefined || version === REPORT_SCHEMA_VERSION) return undefined
-	return `${file} is report schemaVersion ${JSON.stringify(version)}; this oat reads ${REPORT_SCHEMA_VERSION} — upgrade oat`
+	return `${file} is report schemaVersion ${JSON.stringify(version)}; this the API tester reads ${REPORT_SCHEMA_VERSION} — upgrade the API tester`
 }
 
 export interface RunDiff {

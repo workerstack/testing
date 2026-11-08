@@ -56,13 +56,13 @@ describe("writeReports and printSummary", () => {
 		const finished = await finishedRun(await run(optionsFor(crashing)))
 		const input = reportInput(finished)
 		await writeReports(finished, input)
-		const written = ["principals.json", "oat-report.md", "oat-report.json", "matrix.html", "matrix.json", "report.html"]
+		const written = ["principals.json", "report.md", "report.json", "matrix.html", "matrix.json", "report.html"]
 		expect(written.filter((name) => !existsSync(join(finished.outDir, name)))).toEqual([])
 		const repros = readdirSync(finished.outDir).filter((name) => !name.includes("."))
 		expect(repros).toHaveLength(1)
 		const writer = bufferWriter()
 		printSummary(writer, finished, input)
-		expect(writer.text()).toContain(`  report: ${join(finished.outDir, "oat-report.md")}\n`)
+		expect(writer.text()).toContain(`  report: ${join(finished.outDir, "report.md")}\n`)
 		expect(writer.text()).not.toContain("exchanges:")
 	})
 
@@ -128,8 +128,8 @@ describe("appendStepSummary", () => {
 		await appendStepSummary(writer, input, { path: undefined, runDir: finished.outDir })
 		await appendStepSummary(writer, input, { path: "", runDir: finished.outDir })
 		const text = readFileSync(path, "utf8")
-		expect(text.startsWith("earlier step\n## oat: ")).toBe(true)
-		expect(text).toContain(`Full report: \`${join(finished.outDir, "oat-report.md")}\``)
+		expect(text.startsWith("earlier step\n## testing api: ")).toBe(true)
+		expect(text).toContain(`Full report: \`${join(finished.outDir, "report.md")}\``)
 		expect(writer.text()).toBe("")
 	})
 
@@ -138,7 +138,7 @@ describe("appendStepSummary", () => {
 		const writer = bufferWriter()
 		const path = join(folder(), "missing", "summary.md")
 		await appendStepSummary(writer, reportInput(finished), { path, runDir: finished.outDir })
-		expect(writer.text()).toMatch(/^oat: could not write the step summary: ENOENT/)
+		expect(writer.text()).toMatch(/^testing api: could not write the step summary: ENOENT/)
 	})
 })
 
@@ -156,7 +156,7 @@ describe("credentials", () => {
 
 	it("writes the values a run kept, readable by its owner alone, and nothing for a run that kept none", async () => {
 		const result = await run(optionsFor(notesApi()))
-		const path = join(folder(), ".oat", "credentials.json")
+		const path = join(folder(), ".testing", "api", "credentials.json")
 		expect(await keepCredentials({ ...result, credentials: kept }, path)).toBe(true)
 		expect(statSync(path).mode & 0o777).toBe(0o600)
 		expect(JSON.parse(readFileSync(path, "utf8"))).toEqual({ credentials: kept })

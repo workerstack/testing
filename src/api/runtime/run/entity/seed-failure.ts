@@ -61,7 +61,7 @@ async function createFailed(run: EntityRun, createOp: OperationModel, error: unk
 	const failure = await failureOf(run, createOp, error)
 	const status = error instanceof SeedError ? error.status : undefined
 	/* A create that fails with 5xx is not a fixture problem — it is the defect. Reporting it as
-	 * merely "blocked" buries the most serious thing oat found. */
+	 * merely "blocked" buries the most serious thing the API tester found. */
 	if (status !== undefined && status >= 500 && !failure.support) {
 		run.ctx.findings
 			.attributed([failure.failedOp])

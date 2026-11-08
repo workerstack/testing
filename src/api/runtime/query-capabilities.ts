@@ -41,7 +41,7 @@ export async function resolveEntityCapabilities(input: {
 	const get = async (operationId: string, scope = input.scope): Promise<unknown> => {
 		const op = resolveHarvestOp(input.model, operationId)
 		if (op === undefined) {
-			throw new Error(`oat: harvest/get target "${operationId}" is not in the document`)
+			throw new Error(`testing api: harvest/get target "${operationId}" is not in the document`)
 		}
 		const exchange = await input.client.request(op.method, fillPath(op.path, scope), {
 			as: { principal: input.principal },

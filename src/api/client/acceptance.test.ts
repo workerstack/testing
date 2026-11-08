@@ -27,7 +27,7 @@ afterEach(() => {
 
 /* The exchange file the run's journal writes for `exchange`, as text. */
 async function journaled(exchange: Exchange, redactor: Parameters<typeof createExchangeJournal>[1]): Promise<string> {
-	const dir = mkdtempSync(join(tmpdir(), "oat-client-acceptance-"))
+	const dir = mkdtempSync(join(tmpdir(), "testing-client-acceptance-"))
 	dirs.push(dir)
 	const journal = createExchangeJournal(dir, redactor)
 	await journal.record(exchange)

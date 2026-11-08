@@ -71,9 +71,9 @@ describe("nextValue", () => {
 	it("flips a boolean and alternates between two short strings", () => {
 		expect(nextValue({ kind: "boolean", maxLength: 0, name: "f" }, true)).toBe(false)
 		expect(nextValue({ kind: "boolean", maxLength: 0, name: "f" }, undefined)).toBe(true)
-		expect(nextValue({ kind: "string", maxLength: 64, name: "n" }, "Bob")).toBe("Oat")
-		expect(nextValue({ kind: "string", maxLength: 64, name: "n" }, "Oat")).toBe("Xot")
-		expect(nextValue({ kind: "string", maxLength: 2, name: "n" }, "x")).toBe("Oa")
+		expect(nextValue({ kind: "string", maxLength: 64, name: "n" }, "Bob")).toBe("Tst")
+		expect(nextValue({ kind: "string", maxLength: 64, name: "n" }, "Tst")).toBe("Xot")
+		expect(nextValue({ kind: "string", maxLength: 2, name: "n" }, "x")).toBe("Ts")
 	})
 })
 

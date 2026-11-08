@@ -1,4 +1,4 @@
-/** The widget document the unique suite runs oat against: one entity, its sets tagged as asked. */
+/** The widget document the unique suite runs the API tester against: one entity, its sets tagged as asked. */
 
 import type { OpenApiDocument } from "../../spec/types.ts"
 import { bearerSecurity } from "../harness/security.ts"

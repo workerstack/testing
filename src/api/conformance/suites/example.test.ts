@@ -12,12 +12,12 @@ describe("runExampleSpecSuite", () => {
 	})
 
 	it("reports a document it cannot read as one failure", async () => {
-		const results = await runExampleSpecSuite(join(tmpdir(), "oat-no-such-example.yaml"))
+		const results = await runExampleSpecSuite(join(tmpdir(), "testing-no-such-example.yaml"))
 		expect(results.map((r) => [r.name, r.ok])).toEqual([["annotated-openapi.yaml", false]])
 	})
 
 	it("names what the model says where a claim does not hold", async () => {
-		const dir = await mkdtemp(join(tmpdir(), "oat-example-"))
+		const dir = await mkdtemp(join(tmpdir(), "testing-example-"))
 		try {
 			const path = join(dir, "bare.json")
 			await writeFile(path, JSON.stringify({ info: { title: "bare", version: "1" }, openapi: "3.1.0", paths: {} }))

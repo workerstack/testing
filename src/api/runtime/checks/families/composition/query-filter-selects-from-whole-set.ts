@@ -49,7 +49,7 @@ async function walkBothWays(
  * which is how it survives review — the damage is further in, where pages come back short and
  * matching records are never returned at all.
  *
- * The oracle needs no ground truth because oat can compute the answer two ways. Walk the
+ * The oracle needs no ground truth because the API tester can compute the answer two ways. Walk the
  * collection unfiltered and apply the predicate client-side; walk it again with the predicate
  * pushed to the server. A backend that filters before paging returns the same set both times. One
  * that pages first returns a subset, and the difference is exactly the records it skipped.
@@ -101,7 +101,7 @@ export const filterAndPagingCompose: Check<Subset & { value: unknown }> = define
 			)
 		}
 
-		/* The predicate applied by oat, over everything the API served. */
+		/* The predicate applied by the API tester, over everything the API served. */
 		const clientSide = new Set(everything.items.filter(matches).flatMap((row) => idOf(row, ctx.identity) ?? []))
 		const returned = new Set(ids(serverSide.items, ctx.identity))
 		const skipped = [...clientSide].filter((id) => !returned.has(id))

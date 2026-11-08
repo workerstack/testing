@@ -76,7 +76,7 @@ describe("spooled bodies, at the edges", () => {
 
 describe("spooled bodies on disk", () => {
 	it("are never written in the clear: a login's tokens moved out of memory stay unreadable there", async () => {
-		const root = mkdtempSync(join(tmpdir(), "oat-spool-root-"))
+		const root = mkdtempSync(join(tmpdir(), "testing-spool-root-"))
 		try {
 			const spool = new BodySpool({ dir: root, memoryBytes: 100 })
 			const login = { access_token: "acc-9f8e7d6c5b", refresh_token: "ref-1a2b3c4d5e", pad: "p".repeat(80) }
@@ -120,7 +120,7 @@ describe("spooled bodies, sealed", () => {
 	const body = { access_token: "acc-9f8e7d6c5b", pad: "p".repeat(80) }
 
 	it("never write the same bytes twice for the same body: a fresh nonce, a key of each spool's own", async () => {
-		const root = mkdtempSync(join(tmpdir(), "oat-spool-seal-"))
+		const root = mkdtempSync(join(tmpdir(), "testing-spool-seal-"))
 		try {
 			const one = await oneSpooled(root, body)
 			const [first] = spooled(root)
@@ -141,7 +141,7 @@ describe("spooled bodies, sealed", () => {
 	})
 
 	it("throws on a file altered or cut short, never decrypting it to garbage", async () => {
-		const root = mkdtempSync(join(tmpdir(), "oat-spool-tamper-"))
+		const root = mkdtempSync(join(tmpdir(), "testing-spool-tamper-"))
 		try {
 			const { first, spool } = await oneSpooled(root, body)
 			const [path] = spooled(root) as [string]
@@ -163,7 +163,7 @@ describe("spooled bodies, when the process exits first", () => {
 	const body = { access_token: "acc-9f8e7d6c5b", pad: "p".repeat(80) }
 
 	it("are removed if the process exits before the spool is disposed of, and stop listening once it is", async () => {
-		const root = mkdtempSync(join(tmpdir(), "oat-spool-exit-"))
+		const root = mkdtempSync(join(tmpdir(), "testing-spool-exit-"))
 		try {
 			const before = process.listeners("exit").length
 			const { spool } = await oneSpooled(root, body)
@@ -184,7 +184,7 @@ describe("spooled bodies, when the process exits first", () => {
 
 describe("a spool disposed of while its directory is still being made", () => {
 	it("leaves no exit listener behind", async () => {
-		const root = mkdtempSync(join(tmpdir(), "oat-spool-race-"))
+		const root = mkdtempSync(join(tmpdir(), "testing-spool-race-"))
 		try {
 			const before = process.listeners("exit").length
 			const spool = new BodySpool({ dir: root, memoryBytes: 100 })

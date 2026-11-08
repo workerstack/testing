@@ -17,7 +17,7 @@ describe("tenant.denial-does-not-reveal-existence", () => {
 		expect(await runCheck(denialDoesNotRevealExistence, ctx)).toEqual({ kind: "asserted" })
 		expect(sent.map((s) => s.path)).toEqual([
 			"/orgs/o2/notes/n1",
-			expect.stringMatching(/^\/orgs\/o2\/notes\/oat-absent-/),
+			expect.stringMatching(/^\/orgs\/o2\/notes\/testing-absent-/),
 		])
 		/* Both as the peer, each named so the client sends the read's own credential. */
 		expect(sent.map((s) => s.options)).toEqual([

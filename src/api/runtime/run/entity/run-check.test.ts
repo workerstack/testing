@@ -122,7 +122,7 @@ describe("runCheck clients", () => {
 		expect(loop.outcomes.get("c.own")).toEqual({
 			kind: "unresolved",
 			reason:
-				"notes.update would change password on alpha's own record, which alpha signs in with: oat never sends that",
+				"notes.update would change password on alpha's own record, which alpha signs in with: the API tester never sends that",
 		})
 		const other = checkOf({ id: "c.other", mutates: true, run: write("/notes/n-8") })
 		await runCheck(loop, { check: other, graded: GRADED })
@@ -163,7 +163,7 @@ describe("runCheck errors", () => {
 
 	it("stands a check down, naming the record, when its write names a record the run depends on", async () => {
 		const reason =
-			"apiKey.revoke would change api-key k-1, a credential the run holds (minted by apiKey.create): oat never sends that"
+			"apiKey.revoke would change api-key k-1, a credential the run holds (minted by apiKey.create): the API tester never sends that"
 		const { ctx, outcome } = await ran({ id: "c.held", run: throwing(new HeldRecordError(reason)) })
 		expect(outcome).toEqual({ kind: "stood-down", reason })
 		expect(ctx.findings.findings).toEqual([])
@@ -171,7 +171,7 @@ describe("runCheck errors", () => {
 
 	it("leaves a check unresolved for a value nobody supplied", async () => {
 		const { outcome } = await ran({ id: "c.missing", run: throwing(new MissingValueError("no captcha")) })
-		expect(outcome).toEqual({ kind: "unresolved", reason: "oat had no value for no captcha" })
+		expect(outcome).toEqual({ kind: "unresolved", reason: "the API tester had no value for no captcha" })
 	})
 
 	it("blocks a check whose credential is BLOCKED, with the store's reason", async () => {

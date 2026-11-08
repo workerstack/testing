@@ -23,7 +23,7 @@ export interface HarnessOptions {
 	spec: SpecOptions
 	/** The first create is refused as a duplicate. */
 	seedConflict?: boolean
-	/** A widget is listed before oat creates any. */
+	/** A widget is listed before the API tester creates any. */
 	listSeeded?: boolean
 	duplicate?: DuplicateMode
 	/** How a colliding update is answered: refused with a 409 (the default), or applied. */
@@ -197,7 +197,7 @@ export interface Outcome {
 const PRINCIPALS: PrincipalsConfig = { alpha: { scope: { org_id: "org_1" }, tenant: "org_1" } }
 const SECURITY: SecurityConfig = { bearer: { static: "tok_alpha" } }
 
-/** oat run once, on the widget entity alone, against a fresh harness reached through `via`. */
+/** testing api run once, on the widget entity alone, against a fresh harness reached through `via`. */
 export async function against(via: Via, options: HarnessOptions): Promise<Outcome> {
 	const { handle, posts } = widgetBackend(options)
 	const hosted = await via.host(handle)

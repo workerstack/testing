@@ -131,7 +131,7 @@ const ME = {
 	},
 }
 
-describe("readRoute picks a read oat can send", () => {
+describe("readRoute picks a read the API tester can send", () => {
 	it("prefers a read with no required parameters, and among those the caller's own read or a list", () => {
 		expect(routeIn({ ...STATS, ...STATUS, ...ME })).toMatchObject({ operation: { operationId: "users.me" } })
 		expect(routeIn({ ...ME, ...STATUS })).toMatchObject({ operation: { operationId: "users.me" } })
@@ -189,7 +189,7 @@ describe("lifecyclePlan", () => {
 			probe: { recipes: recipes as never },
 		}).ctx
 		expect(lifecyclePlan(unscoped, "revoke")).toEqual({
-			needs: "no read this credential protects that oat can send",
+			needs: "no read this credential protects that the API tester can send",
 			ok: false,
 		})
 	})

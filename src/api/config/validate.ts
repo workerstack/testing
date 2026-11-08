@@ -11,7 +11,7 @@ import { principalMapProblems, REMOVED_KEYS, removedProblems } from "../credenti
 import { scenarioPlaceholderProblems } from "../credentials/validate/scenario-placeholders.ts"
 import { securityMapProblems } from "../credentials/validate/security.ts"
 import { isRaw, isRecord, type RawOf } from "./types/raw.ts"
-import type { OatConfig } from "./types/config.ts"
+import type { ApiConfig } from "./types/config.ts"
 import type { Hooks } from "./types/hooks.ts"
 
 type Rule = (value: unknown, path: string) => string[]
@@ -96,7 +96,7 @@ function overlayRule(): Rule {
 	})
 }
 
-/** The rule for each top-level config key; its keys are the config keys oat knows. */
+/** The rule for each top-level config key; its keys are the config keys the API tester knows. */
 export function configRules(): Record<string, Rule> {
 	const overlay = overlayRule()
 	return {
@@ -159,7 +159,7 @@ const REMOVED_HOOKS: Readonly<Record<string, string>> = {
 }
 
 /* Keys a 0.25.0 credential recipe replaced: a credential header in globalHeaders, a hook no recipe calls. */
-function carrierProblems(config: RawOf<OatConfig>): string[] {
+function carrierProblems(config: RawOf<ApiConfig>): string[] {
 	const headers = isRecord(config.globalHeaders) ? Object.keys(config.globalHeaders) : []
 	const hooks: RawOf<Hooks> = isRaw<Hooks>(config.hooks) ? config.hooks : {}
 	return [
@@ -173,14 +173,14 @@ function carrierProblems(config: RawOf<OatConfig>): string[] {
 }
 
 /* A writer that names no principal: the run would write as someone the config does not declare. */
-function writerProblems(config: RawOf<OatConfig>): string[] {
+function writerProblems(config: RawOf<ApiConfig>): string[] {
 	const { principals, writer } = config
 	if (typeof writer !== "string" || !isRecord(principals) || writer in principals) return []
 	return [`writer names no principal: "${writer}" (principals: ${Object.keys(principals).join(", ")})`]
 }
 
 /* The credentials config, by the validators that also run against the document, minus what needs it. */
-function credentialProblems(config: RawOf<OatConfig>): string[] {
+function credentialProblems(config: RawOf<ApiConfig>): string[] {
 	return [
 		...(config.principals === undefined ? [] : principalMapProblems(config)),
 		...writerProblems(config),
@@ -196,7 +196,7 @@ export function configProblems(config: unknown, options: { forRun?: boolean } = 
 	const required = options.forRun === true ? ["spec", "baseUrl", "principals"] : []
 	const rules = shape(configRules(), required)
 	if (!isRecord(config)) return rules(config, "config")
-	/* A removed key is named with its replacement below, not as a key oat does not know. */
+	/* A removed key is named with its replacement below, not as a key the API tester does not know. */
 	const current = Object.fromEntries(Object.entries(config).filter(([key]) => !REMOVED_KEYS.includes(key)))
 	return [...rules(current, "config"), ...credentialProblems(config).map((problem) => `config.${problem}`)]
 }

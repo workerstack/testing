@@ -9,7 +9,7 @@ import { notesDoc } from "../../runtime/run/__fixtures__/api.ts"
 
 /** A fresh folder of its own. */
 export function folder(): string {
-	return mkdtempSync(join(tmpdir(), "oat-cli-"))
+	return mkdtempSync(join(tmpdir(), "testing-cli-"))
 }
 
 /** `body` written as JSON to `name` in `dir`; returns the path. */
@@ -27,7 +27,7 @@ export function notesSpec(dir: string = folder(), doc: unknown = notesDoc()): st
 /** A config on disk for the notes document beside it. */
 export function notesConfig(dir: string = folder(), extra: Record<string, unknown> = {}): string {
 	const spec = notesSpec(dir)
-	return json(dir, "oat.config.json", {
+	return json(dir, "testing.api.config.json", {
 		baseUrl: "http://api.test",
 		principals: { alpha: { tenant: "t1" } },
 		/* The notes document declares a bearer scheme; a fixed token satisfies it. */
@@ -39,7 +39,7 @@ export function notesConfig(dir: string = folder(), extra: Record<string, unknow
 
 /** The reference's document on disk, and the config it is run with (its jwt login and its minted API key), with what `extra` adds. */
 export function referenceConfig(dir: string = folder(), extra: Record<string, unknown> = {}): string {
-	return json(dir, "oat.config.json", {
+	return json(dir, "testing.api.config.json", {
 		baseUrl: "http://api.test",
 		principals: PRINCIPALS,
 		security: SECURITY,
@@ -66,7 +66,7 @@ const signupPaths = {
 
 /** A config whose login signs up through `account.create`, then signs in at `session.start`, for that document. */
 export function signupConfig(dir: string = folder()): string {
-	return json(dir, "oat.config.json", {
+	return json(dir, "testing.api.config.json", {
 		baseUrl: "http://api.test",
 		principals: { alpha: { tenant: "t1" } },
 		security: {
@@ -82,6 +82,6 @@ export function signupConfig(dir: string = folder()): string {
 export function savedRun(dir: string, name: string, report: unknown): string {
 	const run = join(dir, name)
 	mkdirSync(run, { recursive: true })
-	json(run, "oat-report.json", report)
+	json(run, "report.json", report)
 	return run
 }

@@ -1,19 +1,19 @@
 /**
  * A config against a live API that needs a multi-step login.
  *
- * This file is the entire coupling surface between oat and one specific backend: which route
+ * This file is the entire coupling surface between the API tester and one specific backend: which route
  * issues a credential, how a verification *link* that never travels over HTTP is collected, which
  * of the document's schemes it fills, and which path parameters the credential itself identifies. Delete it and
- * oat still runs against any other OpenAPI document.
+ * The API tester still runs against any other OpenAPI document.
  *
- * The primary chain is the user-visible hop: the mailbox returns a URL, oat GETs it (recorded),
+ * The primary chain is the user-visible hop: the mailbox returns a URL, the API tester GETs it (recorded),
  * and `saveAs` binds cookies. APIs whose user path is POST-token keep that spelling — see the
  * comment on `signUpPostToken` below.
  *
- *   OAT_API_URL=... OAT_TESTER_KEY=... oat run --config labs/api/oob-auth.config.ts
+ *   TESTING_API_API_URL=... TESTING_API_TESTER_KEY=... testing api run --config labs/api/oob-auth.config.ts
  *
  * Written as `from "../../dist/api/index.js"` only because this file lives inside the repository —
- * in your own project it is `from "@lovrozagar/oat"`.
+ * in your own project it is `from "@workerstack/testing/api"`.
  */
 
 import {
@@ -24,14 +24,14 @@ import {
 	type TeardownPrincipalContext,
 } from "../../dist/api/index.js"
 
-const API = process.env["OAT_API_URL"] ?? "https://api.example.com"
-const APP = process.env["OAT_APP_URL"] ?? "https://app.example.com"
-const TESTER_KEY = env("OAT_TESTER_KEY")
-const PASSWORD = "OatSpec123!x"
+const API = process.env["TESTING_API_API_URL"] ?? "https://api.example.com"
+const APP = process.env["TESTING_API_APP_URL"] ?? "https://app.example.com"
+const TESTER_KEY = env("TESTING_API_TESTER_KEY")
+const PASSWORD = "TesterSpec123!x"
 
 /** A distinct address per principal per run, so tenants never collide between runs. */
 function freshEmail(label: string): string {
-	return `oat-${label}-${Date.now()}-${Math.floor(Math.random() * 10_000)}@oat-spec.test`
+	return `testing-${label}-${Date.now()}-${Math.floor(Math.random() * 10_000)}@testing-spec.test`
 }
 
 /**
@@ -50,7 +50,7 @@ const SESSION: Recipe = {
 		from: "cookie:session",
 		steps: [
 			/* Raw paths rather than operationIds: an API document like this commonly contains no
-			 * auth operations at all, so there is nothing in the spec to reference. `oat doctor`
+			 * auth operations at all, so there is nothing in the spec to reference. `testing api doctor`
 			 * reports that as a gap — a document describing a protected API should describe how
 			 * to authenticate to it. */
 			{
@@ -98,8 +98,8 @@ const SESSION: Recipe = {
 
 /**
  * Reads a link this deployment stashes for test traffic. Every backend does this differently —
- * a mail catcher, a KV tap, a webhook sink — which is exactly why oat cannot do it for you.
- * Returning null asks oat to retry: such stores are usually eventually consistent.
+ * a mail catcher, a KV tap, a webhook sink — which is exactly why the API tester cannot do it for you.
+ * Returning null asks the API tester to retry: such stores are usually eventually consistent.
  * `scope` / `headers` are the live principal (the register JWT) so a click-while-signed-in
  * hook can send the session the human would have. The GET of the returned URL is a later
  * RequestStep, not this hook.
@@ -108,7 +108,7 @@ async function resolveOutOfBand({ address, kind, scope }: OutOfBandRequest): Pro
 	const url = new URL(`${API}/v1/test/last-token`)
 	url.searchParams.set("email", address)
 	url.searchParams.set("type", kind)
-	const headers: Record<string, string> = { "x-oat-tester-key": TESTER_KEY }
+	const headers: Record<string, string> = { "x-testing-tester-key": TESTER_KEY }
 	if (scope["credential"] !== undefined && scope["credential"] !== "") {
 		headers["authorization"] = `Bearer ${scope["credential"]}`
 	}
@@ -135,17 +135,17 @@ async function teardownPrincipal(_address: string, { sends }: TeardownPrincipalC
 
 export default defineConfig({
 	baseUrl: API,
-	/* Sent on every request. Opaque to oat — it never inspects these, and never carries a credential. */
-	globalHeaders: { "x-oat-tester-key": TESTER_KEY },
+	/* Sent on every request. Opaque to the API tester — it never inspects these, and never carries a credential. */
+	globalHeaders: { "x-testing-tester-key": TESTER_KEY },
 	hooks: { resolveOutOfBand, teardownPrincipal },
 	principals: {
 		/* The login registers each account through a route the document does not mark
 		 * x-fresh-principal, so `created` says the run made it and teardown removes it by its email. */
-		alpha: { created: true, email: freshEmail("alpha"), name: "Oat alpha" },
-		beta: { created: true, email: freshEmail("beta"), name: "Oat beta" },
+		alpha: { created: true, email: freshEmail("alpha"), name: "the API tester alpha" },
+		beta: { created: true, email: freshEmail("beta"), name: "the API tester beta" },
 	},
 	/* The tester key is a secret, not a credential: scrubbed from reports and repro scripts. */
-	redact: { headers: ["x-oat-tester-key"] },
+	redact: { headers: ["x-testing-tester-key"] },
 	security: { session: SESSION },
 	seed: 42,
 	spec: `${API}/v1/openapi/spec`,

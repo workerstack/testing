@@ -175,7 +175,7 @@ export function listLocated(ctx: SpecContext, entity: EntityDef, dialect: Dialec
 
 export function listSchema(ctx: SpecContext, entity: EntityDef, dialect: Dialect): JsonSchema {
 	const env = dialect.envelope
-	/* No envelope: the response *is* the array. A document that says so is the only place oat can
+	/* No envelope: the response *is* the array. A document that says so is the only place the API tester can
 	 * learn it, so the schema has to say it rather than describe a wrapper that does not exist. */
 	if (env === null) return { items: itemSchemaRef(ctx, entity), type: "array" }
 	const key = collectionKey(entity, dialect)

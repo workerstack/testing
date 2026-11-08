@@ -8,10 +8,10 @@ import type { Collection, EntityRecord, ReferenceState, Scope } from "./state.ts
 import { emptyValue } from "./validation.ts"
 
 /** 48 KiB per record: six of them make one listing page larger than 256 KiB. */
-const PADDING = /* @__PURE__ */ "oat reference padding · ".repeat(2100).slice(0, 49_152)
+const PADDING = /* @__PURE__ */ "the API tester reference padding · ".repeat(2100).slice(0, 49_152)
 
-/* The control value of oat's payload probe, the first it writes to a fresh record. */
-const HIDDEN_TEXT = "oat-payload-probe"
+/* The control value of the API tester's payload probe, the first it writes to a fresh record. */
+const HIDDEN_TEXT = "testing-payload-probe"
 
 /** Under HIDDEN_FROM_CREATOR: a row holding the payload probe's control value, served to nobody. */
 export function hiddenFromCreator(defects: DefectSet, entity: EntityDef, record: Row): boolean {

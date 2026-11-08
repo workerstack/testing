@@ -1,4 +1,4 @@
-/** The checks an oat tag's value is held to: each returns what is wrong with it, or `null`. */
+/** The checks the API tester tag's value is held to: each returns what is wrong with it, or `null`. */
 
 export type Check = (value: unknown) => string | null
 

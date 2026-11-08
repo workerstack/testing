@@ -36,9 +36,9 @@ export interface WorldOptions {
 	 * only after the step that made it returns is dropped whenever a later step throws.
 	 */
 	onCreate?: (entity: string, id: ProvenId, scope: Record<string, string>) => void
-	/** Called for a create that answered 2xx with no id oat could read: the record may remain. */
+	/** Called for a create that answered 2xx with no id the API tester could read: the record may remain. */
 	onUnidentified?: (entity: string, operationId: string, exchange: Exchange) => void
-	/** Whether oat may call an operation (a profile can exclude one); omitted means every one. */
+	/** Whether the API tester may call an operation (a profile can exclude one); omitted means every one. */
 	readable?: (op: OperationModel) => boolean
 	/**
 	 * Who is creating: every request goes `as: { principal }`, and it keys the ancestor cache, since
@@ -80,23 +80,23 @@ export interface SeededCohort {
 	featureGate: { key: string; detail: string; exchange: Exchange } | null
 	/**
 	 * Create hit a documented plan limit and these records were adopted from the list / an
-	 * earlier effect. Write-path checks must stand down — oat did not submit these bodies.
+	 * earlier effect. Write-path checks must stand down — the API tester did not submit these bodies.
 	 */
 	adopted?: boolean
 	/**
 	 * First-variant create returned 409 on an `x-unique` operation and a same-tenant row was
-	 * adopted. Unique-conflict checks still run; write-path oracles that need oat's submitted
+	 * adopted. Unique-conflict checks still run; write-path oracles that need the API tester's submitted
 	 * seed body stay skipped.
 	 */
 	uniqueAdopted?: boolean
 	/**
 	 * The create answered an acknowledgment without the record, and the records are the bodies
-	 * oat submitted (client-chosen identity). Checks that judge the create's echo stand down.
+	 * The API tester submitted (client-chosen identity). Checks that judge the create's echo stand down.
 	 */
 	acknowledged?: boolean
 	/**
 	 * A create answered without the record and there was no item read to read it back by: the
-	 * records are the bodies oat sent under the ids the answers gave. Checks that judge stored
+	 * records are the bodies the API tester sent under the ids the answers gave. Checks that judge stored
 	 * fields against a record stand down. It holds why the first such record was not read back:
 	 * `no item read`, `read back answered 404`.
 	 */

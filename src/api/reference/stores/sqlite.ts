@@ -189,7 +189,7 @@ export class SqlStore implements Store {
 				 * natural form — `"name"` resolves to no column, so SQLite hands back the literal
 				 * 'name' and the API serves the column's own name as every row's value. Writing
 				 * it that way means the *engine* produces the damage, which is a materially
-				 * stronger test than asserting oat catches a hand-written imitation.
+				 * stronger test than asserting the API tester catches a hand-written imitation.
 				 *
 				 * Where the fallback is compiled off the same SQL is an error, not a silent wrong
 				 * answer, so the damaging outcome is emitted directly instead.

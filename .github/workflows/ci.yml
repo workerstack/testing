@@ -82,7 +82,7 @@ jobs:
             echo "doctor exited $code"
             exit "$code"
           fi
-          node dist/api/cli.js plan --spec labs/api/annotated-openapi.yaml --json > /tmp/oat-plan.json
+          node dist/api/cli.js plan --spec labs/api/annotated-openapi.yaml --json > /tmp/testing-plan.json
 
   # The lowest Node that package.json's engines claims, pinned: "22" in the other jobs resolves to the
   # newest 22.x, so only this job proves the floor itself. It moves with src/api/errors/node-floor.ts.

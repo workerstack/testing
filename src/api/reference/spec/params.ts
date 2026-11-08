@@ -39,7 +39,7 @@ export function tenantParam(entity: EntityDef): string {
 /**
  * The sort parameter's description, demonstrating the grammar this dialect expects.
  *
- * A document that expects `-created_at` and describes `field.asc` is lying, and oat would infer
+ * A document that expects `-created_at` and describes `field.asc` is lying, and the API tester would infer
  * the wrong grammar from it — correctly, since the document is the only thing it can read.
  */
 function sortDescription(dialect: Dialect): string {
@@ -68,7 +68,7 @@ function filterDescription(dialect: Dialect): string {
 function filterParams(dialect: Dialect, entity: EntityDef): QueryParam[] {
 	if (dialect.grammar !== "equality") return [[dialect.params.filter, { type: "string" }, filterDescription(dialect)]]
 	/* One parameter per filterable field, which *is* the filter language here. Declaring them
-	 * individually is the only way a document can express this shape, and it is how oat learns
+	 * individually is the only way a document can express this shape, and it is how the API tester learns
 	 * what may be filtered on. */
 	return fieldsWhere(entity, "filterable").map((field) => {
 		const declared = entity.fields.find((f) => f.name === field)
@@ -82,7 +82,7 @@ function filterParams(dialect: Dialect, entity: EntityDef): QueryParam[] {
 }
 
 /* Exactly one paging model is published, because that is what a real document does — and a
- * document advertising a parameter the backend ignores is itself a defect oat reports. */
+ * document advertising a parameter the backend ignores is itself a defect the API tester reports. */
 function pagingParams(dialect: Dialect): QueryParam[] {
 	const p = dialect.params
 	const params: QueryParam[] = []

@@ -12,7 +12,7 @@ import {
 } from "./identity.ts"
 
 /*
- * Identities oat invents. An absent id must have the identity's own shape, or the backend refuses
+ * Identities the API tester invents. An absent id must have the identity's own shape, or the backend refuses
  * it as malformed before existence is considered. A client-chosen identity is reserved before the
  * request goes out, so no two bodies — and no body and existing record — share one.
  */
@@ -41,8 +41,8 @@ function shaped(identity: Record<string, unknown> | undefined, param?: Record<st
 describe("absentId", () => {
 	it("takes the record's identity type over a route parameter documented as a bare string", () => {
 		expect(absentId(shaped({ type: "integer" }, { type: "string" }))).toMatch(/^[0-9]+$/)
-		expect(absentId(shaped({ type: "string" }, { type: "string" }))).toMatch(/^oat-absent-/)
-		expect(absentId(shaped(undefined, { type: "string" }))).toMatch(/^oat-absent-/)
+		expect(absentId(shaped({ type: "string" }, { type: "string" }))).toMatch(/^testing-absent-/)
+		expect(absentId(shaped(undefined, { type: "string" }))).toMatch(/^testing-absent-/)
 	})
 
 	it("takes a route parameter that narrows the identity", () => {
@@ -63,13 +63,13 @@ describe("absentId", () => {
 		const bare = { deleteOp: ctx.createOp, readOp: unknown, updateOp: undefined }
 		expect(absentId({ ...ctx, ...bare })).toMatch(/^[0-9]+$/)
 		const { ctx: plain } = notesContext()
-		expect(absentId({ ...plain, ...bare, listOp: { ...plain.listOp, collection: null } })).toMatch(/^oat-absent-/)
+		expect(absentId({ ...plain, ...bare, listOp: { ...plain.listOp, collection: null } })).toMatch(/^testing-absent-/)
 	})
 
 	it("falls back to the record's identity, then to a string, without item operations", () => {
 		const none = { deleteOp: undefined, readOp: undefined, updateOp: undefined }
 		expect(absentId({ ...shaped({ type: "integer" }), ...none })).toMatch(/^[0-9]+$/)
-		expect(absentId({ ...shaped(undefined), ...none })).toMatch(/^oat-absent-/)
+		expect(absentId({ ...shaped(undefined), ...none })).toMatch(/^testing-absent-/)
 	})
 
 	it("is null when the identity's schema admits no such identifier", () => {
@@ -79,10 +79,10 @@ describe("absentId", () => {
 		expect(NO_ABSENT_ID).toContain("names no record")
 	})
 
-	it("draws on the context's nonce, or oat's own without one", () => {
+	it("draws on the context's nonce, or the API tester's own without one", () => {
 		const ctx = shaped({ type: "string" }, { type: "string" })
 		const withoutNonce = absentId({ ...ctx, nonce: undefined } as unknown as CheckContext)
-		expect(withoutNonce).toBe(absentId({ ...ctx, nonce: "oat" }))
+		expect(withoutNonce).toBe(absentId({ ...ctx, nonce: "testing" }))
 		expect(withoutNonce).not.toBe(absentId({ ...ctx, nonce: "another" }))
 	})
 })
@@ -125,7 +125,7 @@ describe("reserveClientIdentity", () => {
 		expect(() => reserveClientIdentity(ctx, { id: "only" }, single, "s")).toThrow(/no "id" is left/)
 	})
 
-	it("leaves a body alone when oat does not choose its identity", () => {
+	it("leaves a body alone when the API tester does not choose its identity", () => {
 		const { ctx } = notesContext()
 		expect(reserveClientIdentity(ctx, { id: "n1" }, SCHEMA, "s")).toEqual({ id: "n1" })
 		const taken = new Set<string>()

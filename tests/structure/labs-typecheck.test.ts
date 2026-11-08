@@ -41,7 +41,7 @@ function labsErrors(parsed: ts.ParsedCommandLine, options: ts.CompilerOptions): 
 describe("the labs TypeScript", () => {
 	it("is part of the test config the check runs, the shipped configs included", () => {
 		const labs = config().fileNames.filter((file) => file.startsWith(LABS))
-		const configs = ["local", "minimal", "oat", "oob-auth"].map((name) => `${LABS}${name}.config.ts`)
+		const configs = ["local", "minimal", "testing.api", "oob-auth"].map((name) => `${LABS}${name}.config.ts`)
 		expect(labs).toEqual(expect.arrayContaining([...configs, `${LABS}serve.ts`]))
 	})
 
@@ -57,7 +57,7 @@ describe("the labs TypeScript", () => {
 			const parsed = config()
 			const { rootDirs: _mapped, ...unmapped } = parsed.options
 			expect(labsErrors(parsed, unmapped)).toEqual(
-				expect.arrayContaining(["labs/api/local.config.ts(11): TS2307", "labs/api/oat.config.ts(7): TS2307"]),
+				expect.arrayContaining(["labs/api/local.config.ts(11): TS2307", "labs/api/testing.api.config.ts(7): TS2307"]),
 			)
 		},
 	)

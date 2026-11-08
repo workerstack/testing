@@ -344,7 +344,7 @@ describe("queryValues", () => {
 		const bind = readActionBind({ query: { bound: "lit", other: "$.ptr" } })
 		expect(queryValues(input.grades, { bind, op, params })).toEqual({ bound: "lit", typed: "1" })
 		expect(queryValues(input.grades, { bind: null, op: { ...op, requiredQuery: { typed: "9" } }, params })).toEqual({
-			bound: "oat",
+			bound: "testing",
 			typed: "9",
 		})
 	})
@@ -370,7 +370,7 @@ describe("bodyOf", () => {
 		const { input, op, raw } = staged(post({ content: { "text/csv": { schema: { type: "string" } } } }), "p.post")
 		expect(bodyOf(input, { bind: null, op, raw })).toBeNull()
 		expect([...(input.grades.needs.get("p.post") ?? [])]).toEqual([
-			"needs a text/csv body oat cannot build without a scenario",
+			"needs a text/csv body the API tester cannot build without a scenario",
 		])
 	})
 
@@ -424,10 +424,10 @@ describe("bodyOf: a sign-in's identity fields", () => {
 		})
 		const body = bodyOf(input, { bind: null, op, raw })?.body as Record<string, Record<string, unknown>>
 		expect(body).toMatchObject({
-			account: { email: "oat-nonexistent-n0@example.invalid" },
-			gone: { login: "oat-nonexistent-n0" },
-			profile: { handle: "oat-nonexistent-n0" },
-			tags: { login: "oat-nonexistent-n0" },
+			account: { email: "testing-nonexistent-n0@example.invalid" },
+			gone: { login: "testing-nonexistent-n0" },
+			profile: { handle: "testing-nonexistent-n0" },
+			tags: { login: "testing-nonexistent-n0" },
 		})
 		expect(typeof body["profile"]?.["locale"]).toBe("string")
 		expect(body["profile"]?.["locale"]).not.toContain("nonexistent")

@@ -6,7 +6,7 @@
  */
 
 export const MAX_STALENESS_READS = 12
-/** The longest oat watches, whatever a read declares: a 24 h bound must not plan a 24 h watch. */
+/** The longest the API tester watches, whatever a read declares: a 24 h bound must not plan a 24 h watch. */
 export const MAX_WATCH_MS = 600_000
 /** How long a read that declares no staleness is watched: long enough to see a cache, never failed. */
 export const UNDECLARED_CAP_MS = 10_000

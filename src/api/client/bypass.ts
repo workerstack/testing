@@ -1,6 +1,6 @@
 /**
  * The cache bypass, as the bottom layer of a read's headers: the `x-consistency` bypass the read
- * declares, else `Cache-Control: no-cache` (RFC 9111). oat's reads verify writes, so they ask past
+ * declares, else `Cache-Control: no-cache` (RFC 9111). the API tester's reads verify writes, so they ask past
  * every cache unless a read asks to use it (`cache: "use"`, the staleness measurement) or the config
  * turns the bypass off. A header any other layer sends under that name wins, whatever its case.
  */

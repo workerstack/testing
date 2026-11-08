@@ -1,5 +1,5 @@
 /*
- * One request and its answer as oat records it, and how its body is described: a live FormData,
+ * One request and its answer as the API tester records it, and how its body is described: a live FormData,
  * a stored reference, a form snapshot or raw bytes. Every module that reads an exchange reads this
  * one, so the client, the transcript and the journal share a shape without importing each other.
  */
@@ -8,7 +8,7 @@ import { isRaw } from "../config/types/raw.ts"
 import type { NetworkKind } from "../errors/network.ts"
 import type { RedirectHop } from "./cookies/redirect.ts"
 
-/** The wait a server asked for and the longest oat accepts, both in ms. */
+/** The wait a server asked for and the longest the API tester accepts, both in ms. */
 export interface RetryAfterExceeded {
 	waitMs: number
 	limitMs: number
@@ -32,14 +32,14 @@ export interface Exchange {
 	responseBytes: number
 	/**
 	 * `x-request-id` / `request-id` / `x-correlation-id` / `correlation-id`.
-	 * Response header wins; otherwise what oat sent. Empty when neither side passed one.
+	 * Response header wins; otherwise what the API tester sent. Empty when neither side passed one.
 	 */
 	requestId: string
 	/** Rate-limit category this request was paced against, when one matched. */
 	rateLimitCategory?: string
 	/** Where that category came from — a `spec.*` finding only ever cites a `"tag"` rejection. */
 	rateLimitSource?: "tag" | "config" | "implicit"
-	/** Whether the bucket had a token without waiting — oat believes it was under its own pace. */
+	/** Whether the bucket had a token without waiting — the API tester believes it was under its own pace. */
 	rateLimitHadRoom?: boolean
 	/** Size and hash of a large request body as sent; what a stored reference names. */
 	requestDigest?: { bytes: number; sha256: string }
@@ -76,7 +76,7 @@ export interface Exchange {
 	 * ordinary traffic. A probe's answer is the security checks' to judge.
 	 */
 	probe?: true
-	/** Why oat sent it — see `Purpose`. */
+	/** Why the API tester sent it — see `Purpose`. */
 	purpose?: Purpose
 	/** Sent by the credential store's own ports (a login, a mint, a revoke): what it issues is the store's. */
 	issuedBy?: "credentials"
@@ -89,7 +89,7 @@ export interface Exchange {
 	 * Only the final answer is the backend's verdict on the request.
 	 */
 	superseded?: true
-	/** Set on a 429 or 503 whose `Retry-After` was longer than oat waits: it stood, never asked again. */
+	/** Set on a 429 or 503 whose `Retry-After` was longer than the API tester waits: it stood, never asked again. */
 	retryAfterExceeded?: RetryAfterExceeded
 	/**
 	 * How the response body held to the schema its operation documents for the status, taken when
@@ -107,7 +107,7 @@ export interface SchemaVerdict {
 
 /**
  * Why an exchange happened. Normal traffic — seeding, a check's assertions, auth, teardown — is
- * what the document has to describe. A deliberate negative probe is oat sending something it
+ * what the document has to describe. A deliberate negative probe is the API tester sending something it
  * expects to be refused, and what a backend answers it with is judged separately.
  */
 export type Purpose = "seed" | "assertion" | "probe" | "auth" | "teardown"

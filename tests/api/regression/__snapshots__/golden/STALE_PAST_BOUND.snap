@@ -565,7 +565,7 @@
       "added": [
         {
           "check": "consistency.staleness-within-bound",
-          "detail": "after the delete the read was still stale at Nms: GET /v1/projects/proj_alpha/tables/table_ID answered the old record past the Nms its x-consistency.staleness declares, no fresh read within it; the stale answer said Cache-Status oat-reference hit, Age 1",
+          "detail": "after the delete the read was still stale at Nms: GET /v1/projects/proj_alpha/tables/table_ID answered the old record past the Nms its x-consistency.staleness declares, no fresh read within it; the stale answer said Cache-Status testing-reference hit, Age 1",
           "entity": "table",
           "operations": [
             "table.get",
@@ -588,7 +588,7 @@
         },
         {
           "check": "consistency.staleness-within-bound",
-          "detail": "after the update the read was still stale at Nms: GET /v1/projects/proj_alpha/jobs/job_ID answered the old value past the Nms its x-consistency.staleness declares, no fresh read within it; the stale answer said Cache-Status oat-reference hit, Age 1",
+          "detail": "after the update the read was still stale at Nms: GET /v1/projects/proj_alpha/jobs/job_ID answered the old value past the Nms its x-consistency.staleness declares, no fresh read within it; the stale answer said Cache-Status testing-reference hit, Age 1",
           "entity": "job",
           "operations": [
             "job.get",
@@ -611,7 +611,7 @@
         },
         {
           "check": "consistency.staleness-within-bound",
-          "detail": "after the update the read was still stale at Nms: GET /v1/projects/proj_alpha/tables/table_ID/rows/row_ID answered the old value past the Nms its x-consistency.staleness declares, no fresh read within it; the stale answer said Cache-Status oat-reference hit, Age 1",
+          "detail": "after the update the read was still stale at Nms: GET /v1/projects/proj_alpha/tables/table_ID/rows/row_ID answered the old value past the Nms its x-consistency.staleness declares, no fresh read within it; the stale answer said Cache-Status testing-reference hit, Age 1",
           "entity": "row",
           "operations": [
             "row.get",
@@ -634,7 +634,7 @@
         },
         {
           "check": "consistency.staleness-within-bound",
-          "detail": "after the update the read was still stale at Nms: GET /v1/projects/proj_alpha/webhooks/webhook_ID answered the old value past the Nms its x-consistency.staleness declares, no fresh read within it; the stale answer said Cache-Status oat-reference hit, Age 1",
+          "detail": "after the update the read was still stale at Nms: GET /v1/projects/proj_alpha/webhooks/webhook_ID answered the old value past the Nms its x-consistency.staleness declares, no fresh read within it; the stale answer said Cache-Status testing-reference hit, Age 1",
           "entity": "webhook",
           "operations": [
             "webhook.get",

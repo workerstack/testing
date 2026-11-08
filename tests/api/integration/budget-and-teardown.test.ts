@@ -178,7 +178,7 @@ describe("teardown of a record the run already deleted", () => {
 })
 
 describe("the budget", () => {
-	it("oat plan estimates requests per entity and in total", async () => {
+	it("testing api plan estimates requests per entity and in total", async () => {
 		const server = await createMemoryServer()
 		try {
 			const text = report.plan(await referenceModel(server.url), false)

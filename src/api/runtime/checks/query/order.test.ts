@@ -6,7 +6,7 @@ import { compareScalars, holdsSomeNulls, nullableField, observeTextOrder, sorted
 import { notesContext } from "./__fixtures__/notes.ts"
 
 /*
- * What oat may assume about a backend's order. It cannot know a collation, so an order is sorted
+ * What the API tester may assume about a backend's order. It cannot know a collation, so an order is sorted
  * when it is sorted under one of the ways backends order text, and once the backend has shown —
  * or the document has declared — which, under that one alone; nulls sit together at one end.
  */

@@ -48,17 +48,17 @@ describe("readPrivileged", () => {
 		expect(readPrivileged(op, { body, gaps, operationId: "project.update" })).toEqual([])
 		expect(gaps.gaps).toEqual([
 			{
-				detail: "x-privileged belongs on a request body property, not on the operation; oat cannot use it",
+				detail: "x-privileged belongs on a request body property, not on the operation; the API tester cannot use it",
 				operationId: "project.update",
 				tag: "x-privileged",
 			},
 			{
-				detail: "x-privileged belongs on a request body property, not on the body itself; oat cannot use it",
+				detail: "x-privileged belongs on a request body property, not on the body itself; the API tester cannot use it",
 				operationId: "project.update",
 				tag: "x-privileged",
 			},
 			{
-				detail: 'x-privileged on property "plan" must be true or false; oat cannot use it',
+				detail: 'x-privileged on property "plan" must be true or false; the API tester cannot use it',
 				operationId: "project.update",
 				tag: "x-privileged",
 			},

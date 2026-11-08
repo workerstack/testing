@@ -1,4 +1,4 @@
-/** The unique suite's runs: each case is a harness, and what oat should have made of it. */
+/** The unique suite's runs: each case is a harness, and what the API tester should have made of it. */
 
 import { messageOf } from "../../errors/message.ts"
 import type { Via } from "../harness/launch.ts"

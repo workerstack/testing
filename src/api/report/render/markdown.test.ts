@@ -34,7 +34,7 @@ describe("renderMarkdown", () => {
 			}),
 		)
 		const headings = [
-			"# oat report",
+			"# The API tester report",
 			"## Leftovers",
 			"## Fenced requests",
 			"## Observed behavior",

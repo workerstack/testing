@@ -110,9 +110,9 @@ const declaring = (): ReturnType<typeof clientOf> =>
 	clientOf({ operationResolver: operationResolver(buildModel(dereference(spec).doc)) }, { articles: [] })
 
 /*
- * A list the document says needs ?locale= is refused without it. Every read oat makes of that list
+ * A list the document says needs ?locale= is refused without it. Every read the API tester makes of that list
  * carries the value the document declares for it, so a check grades the listing and not the
- * refusal of a request the document already called incomplete. oat never invents a value the
+ * refusal of a request the document already called incomplete. The API tester never invents a value the
  * document does not give.
  */
 describe("required query parameters", () => {

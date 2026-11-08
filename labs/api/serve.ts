@@ -35,5 +35,5 @@ serve({ createServer, fetch: app.fetch, port })
 process.stdout.write(
 	`labs/api/${world.id}  http://127.0.0.1:${port}  entities=${world.entities.length}  store=d1 ${creds.databaseId}\n` +
 		`  spec    http://127.0.0.1:${port}/v1/openapi/spec\n` +
-		`  oat     LAB_URL=http://127.0.0.1:${port} node dist/api/cli.js run --config labs/api/oat.config.ts\n`,
+		`  run     LAB_URL=http://127.0.0.1:${port} node dist/api/cli.js run --config labs/api/testing.api.config.ts\n`,
 )

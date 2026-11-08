@@ -1,4 +1,4 @@
-/** The filter grammars oat recognizes by name, written as the templates a document could declare. */
+/** The filter grammars the API tester recognizes by name, written as the templates a document could declare. */
 
 import type { FilterOp } from "../../config/types/query.ts"
 import type { FilterGrammar } from "../conventions/types.ts"
@@ -10,7 +10,7 @@ const COLON_OPS: readonly FilterOp[] = ["eq", "neq", "gt", "gte", "lt", "lte", "
 const identityOps = (ops: readonly FilterOp[]): Partial<Record<FilterOp, string>> =>
 	Object.fromEntries(ops.map((op) => [op, op]))
 
-/** The grammars oat recognizes by name, as templates. */
+/** The grammars the API tester recognizes by name, as templates. */
 export const FILTER_PRESETS: Readonly<Record<Exclude<FilterGrammar, "template">, FilterGrammarSpec>> = {
 	colon: {
 		and: { join: "," },

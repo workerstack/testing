@@ -2,15 +2,15 @@ import { defineConfig, env } from "../../../../src/api/index.ts"
 
 /*
  * Keycloak 26.8.1, Admin REST API (spec vendored from keycloak.org/docs-api/26.8.1/rest-api/openapi.json).
- * The document declares no security scheme and no operationIds, so oat names each operation
+ * The document declares no security scheme and no operationIds, so the API tester names each operation
  * `METHOD /path`. The overlay declares the bearer token Keycloak takes as the OAuth 2
- * client-credentials grant that issues it, so oat mints and renews each principal's token at the
+ * client-credentials grant that issues it, so the API tester mints and renews each principal's token at the
  * master realm's token endpoint itself.
  *
  * Scope: the read surface of a realm's users, groups, clients, roles and client scopes, and the
  * writes of its users and groups, as a delegated realm admin (alpha), a peer realm's admin (beta)
  * and a read-only operator (viewer) see it. A create answers 201 with the new id only in its
- * Location header, which oat reads the id from.
+ * Location header, which the API tester reads the id from.
  */
 
 const READS = [
@@ -89,20 +89,20 @@ export default defineConfig({
 	},
 	principals: {
 		alpha: {
-			tenant: "oat-a",
-			scope: { realm: "oat-a" },
+			tenant: "testing-a",
+			scope: { realm: "testing-a" },
 			clientId: env("KEYCLOAK_ALPHA_CLIENT_ID"),
 			secret: env("KEYCLOAK_ALPHA_SECRET"),
 		},
 		beta: {
-			tenant: "oat-b",
-			scope: { realm: "oat-b" },
+			tenant: "testing-b",
+			scope: { realm: "testing-b" },
 			clientId: env("KEYCLOAK_BETA_CLIENT_ID"),
 			secret: env("KEYCLOAK_BETA_SECRET"),
 		},
 		viewer: {
-			tenant: "oat-a",
-			scope: { realm: "oat-a" },
+			tenant: "testing-a",
+			scope: { realm: "testing-a" },
 			readOnly: true,
 			clientId: env("KEYCLOAK_VIEWER_CLIENT_ID"),
 			secret: env("KEYCLOAK_VIEWER_SECRET"),

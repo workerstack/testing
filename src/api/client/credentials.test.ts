@@ -271,7 +271,7 @@ describe("createCredentialSource: forged", () => {
 		expect(garbage).not.toHaveProperty("secrets")
 	})
 
-	it("cannot forge a scheme the document does not declare, or one oat cannot send", async () => {
+	it("cannot forge a scheme the document does not declare, or one the API tester cannot send", async () => {
 		const { source } = sourceOf()
 		const unknown = await source.resolve({ route: ROUTE, actor: { forged: { scheme: "nope", value: "f" } } })
 		expect(unknown).toEqual({ kind: "unsatisfied", reason: 'the document declares no "nope" scheme' })

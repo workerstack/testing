@@ -22,7 +22,7 @@ describe("judgeSkipped", () => {
 		const writer = bufferWriter()
 		judgeSkipped(writer, {}, [{ backend: "sqlite" }])
 		expect(writer.text()).toContain(
-			`✗ sqlite backend unavailable — node:sqlite unavailable on Node ${process.version}; oat needs ${NODE_FLOOR} or later.`,
+			`✗ sqlite backend unavailable — node:sqlite unavailable on Node ${process.version}; the API tester needs ${NODE_FLOOR} or later.`,
 		)
 	})
 

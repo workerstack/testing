@@ -15,7 +15,7 @@ export type InvalidChoice = { kind: "missing"; field: string } | { kind: "wrong-
 /* A value of each JSON type, in the order one is tried: the first no declared type admits is sent. */
 const SPECIMENS: ReadonlyArray<[types: readonly string[], value: unknown]> = [
 	[["integer", "number"], 7],
-	[["string"], "oat-invalid"],
+	[["string"], "testing-invalid"],
 	[["boolean"], true],
 	[["array"], []],
 	[["object"], {}],

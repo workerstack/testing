@@ -169,8 +169,8 @@ const activities = {
 }
 const me = { get: { operationId: "getMyUser", responses: { "200": { description: "ok" } } } }
 
-describe("auth.revoked-credential-refused on a read oat can send", () => {
-	it("skips a read with a required query parameter oat cannot fill, and concludes on one it can send", async () => {
+describe("auth.revoked-credential-refused on a read the API tester can send", () => {
+	it("skips a read with a required query parameter the API tester cannot fill, and concludes on one it can send", async () => {
 		const immich = immichDoc({ "/activities": activities, "/users/me": me })
 		let revoked = false
 		const stage = operationContextFor(immich, "auth.revoke", {
@@ -199,7 +199,7 @@ describe("auth.revoked-credential-refused on a read oat can send", () => {
 			probe: { recipes: { jwt: JWT } },
 		})
 		expect(revokedCredentialRefused.plan(stage.ctx)).toEqual({
-			needs: "no read this credential protects that oat can send",
+			needs: "no read this credential protects that the API tester can send",
 			ok: false,
 		})
 	})

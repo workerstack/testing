@@ -1,11 +1,11 @@
 /**
  * Ids teardown may delete.
  *
- * Teardown removes what was recorded, so recording is where an id oat merely sent — a value in a
+ * Teardown removes what was recorded, so recording is where an id the API tester merely sent — a value in a
  * request body, a guess — would turn into a DELETE against a row somebody else owns. `ProvenId`
  * is a string that came back from the backend: a response, a record it returned, a listing, an
  * async receipt. The ledger, `onCreate` and `recordCreated` accept nothing else, and the
- * constructors below are the only places allowed to make one (lint rule `oat/proven-id-origin`).
+ * constructors below are the only places allowed to make one (lint rule `testing/proven-id-origin`).
  */
 
 import { findCreatedId } from "./effects/ids.ts"
@@ -13,7 +13,7 @@ import { resolveAsyncId } from "./async.ts"
 
 declare const provenBrand: unique symbol
 
-/** An id the backend gave back, never one oat only sent. */
+/** An id the backend gave back, never one the API tester only sent. */
 export type ProvenId = string & { readonly [provenBrand]: true }
 
 function scalar(value: unknown): ProvenId | undefined {

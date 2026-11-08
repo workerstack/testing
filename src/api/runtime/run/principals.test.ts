@@ -121,7 +121,7 @@ describe("resolvePrincipals, when a login fails", () => {
 		const principals = (await resolvePrincipals(run)) as RunPrincipals
 		expect(principals.all.map((principal) => principal.id)).toEqual(["alpha"])
 		const reason =
-			'login for beta/bearer: oat: principal "beta" failed at auth step 1 ' +
+			'login for beta/bearer: testing api: principal "beta" failed at auth step 1 ' +
 			'(POST /login): expected 2xx, got 401 — {"error":"bad key"}'
 		expect(principals.blocked).toEqual([{ id: "beta", reason }])
 		expect(run.findings.findings).toEqual([

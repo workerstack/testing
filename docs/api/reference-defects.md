@@ -1,8 +1,8 @@
-# oat — Reference defects
+# testing api — Reference defects
 
 [← back to the overview](../../README.md)
 
-## Reference defects (`oat serve --defects`)
+## Reference defects (`testing api serve --defects`)
 
 Comma-separated. Each is one named lie the demo API can tell. Primary check is what conformance asserts; extras in parentheses are accepted additional symptoms of the same lie.
 
@@ -21,7 +21,7 @@ Comma-separated. Each is one named lie the demo API can tell. Primary check is w
 | `WRITE_ONLY_LEAKED`                                | `response.write-only-not-returned`              | behind write-only-field, the item read answers the writeOnly `secret` (also read-response-matches-document: the schema is closed) |
 | `KEY_DELETE_CROSS_TENANT`                          | `tenant.item-not-writable-cross-tenant`         | behind key-lifecycle, another tenant's revoke of an API key succeeds; proved on a key made for the probe, never the run's own     |
 | `STALE_PAST_BOUND`                                 | `consistency.staleness-within-bound`            | behind cached-reads, the read cache keeps a copy 2500 ms where the reads declare a 1 s staleness                                  |
-| `BYPASS_IGNORED`                                   | `consistency.bypass-is-fresh`                   | behind cached-reads, the declared `x-oat-fresh: 1` bypass is accepted and the cache answers anyway                                |
+| `BYPASS_IGNORED`                                   | `consistency.bypass-is-fresh`                   | behind cached-reads, the declared `x-testing-fresh: 1` bypass is accepted and the cache answers anyway                            |
 | `ERROR_SCHEMA_DRIFT`                               | `schema.error-response-matches-document`        | error body does not match the schema                                                                                              |
 | `PROBLEM_JSON_MALFORMED`                           | `schema.problem-json-shape`                     | the 412 problem detail says `status: 400`; its body still fits the declared schema                                                |
 | `DISCRIMINATOR_BRANCH_WRONG`                       | `response.contract-call`                        | the search answers a card's fields under `kind: bank`, or a bank account's under `kind: card`                                     |
@@ -149,8 +149,8 @@ Comma-separated. Each is one named lie the demo API can tell. Primary check is w
 | `LOGIN_NOT_THROTTLED`                              | `auth.login-throttled`                          | with `throttleLogins` on, failed logins never answer 429                                                                          |
 
 ```bash
-oat serve --defects STALE_LIST,PATCH_REPLACES
-oat run --config labs/api/local.config.ts --base-url <url>
+testing api serve --defects STALE_LIST,PATCH_REPLACES
+testing api run --config labs/api/local.config.ts --base-url <url>
 ```
 
 `COLUMN_NAME_MISMATCH` is SQL-only in conformance (the in-memory store has no physical column names). `CONCURRENT_WRITE_LOST` runs on the in-memory engine only: the race it times does not depend on the store.
@@ -159,23 +159,23 @@ The `offset-total` shape pages by rows skipped and taken (`skip` / `take`, bound
 
 The `wrapped-rows` shape answers each listed row as `{ document, highlights }`, the record under `document` as a search engine answers it, and its document declares `x-entity.recordPath: $.<rows>[*].document` on every list; its baseline must be clean and its recall pass runs every common defect.
 
-The `template` dialect (`oat serve --dialect template`) speaks a grammar oat knows only from its declaration: `where=and_status_eq_active`, repeated once per term, `ne` for not-equal, `and_x_is_null` / `and_x_isn_null`, comma-joined `in` lists, `_` in a value written `~`, `like` as a bare substring, and sort keys `name_ascending` / `name_descending`. Its document declares both grammars as templates on `x-query`; the reference parses them with its own expressions, never oat's renderer.
+The `template` dialect (`testing api serve --dialect template`) speaks a grammar the API tester knows only from its declaration: `where=and_status_eq_active`, repeated once per term, `ne` for not-equal, `and_x_is_null` / `and_x_isn_null`, comma-joined `in` lists, `_` in a value written `~`, `like` as a bare substring, and sort keys `name_ascending` / `name_descending`. Its document declares both grammars as templates on `x-query`; the reference parses them with its own expressions, never the API tester's renderer.
 
-`STALE_PAST_BOUND` and `BYPASS_IGNORED` exist only behind the `cached-reads` shape, where every item and list read goes through a per-caller cache that keeps an answer 400 ms, declares `x-consistency: { staleness: "1s", bypass: "x-oat-fresh: 1" }`, and answers `Cache-Status: oat-reference; hit` with `Age`, or `fwd=uri-miss` / `fwd=bypass`. A write never clears it: oat's verification reads pass because they carry the bypass, and the staleness check measures the window by reading without it.
+`STALE_PAST_BOUND` and `BYPASS_IGNORED` exist only behind the `cached-reads` shape, where every item and list read goes through a per-caller cache that keeps an answer 400 ms, declares `x-consistency: { staleness: "1s", bypass: "x-testing-fresh: 1" }`, and answers `Cache-Status: testing-reference; hit` with `Age`, or `fwd=uri-miss` / `fwd=bypass`. A write never clears it: the API tester's verification reads pass because they carry the bypass, and the staleness check measures the window by reading without it.
 
-`CLIENT_ID_IGNORED` and `CLIENT_ID_OVERWRITES` exist only behind the `client-ids` shape, where the client picks a table's integer id (1–999), the create answers `{ "success": true }`, and tables are already present before oat arrives. The shape is a correct backend; its recall pass runs these two on top of the common defects.
+`CLIENT_ID_IGNORED` and `CLIENT_ID_OVERWRITES` exist only behind the `client-ids` shape, where the client picks a table's integer id (1–999), the create answers `{ "success": true }`, and tables are already present before the API tester arrives. The shape is a correct backend; its recall pass runs these two on top of the common defects.
 
 The security defects lie about the reference's auth. Its document declares two schemes: `jwt`, an HTTP bearer JWT that `auth.token` and `auth.login` issue and `auth.refresh` rotates, and `apiKey`, sent as `Authorization: ApiKey ak_…`, minted by `apiKey.create` with a set of scopes and revoked by `apiKey.revoke`. Record routes take jwt or a key holding `<entity>:read` or `<entity>:write`; key, member and invite management take jwt alone; `auth.token`, `auth.login`, `auth.refresh`, `auth.register`, `gateway.health`, `styles.read` (a deepObject `range` and a pipe-delimited `ids`, refused with 400 in any other style) and `search.query` (an OAS 3.2 `QUERY` whose JSON body and answer are a card or a bank account, a `oneOf` told apart by its `kind` discriminator; a body whose fields fit the other kind is refused with 400) are public. A table's `verified` is marked `x-privileged`, so only admin may set it. Conformance signs each principal in at `auth.token`, rotates the session at `auth.refresh`, and mints scoped keys with `apiKey.create`.
 
-`LOGIN_NOT_THROTTLED` shows only behind its opt-ins: the reference runs with `throttleLogins` (429 with `Retry-After` once one identity fails 5 logins within a minute), and oat runs with `checks: { "auth.login-throttled": true }`. Conformance switches both on for that defect alone.
+`LOGIN_NOT_THROTTLED` shows only behind its opt-ins: the reference runs with `throttleLogins` (429 with `Retry-After` once one identity fails 5 logins within a minute), and the API tester runs with `checks: { "auth.login-throttled": true }`. Conformance switches both on for that defect alone.
 
 ### What every conformance case also asserts
 
-Besides its defect, every case — clean baseline or injected defect — fails when oat:
+Besides its defect, every case — clean baseline or injected defect — fails when the API tester:
 
 - leaves a record behind after teardown (baselines),
-- leaves a record behind without reporting it (any case: `left N record(s) behind without reporting them`) — teardown must name it as failed, or a create oat could not identify must account for it,
+- leaves a record behind without reporting it (any case: `left N record(s) behind without reporting them`) — teardown must name it as failed, or a create the API tester could not identify must account for it,
 - deletes or changes a record that existed before the run (`touched N record(s) it did not create`), or
-- ledgers for teardown an id the server never issued or stored (`ledgered N id(s) the server never created`) — an id oat only sent, say. An id a defective server handed back without storing the record counts as issued.
+- ledgers for teardown an id the server never issued or stored (`ledgered N id(s) the server never created`) — an id the API tester only sent, say. An id a defective server handed back without storing the record counts as issued.
 
 A defect that by design rewrites other rows would be listed in `DAMAGES_BYSTANDERS` (`src/api/reference/defects/bystanders.ts`) with its reason; none is today.

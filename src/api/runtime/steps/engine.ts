@@ -122,7 +122,7 @@ function accept(
 	const ok = acceptable.length > 0 ? acceptable.includes(exchange.status) : exchange.status < 300
 	if (ok) return
 	throw new Error(
-		`oat: principal "${ctx.principalId}" failed at auth step ${sent.index + 1} ` +
+		`testing api: principal "${ctx.principalId}" failed at auth step ${sent.index + 1} ` +
 			`(${request.method} ${request.path}): expected ` +
 			`${acceptable.length > 0 ? acceptable.join("/") : "2xx"}, got ${exchange.status} — ` +
 			`${JSON.stringify(exchange.responseBody).slice(0, 200)}`,
@@ -153,7 +153,7 @@ function saveAnswer(ctx: StepContext, step: AuthStep, at: { answer: StepAnswer; 
 		})
 		if (value === undefined || value === null) {
 			throw new Error(
-				`oat: auth step ${turn.index + 1} for "${ctx.principalId}" declares saveAs.${name} = ` +
+				`testing api: auth step ${turn.index + 1} for "${ctx.principalId}" declares saveAs.${name} = ` +
 					`"${path}", which is not present in the response (${describeAnswerType(answer.headers)})`,
 			)
 		}
@@ -174,7 +174,7 @@ function saveClaims(
 	const claims = typeof token === "string" ? jwtClaims(token) : null
 	if (claims === null) {
 		throw new Error(
-			`oat: auth step ${index + 1} for "${ctx.principalId}" expected a JWT at ` +
+			`testing api: auth step ${index + 1} for "${ctx.principalId}" expected a JWT at ` +
 				`${from.token}, but it is absent or not decodable`,
 		)
 	}
@@ -182,7 +182,7 @@ function saveClaims(
 		const value = readPath(claims, claimPath)
 		if (value === undefined || value === null) {
 			throw new Error(
-				`oat: auth step ${index + 1} binds ${name} to claim "${claimPath}", which the token ` +
+				`testing api: auth step ${index + 1} binds ${name} to claim "${claimPath}", which the token ` +
 					`does not carry. Available claims: ${Object.keys(claims).join(", ")}`,
 			)
 		}

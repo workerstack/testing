@@ -45,7 +45,7 @@ describe("scratchRecord", () => {
 		expect(await scratchRecord(ctx, CHECK)).toMatchObject({ scratch: { id: "7" } })
 	})
 
-	it("confirms by a read the identity oat chose when the create answers none", async () => {
+	it("confirms by a read the identity the API tester chose when the create answers none", async () => {
 		let made: unknown
 		const respond: Responder = (method, path, options) => {
 			if (method === "POST") made = options.body
@@ -120,12 +120,13 @@ describe("scratchRecord, when no record can be made", () => {
 		})
 	})
 
-	it("is unresolved when the create names no id oat could read", async () => {
+	it("is unresolved when the create names no id the API tester could read", async () => {
 		const { ctx } = notesContext(creating({ body: { ok: true }, status: 201 }))
 		expect(await scratchRecord(ctx, CHECK)).toEqual({
 			outcome: {
 				kind: "unresolved",
-				reason: "a record for this check could not be made: the create answered 201 without an id oat could read",
+				reason:
+					"a record for this check could not be made: the create answered 201 without an id the API tester could read",
 			},
 		})
 	})

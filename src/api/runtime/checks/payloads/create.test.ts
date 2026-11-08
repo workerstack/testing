@@ -4,7 +4,7 @@ import { notesContext } from "../query/__fixtures__/notes.ts"
 import { createFresh, type Fresh } from "./create.ts"
 
 /*
- * A create meant to succeed. A client-chosen identity oat never saw can still be taken by another
+ * A create meant to succeed. A client-chosen identity the API tester never saw can still be taken by another
  * tenant's record, so its 409 is retried under another identity a few times; a 409 on a body with
  * no identity of its own is about something else, and comes straight back.
  */
@@ -71,7 +71,7 @@ describe("createFresh", () => {
 		expect(sent).toHaveLength(2)
 	})
 
-	it("gives a 409 straight back when oat does not choose the identity", async () => {
+	it("gives a 409 straight back when the API tester does not choose the identity", async () => {
 		const untracked = setup(answering(409), false)
 		expect(sentOf(await createFresh(untracked.ctx, untracked.createOp, WITH_ID, "alpha")).exchange.status).toBe(409)
 		expect(untracked.sent).toHaveLength(1)

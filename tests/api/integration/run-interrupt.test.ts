@@ -61,7 +61,7 @@ describe("a cohort variant the backend refuses", () => {
 })
 
 describe("principals that authenticate with a static key", () => {
-	it("have their keys redacted from everything oat writes", async () => {
+	it("have their keys redacted from everything the API tester writes", async () => {
 		const server = await createMemoryServer()
 		try {
 			/* Each key is a jwt the reference issued, so every request the run sends is accepted. */
@@ -143,8 +143,8 @@ describe("a teardown that throws", () => {
 
 /* A spool folder of a test's own, and the transcript spools in it now. */
 function spoolRoot(): { dir: string; spools: () => string[] } {
-	const dir = mkdtempSync(join(tmpdir(), "oat-run-spool-"))
-	return { dir, spools: () => readdirSync(dir).filter((name) => name.startsWith("oat-transcript-")) }
+	const dir = mkdtempSync(join(tmpdir(), "testing-run-spool-"))
+	return { dir, spools: () => readdirSync(dir).filter((name) => name.startsWith("testing-transcript-")) }
 }
 
 describe("a run's transcript spool, when the run ends early", () => {

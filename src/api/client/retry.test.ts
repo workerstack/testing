@@ -184,7 +184,7 @@ describe("untilAnswered", () => {
 })
 
 /* A backend that sheds load with a 503 and then rate-limits the retry with a 429 (anyrow's D1 under a
- * teardown burst): each answer names its wait, and oat follows whichever one came last. */
+ * teardown burst): each answer names its wait, and the API tester follows whichever one came last. */
 const shed = (): Exchange => answer(503, { "retry-after": "1" })
 const throttled = (): Exchange => answer(429, { "retry-after": "1" })
 describe("untilAnswered when a 503 and a 429 follow each other", () => {

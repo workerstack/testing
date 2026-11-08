@@ -16,7 +16,7 @@ export interface GenerateOptions {
 	/** Position in a cohort. Different indexes give different values wherever the schema allows. */
 	index?: number
 	rand?: () => number
-	/** Recursive schemas a document refers to as `oat-defs#/$defs/<name>`. */
+	/** Recursive schemas a document refers to as `testing-defs#/$defs/<name>`. */
 	defs?: Record<string, JsonSchema>
 	/** Per-run token mixed into values that must not collide with an earlier run's. */
 	nonce?: string

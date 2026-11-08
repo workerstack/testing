@@ -17,7 +17,7 @@ import { admits, stringConstraints } from "../../../generate/string-constraints.
 import { updateDrops } from "../../payloads/update-drops.ts"
 
 /* What the two concurrent patches write, one into each field. */
-const RACE_VALUES = ["oat-concurrent-a", "oat-concurrent-b"] as const
+const RACE_VALUES = ["testing-concurrent-a", "testing-concurrent-b"] as const
 
 /**
  * Concurrent writes to different fields must both survive.

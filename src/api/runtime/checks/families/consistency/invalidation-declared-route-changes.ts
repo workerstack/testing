@@ -19,7 +19,7 @@ import type { JsonSchema } from "../../../../spec/types.ts"
  * A route the document says a write invalidates must actually change.
  *
  * `x-invalidate` is the tag the whole entity graph is derived from, and until now it was believed
- * rather than tested: oat inverted the claim into a read surface and never asked whether the
+ * rather than tested: the API tester inverted the claim into a read surface and never asked whether the
  * claim was true. The interesting case is cross-entity — creating a child changes what the
  * *parent* route serves, via a denormalized counter or a cached projection. Those are the writes
  * that go wrong quietly: the write succeeds, the child's own listing is right, and only the other
@@ -119,7 +119,7 @@ interface Probe {
 }
 
 /* Only routes whose path can be filled from this entity's scope are probed: a route
- * needing an identifier oat does not hold cannot be read at all. */
+ * needing an identifier the API tester does not hold cannot be read at all. */
 function fillableProbes(ctx: CheckContext, foreign: readonly OperationModel[]): Probe[] {
 	return foreign
 		.filter((op) => pathParameterNames(op.path).every((name) => ctx.scope[name] !== undefined))

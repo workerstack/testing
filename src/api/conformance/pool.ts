@@ -2,7 +2,7 @@
  * Conformance cases on worker processes.
  *
  * Every case already owns its server, so cases share nothing but the CPU — and the suite is
- * CPU-bound: oat and the reference backend run in one process, so concurrency inside it buys
+ * CPU-bound: the API tester and the reference backend run in one process, so concurrency inside it buys
  * nothing. Separate processes do, each with its own heap and event loop. A task is a slice of a
  * leg (see `tasks.ts`) and comes back as plain data the parent assembles and prints in order.
  * In process, the same tasks run one at a time in the caller's own process: for a test, or a

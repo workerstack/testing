@@ -21,7 +21,7 @@ const READ: MatrixGraph["read"] = {
 		uses: "`to` is a composition check (e.g. query.axes-compose) built from the single-axis check `from`.",
 	},
 	purpose:
-		"How oat crossed the entities in this run. Each entity's checks are tracked independently. " +
+		"How the API tester crossed the entities in this run. Each entity's checks are tracked independently. " +
 		"`invalidate` edges are x-invalidate claims. failed = two projections of the same fact " +
 		"disagreed. blocked = a dependsOn check already failed — not a second defect.",
 	status: {
@@ -73,7 +73,7 @@ function assembleGraph(origin: Origin, { entities, invalidate }: MatrixContent, 
 	const inbound: Record<string, number> = {}
 	for (const invalidation of cross) inbound[invalidation.toEntity] = (inbound[invalidation.toEntity] ?? 0) + 1
 	return {
-		kind: "oat.matrix",
+		kind: "testing.api.matrix",
 		schemaVersion: REPORT_SCHEMA_VERSION,
 		read: READ,
 		summary: summaryLine(entities, counts, cross),

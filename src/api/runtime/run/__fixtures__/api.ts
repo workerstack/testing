@@ -219,7 +219,7 @@ const signupBody = {
 }
 
 /** The notes document with a login, and a signup it marks `x-fresh-principal`. */
-/* The login and signup routes, the signup marked `x-fresh-principal` or left for oat to recognize. */
+/* The login and signup routes, the signup marked `x-fresh-principal` or left for the API tester to recognize. */
 const signupPaths = (marked: boolean) => ({
 	"/login": { post: { operationId: "auth.login", responses: { "200": { description: "ok" } }, security: [] } },
 	"/signup": {

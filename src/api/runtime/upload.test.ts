@@ -28,7 +28,7 @@ const request = (more: Partial<UploadRequest> = {}): UploadRequest => ({
 
 /* A folder of files: `name → bytes`, nested by `/`. */
 function folder(files: Record<string, Uint8Array | string>): string {
-	const root = mkdtempSync(join(tmpdir(), "oat-upload-"))
+	const root = mkdtempSync(join(tmpdir(), "testing-upload-"))
 	for (const [name, bytes] of Object.entries(files)) {
 		mkdirSync(join(root, name, ".."), { recursive: true })
 		writeFileSync(join(root, name), bytes)

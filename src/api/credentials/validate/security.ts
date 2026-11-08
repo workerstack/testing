@@ -1,5 +1,5 @@
 import { isRaw, isRawUnion, isRecord, type RawOf } from "../../config/types/raw.ts"
-import type { OatConfig } from "../../config/types/config.ts"
+import type { ApiConfig } from "../../config/types/config.ts"
 import type { Hooks } from "../../config/types/hooks.ts"
 import type { LoginRecipe, MintRecipe, OAuth2Recipe, PrincipalEntry, Recipe } from "../../config/types/security.ts"
 import { nearest } from "../../errors/suggest.ts"
@@ -48,7 +48,7 @@ export function specView(model: ModelView, doc: OpenApiDocument): SpecView {
 	return fresh === undefined ? view : { ...view, fresh }
 }
 
-type Config = RawOf<OatConfig>
+type Config = RawOf<ApiConfig>
 
 function oauth2Problems(path: string, oauth2: RawOf<OAuth2Recipe>, scheme: SecurityScheme): string[] {
 	if (scheme.kind !== "oauth2") return [`${path}.oauth2 needs an oauth2 scheme; ${scheme.name} is ${scheme.kind}`]

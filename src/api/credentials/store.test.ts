@@ -67,7 +67,7 @@ describe("createStore: identity and reasons", () => {
 			{ blocked: 'the document declares no "nope" scheme' },
 			{ blocked: 'principal "ann" has no recipe for the "basic" scheme' },
 			{
-				blocked: 'static for ann/digest: oat cannot send the "digest" scheme: http digest',
+				blocked: 'static for ann/digest: the API tester cannot send the "digest" scheme: http digest',
 			},
 		])
 	})

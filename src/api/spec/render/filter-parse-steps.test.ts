@@ -73,9 +73,9 @@ describe("ops", () => {
 	})
 
 	it("names what it cannot read", () => {
-		expect(readOps(draft({ ops: [] }))).toBe("ops must map oat operators to the grammar's tokens")
+		expect(readOps(draft({ ops: [] }))).toBe("ops must map the API tester operators to the grammar's tokens")
 		expect(readOps(draft({ ops: { approx: "~" } }))).toBe(
-			"ops.approx is not an operator oat writes (null tests go under null)",
+			"ops.approx is not an operator the API tester writes (null tests go under null)",
 		)
 		expect(readOps(draft({ ops: { is: "is" } }))).toContain("ops.is")
 		expect(readOps(draft({ ops: { eq: "" } }))).toBe("ops.eq must be a non-empty token")
@@ -191,7 +191,7 @@ describe("mixed, escape and likeMatches", () => {
 		expect(readMixed(draft({}))).toBeUndefined()
 		expect(readMixed(draft({ mixed: false }))).toBeUndefined()
 		expect(readMixed(draft({ mixed: true }))).toBe(
-			"mixed must be false: oat never assumes how and and or nest in a declared grammar",
+			"mixed must be false: the API tester never assumes how and and or nest in a declared grammar",
 		)
 	})
 

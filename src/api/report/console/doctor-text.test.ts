@@ -99,7 +99,7 @@ describe("entityLines", () => {
 		const lines = entityLines(doctorFacts(edges))
 		expect(lines.slice(0, 5)).toEqual([
 			"  not testable",
-			`    ${"c".padEnd(20)} "c" has no list operation and no read operation and no records oat can identify after create`,
+			`    ${"c".padEnd(20)} "c" has no list operation and no read operation and no records the API tester can identify after create`,
 			`    ${"d".padEnd(20)} "d" has no list operation and no create operation`,
 			`    ${"u".padEnd(20)} "u" has no list operation and no create operation`,
 			"",
@@ -148,7 +148,7 @@ describe("declarationLines", () => {
 			"  invite — accept mode",
 			`    ${"table".padEnd(28)} JSON token → invite.accept`,
 			"",
-			"  cache bypass oat sends on reads",
+			"  cache bypass the API tester sends on reads",
 			"    default cache-control: no-cache      16 reads",
 			"",
 			"  config.entities names that do not match the document (ignored)",
@@ -160,7 +160,7 @@ describe("declarationLines", () => {
 			"  feature gates — a matching 403 is a coverage gap, not a fail",
 			`    ${"a.list".padEnd(28)} x-feature-gate: beta`,
 			"",
-			"  cache bypass oat sends on reads",
+			"  cache bypass the API tester sends on reads",
 			"    default cache-control: no-cache      1 read",
 			"",
 		])

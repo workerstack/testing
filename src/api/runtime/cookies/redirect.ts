@@ -2,7 +2,7 @@
  * Where a redirect goes, and with which method and body.
  *
  * Fetch follows redirects by default and drops intermediate Set-Cookie. Consume pages
- * commonly 303 with the session cookie on the redirect response — oat follows hops itself so it
+ * commonly 303 with the session cookie on the redirect response — the API tester follows hops itself so it
  * can keep that cookie if saveAs is going to bind it.
  */
 

@@ -35,11 +35,11 @@ export function aggregate(writer: Writer, toolkit: Toolkit, dir: string): number
 			.filter((name) => name.endsWith(".json"))
 			.toSorted()
 	} catch (error) {
-		writer.err(`oat: cannot read ${dir}: ${messageOf(error)}\n`)
+		writer.err(`testing api: cannot read ${dir}: ${messageOf(error)}\n`)
 		return EXIT.usage
 	}
 	if (files.length === 0) {
-		writer.err(`oat: ${dir} holds no proven-check files; write them with --proven-out\n`)
+		writer.err(`testing api: ${dir} holds no proven-check files; write them with --proven-out\n`)
 		return EXIT.usage
 	}
 	const proven = new Set<string>()

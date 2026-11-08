@@ -77,7 +77,7 @@ function createParameters(ctx: SpecContext, entity: EntityDef): Json[] {
 	return [
 		...pathParams(ctx, entity, false),
 		/* Declared as an ordinary header parameter, because that is how real APIs publish
-		 * it. oat needs no new meta tag to find this: a create operation naming a header
+		 * it. The API tester needs no new meta tag to find this: a create operation naming a header
 		 * whose name reads as an idempotency key is enough to know replay is promised. */
 		{
 			description:

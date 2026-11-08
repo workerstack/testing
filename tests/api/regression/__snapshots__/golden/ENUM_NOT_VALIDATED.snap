@@ -367,7 +367,7 @@
         },
         {
           "check": "validation.enum-enforced",
-          "detail": "\"kind\" declares [\"export\", \"import\", \"sync\"] but the backend accepted \"oat-not-in-enum\" with 201. Clients generated from this document will assume the field only ever holds a declared member.",
+          "detail": "\"kind\" declares [\"export\", \"import\", \"sync\"] but the backend accepted \"testing-not-in-enum\" with 201. Clients generated from this document will assume the field only ever holds a declared member.",
           "entity": "job",
           "operations": [
             "job.create"
@@ -384,7 +384,7 @@
         },
         {
           "check": "validation.enum-enforced",
-          "detail": "\"status\" declares [\"active\", \"draft\", \"archived\"] but the backend accepted \"oat-not-in-enum\" with 201. Clients generated from this document will assume the field only ever holds a declared member.",
+          "detail": "\"status\" declares [\"active\", \"draft\", \"archived\"] but the backend accepted \"testing-not-in-enum\" with 201. Clients generated from this document will assume the field only ever holds a declared member.",
           "entity": "table",
           "operations": [
             "table.create"
@@ -401,7 +401,7 @@
         },
         {
           "check": "validation.enum-enforced",
-          "detail": "\"status\" declares [\"active\", \"paused\"] but the backend accepted \"oat-not-in-enum\" with 201. Clients generated from this document will assume the field only ever holds a declared member.",
+          "detail": "\"status\" declares [\"active\", \"paused\"] but the backend accepted \"testing-not-in-enum\" with 201. Clients generated from this document will assume the field only ever holds a declared member.",
           "entity": "webhook",
           "operations": [
             "webhook.create"

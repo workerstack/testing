@@ -1,6 +1,6 @@
 /**
  * Typical requests per check per entity, measured on the reference backend across its dialects —
- * what `oat plan` estimates a run's cost from before a request is sent. Regenerate after a
+ * what `testing api plan` estimates a run's cost from before a request is sent. Regenerate after a
  * check's request pattern changes; a check missing here is estimated at `DEFAULT_CHECK_COST`.
  */
 import type { EntityModel, SpecModel } from "../spec/graph/types.ts"

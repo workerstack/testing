@@ -19,7 +19,7 @@ describe("loadPostgres", () => {
 		const asked = loadPostgres(() => Promise.reject(missing("postgres")))
 		await expect(asked).rejects.toBeInstanceOf(UsageError)
 		await expect(loadPostgres(() => Promise.reject(missing("postgres")))).rejects.toThrow(
-			`oat: --backend postgres needs the postgres package (${POSTGRES_RANGE}): npm install postgres`,
+			`testing api: --backend postgres needs the postgres package (${POSTGRES_RANGE}): npm install postgres`,
 		)
 	})
 

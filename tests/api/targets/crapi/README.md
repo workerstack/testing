@@ -17,7 +17,7 @@ sha256 is the pinned one; `.gitignore` keeps it out of git.
 - **The item read answers `{ order }`, not `{ orders }`.** `crapi-openapi-spec.json` documents
   `GET /workshop/api/shop/orders/{order_id}` (`get_order_byID`) as answering
   `{ orders: Order }`, with `orders` required. crAPI answers `{ order: Order, payment: … }`. The
-  overlay in `oat.config.ts` corrects the 200 schema so the record is read where the server puts
+  overlay in `testing.api.config.ts` corrects the 200 schema so the record is read where the server puts
   it. Without that overlay, `schema.read-response-matches-document` reports the mismatch on the
   pinned images (2026-10-24):
 

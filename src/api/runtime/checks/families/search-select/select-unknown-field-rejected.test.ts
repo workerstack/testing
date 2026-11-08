@@ -3,7 +3,7 @@ import type { Responder } from "../../__fixtures__/harness.ts"
 import { NOTES, PARAMS, queryDoc, stage } from "../composition/__fixtures__/query-api.ts"
 import { selectUnknownFieldRejected } from "./select-unknown-field-rejected.ts"
 
-const UNKNOWN = "oat_no_such_select_xyz"
+const UNKNOWN = "testing_no_such_select_xyz"
 const policy = (unknown: string) => ({ doc: queryDoc({ select: { unknown } }) })
 
 /* Serves the identity and drops a field it does not know: the ignore policy, followed. */

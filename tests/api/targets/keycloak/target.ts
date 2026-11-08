@@ -3,14 +3,14 @@ import { answers, type Target } from "../target.ts"
 
 /*
  * Keycloak on a fresh install has only the bootstrap admin in the master realm. Each tenant is a
- * realm of its own (oat-a, oat-b). The principals are confidential master-realm clients whose
- * service accounts hold the roles of that realm's management client (`oat-a-realm`), the way a
+ * realm of its own (testing-a, testing-b). The principals are confidential master-realm clients whose
+ * service accounts hold the roles of that realm's management client (`testing-a-realm`), the way a
  * Keycloak operator delegates one realm: alpha and beta administer their own realm, the viewer
- * only reads oat-a. Their tokens come from the master token endpoint by client credentials. Each
+ * only reads testing-a. Their tokens come from the master token endpoint by client credentials. Each
  * realm is seeded with a few users and groups, so its lists have rows to filter.
  */
 
-const REALMS = ["oat-a", "oat-b"] as const
+const REALMS = ["testing-a", "testing-b"] as const
 const VIEW_ROLES = ["view-realm", "view-users", "view-clients", "query-users", "query-groups", "query-clients"]
 
 /* What each realm holds before the run, so its lists have rows on both sides of each filter. */
@@ -30,9 +30,9 @@ interface Principal {
 }
 
 const PRINCIPALS: Record<string, Principal> = {
-	ALPHA: { clientId: "oat-alpha", realm: "oat-a" },
-	BETA: { clientId: "oat-beta", realm: "oat-b" },
-	VIEWER: { clientId: "oat-viewer", realm: "oat-a", roles: VIEW_ROLES },
+	ALPHA: { clientId: "testing-alpha", realm: "testing-a" },
+	BETA: { clientId: "testing-beta", realm: "testing-b" },
+	VIEWER: { clientId: "testing-viewer", realm: "testing-a", roles: VIEW_ROLES },
 }
 
 /** The admin API as the bootstrap admin: `call(method, url, body?)` answers the parsed body, if any. */

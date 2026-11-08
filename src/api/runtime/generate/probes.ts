@@ -22,7 +22,7 @@ export function outsideEnum(schema: unknown): Generated {
 	if (values.every((value) => typeof value === "number")) {
 		return { ok: true, value: Math.max(...(values as number[])) + 1 }
 	}
-	let candidate = "oat-not-in-enum"
+	let candidate = "testing-not-in-enum"
 	while (values.includes(candidate)) candidate = `${candidate}-x`
 	return { ok: true, value: candidate }
 }

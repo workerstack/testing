@@ -2,7 +2,7 @@
  * `x-privileged: true` on a request body property: only the highest-rank principal may set it, as a
  * plan or a verified flag. A write by anyone else that includes it must be refused or leave it
  * unchanged. The marker goes on a schema property, by overlay when the document lacks it, and is a
- * boolean; anywhere else, or of any other type, it is a gap and oat ignores it.
+ * boolean; anywhere else, or of any other type, it is a gap and the API tester ignores it.
  */
 
 import type { OperationObject, JsonSchema } from "../types.ts"
@@ -24,7 +24,11 @@ export interface PrivilegedSource {
 export function readPrivileged(op: OperationObject, source: PrivilegedSource): string[] {
 	const { body, gaps, operationId } = source
 	const misplaced = (where: string): void =>
-		gaps.record(operationId, TAG, `${TAG} belongs on a request body property, not on ${where}; oat cannot use it`)
+		gaps.record(
+			operationId,
+			TAG,
+			`${TAG} belongs on a request body property, not on ${where}; the API tester cannot use it`,
+		)
 	if ((op as Record<string, unknown>)[TAG] !== undefined) misplaced("the operation")
 	if (body === null) return []
 	if (body[TAG] !== undefined) misplaced("the body itself")
@@ -84,7 +88,11 @@ function walk(schema: JsonSchema, at: Walk): void {
 		const marker = property[TAG]
 		if (marker === true) at.marked.push(path)
 		else if (marker !== undefined && marker !== false) {
-			at.gaps.record(at.operationId, TAG, `${TAG} on property "${path}" must be true or false; oat cannot use it`)
+			at.gaps.record(
+				at.operationId,
+				TAG,
+				`${TAG} on property "${path}" must be true or false; the API tester cannot use it`,
+			)
 		}
 		walk(property, { ...at, prefix: `${path}.` })
 	}

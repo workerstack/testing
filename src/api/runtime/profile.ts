@@ -37,7 +37,7 @@ export function resolveProfile(
 	const spec = configured?.[activeName] ?? BUILTIN_PROFILES[activeName]
 	if (spec === undefined) {
 		const known = [...new Set([...Object.keys(BUILTIN_PROFILES), ...Object.keys(configured ?? {})])]
-		throw new UsageError(`oat: profile "${activeName}" is not defined. Known: ${known.join(", ")}`)
+		throw new UsageError(`testing api: profile "${activeName}" is not defined. Known: ${known.join(", ")}`)
 	}
 	return { name: activeName, spec }
 }

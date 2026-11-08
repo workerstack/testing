@@ -43,7 +43,7 @@ function renderInferred(records: TeardownReport["records"]): string[] {
 	]
 }
 
-/* Each one a record oat made and cannot remove: listed by the request that made it. */
+/* Each one a record the API tester made and cannot remove: listed by the request that made it. */
 function renderUnidentified(unidentified: readonly UnidentifiedCreate[]): string[] {
 	if (unidentified.length === 0) return []
 	const lines = [

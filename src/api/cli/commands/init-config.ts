@@ -10,12 +10,12 @@ import type { OpenApiDocument } from "../../spec/types.ts"
 import { type Field, fieldLines, quote } from "./init-code.ts"
 
 /*
- * The starter config `oat init` writes from a document: one credential recipe per security scheme,
+ * The starter config `testing api init` writes from a document: one credential recipe per security scheme,
  * each reading its secret from an env var, and one principal. Pure: the command does the IO.
  * The text is laid out as oxfmt lays it out (`init-code.ts`).
  */
 
-/** A scheme the config cannot hold a recipe for, with its declared type and why oat cannot send it. */
+/** A scheme the config cannot hold a recipe for, with its declared type and why the API tester cannot send it. */
 export interface UnsupportedScheme {
 	name: string
 	type: string
@@ -32,10 +32,11 @@ export interface InitConfig {
 }
 
 const UNTESTED = "Operations that need only it are reported untested."
-const OWNED_GRANTS = "oat performs only clientCredentials and password grants; supply a token obtained elsewhere"
+const OWNED_GRANTS =
+	"The API tester performs only clientCredentials and password grants; supply a token obtained elsewhere"
 const HOLDS = "the scopes this credential carries; operations needing scopes it lacks are untested"
 
-/** Each scheme's env var stem, `OAT_<NAME>`, with `_2`, `_3` for a later scheme whose stem is taken. */
+/** Each scheme's env var stem, `TESTING_API_<NAME>`, with `_2`, `_3` for a later scheme whose stem is taken. */
 function envStems(): (scheme: string) => string {
 	const taken = new Set<string>()
 	return (scheme) => {
@@ -43,7 +44,7 @@ function envStems(): (scheme: string) => string {
 			.replace(/([a-z0-9])([A-Z])/g, "$1_$2")
 			.replace(/[^A-Za-z0-9]+/g, "_")
 			.replace(/^_|_$/g, "")
-		const base = `OAT_${words.toUpperCase() || "SCHEME"}`
+		const base = `TESTING_API_${words.toUpperCase() || "SCHEME"}`
 		let stem = base
 		for (let n = 2; taken.has(stem); n++) stem = `${base}_${n}`
 		taken.add(stem)
@@ -176,7 +177,7 @@ function recipeOf(scheme: Supported, stem: string, usage: Usage): Recipe {
 const signInComment = (operationId: string): string =>
 	`or sign in: login: { steps: [{ operationId: ${quote(operationId)}, body: {} }], from: "$.access_token" }`
 
-/** The declared type of a scheme oat cannot send, as the document writes it: `mutualTLS`, `http digest`. */
+/** The declared type of a scheme the API tester cannot send, as the document writes it: `mutualTLS`, `http digest`. */
 function declaredType(raw: unknown): string {
 	const declared = (raw ?? {}) as { type?: unknown; scheme?: unknown }
 	if (typeof declared.type !== "string") return "no type"
@@ -192,7 +193,7 @@ function described(raw: unknown): string {
 
 /** The first absolute http(s) server URL, its variables filled with their defaults. */
 /**
- * The first server oat can call: absolute once its variables take their defaults, or relative and
+ * The first server the API tester can call: absolute once its variables take their defaults, or relative and
  * resolved against the document's own URL, as OpenAPI says. A document read from a file gives a
  * relative server no base, so the config asks for one.
  */
@@ -216,7 +217,7 @@ const NO_SCHEME: readonly Field[] = [
 		comment:
 			'overlay: { securitySchemes: { bearer: { type: "http", scheme: "bearer" } }, security: [{ bearer: [] }] },',
 	},
-	{ comment: 'security: { bearer: { static: env("OAT_BEARER_TOKEN") } },' },
+	{ comment: 'security: { bearer: { static: env("TESTING_API_BEARER_TOKEN") } },' },
 ]
 
 const PRINCIPAL = "one principal; a second with a different tenant enables the isolation checks"
@@ -244,21 +245,23 @@ function principalStub(doc: OpenApiDocument): Field[] {
 	]
 }
 
-/** The config `oat init` writes for `doc`, read from `spec` and written to `out`. */
+/** The config `testing api init` writes for `doc`, read from `spec` and written to `out`. */
 export function renderInitConfig(doc: OpenApiDocument, where: { spec: string; out: string }): InitConfig {
 	const declared = doc.components?.securitySchemes ?? {}
 	const schemes = readSchemes(doc)
 	const usage = usageOf(doc)
 	const stemOf = envStems()
 	const base = serverUrl(doc, where.spec)
-	const names: string[] = base === undefined ? ["OAT_BASE_URL"] : []
+	const names: string[] = base === undefined ? ["TESTING_API_BASE_URL"] : []
 	const unsupported: UnsupportedScheme[] = []
 	const security: Field[] = []
 	for (const scheme of schemes.values()) {
 		if (scheme.kind === "unsupported") {
 			const type = declaredType(declared[scheme.name])
 			unsupported.push({ name: scheme.name, type, why: scheme.unsupported })
-			security.push({ comment: `${scheme.name}: ${type}, not sent by oat — ${scheme.unsupported}. ${UNTESTED}` })
+			security.push({
+				comment: `${scheme.name}: ${type}, not sent by the API tester — ${scheme.unsupported}. ${UNTESTED}`,
+			})
 			continue
 		}
 		const recipe = recipeOf(scheme, stemOf(scheme.name), usage)
@@ -272,18 +275,18 @@ export function renderInitConfig(doc: OpenApiDocument, where: { spec: string; ou
 	}
 	const fields: Field[] = [
 		{ key: "spec", value: quote(where.spec) },
-		{ key: "baseUrl", value: base === undefined ? env("OAT_BASE_URL") : quote(base) },
+		{ key: "baseUrl", value: base === undefined ? env("TESTING_API_BASE_URL") : quote(base) },
 		...(schemes.size === 0 ? NO_SCHEME : [{ key: "security", value: security }]),
 		{ key: "principals", value: [{ comments: [PRINCIPAL], key: "alpha", value: principalStub(doc) }] },
 	]
-	const next = `oat doctor --config ${where.out}`
+	const next = `testing api doctor --config ${where.out}`
 	const header =
 		names.length === 0
-			? `// Written by oat init from ${where.spec}. Run: ${next}`
-			: `// Written by oat init from ${where.spec}. Set each env() variable, then run: ${next}`
+			? `// Written by testing api init from ${where.spec}. Run: ${next}`
+			: `// Written by testing api init from ${where.spec}. Set each env() variable, then run: ${next}`
 	const text = [
 		header,
-		`import { ${names.length === 0 ? "defineConfig" : "defineConfig, env"} } from "@lovrozagar/oat"`,
+		`import { ${names.length === 0 ? "defineConfig" : "defineConfig, env"} } from "@workerstack/testing/api"`,
 		"",
 		"export default defineConfig({",
 		...fieldLines(fields, 1),

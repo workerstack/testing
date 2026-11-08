@@ -1,7 +1,7 @@
 /*
  * What the credential-lifecycle checks share. A session's issue, refresh and revoke are properties of
  * the credential, not of a route, so each check anchors once per scheme on the operation the actor's
- * recipe names for that step. It proves the credential on one read oat can send whole (`readRoute`).
+ * recipe names for that step. It proves the credential on one read the API tester can send whole (`readRoute`).
  * Per-route guard coverage is the missing- and invalid-credential checks'.
  */
 
@@ -81,7 +81,7 @@ const PROVING: ReadonlySet<string> = /* @__PURE__ */ new Set(["GET", "HEAD"])
 
 /**
  * The read a lifecycle probe proves a credential on: a GET or HEAD that takes `scheme` alone and that
- * oat can send whole. Its path is filled from the scope of the principal the probe acts as (the
+ * The API tester can send whole. Its path is filled from the scope of the principal the probe acts as (the
  * target's creator, which expects acceptance, else the actor), or a path parameter's declared enum;
  * every required query, header and cookie parameter has a declared value (`unfilledRequired`). A
  * read that cannot be sent whole never answers 2xx, and the check could never conclude. Among the
@@ -144,7 +144,7 @@ export interface Lifecycle {
 }
 
 /** Why a lifecycle check stands down when no scheme it anchors has a read `readRoute` can send. */
-export const NO_READ = "no read this credential protects that oat can send"
+export const NO_READ = "no read this credential protects that the API tester can send"
 
 /**
  * A lifecycle check's plan: the schemes anchored on this operation, each with its read. A scheme

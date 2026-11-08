@@ -14,7 +14,7 @@ const SOURCE = [
 
 const lines = (file: string): number[] => reportsOf(rule, { [file]: SOURCE }).map((report) => report.line)
 
-describe("oat/exit-only-in-cli", () => {
+describe("testing/exit-only-in-cli", () => {
 	it("flags an exit outside the CLI, which would skip teardown and the report", () => {
 		expect(lines("src/api/runtime/probe.ts")).toEqual([2, 7])
 	})
@@ -26,7 +26,7 @@ describe("oat/exit-only-in-cli", () => {
 		expect(lines("src/api/runtime/probe.test.ts")).toEqual([])
 	})
 
-	it("fails oxlint through the oat plugin entry", () => {
+	it("fails oxlint through the testing plugin entry", () => {
 		const reports = oxlintReports("exit-only-in-cli", { "src/api/runtime/probe.ts": SOURCE })
 		expect(reports.map((report) => report.line)).toEqual([2, 7])
 	})

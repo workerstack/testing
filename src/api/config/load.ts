@@ -1,6 +1,6 @@
 /**
  * Config loading. A config is a `.js`/`.mjs`/`.ts` module with a default export, or a `.json`
- * file. TypeScript configs load where the runtime strips types, which oat's Node floor (22.18) does
+ * file. TypeScript configs load where the runtime strips types, which the API tester's Node floor (22.18) does
  * by default; the error says so rather than failing obscurely.
  */
 
@@ -8,18 +8,18 @@ import { readFile } from "node:fs/promises"
 import { isAbsolute, resolve } from "node:path"
 import { pathToFileURL } from "node:url"
 import { DEFER_ENV, MissingEnvError } from "./env.ts"
-import type { OatConfig } from "./types/config.ts"
+import type { ApiConfig } from "./types/config.ts"
 
 /** How a config is loaded: `doctor` and `plan` defer an unset `env()` instead of stopping. */
 export interface LoadOptions {
 	deferEnv?: boolean
 }
 
-export async function loadConfig(path: string, options: LoadOptions = {}): Promise<OatConfig> {
+export async function loadConfig(path: string, options: LoadOptions = {}): Promise<ApiConfig> {
 	const absolute = isAbsolute(path) ? path : resolve(process.cwd(), path)
 
 	if (absolute.endsWith(".json")) {
-		return JSON.parse(await readFile(absolute, "utf8")) as OatConfig
+		return JSON.parse(await readFile(absolute, "utf8")) as ApiConfig
 	}
 
 	const deferEnv = options.deferEnv === true
@@ -29,8 +29,8 @@ export async function loadConfig(path: string, options: LoadOptions = {}): Promi
 	else delete process.env[DEFER_ENV]
 	try {
 		/* Each mode is its own module instance: a load in one mode never hands back the other's values. */
-		const url = `${pathToFileURL(absolute).href}${deferEnv ? "?oat-defer-env" : ""}`
-		const module = (await import(url)) as { default?: OatConfig } & OatConfig
+		const url = `${pathToFileURL(absolute).href}${deferEnv ? "?testing-defer-env" : ""}`
+		const module = (await import(url)) as { default?: ApiConfig } & ApiConfig
 		const config = module.default ?? module
 		if (typeof config !== "object") {
 			throw new Error("config module has no default export")
@@ -41,12 +41,12 @@ export async function loadConfig(path: string, options: LoadOptions = {}): Promi
 		const message = error instanceof Error ? error.message : String(error)
 		if (absolute.endsWith(".ts") && /Unknown file extension|strip-types/.test(message)) {
 			throw new Error(
-				`oat: cannot load ${path} — this Node cannot import TypeScript ` +
-					"(oat needs 22.18 or later, without --no-experimental-strip-types); or use a .js/.mjs config",
+				`testing api: cannot load ${path} — this Node cannot import TypeScript ` +
+					"(the API tester needs 22.18 or later, without --no-experimental-strip-types); or use a .js/.mjs config",
 				{ cause: error },
 			)
 		}
-		throw new Error(`oat: failed to load config ${path}: ${message}`, { cause: error })
+		throw new Error(`testing api: failed to load config ${path}: ${message}`, { cause: error })
 	} finally {
 		if (previous === undefined) delete process.env[DEFER_ENV]
 		else process.env[DEFER_ENV] = previous
@@ -75,7 +75,7 @@ export function interpolate<T>(
 			const resolved = env[name]
 			if (resolved !== undefined) return resolved
 			if (options.unset === undefined) {
-				throw new Error(`oat: config references \${${name}}, which is not set in the environment`)
+				throw new Error(`testing api: config references \${${name}}, which is not set in the environment`)
 			}
 			options.unset.add(name)
 			return match

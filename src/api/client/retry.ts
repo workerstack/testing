@@ -36,7 +36,7 @@ export interface Resending {
 /*
  * A failed request may be sent again only when doing so cannot do something twice: it never left
  * this machine, or the method is idempotent, or it carries an idempotency key. A POST that timed
- * out may well have created its record — resending it creates a second one, and oat would then
+ * out may well have created its record — resending it creates a second one, and the API tester would then
  * report the duplicate as the backend's.
  */
 function repeatable(error: NetworkError, policy: Resending): boolean {

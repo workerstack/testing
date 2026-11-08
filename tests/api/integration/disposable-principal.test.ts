@@ -343,7 +343,7 @@ const REFRESHING: SecurityConfig = {
 	},
 }
 
-/* The refresh a recipe declares — oat never guesses a refresh route by field name. */
+/* The refresh a recipe declares — the API tester never guesses a refresh route by field name. */
 async function runRefreshFlow(baseUrl: string) {
 	return run({
 		baseUrl,

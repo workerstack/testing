@@ -56,7 +56,7 @@ export async function runSelfIdentity(caller: SelfInput): Promise<Outcome> {
 	const input = { ...caller, principal }
 	if (readOp === undefined) {
 		/* No read: the probe is the update. */
-		const wrote = await sendUpdate(input, { op: probe, path: probePath }, { note: "Oat" })
+		const wrote = await sendUpdate(input, { op: probe, path: probePath }, { note: "Tst" })
 		return updatedAlone(run, anonymous, wrote)
 	}
 

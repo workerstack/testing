@@ -1,15 +1,15 @@
-# oat — Step builders
+# testing api — Step builders
 
 [← back to the overview](../../README.md)
 
-`@lovrozagar/oat/steps` writes [scenario](configuration/reference.md) steps as typed calls instead of
+`@workerstack/testing/api/steps` writes [scenario](configuration/reference.md) steps as typed calls instead of
 object literals. You give it your API's types once. After that, a scenario that names an operation,
 a body field, a path parameter, an error key, an external or a mail kind your API lacks fails at
 `tsc`, before anything is sent. Each builder emits the plain step object a hand-written config
-holds, so oat runs a built scenario exactly as it runs the literal.
+holds, so the API tester runs a built scenario exactly as it runs the literal.
 
 ```ts
-import { steps } from "@lovrozagar/oat/steps"
+import { steps } from "@workerstack/testing/api/steps"
 
 /* Where a credential goes is your API's to say: here, a session is a bearer token. */
 const { anon, scenario, self, session } = steps<MyTypes>({ session: (name) => ({ authorization: `Bearer {${name}}` }) })

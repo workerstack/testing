@@ -6,7 +6,7 @@
  */
 
 import { isRaw, isRawUnion, type RawOf } from "../../config/types/raw.ts"
-import type { OatConfig, TargetVersionSpec } from "../../config/types/config.ts"
+import type { ApiConfig, TargetVersionSpec } from "../../config/types/config.ts"
 import type { Scenario, ScenarioStep } from "../../config/types/steps.ts"
 import { nearest } from "../../errors/suggest.ts"
 import { declaredSchemes } from "./principals.ts"
@@ -19,7 +19,7 @@ export interface DocumentView {
 
 /** Problems a config has with the primary document and each origin's that no recipe check sees. */
 export function documentProblems(
-	config: RawOf<OatConfig>,
+	config: RawOf<ApiConfig>,
 	spec: DocumentView,
 	origins: Readonly<Record<string, DocumentView>> = {},
 ): string[] {
@@ -37,7 +37,7 @@ export function documentProblems(
 }
 
 /* The scheme an undocumented version path is read under, against the primary document. */
-function targetVersionProblems(config: RawOf<OatConfig>, spec: DocumentView): string[] {
+function targetVersionProblems(config: RawOf<ApiConfig>, spec: DocumentView): string[] {
 	const scheme = isRaw<TargetVersionSpec>(config.targetVersion) ? config.targetVersion.scheme : undefined
 	if (typeof scheme !== "string" || spec.schemes.has(scheme)) return []
 	return [unknownScheme({ path: "targetVersion.scheme", scheme, view: spec, where: "the document" })]

@@ -25,7 +25,7 @@ describe("dereference", () => {
 		const { doc: out, externalRefs } = dereference(source)
 		const schema = nodesSchema(out)
 		expect(schema).toEqual({
-			properties: { child: { $ref: "oat-defs#/$defs/Node" }, id: { type: "string" } },
+			properties: { child: { $ref: "testing-defs#/$defs/Node" }, id: { type: "string" } },
 			type: "object",
 		})
 		expect(documentDefs(out)).toEqual({ Node: schema })
@@ -46,8 +46,8 @@ describe("dereference", () => {
 	})
 
 	it("drops the files bundled beside the document once their refs are inlined, keeping their recursion", () => {
-		const pet = { properties: { parent: { $ref: "#/x-oat-external/pet.yaml/Pet" } }, type: "object" }
-		const refs = { $ref: "#/x-oat-external/pet.yaml/Pet" }
+		const pet = { properties: { parent: { $ref: "#/x-testing-external/pet.yaml/Pet" } }, type: "object" }
+		const refs = { $ref: "#/x-testing-external/pet.yaml/Pet" }
 		const source = doc(
 			{ "/pets": { get: { operationId: "pets.get", responses: ok(refs) } } },
 			{
@@ -57,14 +57,14 @@ describe("dereference", () => {
 		const { doc: out } = dereference(source)
 		expect(EXTERNAL_KEY in out).toBe(false)
 		expect(documentDefs(out)).toEqual({
-			Pet: { properties: { parent: { $ref: "oat-defs#/$defs/Pet" } }, type: "object" },
+			Pet: { properties: { parent: { $ref: "testing-defs#/$defs/Pet" } }, type: "object" },
 		})
 	})
 
 	it("stores the document itself, without its definitions, when a ref names it", () => {
 		const { doc: out } = dereference(doc({}, { "x-self": { $ref: "#" } }))
 		const self = documentDefs(out)["_"] as Record<string, unknown>
-		expect(self["x-self"]).toEqual({ $ref: "oat-defs#/$defs/_" })
+		expect(self["x-self"]).toEqual({ $ref: "testing-defs#/$defs/_" })
 		expect(DEFS_KEY in self).toBe(false)
 		expect(self).not.toBe(out)
 	})
@@ -72,7 +72,7 @@ describe("dereference", () => {
 	it("stores an Example Object that refers to itself, walking it again for its definition", () => {
 		const loop = { value: 1, "x-loop": { $ref: "#/components/examples/Loop" } }
 		const { doc: out } = dereference(doc({}, { components: { examples: { Loop: loop } } }))
-		expect(documentDefs(out)).toEqual({ Loop: { value: 1, "x-loop": { $ref: "oat-defs#/$defs/Loop" } } })
+		expect(documentDefs(out)).toEqual({ Loop: { value: 1, "x-loop": { $ref: "testing-defs#/$defs/Loop" } } })
 	})
 })
 

@@ -1,4 +1,4 @@
-/* The slice of oxlint's plugin API oat's rules use (oxlint ships no importable plugin types). */
+/* The slice of oxlint's plugin API the API tester's rules use (oxlint ships no importable plugin types). */
 
 export interface Node {
 	type: string

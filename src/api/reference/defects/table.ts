@@ -2,11 +2,11 @@
  * Defects the reference backend can be told to exhibit.
  *
  * Each one is a real bug seen in production APIs, reduced to its smallest form. The conformance
- * suite switches them on individually and asserts oat reports exactly that defect and nothing
- * else — which is what turns "oat is smart" into precision and recall numbers.
+ * suite switches them on individually and asserts the API tester reports exactly that defect and nothing
+ * else — which is what turns "the API tester is smart" into precision and recall numbers.
  *
  * Keep the implementations naive and obvious. If the reference backend grows clever it starts
- * encoding the same assumptions oat does, and the two drift together into agreeing on nonsense.
+ * encoding the same assumptions the API tester does, and the two drift together into agreeing on nonsense.
  */
 
 import { CATALOG_DEFECTS } from "./catalog.ts"

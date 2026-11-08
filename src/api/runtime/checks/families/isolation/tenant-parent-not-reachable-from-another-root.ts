@@ -66,7 +66,7 @@ export const foreignParentRejected: Check<{
 				? ctx.findings.security(this.id, ctx.entityName, { summary, detail, evidence })
 				: ctx.findings.report({
 						check: this.id,
-						detail: `${detail} oat inferred the tenant from "${tenantParam}"; declare x-tenant to make this SECURITY.`,
+						detail: `${detail} the API tester inferred the tenant from "${tenantParam}"; declare x-tenant to make this SECURITY.`,
 						entity: ctx.entityName,
 						evidence,
 						summary,

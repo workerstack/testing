@@ -58,8 +58,8 @@ describe("auth.login-throttled", () => {
 		await runOperationCheck(loginThrottled, stage.ctx)
 		expect(stage.ctx.nonce).toBe("test")
 		expect(stage.sent[0]?.options.body).toEqual({
-			email: "oat-nonexistent-test@example.invalid",
-			password: "oat-nonexistent-test",
+			email: "testing-nonexistent-test@example.invalid",
+			password: "testing-nonexistent-test",
 		})
 	})
 
@@ -79,7 +79,7 @@ describe("auth.login-throttled", () => {
 			respond: () => ({ status: 429 }),
 		})
 		await runOperationCheck(loginThrottled, stage.ctx)
-		expect(stage.sent[0]?.options.body).toEqual({ remember: true, username: "oat-nonexistent-test" })
+		expect(stage.sent[0]?.options.body).toEqual({ remember: true, username: "testing-nonexistent-test" })
 	})
 })
 

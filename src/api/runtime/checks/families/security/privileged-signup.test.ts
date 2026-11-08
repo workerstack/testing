@@ -193,14 +193,14 @@ describe("signUpPlan: the value that grants the privilege", () => {
 	it("stands down, naming the field, for one whose privileged value it cannot tell", () => {
 		const marked = { role: { enum: ["owner", "viewer"], type: "string", "x-privileged": true } }
 		expect(needs(signUpPlan(staged({ listing: LISTING, marked }).ctx))).toBe(
-			"role: no value oat can tell is privileged (no const, no one-member enum, not a boolean)",
+			"role: no value the API tester can tell is privileged (no const, no one-member enum, not a boolean)",
 		)
-		/* A marker oat reads through two allOf levels, where the schema lookup reads one. */
+		/* A marker the API tester reads through two allOf levels, where the schema lookup reads one. */
 		const nested = {
 			meta: { allOf: [{ allOf: [{ properties: { owner: { type: "boolean", "x-privileged": true } } }] }] },
 		}
 		expect(needs(signUpPlan(staged({ listing: LISTING, marked: nested }).ctx))).toBe(
-			"meta.owner: no value oat can tell is privileged (no const, no one-member enum, not a boolean)",
+			"meta.owner: no value the API tester can tell is privileged (no const, no one-member enum, not a boolean)",
 		)
 	})
 })

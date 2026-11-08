@@ -39,7 +39,10 @@ describe("buildSpec", () => {
 	it("is the PostgREST document over the default entities when called bare", () => {
 		expect(spec).toEqual(buildSpec(POSTGREST, { entities: ENTITIES, shape: {} }))
 		/* 3.2: the search route is a QUERY operation, a Path Item field since OAS 3.2. */
-		expect(spec).toMatchObject({ info: { title: "oat reference backend", version: "1.0.0" }, openapi: "3.2.0" })
+		expect(spec).toMatchObject({
+			info: { title: "the API tester reference backend", version: "1.0.0" },
+			openapi: "3.2.0",
+		})
 	})
 
 	it("routes every entity, then the caller, public, invite, job, auth, API key, styles and search routes", () => {
@@ -120,7 +123,7 @@ describe("buildSpec dialects and layout", () => {
 })
 
 describe("buildUntaggedSpec", () => {
-	it("strips every oat meta tag except the root marker", () => {
+	it("strips every the API tester meta tag except the root marker", () => {
 		const untagged = buildUntaggedSpec()
 		const keys = [...keysDeep(untagged)]
 		expect(keys.filter((key) => key.startsWith("x-"))).toEqual(["x-root"])

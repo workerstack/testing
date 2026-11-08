@@ -28,7 +28,7 @@ const finding: Finding = {
 }
 
 describe("checkReproSyntax", () => {
-	it("finds oat's generated reproducers runnable", async () => {
+	it("finds the API tester's generated reproducers runnable", async () => {
 		expect(await checkReproSyntax([finding])).toEqual([])
 		expect(await checkReproSyntax([])).toEqual([])
 	})

@@ -10,7 +10,7 @@ import type { ScenarioInput, ScenarioPrincipal, ScenarioRun } from "./types.ts"
 export function principalOf(input: ScenarioInput, scenario: Scenario, id: string): ScenarioPrincipal {
 	const found = input.principals.get(id)
 	if (found === undefined)
-		throw new Error(`oat: scenario "${scenario.id}" names principal "${id}", which is not configured`)
+		throw new Error(`testing api: scenario "${scenario.id}" names principal "${id}", which is not configured`)
 	return found
 }
 

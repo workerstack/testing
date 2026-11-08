@@ -7,7 +7,7 @@ import { run } from "../../../src/api/runtime/run/index.ts"
 /*
  * A defect a check catches can still leave records behind: a delete that keeps its row, a write
  * that moves a record out of the caller's reach, a replay that inserts a twin, a job whose receipt
- * names no id. Whatever the defect let through, a record oat leaves behind is one it reports.
+ * names no id. Whatever the defect let through, a record the API tester leaves behind is one it reports.
  */
 
 async function runWith(defect: string, shape?: string) {

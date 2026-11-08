@@ -20,7 +20,7 @@ export const filterConditionCapRejected: Check<{ max: number; overCap: FilterQue
 		const conventions = conv(ctx)
 		if (max === undefined || conventions.filter === undefined) return cannot()
 		if (!canGroupAnd(filterSpec(conventions)) || !identityIsFilterable(ctx)) return cannot()
-		const term = { field: filterIdentity(ctx), op: "eq", value: "oat-cap" } as const
+		const term = { field: filterIdentity(ctx), op: "eq", value: "testing-cap" } as const
 		const overCap = renderAnd(
 			filterSpec(conventions),
 			conventions.filter,

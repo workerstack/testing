@@ -81,7 +81,7 @@ describe("payload.string-survives through an update", () => {
 		const { ctx, findings } = stage(hiding)
 		expect(await runCheck(stringPayloadSurvives, ctx)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" })
 		expect(findings.findings[0]?.summary).toBe("an ordinary ASCII write did not persist exactly")
-		expect(findings.findings[0]?.detail).toBe(`"note" was sent "oat-payload-probe" and read back undefined.`)
+		expect(findings.findings[0]?.detail).toBe(`"note" was sent "testing-payload-probe" and read back undefined.`)
 	})
 })
 

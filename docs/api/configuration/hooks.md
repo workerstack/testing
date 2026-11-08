@@ -1,4 +1,4 @@
-# oat — Hooks
+# testing api — Hooks
 
 [← back to the overview](../../../README.md)
 
@@ -6,8 +6,8 @@
 
 ```ts
 hooks: {
-  // Return null to retry (attempt is 1-based). oat backs off until a value arrives.
-  // `scope` is the flow at this step. No credential is passed: one travels only through oat's client.
+  // Return null to retry (attempt is 1-based). The API tester backs off until a value arrives.
+  // `scope` is the flow at this step. No credential is passed: one travels only through the API tester's client.
   // `since` (unix ms) is when the request that named `address` was sent, when one did:
   // a mail delivered before it answers some earlier request, so return null and wait.
   resolveOutOfBand: async ({ address, kind, attempt, scope, since }) => {
@@ -20,7 +20,7 @@ hooks: {
   teardownPrincipal: async (address, { credential, sends }) => {
     await fetch(`https://api.example.com/v1/auth/account`, { method: "DELETE", headers: sends.headers })
   },
-  // A path parameter oat cannot create. Told the principal it acts as, its scope and identity, and the
+  // A path parameter the API tester cannot create. Told the principal it acts as, its scope and identity, and the
   // credential and placement the operation would carry as it: decode the token, or call the API as it.
   resolvePathValue: async ({ param, principal, credential, sends }) => {
     if (param !== "project_id" || credential === undefined) return null
@@ -77,9 +77,9 @@ hooks: {
 }
 ```
 
-Without `resolveOutOfBand`, an `outOfBand` step cannot complete. oat polls the hook; the hook must not sleep. Returning `""` is treated like `null`. The hook is not a recorded hop: if the human GETs a mailed URL, a later RequestStep must GET that URL so it appears in `exchanges.jsonl` and can `expect` / `saveAs`.
+Without `resolveOutOfBand`, an `outOfBand` step cannot complete. The API tester polls the hook; the hook must not sleep. Returning `""` is treated like `null`. The hook is not a recorded hop: if the human GETs a mailed URL, a later RequestStep must GET that URL so it appears in `exchanges.jsonl` and can `expect` / `saveAs`.
 
-Default schedule (0.6.2, unchanged unless `outOfBand` is set): **6** attempts, first sleep **200** ms, doubling, cap **3000** ms. oat sleeps after every miss, including the last, so the worst-case wait is
+Default schedule (0.6.2, unchanged unless `outOfBand` is set): **6** attempts, first sleep **200** ms, doubling, cap **3000** ms. The API tester sleeps after every miss, including the last, so the worst-case wait is
 
 `200 + 400 + 800 + 1600 + 3000 + 3000 = 9000` ms.
 
@@ -109,7 +109,7 @@ hooks: {
 
 It is asked about every record teardown counted removed and every one it could not show gone, four at a time. `"present"` makes the record a leftover (`hooks.verifyRemoved says it is still present`), `"absent"` clears one never seen, and `"unknown"` keeps teardown's own verdict. A hook that throws counts as `"unknown"`, and the run reports one `teardown.verify-hook` gap.
 
-`resolveHeaders` is called on every dispatch (including the 401 retry). Merge order: `globalHeaders` → hook → per-request headers. The credential is placed by its scheme after them; a header from any of them that names a credential's place is an error, never an override. Use `ctx.operationId` / `ctx.method` / `ctx.url` to attach a one-shot captcha only on captcha ops. oat does not speak Turnstile.
+`resolveHeaders` is called on every dispatch (including the 401 retry). Merge order: `globalHeaders` → hook → per-request headers. The credential is placed by its scheme after them; a header from any of them that names a credential's place is an error, never an override. Use `ctx.operationId` / `ctx.method` / `ctx.url` to attach a one-shot captcha only on captcha ops. The API tester does not speak Turnstile.
 
 `resolveInput` is the JSON twin of `resolveUpload`. Return a value to replace that field (`payment_method_id` on `billing.subscribe`); `null` keeps the generator. `request.value` is the generated value, or `undefined` when the field was left out. Return `null` for an omitted field or a value outside the schema's length or range bounds so a constraint check is the body the server receives.
 
@@ -144,13 +144,13 @@ export default defineConfig({
 })
 ```
 
-New surface still has to be listed. oat will not silently enable `in` / `ilike` / `is` / `contains` / search modes / `nullsfirst` on every PostgREST-shaped document.
+New surface still has to be listed. The API tester will not silently enable `in` / `ilike` / `is` / `contains` / search modes / `nullsfirst` on every PostgREST-shaped document.
 
 ## Request fence
 
 `hooks.beforeRequest(request)` sees every request before it leaves the process — the document fetch, sign-in, seeding, checks, scenarios, teardown and the reachability probe — and answers `{ allow: true }` or `{ allow: false, reason }`. `request` is `{ method, url, headers, body, operationId?, phase, principal?, schemes?, forged? }`, with `phase` one of `load`, `auth`, `seed`, `assertion`, `probe`, `teardown` or `request`. `principal` and `schemes` name whose credential the request carries and under which security schemes, `forged: true` marks a forged value a probe sends, and all three are absent for an anonymous request, so a fence can decide by who and which scheme without parsing `Authorization`. beforeRequest sees the request as sent, including placed credentials; never log it unredacted.
 
-A refused request is never sent and never judged: its check is unresolved with a `fence` blocked entry, a refused seed blocks the entity, a refused delete is a leftover whose reason starts with `fenced`, and a refused sign-in or document fetch stops the run with exit 3. The report's **Fenced requests** section and `fenced` in `oat-report.json` list every refusal. Any refusal fails the run (exit 3) unless `fence: { failRun: false }`.
+A refused request is never sent and never judged: its check is unresolved with a `fence` blocked entry, a refused seed blocks the entity, a refused delete is a leftover whose reason starts with `fenced`, and a refused sign-in or document fetch stops the run with exit 3. The report's **Fenced requests** section and `fenced` in `report.json` list every refusal. Any refusal fails the run (exit 3) unless `fence: { failRun: false }`.
 
 ```ts
 hooks: {

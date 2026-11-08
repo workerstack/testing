@@ -2,9 +2,9 @@ import { existsSync, readdirSync } from "node:fs"
 import { join, matchesGlob, relative } from "node:path"
 
 /* What coverage instruments: the one list vitest.config.ts and the floors guard both read. */
-export const COVERAGE_INCLUDE: readonly string[] = ["src/api/**/*.ts", "lint/**/*.ts"]
+export const COVERAGE_INCLUDE: readonly string[] = ["src/**/*.ts", "lint/**/*.ts"]
 /* A process entry point is one import and one call, proven thin by tests/structure/entries.test.ts; what it calls is measured. */
-export const ENTRY_POINTS: readonly string[] = ["src/api/cli.ts", "src/api/conformance/worker.ts"]
+export const ENTRY_POINTS: readonly string[] = ["src/cli.ts", "src/api/cli.ts", "src/api/conformance/worker.ts"]
 export const COVERAGE_EXCLUDE: readonly string[] = [
 	...ENTRY_POINTS,
 	"**/*.test.ts",

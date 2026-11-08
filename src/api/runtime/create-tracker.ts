@@ -211,7 +211,7 @@ export function createTracker(input: TrackerInput): { observe: (exchange: Exchan
 			sight(tracker, exchange, owned.owner.id)
 			return
 		}
-		/* A record a delete removed is gone by oat's hand, whoever's credential the delete carried. */
+		/* A record a delete removed is gone by the API tester's hand, whoever's credential the delete carried. */
 		const removed = exchange.method === "DELETE" ? namedBy(tracker, tracker.routes.deletes, exchange) : undefined
 		if (removed !== undefined) input.ledger.deleted(removed.entity, removed.id)
 		/* Seeding ledgers each create it makes through its own callbacks. */

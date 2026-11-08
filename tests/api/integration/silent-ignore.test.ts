@@ -16,7 +16,7 @@ import { listening } from "../../../src/api/conformance/harness/launch.ts"
 /*
  * A backend that answers 200 with the whole collection for an operator it does not know, a sort
  * direction it does not know, or a term it cannot parse has silently dropped the caller's intent.
- * oat can only ask that when it knows how the grammar is spelled — declared, never guessed: a
+ * The API tester can only ask that when it knows how the grammar is spelled — declared, never guessed: a
  * request built from a guessed grammar is malformed by accident, and its answer proves nothing.
  */
 
@@ -99,7 +99,7 @@ describe("filter.illegal-op-rejected", () => {
 		expect(planned(ready)).toContain("and_name_zz_")
 	})
 
-	it("does not probe a grammar oat only inferred", () => {
+	it("does not probe a grammar the API tester only inferred", () => {
 		expect(plan("filter.illegal-op-rejected", context({}, POSTGREST_HINT)).ok).toBe(false)
 	})
 })
@@ -108,7 +108,7 @@ describe("sort.invalid-direction-rejected", () => {
 	it("probes a direction token outside a declared grammar", () => {
 		const ready = plan("sort.invalid-direction-rejected", context({ sortGrammar: SORT }))
 		expect(ready.ok).toBe(true)
-		expect(planned(ready)).toContain("name_oatsideways")
+		expect(planned(ready)).toContain("name_testingsideways")
 	})
 
 	it("stands down on an inferred grammar, and where ascending has no token of its own", () => {

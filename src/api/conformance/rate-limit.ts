@@ -30,7 +30,7 @@ interface HostedCases {
 	probe: (hosted: Hosted, push: Push) => Promise<void>
 }
 
-/** A run of oat against `hosted`, on its entities `only`. */
+/** A run of the API tester against `hosted`, on its entities `only`. */
 function runOptions(hosted: Hosted, only: string[]): RunOptions {
 	return {
 		baseUrl: hosted.url,

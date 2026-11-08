@@ -302,7 +302,7 @@ describe("progress and report name the network", () => {
 
 describe("run() names a dead API as net.unreachable", () => {
 	it("does not crash and records the kind", async () => {
-		const dir = await mkdtemp(join(tmpdir(), "oat-net-"))
+		const dir = await mkdtemp(join(tmpdir(), "testing-net-"))
 		const spec = join(dir, "openapi.json")
 		await writeFile(
 			spec,

@@ -11,7 +11,7 @@ afterEach(async () => {
 })
 
 async function scratch(): Promise<string> {
-	const dir = await mkdtemp(join(tmpdir(), "oat-runs-"))
+	const dir = await mkdtemp(join(tmpdir(), "testing-runs-"))
 	temps.push(dir)
 	return dir
 }
@@ -28,7 +28,7 @@ describe("formatRunStamp", () => {
 
 describe("allocateRunDir", () => {
 	it("defaults the root name", () => {
-		expect(DEFAULT_RUNS_ROOT).toBe(".oat/runs")
+		expect(DEFAULT_RUNS_ROOT).toBe(".testing/api/runs")
 		expect(LATEST_LINK).toBe("latest")
 	})
 
@@ -40,11 +40,11 @@ describe("allocateRunDir", () => {
 		expect(allocated.stamp).toBe("2026-08-18T12-00-00Z")
 		expect(allocated.runDir).toBe(join(allocated.root, allocated.stamp))
 		expect(allocated.latest).toBe(join(allocated.root, "latest"))
-		await writeFile(join(allocated.runDir, "oat-report.json"), "{}\n")
+		await writeFile(join(allocated.runDir, "report.json"), "{}\n")
 		await publishLatest(allocated)
 		expect(await readlink(allocated.latest)).toBe(allocated.stamp)
-		expect(await realpath(join(allocated.latest, "oat-report.json"))).toBe(
-			await realpath(join(allocated.runDir, "oat-report.json")),
+		expect(await realpath(join(allocated.latest, "report.json"))).toBe(
+			await realpath(join(allocated.runDir, "report.json")),
 		)
 	})
 

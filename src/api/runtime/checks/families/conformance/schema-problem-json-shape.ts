@@ -20,7 +20,7 @@ const STRING_MEMBERS = ["title", "detail", "instance"] as const
  *
  * Clients read a problem detail by its registered members, not by the operation's own document: a
  * `status` that names another status than the response's, or a member of the wrong type, misleads
- * every one of them alike. Any answer of this entity's that oat drew is judged, a probe's too: a
+ * every one of them alike. Any answer of this entity's that the API tester drew is judged, a probe's too: a
  * refusal is right to be one, and still wrong to describe itself falsely.
  */
 export const problemJsonShape: Check = defineCheck({

@@ -15,11 +15,11 @@ export function createExclusion({ model, profile, state, findings }: Loaded): Ex
 				summary: `${op.operationId} excluded by profile "${profile.name}"`,
 				detail:
 					`${reason}, under --profile ${profile.name}. Checks that depend on this operation stand ` +
-					"down rather than run against data oat did not create through it.",
+					"down rather than run against data the API tester did not create through it.",
 			})
 			return true
 		},
-		/* An operation oat never sends (TRACE) is out under every profile; doctor names it as a gap. */
+		/* An operation the API tester never sends (TRACE) is out under every profile; doctor names it as a gap. */
 		excludes(operationId) {
 			const op = model.byOperationId.get(operationId)
 			return op !== undefined && (op.unsendable !== null || excludedByProfile(op, profile.spec) !== null)

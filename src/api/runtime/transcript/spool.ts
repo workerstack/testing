@@ -99,7 +99,7 @@ export class BodySpool {
 
 	/* The private directory, made once, and removed on exit if nothing disposes of it first: a second Ctrl-C exits at once. */
 	async #made(): Promise<SpoolDir> {
-		const path = await mkdtemp(join(this.root, "oat-transcript-"))
+		const path = await mkdtemp(join(this.root, "testing-transcript-"))
 		const onExit = (): void => rmSync(path, { force: true, recursive: true })
 		process.on("exit", onExit)
 		return { onExit, path }

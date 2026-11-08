@@ -6,7 +6,7 @@ import { run } from "../../../src/api/runtime/run/index.ts"
 import { jsonBody } from "../support/json-body.ts"
 
 /*
- * oat grades what the document declares, never what a route happens to be called. The same API
+ * The API tester grades what the document declares, never what a route happens to be called. The same API
  * served twice — once with familiar names, once with every path segment and operationId
  * renamed — must earn the same grade for every operation. A word-matching shortcut anywhere in
  * the runtime (`logout`, `register`, `me`, `passkey`) breaks this.

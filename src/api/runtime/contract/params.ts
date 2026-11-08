@@ -25,7 +25,7 @@ export function exampleOf(schema: Parameter["schema"]): string | undefined {
 	if (schema?.default !== undefined) return String(schema.default)
 	if (schema?.type === "integer" || schema?.type === "number") return "1"
 	if (schema?.type === "boolean") return "true"
-	if (schema?.type === "string") return "oat"
+	if (schema?.type === "string") return "testing"
 	return undefined
 }
 

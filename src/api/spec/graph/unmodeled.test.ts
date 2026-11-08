@@ -11,7 +11,7 @@ function gapsOf(doc: Record<string, unknown>) {
 
 /* The gap each kind records, spelled out once so every case asserts the exact wording. */
 const webhook = (name: string) => ({
-	detail: "is a call the API sends to a subscriber's URL; oat receives no inbound call",
+	detail: "is a call the API sends to a subscriber's URL; the API tester receives no inbound call",
 	operationId: `webhook ${name}`,
 	tag: "webhooks",
 })
@@ -21,12 +21,12 @@ const callback = (operationId: string, name: string) => ({
 	tag: "callbacks",
 })
 const link = (operationId: string, status: string, name: string) => ({
-	detail: `response ${status} links "${name}" to a follow-up call oat does not make`,
+	detail: `response ${status} links "${name}" to a follow-up call the API tester does not make`,
 	operationId,
 	tag: "links",
 })
 const additional = (operationId: string, method: string) => ({
-	detail: `declares method ${method} under additionalOperations, which oat does not send`,
+	detail: `declares method ${method} under additionalOperations, which the API tester does not send`,
 	operationId,
 	tag: "additionalOperations",
 })

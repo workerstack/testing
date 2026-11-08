@@ -82,7 +82,7 @@ export class Ids {
 			/* Deterministic but unordered, like a real v4: creation order says nothing about id order. */
 			const count = (this.drawn.get(entity.name) ?? 0) + 1
 			this.drawn.set(entity.name, count)
-			const h = createHash("sha1").update(`oat-ref-${entity.name}-${count}`).digest("hex")
+			const h = createHash("sha1").update(`testing-ref-${entity.name}-${count}`).digest("hex")
 			const variant = "89ab"[Number.parseInt(h[16] as string, 16) % 4]
 			return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-${variant}${h.slice(17, 20)}-${h.slice(20, 32)}`
 		}

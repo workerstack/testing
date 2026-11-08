@@ -2,7 +2,7 @@
  * Reads the `x-*` meta tags documented in the README.
  *
  * Every reader follows the same contract: explicit tag → heuristic → `null` plus a recorded
- * gap. oat never silently guesses; an unresolved tag becomes a COVERAGE_GAP in the report
+ * gap. The API tester never silently guesses; an unresolved tag becomes a COVERAGE_GAP in the report
  * naming the tag that would close it.
  */
 

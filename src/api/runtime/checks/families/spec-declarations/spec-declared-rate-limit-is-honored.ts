@@ -8,11 +8,11 @@ import { ownOps } from "../../planning/subjects.ts"
 
 /**
  * A 429 is a finding only when the request that drew it was demonstrably under a rate the
- * *document* declared — the rate came from `x-rate-limit` and the bucket had a free token, so oat
+ * *document* declared — the rate came from `x-rate-limit` and the bucket had a free token, so the API tester
  * did not have to wait for one. A 429 against a config-supplied rate is the operator's own guess
  * about the environment, not a claim the API made, so it is paced around and never reported; a
- * 429 that only arrived after oat's own bucket made the request wait means oat's rate model was
- * too generous, which is oat's fault, not the backend's.
+ * 429 that only arrived after the API tester's own bucket made the request wait means the API tester's rate model was
+ * too generous, which is the API tester's fault, not the backend's.
  *
  * Grouped by category rather than reported per request: the point is "the declared rate for X is
  * wrong", once, not one finding for every request that category serves.
@@ -44,9 +44,9 @@ export const declaredRateLimitHonored: Check = defineCheck({
 			ctx.findings.spec(this.id, ctx.entityName, {
 				summary: `the declared "${category}" rate limit is not honored`,
 				detail:
-					`${exchanges.length} request(s) to the "${category}" category returned 429 despite oat ` +
+					`${exchanges.length} request(s) to the "${category}" category returned 429 despite the API tester ` +
 					"pacing them within the rate x-rate-limit declares — each had a free token in its own " +
-					"bucket at the moment it was sent, so this is not oat outrunning its own model. Either " +
+					"bucket at the moment it was sent, so this is not the API tester outrunning its own model. Either " +
 					`the declared rate is wrong, or the backend enforces a stricter one than "${category}" ` +
 					"documents.",
 				evidence: exchanges.slice(0, 3),

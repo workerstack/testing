@@ -35,11 +35,11 @@ export function absentIdentifier(schema: unknown, nonce: string): Generated {
 	if (format === "uuid") return { ok: true, value: uuidFrom(`absent:${nonce}`) }
 	/* A string identity with a format of its own (an email, a date) is made in that format. */
 	if (format !== undefined) return generate({ ...s, format }, { distinct: new Set(), index: 9001, nonce })
-	/* Otherwise one token, plainly oat's: a value made to look like data (`Quarterly Report 9001`)
+	/* Otherwise one token, plainly the API tester's: a value made to look like data (`Quarterly Report 9001`)
 	 * is no identifier anyone issues. A schema the token cannot meet leaves the probe without one. */
 	if (Array.isArray(s.enum))
 		return { ok: false, pointer: "/", reason: "an enumerated identity names only records that may exist" }
-	const token = `oat-absent-${nonceNumber(nonce).toString(36)}`
+	const token = `testing-absent-${nonceNumber(nonce).toString(36)}`
 	return tokenFits(token, s)
 		? { ok: true, value: token }
 		: { ok: false, pointer: "/", reason: "no single token meets the identity's pattern or length" }

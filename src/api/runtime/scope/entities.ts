@@ -130,12 +130,12 @@ function answersAnId(createOp: OperationModel, model: SpecModel, entity: EntityM
 }
 
 /**
- * What a cohort of `entity` lacks: none with a list and a create whose records oat can identify,
- * or, with no list, a create oat may send, an item read and an identity. With no list the creates
+ * What a cohort of `entity` lacks: none with a list and a create whose records the API tester can identify,
+ * or, with no list, a create the API tester may send, an item read and an identity. With no list the creates
  * are the cohort, each record found again by its item read.
  */
 function cohortGaps(entity: EntityModel, model: SpecModel, authCreates: ReadonlySet<string>): string[] {
-	const unidentified = entity.trackable ? [] : ["records oat can identify after create"]
+	const unidentified = entity.trackable ? [] : ["records the API tester can identify after create"]
 	/* A list with no create is a cohort already (`testableOtherwise`): this one has neither. */
 	if (entity.create === undefined) return ["list operation", "create operation"]
 	if (entity.list !== undefined) return unidentified

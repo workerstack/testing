@@ -1,7 +1,7 @@
 /**
  * Tiny valid files so backends that sniff magic do not 400 on "not a PDF".
  *
- * oat does not OCR or interpret these; they only have to look like the declared type.
+ * The API tester does not OCR or interpret these; they only have to look like the declared type.
  */
 
 import { mulberry32 } from "./fixture.ts"
@@ -43,10 +43,10 @@ const TIFF = /* @__PURE__ */ hex(
 
 const EMPTY_ZIP = /* @__PURE__ */ hex("504b0506000000000000000000000000000000000000")
 
-const TEXT_HTML = /* @__PURE__ */ textBytes("<!doctype html><title>oat</title>")
+const TEXT_HTML = /* @__PURE__ */ textBytes("<!doctype html><title>the API tester</title>")
 const TEXT_CSV = /* @__PURE__ */ textBytes("a,b\n1,2\n")
 const TEXT_JSON = /* @__PURE__ */ textBytes("{}")
-const TEXT_XML = /* @__PURE__ */ textBytes("<oat/>")
+const TEXT_XML = /* @__PURE__ */ textBytes("<testing/>")
 
 interface DummyKind {
 	mediaType: string
@@ -169,7 +169,7 @@ interface DummyDraw {
 
 function bytesOf(kind: DummyKind | undefined, mediaType: string, { seed, index }: DummyDraw): Uint8Array {
 	if (kind !== undefined) return kind.bytes
-	if (mediaType.startsWith("text/")) return textBytes(`oat dummy ${seed} ${index}\n`)
+	if (mediaType.startsWith("text/")) return textBytes(`the API tester dummy ${seed} ${index}\n`)
 	return octetDummy(seed, index)
 }
 

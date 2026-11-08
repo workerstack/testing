@@ -19,7 +19,7 @@ import {
 	wraps,
 } from "./records.ts"
 
-const PROBE = "oat-payload-probe"
+const PROBE = "testing-payload-probe"
 
 describe("hiddenFromCreator", () => {
 	it("hides a row holding the probe value, only under HIDDEN_FROM_CREATOR", () => {

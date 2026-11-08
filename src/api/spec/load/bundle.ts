@@ -1,6 +1,6 @@
 /**
  * Local-file `$ref`s, read into the one document so `dereference` meets only internal refs. Each
- * file is stored once under `x-oat-external`, keyed by its path in the document's folder, and every
+ * file is stored once under `x-testing-external`, keyed by its path in the document's folder, and every
  * ref to it, its own `#/` refs included, becomes a pointer there.
  */
 
@@ -11,7 +11,7 @@ import type { JsonSchema, OpenApiDocument } from "../types.ts"
 import { parseText } from "./parse.ts"
 
 /** Where the files a document refers to are stored, by their path in its folder. */
-export const EXTERNAL_KEY = "x-oat-external"
+export const EXTERNAL_KEY = "x-testing-external"
 
 /** One bundling in progress. */
 interface Bundling {
@@ -81,7 +81,7 @@ async function rewrite(ctx: Bundling, ref: string, file: string): Promise<string
 	if (path === "") return pointer(ctx, file, fragment)
 	if (isAbsolute(path) || /^file:/i.test(path)) {
 		throw new UsageError(
-			`oat: ${file} refers to ${ref}, an absolute path; oat reads only paths relative to the document`,
+			`testing api: ${file} refers to ${ref}, an absolute path; the API tester reads only paths relative to the document`,
 		)
 	}
 	if (/^[a-z][a-z\d+.-]*:/i.test(path)) return ref
@@ -89,7 +89,7 @@ async function rewrite(ctx: Bundling, ref: string, file: string): Promise<string
 	const inFolder = relative(ctx.folder, target)
 	if (inFolder.split(sep)[0] === ".." || isAbsolute(inFolder)) {
 		throw new UsageError(
-			`oat: ${file} refers to ${ref}, which resolves outside ${ctx.folder}; oat reads only files in the document's folder`,
+			`testing api: ${file} refers to ${ref}, which resolves outside ${ctx.folder}; the API tester reads only files in the document's folder`,
 		)
 	}
 	if (target !== ctx.root && !ctx.keys.has(target)) {
@@ -113,7 +113,7 @@ async function realOf(target: string, ref: string, file: string): Promise<string
 		return await realpath(target)
 	} catch (error) {
 		if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error
-		throw new UsageError(`oat: ${file} refers to ${ref}, but ${target} does not exist`)
+		throw new UsageError(`testing api: ${file} refers to ${ref}, but ${target} does not exist`)
 	}
 }
 

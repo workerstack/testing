@@ -36,9 +36,11 @@ describe("matchPattern", () => {
 
 	it("refuses a pattern that matches nothing, suggesting the nearest for an exact one", () => {
 		expect(() => matchPattern("table.craete", model, "cdn:table.craete")).toThrow(
-			'oat: --ops "cdn:table.craete" matches no operation. Did you mean: table.create, table.delete, table.get?',
+			'testing api: --ops "cdn:table.craete" matches no operation. Did you mean: table.create, table.delete, table.get?',
 		)
-		expect(() => matchPattern("zzzzzz", model, "zzzzzz")).toThrow('oat: --ops "zzzzzz" matches no operation.')
-		expect(() => matchPattern("nothing.*", model, "nothing.*")).toThrow('oat: --ops "nothing.*" matches no operation.')
+		expect(() => matchPattern("zzzzzz", model, "zzzzzz")).toThrow('testing api: --ops "zzzzzz" matches no operation.')
+		expect(() => matchPattern("nothing.*", model, "nothing.*")).toThrow(
+			'testing api: --ops "nothing.*" matches no operation.',
+		)
 	})
 })

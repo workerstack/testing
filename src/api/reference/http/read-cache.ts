@@ -2,7 +2,7 @@
  * The cached-reads shape's read cache: each caller's item and list answers kept for a window and
  * served from there, as a CDN or a KV tier in front of a database would. A write does not touch it;
  * the window is the staleness the reads declare room for. The declared bypass asks the origin and
- * fills no copy, so oat's verification reads never leave one behind for another check, and
+ * fills no copy, so the API tester's verification reads never leave one behind for another check, and
  * every answer says where it came from in `Cache-Status` (RFC 9211), a copy also its `Age`.
  */
 
@@ -14,7 +14,7 @@ import type { ReferenceRequest, ReferenceResponse } from "./wire.ts"
 /* The cached reads declare 1 s; the cache keeps a copy well inside it, or past it under STALE_PAST_BOUND. */
 const WINDOW_MS = 400
 const STALE_WINDOW_MS = 2500
-const CACHE = "oat-reference"
+const CACHE = "testing-reference"
 
 interface Copy {
 	response: ReferenceResponse

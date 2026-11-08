@@ -1,6 +1,6 @@
 # OWASP crAPI, the official stack at release 700f03d (deploy/docker/docker-compose.yml), TLS off and
 # every port but the web entry unpublished. The LLM chatbot and its chromadb are dropped: they need
-# provider API keys and cover no API-layer bug oat grades. Every other service is kept so the known
+# provider API keys and cover no API-layer bug the API tester grades. Every other service is kept so the known
 # BOLA / BFLA / auth bugs stay reachable. Images are crapi/*:latest, built 2025-09-22 from `main`,
 # which the vendored spec and keys/jwks.json match.
 services:

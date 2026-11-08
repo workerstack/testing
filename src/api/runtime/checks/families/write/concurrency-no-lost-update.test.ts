@@ -44,7 +44,7 @@ describe("concurrency.no-lost-update verdicts", () => {
 		expect(await runCheck(noLostUpdate, ctx)).toEqual({ kind: "asserted" })
 		expect(findings.findings).toEqual([])
 		const patches = sent.filter((s) => s.method === "PATCH").map((s) => s.options.body)
-		expect(patches).toEqual([{ label: "oat-concurrent-a" }, { name: "oat-concurrent-b" }])
+		expect(patches).toEqual([{ label: "testing-concurrent-a" }, { name: "testing-concurrent-b" }])
 	})
 
 	it("reports a patch that writes back the row it read, reverting the other write", async () => {

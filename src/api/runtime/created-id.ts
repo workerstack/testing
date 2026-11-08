@@ -1,7 +1,7 @@
 /**
  * The id a create's answer gives the record it made.
  *
- * Teardown deletes by this id, so where it comes from decides whether a delete removes oat's own
+ * Teardown deletes by this id, so where it comes from decides whether a delete removes the API tester's own
  * row or somebody else's. A declared `x-entity.createdIdFrom`, or the identity at the top of the
  * answer, names the record by contract. Anything else is a candidate: the record under an
  * envelope, or a conventional id key found by walking the answer — which can just as well be a
@@ -62,7 +62,7 @@ export interface CreatedIdSource {
 /** A created id as the answer carried it, and whether the answer names it by contract. */
 export interface CreatedId {
 	id: ProvenId
-	/** The value as answered, number or string, for the record oat keeps. */
+	/** The value as answered, number or string, for the record the API tester keeps. */
 	value: string | number
 	trusted: boolean
 }
@@ -124,7 +124,7 @@ export function locatedId(
 	if (location === undefined) return undefined
 	let pathname: string
 	try {
-		pathname = new URL(location, base ?? "http://oat.invalid/").pathname
+		pathname = new URL(location, base ?? "http://testing.invalid/").pathname
 	} catch {
 		return undefined
 	}

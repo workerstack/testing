@@ -10,7 +10,7 @@ import { answers, type Target } from "../target.ts"
  * must be refused.
  */
 
-const BOOTSTRAP_KEY = "oat-bootstrap-key"
+const BOOTSTRAP_KEY = "testing-bootstrap-key"
 
 /* One schema for both tenants: every field the run filters or sorts on is indexed for it. */
 const BOOK_FIELDS = [
@@ -58,7 +58,7 @@ const target: Target = {
 		const searchOnly = await scopedKey(baseUrl, {
 			actions: ["documents:search"],
 			collections: ["alpha_.*"],
-			description: "oat viewer parent",
+			description: "the API tester viewer parent",
 		})
 		return {
 			TYPESENSE_URL: baseUrl,
@@ -66,7 +66,7 @@ const target: Target = {
 			TYPESENSE_BETA_KEY: await scopedKey(baseUrl, {
 				actions: ["documents:*", "collections:get"],
 				collections: ["beta_.*"],
-				description: "oat beta",
+				description: "the API tester beta",
 			}),
 			TYPESENSE_VIEWER_KEY: scopedSearchKey(searchOnly, { filter_by: "in_stock:true" }),
 		}

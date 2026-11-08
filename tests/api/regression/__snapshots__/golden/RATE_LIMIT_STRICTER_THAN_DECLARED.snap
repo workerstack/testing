@@ -526,7 +526,7 @@
       "added": [
         {
           "check": "spec.declared-rate-limit-is-honored",
-          "detail": "1 request(s) to the \"job.list\" category returned 429 despite oat pacing them within the rate x-rate-limit declares — each had a free token in its own bucket at the moment it was sent, so this is not oat outrunning its own model. Either the declared rate is wrong, or the backend enforces a stricter one than \"job.list\" documents.",
+          "detail": "1 request(s) to the \"job.list\" category returned 429 despite the API tester pacing them within the rate x-rate-limit declares — each had a free token in its own bucket at the moment it was sent, so this is not the API tester outrunning its own model. Either the declared rate is wrong, or the backend enforces a stricter one than \"job.list\" documents.",
           "entity": "job",
           "operations": [
             "job.list"
@@ -543,7 +543,7 @@
         },
         {
           "check": "spec.declared-rate-limit-is-honored",
-          "detail": "1 request(s) to the \"row.list\" category returned 429 despite oat pacing them within the rate x-rate-limit declares — each had a free token in its own bucket at the moment it was sent, so this is not oat outrunning its own model. Either the declared rate is wrong, or the backend enforces a stricter one than \"row.list\" documents.",
+          "detail": "1 request(s) to the \"row.list\" category returned 429 despite the API tester pacing them within the rate x-rate-limit declares — each had a free token in its own bucket at the moment it was sent, so this is not the API tester outrunning its own model. Either the declared rate is wrong, or the backend enforces a stricter one than \"row.list\" documents.",
           "entity": "row",
           "operations": [
             "row.list"
@@ -560,7 +560,7 @@
         },
         {
           "check": "spec.declared-rate-limit-is-honored",
-          "detail": "1 request(s) to the \"table.list\" category returned 429 despite oat pacing them within the rate x-rate-limit declares — each had a free token in its own bucket at the moment it was sent, so this is not oat outrunning its own model. Either the declared rate is wrong, or the backend enforces a stricter one than \"table.list\" documents.",
+          "detail": "1 request(s) to the \"table.list\" category returned 429 despite the API tester pacing them within the rate x-rate-limit declares — each had a free token in its own bucket at the moment it was sent, so this is not the API tester outrunning its own model. Either the declared rate is wrong, or the backend enforces a stricter one than \"table.list\" documents.",
           "entity": "table",
           "operations": [
             "table.list"

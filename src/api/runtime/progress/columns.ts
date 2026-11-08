@@ -46,5 +46,5 @@ export const PROGRESS_GLOSSARY: string = /* @__PURE__ */ [
 	"# last_ms          duration of the last completed HTTP call. Empty (-) while in_flight",
 	"# req_b / res_b    reconstructed HTTP/1.1 size (start line + headers + body) of that call. res_b is empty while in_flight",
 	"# idle_ms          while in_flight: ms since this request started. otherwise ms since the last call returned",
-	"# elapsed_ms       wall clock since oat started",
+	"# elapsed_ms       wall clock since the API tester started",
 ].join("\n")

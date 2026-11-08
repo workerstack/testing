@@ -34,7 +34,7 @@ function unwrap(schema: JsonSchema): JsonSchema {
 }
 
 /* The two values the probe alternates between, cut to the field's cap. */
-const PROBE_VALUES = ["Oat", "Xot"] as const
+const PROBE_VALUES = ["Tst", "Xot"] as const
 
 /**
  * A string the probe can set and read back unchanged: not an enum or a format a backend rewrites,

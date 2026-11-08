@@ -25,7 +25,7 @@ export const malformedFilterNot5xx: Check = defineCheck({
 		if (result.exchange.status >= 300) return ASSERTED
 		/* Garbage syntax dropped says nothing of how a refusal answers: a well-formed filter on a
 		 * field the entity lacks still has to be refused, and is the one an API crashes on. */
-		const unknown = filterTerm(conv(ctx), { field: "oat_no_such_field_xyz", op: "eq", value: 1 })
+		const unknown = filterTerm(conv(ctx), { field: "testing_no_such_field_xyz", op: "eq", value: 1 })
 		const second = unknown === null ? undefined : await list(asProbe(ctx), { ...q(ctx, { limit: 10 }), ...unknown })
 		if (second !== undefined && second.exchange.status >= 500) {
 			return crashed(ctx, this.id, { exchange: second.exchange, what: "a filter on a field the entity does not have" })

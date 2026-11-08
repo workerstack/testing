@@ -203,7 +203,7 @@ describe("encodeRequest through the client, multipart", () => {
 
 describe("encodeRequest, choosing the file", () => {
 	it("sends pool file bytes when the extension matches", async () => {
-		const dir = await mkdtemp(join(tmpdir(), "oat-pool-"))
+		const dir = await mkdtemp(join(tmpdir(), "testing-pool-"))
 		await writeFile(join(dir, "fixture.pdf"), Buffer.from("%PDF-1.1\npool-marker\n%%EOF\n"))
 		const encoded = await encodeExtract({
 			uploads: { configDir: dir, seed: 3, uploads: { pool: ["./fixture.pdf"] } },
@@ -213,7 +213,7 @@ describe("encodeRequest, choosing the file", () => {
 	})
 
 	it("lets resolveUpload win over pool and dummy", async () => {
-		const dir = await mkdtemp(join(tmpdir(), "oat-pool-"))
+		const dir = await mkdtemp(join(tmpdir(), "testing-pool-"))
 		await writeFile(join(dir, "fixture.pdf"), "%PDF-1.1\npool\n%%EOF\n")
 		const hookBytes = new Uint8Array(Buffer.from("%PDF-1.1\nhook-wins\n%%EOF\n"))
 		const encoded = await encodeExtract({
@@ -269,7 +269,7 @@ describe("encodeRequest through the client, JSON and urlencoded", () => {
 	it("sends urlencoded login, not JSON", async () => {
 		const encoded = await encodeRequest(
 			optionsOf({
-				fields: { password: "s3cret", username: "oat" },
+				fields: { password: "s3cret", username: "testing" },
 				mediaType: "application/x-www-form-urlencoded",
 				operationId: "auth.login",
 				schema: {
@@ -283,10 +283,10 @@ describe("encodeRequest through the client, JSON and urlencoded", () => {
 		expect(encoded.body).toBeInstanceOf(URLSearchParams)
 		expect(encoded.contentType).toBe("application/x-www-form-urlencoded")
 		const { client, exchange, last } = await postEncoded("/login", encoded)
-		expect(client.transcript.at(-1)?.requestBody).toEqual({ password: "<redacted>", username: "oat" })
+		expect(client.transcript.at(-1)?.requestBody).toEqual({ password: "<redacted>", username: "testing" })
 		expect(exchange.requestHeaders["content-type"]).toBe("application/x-www-form-urlencoded")
 		expect(last().contentType).toContain("application/x-www-form-urlencoded")
-		expect(last().raw).toContain("username=oat")
+		expect(last().raw).toContain("username=testing")
 		expect(last().json).toBeUndefined()
 	})
 })

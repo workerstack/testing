@@ -15,7 +15,7 @@ export interface ScenarioInit<Covered extends string = string> {
 
 const isBuilt = (item: StepItem): item is BuiltStep => "toStep" in item && typeof item.toStep === "function"
 
-/** The plain oat scenario the builders stand for: each builder becomes its step, plain steps stay as they are. */
+/** The plain the API tester scenario the builders stand for: each builder becomes its step, plain steps stay as they are. */
 export function scenario<Covered extends string>(init: ScenarioInit<Covered>): Scenario {
 	const { covers, id, origin, principal } = init
 	const steps: ScenarioStep[] = init.steps.map((item) => (isBuilt(item) ? item.toStep() : item))

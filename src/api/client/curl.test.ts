@@ -69,7 +69,7 @@ describe("toCurl bodies", () => {
 		redactor.registerSecret("hunter2-password")
 		redactor.registerSecret("Bearer tok_live_123456")
 		const requestBody = new URLSearchParams([
-			["username", "oat"],
+			["username", "testing"],
 			["password", "hunter2-password"],
 		])
 		const curl = toCurl(exchange({ requestBody, requestHeaders: { authorization: "Bearer tok_live_123456" } }), {
@@ -77,7 +77,7 @@ describe("toCurl bodies", () => {
 		})
 		expect(curl).not.toContain("hunter2-password")
 		expect(curl).not.toContain("tok_live_123456")
-		expect(curl).toContain("--data-urlencode 'username=oat'")
+		expect(curl).toContain("--data-urlencode 'username=testing'")
 	})
 
 	it("sends form fields one by one, secrets scrubbed", () => {

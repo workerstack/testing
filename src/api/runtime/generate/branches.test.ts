@@ -79,7 +79,7 @@ describe("unionOf", () => {
 	it("writes the tag of the branch it picks, in a discriminated union", () => {
 		const cat = { properties: { kind: { type: "string" }, meow: { const: true } }, required: ["meow"], type: "object" }
 		const dog = { properties: { bark: { const: true }, kind: { type: "string" } }, required: ["bark"], type: "object" }
-		const pet = { oneOf: [cat, dog], "x-oat-discriminator": { propertyName: "kind", values: [["cat"], ["dog"]] } }
+		const pet = { oneOf: [cat, dog], "x-testing-discriminator": { propertyName: "kind", values: [["cat"], ["dog"]] } }
 		const schema = normalizeSchema(pet, { direction: "request" })
 		expect(instance(schema, at({ index: 0 }))).toEqual({ kind: "cat", meow: true })
 		expect(instance(schema, at({ index: 1 }))).toEqual({ bark: true, kind: "dog" })

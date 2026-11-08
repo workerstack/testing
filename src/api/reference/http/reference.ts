@@ -6,7 +6,7 @@
  * identically on every backend; when two engines then disagree about what that defect *does*, the
  * disagreement is real rather than an artifact of two implementations drifting apart.
  *
- * This is a test fixture. It is excluded from the published package; oat itself never talks to a
+ * This is a test fixture. It is excluded from the published package; the API tester itself never talks to a
  * database.
  */
 

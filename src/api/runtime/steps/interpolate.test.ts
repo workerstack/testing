@@ -3,7 +3,7 @@ import { interpolate } from "./interpolate.ts"
 
 describe("interpolate", () => {
 	it("fills known names in text and keeps unknown ones as written", () => {
-		expect(interpolate("{who}/{what}", { who: "oat" })).toBe("oat/{what}")
+		expect(interpolate("{who}/{what}", { who: "testing" })).toBe("testing/{what}")
 	})
 
 	it("fills a name that holds a hyphen, as path parameters and saveAs names often do", () => {

@@ -39,7 +39,7 @@ export interface SqliteDriver {
 	close(): Promise<void>
 }
 
-/** In-process SQLite via `node:sqlite`, which needs no flag from Node 22.13 (below oat's floor). */
+/** In-process SQLite via `node:sqlite`, which needs no flag from Node 22.13 (below the API tester's floor). */
 export async function nodeSqliteDriver(): Promise<SqliteDriver> {
 	const { DatabaseSync } = await import("node:sqlite")
 	const db = new DatabaseSync(":memory:")

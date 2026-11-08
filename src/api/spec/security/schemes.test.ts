@@ -51,10 +51,10 @@ describe("readSchemes", () => {
 	})
 })
 
-describe("readSchemes, what oat cannot send", () => {
+describe("readSchemes, what the API tester cannot send", () => {
 	const schemes = readSchemes(everyScheme)
 
-	it("marks what oat cannot send as unsupported, saying why", () => {
+	it("marks what the API tester cannot send as unsupported, saying why", () => {
 		expect(schemes.get("mtls")).toMatchObject({
 			kind: "unsupported",
 			unsupported: expect.stringContaining("mutualTLS"),

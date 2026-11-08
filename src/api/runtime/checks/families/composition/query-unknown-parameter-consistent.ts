@@ -21,7 +21,7 @@ export const unknownParameterConsistent: Check<{ names: string[] }> = defineChec
 	plan: (ctx) => {
 		if (ctx.records.length === 0) return cannot()
 		const real = conv(ctx).limit ?? conv(ctx).page ?? conv(ctx).order ?? "limit"
-		return ready({ names: ["oat_unknown_parameter", `${real}_oat_typo`] })
+		return ready({ names: ["testing_unknown_parameter", `${real}_testing_typo`] })
 	},
 	dependsOn: ["list.read-after-write", "pagination.page-walk-covers-set"],
 	id: "query.unknown-parameter-consistent",

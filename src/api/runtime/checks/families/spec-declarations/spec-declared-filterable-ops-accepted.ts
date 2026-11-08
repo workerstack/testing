@@ -24,7 +24,7 @@ function probeValueForOp(
 	if (op === "contains") {
 		const arr = sample?.[field.field]
 		if (Array.isArray(arr) && arr[0] !== undefined) return asTermValue(arr[0])
-		return "oat-probe"
+		return "testing-probe"
 	}
 	/* A value of the field's own type: a backend that rejects a string compared with a date is
 	 * right to, and that says nothing about whether the operator is supported. */

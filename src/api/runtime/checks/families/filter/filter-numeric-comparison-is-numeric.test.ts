@@ -10,14 +10,14 @@ const COHORT = [
 	{ amount: 5, id: "n-mid" },
 	{ amount: 13, id: "n-high" },
 ]
-/** A row the store holds that oat never seeded. */
+/** A row the store holds that the API tester never seeded. */
 const OUTSIDE = { amount: 9, id: "x-gt" }
 const DOC = { xQuery: { filterable: ["amount"] } }
 /** Compares the query value as text: the defect the check exists for. */
 const LEXICAL = { ops: { gt: (value: unknown, arg: string) => typeof value === "number" && String(value) > arg } }
 
 describe("filter.numeric-comparison-is-numeric: run", () => {
-	it("asserts when gt compares numerically, ignoring rows oat did not seed", async () => {
+	it("asserts when gt compares numerically, ignoring rows the API tester did not seed", async () => {
 		const { ctx, findings, sent } = stage({ doc: DOC, records: COHORT, store: [...COHORT, OUTSIDE] })
 		expect(await runCheck(check, ctx)).toEqual({ kind: "asserted" })
 		expect(filters(sent)).toEqual(["amount.gt.5"])
@@ -100,7 +100,7 @@ describe("filter.numeric-comparison-is-numeric: plan", () => {
 	})
 })
 
-describe("filter.numeric-comparison-is-numeric: records oat sent, never read back", () => {
+describe("filter.numeric-comparison-is-numeric: records the API tester sent, never read back", () => {
 	it("stands down, since what the server stored is not known", () => {
 		const { ctx } = stage({ doc: DOC, records: COHORT })
 		expect(check.plan(ctx).ok).toBe(true)

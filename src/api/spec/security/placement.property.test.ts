@@ -6,7 +6,7 @@ import { placementOf } from "./placement.ts"
 import { readSchemes, type SecurityScheme } from "./schemes.ts"
 
 /*
- * Placement over every scheme kind: a scheme oat can send has one placement with one `{credential}`
+ * Placement over every scheme kind: a scheme the API tester can send has one placement with one `{credential}`
  * slot, decided by its kind and location alone, and a declared name reaches the wire as written.
  */
 

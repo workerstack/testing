@@ -6,7 +6,7 @@ import { danglingRefLines, externalRefLines, gapLines } from "./gaps.ts"
 const empty = doctorFacts(modelOf(documentOf({})).model)
 
 describe("externalRefLines", () => {
-	it("lists the references oat did not follow", () => {
+	it("lists the references the API tester did not follow", () => {
 		expect(externalRefLines([])).toEqual([])
 		expect(externalRefLines(["other.yaml#/a"])).toEqual([
 			"  unresolved external $refs (not fetched — a test tool should not follow arbitrary URLs)",
@@ -57,7 +57,7 @@ describe("gapLines", () => {
 		expect(gapLines(doctorFacts(duplicated))).toContain("    operationId (1) — see the README")
 	})
 
-	it("names each webhook, callback, link and additional operation, and says oat does not test it", () => {
+	it("names each webhook, callback, link and additional operation, and says the API tester does not test it", () => {
 		const subscribe = {
 			...(listOp("a", "a.list") as object),
 			callbacks: { onEvent: {} },
@@ -69,14 +69,14 @@ describe("gapLines", () => {
 		)
 		const lines = gapLines(doctorFacts(modelOf(doc).model))
 		for (const expected of [
-			"    webhooks (1) — not tested: oat makes no inbound or follow-up calls",
-			"      webhook newPet: is a call the API sends to a subscriber's URL; oat receives no inbound call",
-			"    callbacks (1) — not tested: oat makes no inbound or follow-up calls",
+			"    webhooks (1) — not tested: the API tester makes no inbound or follow-up calls",
+			"      webhook newPet: is a call the API sends to a subscriber's URL; the API tester receives no inbound call",
+			"    callbacks (1) — not tested: the API tester makes no inbound or follow-up calls",
 			'      a.list: declares callback "onEvent", a call the API makes back to a URL the request names',
-			"    links (1) — not tested: oat makes no inbound or follow-up calls",
-			'      a.list: response 200 links "Next" to a follow-up call oat does not make',
-			"    additionalOperations (1) — not tested: oat sends only the methods OpenAPI fixes on a path item",
-			"      COPY /a: declares method COPY under additionalOperations, which oat does not send",
+			"    links (1) — not tested: the API tester makes no inbound or follow-up calls",
+			'      a.list: response 200 links "Next" to a follow-up call the API tester does not make',
+			"    additionalOperations (1) — not tested: the API tester sends only the methods OpenAPI fixes on a path item",
+			"      COPY /a: declares method COPY under additionalOperations, which the API tester does not send",
 		]) {
 			expect(lines).toContain(expected)
 		}
@@ -91,7 +91,7 @@ describe("gapLines and a scope list that is not an array", () => {
 		expect(gapLines(doctorFacts(modelOf(doc).model))).toEqual(
 			expect.arrayContaining([
 				"    security (1) — give each scheme in a security requirement a list of scopes, [] for none",
-				'      a.list: security requirement "oauth2" gives its scopes as something other than a list; oat reads it as no scopes',
+				'      a.list: security requirement "oauth2" gives its scopes as something other than a list; the API tester reads it as no scopes',
 			]),
 		)
 	})
@@ -103,7 +103,7 @@ describe("gapLines and a dangling $ref", () => {
 		expect(gapLines(doctorFacts(modelOf(doc).model))).toEqual(
 			expect.arrayContaining([
 				"    $ref (1) — define what each pointer names: a missing schema reads as unconstrained, a missing anything else leaves its operation untested",
-				"      a.list: $ref #/x points at nothing; oat leaves this operation untested",
+				"      a.list: $ref #/x points at nothing; the API tester leaves this operation untested",
 			]),
 		)
 	})

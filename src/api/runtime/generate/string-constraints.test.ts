@@ -52,9 +52,9 @@ describe("admits", () => {
 	})
 
 	it("refuses a value one pattern or one bound refuses", () => {
-		expect(admits(phone, "Oat")).toBe(false)
+		expect(admits(phone, "Tst")).toBe(false)
 		expect(admits(phone, "3859123456")).toBe(false)
-		expect(admits(stringConstraints({ maxLength: 10 }), "oat-concurrent-a")).toBe(false)
+		expect(admits(stringConstraints({ maxLength: 10 }), "testing-concurrent-a")).toBe(false)
 	})
 
 	it("compiles the guard with the u flag, so an astral pair passes and only a lone surrogate fails", () => {

@@ -78,7 +78,9 @@ describe("planScope scenarios", () => {
 		const run = await connected(
 			optionsFor(notesApi(), { scenarios: [{ covers: [], id: "s1", origin: "gone", steps: [] }] as never }),
 		)
-		expect(() => planScope(run)).toThrow('oat: scenario "s1" belongs to origin "gone", which is not in config.origins')
+		expect(() => planScope(run)).toThrow(
+			'testing api: scenario "s1" belongs to origin "gone", which is not in config.origins',
+		)
 	})
 
 	it("refuses a scenario that names an operation its document lacks", async () => {

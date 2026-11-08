@@ -47,7 +47,7 @@ const CASES: readonly Case[] = LEGS.flatMap(({ defects, leg, target }) => [
 async function goldenReport(target: GoldenTarget): Promise<{ code: number; report: unknown }> {
 	const run = await goldenRun(target)
 	try {
-		return { code: run.code, report: normalize(JSON.parse(await run.read("oat-report.json"))) }
+		return { code: run.code, report: normalize(JSON.parse(await run.read("report.json"))) }
 	} finally {
 		await removeRun(run)
 	}

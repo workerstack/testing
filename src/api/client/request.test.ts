@@ -42,7 +42,7 @@ describe("prepare", () => {
 		expect(prepare(wireOf(transport(() => json({}))), "GET", "/rows", { as: ANON }).resolved).toBeNull()
 	})
 
-	it("refuses to send a value oat did not have", () => {
+	it("refuses to send a value the API tester did not have", () => {
 		const wire = wireOf(transport(() => json({})))
 		expect(() => prepare(wire, "DELETE", "/rows/undefined", { as: ANON })).toThrow(MissingValueError)
 	})

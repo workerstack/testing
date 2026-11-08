@@ -25,8 +25,8 @@ export function recordOf(op: { recordPath: string | null }, body: unknown): Reco
 }
 
 /**
- * A record's identity as text, or `undefined` when it has none to give. Every id oat puts in a
- * request goes through here (lint rule `oat/id-through-reader`): `String(record[identity])` on a
+ * A record's identity as text, or `undefined` when it has none to give. Every id the API tester puts in a
+ * request goes through here (lint rule `testing/id-through-reader`): `String(record[identity])` on a
  * record without one is the text "undefined", and a request made from it means nothing.
  */
 export function idOf(record: Record_ | undefined, identity: string): string | undefined {

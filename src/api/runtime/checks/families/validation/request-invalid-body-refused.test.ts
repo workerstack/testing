@@ -283,10 +283,10 @@ describe("request.invalid-body-refused on an action of a record", () => {
 		await runOperationCheck(invalidBodyRefused, ctx)
 		expect(sent.map((s) => s.options.body)).toEqual([
 			{
-				contacts: ["oat-nonexistent-test@example.invalid"],
-				email: "oat-nonexistent-test@example.invalid",
-				hook: "https://oat-nonexistent-test.invalid/",
-				owner: { email: "oat-nonexistent-test@example.invalid" },
+				contacts: ["testing-nonexistent-test@example.invalid"],
+				email: "testing-nonexistent-test@example.invalid",
+				hook: "https://testing-nonexistent-test.invalid/",
+				owner: { email: "testing-nonexistent-test@example.invalid" },
 			},
 		])
 	})

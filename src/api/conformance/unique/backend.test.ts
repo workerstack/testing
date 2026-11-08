@@ -151,7 +151,7 @@ describe("conflict", () => {
 })
 
 describe("against", () => {
-	it("runs oat on the widget alone through the via, and closes what it hosted", async () => {
+	it("runs the API tester on the widget alone through the via, and closes what it hosted", async () => {
 		let closed = false
 		const via: Via = {
 			...inProcess,

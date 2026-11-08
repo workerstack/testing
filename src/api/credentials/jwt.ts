@@ -1,5 +1,5 @@
 /**
- * A JWT's claims, decoded without verifying the signature: oat reads its own credential to know
+ * A JWT's claims, decoded without verifying the signature: the API tester reads its own credential to know
  * when it lapses and whose tenant it is, and makes no trust decision with it. Null when the value
  * is not a JWT, or its payload is not a JSON object.
  */

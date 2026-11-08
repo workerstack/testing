@@ -5,7 +5,7 @@
  * as the account itself; the delete of the entity its sign-up creates, by its id, as the configured
  * principals strongest first; `hooks.teardownPrincipal`. What is left is a leftover, named by the
  * email or username it was made with, so a person can remove it. An account whose name a
- * configured principal holds, that this run did not make, is never removed: it is not oat's.
+ * configured principal holds, that this run did not make, is never removed: it is not the API tester's.
  */
 
 import type { OperationModel } from "../../spec/graph/types.ts"
@@ -104,7 +104,7 @@ async function removeAccount(ctx: RunContext, ops: AccountOps, entry: AccountEnt
 	const held = holder(ctx, entry)
 	if (held !== undefined && configuredNotMade(ctx, held)) {
 		return {
-			note: `its name is configured principal ${held}'s, which this run did not make; oat removes only accounts it made`,
+			note: `its name is configured principal ${held}'s, which this run did not make; the API tester removes only accounts it made`,
 			principal: held,
 			status: "left",
 		}

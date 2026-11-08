@@ -52,12 +52,12 @@ describe("assertScenarios", () => {
 				],
 				main,
 			),
-		).toThrow('oat: two scenarios share the id "upload"')
+		).toThrow('testing api: two scenarios share the id "upload"')
 	})
 
 	it("refuses a step the main document does not have", () => {
 		expect(() => assertScenarios([{ covers: [], id: "x", steps: [{ operationId: "ghost.op" }] }], main)).toThrow(
-			'oat: scenario "x" calls ghost.op, which is not in the document',
+			'testing api: scenario "x" calls ghost.op, which is not in the document',
 		)
 	})
 
@@ -65,7 +65,7 @@ describe("assertScenarios", () => {
 		const step = { anonymous: true, operationId: "notes.list", scheme: "apiKey" }
 		expect(() =>
 			assertScenarios([{ covers: [], id: "x", steps: [{ operationId: "notes.list" }, step] }], main),
-		).toThrow('oat: scenario "x" step 2 is anonymous, so it cannot send the "apiKey" scheme')
+		).toThrow('testing api: scenario "x" step 2 is anonymous, so it cannot send the "apiKey" scheme')
 		const named = { operationId: "notes.list", scheme: "apiKey" }
 		expect(() => assertScenarios([{ covers: [], id: "x", steps: [named] }], main)).not.toThrow()
 	})

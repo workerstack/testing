@@ -95,17 +95,17 @@ function insideGitCheckout(dir: string): boolean {
 	return false
 }
 
-/** Runs the real oxlint binary with the oat plugin and only `oat/<name>` on, over the fixture. */
+/** Runs the real oxlint binary with the API tester plugin and only `testing/<name>` on, over the fixture. */
 export function oxlintReports(name: string, fixture: Fixture): Report[] {
-	const dir = mkdtempSync(join(tmpdir(), "oat-lint-"))
+	const dir = mkdtempSync(join(tmpdir(), "testing-lint-"))
 	try {
 		/* oxlint applies a checkout's .gitignore even with --no-ignore, so a fixture inside one lints nothing. */
 		if (insideGitCheckout(dir)) throw new Error(`TMPDIR ${tmpdir()} is inside a git checkout; set it outside one`)
 		const config = {
 			categories: { correctness: "off", suspicious: "off" },
-			jsPlugins: [{ name: "oat", specifier: PLUGIN }],
+			jsPlugins: [{ name: "testing", specifier: PLUGIN }],
 			plugins: [],
-			rules: { [`oat/${name}`]: "error" },
+			rules: { [`testing/${name}`]: "error" },
 		}
 		writeFileSync(join(dir, ".oxlintrc.json"), JSON.stringify(config))
 		for (const [file, code] of Object.entries(fixture)) {

@@ -47,7 +47,13 @@ export function keysDoc({ readable = false, keyParam = "id" }: KeysShape = {}): 
 export const MINTED: SecurityConfig = {
 	bearer: { static: "alpha-key" },
 	key: {
-		mint: { body: { label: "oat" }, from: "$.key", operationId: "keys.create", revoke: "keys.revoke", with: "bearer" },
+		mint: {
+			body: { label: "testing" },
+			from: "$.key",
+			operationId: "keys.create",
+			revoke: "keys.revoke",
+			with: "bearer",
+		},
 	},
 	oauth: { oauth2: { clientId: "client-1", clientSecret: "shh", flow: "clientCredentials" } },
 }

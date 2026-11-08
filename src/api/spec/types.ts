@@ -1,12 +1,12 @@
-/** Minimal structural view of an OpenAPI 3.x document — only what oat reads. */
+/** Minimal structural view of an OpenAPI 3.x document — only what the API tester reads. */
 
 import type { HttpMethod } from "./methods.ts"
 
 export type { HttpMethod } from "./methods.ts"
 
 /**
- * A JSON Schema node as a spec states it: the keywords oat reads, each still untrusted and checked
- * where it is read. Extensions (`x-*`) and keywords oat ignores sit behind the index signature.
+ * A JSON Schema node as a spec states it: the keywords the API tester reads, each still untrusted and checked
+ * where it is read. Extensions (`x-*`) and keywords the API tester ignores sit behind the index signature.
  */
 export interface JsonSchema {
 	$ref?: unknown
@@ -65,7 +65,7 @@ export interface JsonSchema {
 	discriminator?: unknown
 	xml?: unknown
 	externalDocs?: unknown
-	/* oat's own: the name a file part is sent under. */
+	/* The API tester's own: the name a file part is sent under. */
 	filename?: unknown
 	[extension: string]: unknown
 }

@@ -526,7 +526,7 @@
       "added": [
         {
           "check": "query.unknown-parameter-consistent",
-          "detail": "adding ?oat_unknown_parameter=1, a parameter the document does not declare, returned 0 record(s) where the plain listing returns 7, with no error. A caller who misspells a parameter gets a different answer and no way to know.",
+          "detail": "adding ?testing_unknown_parameter=1, a parameter the document does not declare, returned 0 record(s) where the plain listing returns 7, with no error. A caller who misspells a parameter gets a different answer and no way to know.",
           "entity": "job",
           "operations": [
             "job.list"
@@ -535,12 +535,12 @@
             {
               "method": "GET",
               "status": 200,
-              "url": "http://reference.test/v1/projects/proj_alpha/jobs?limit=100&oat_unknown_parameter=1&page=1"
+              "url": "http://reference.test/v1/projects/proj_alpha/jobs?limit=100&page=1"
             },
             {
               "method": "GET",
               "status": 200,
-              "url": "http://reference.test/v1/projects/proj_alpha/jobs?limit=100&page=1"
+              "url": "http://reference.test/v1/projects/proj_alpha/jobs?limit=100&testing_unknown_parameter=1&page=1"
             }
           ],
           "summary": "an unknown query parameter silently changes the result",
@@ -548,7 +548,7 @@
         },
         {
           "check": "query.unknown-parameter-consistent",
-          "detail": "adding ?oat_unknown_parameter=1, a parameter the document does not declare, returned 0 record(s) where the plain listing returns 7, with no error. A caller who misspells a parameter gets a different answer and no way to know.",
+          "detail": "adding ?testing_unknown_parameter=1, a parameter the document does not declare, returned 0 record(s) where the plain listing returns 7, with no error. A caller who misspells a parameter gets a different answer and no way to know.",
           "entity": "row",
           "operations": [
             "row.list"
@@ -557,12 +557,12 @@
             {
               "method": "GET",
               "status": 200,
-              "url": "http://reference.test/v1/projects/proj_alpha/tables/table_ID/rows?limit=5&oat_unknown_parameter=1&page=1"
+              "url": "http://reference.test/v1/projects/proj_alpha/tables/table_ID/rows?limit=5&page=2"
             },
             {
               "method": "GET",
               "status": 200,
-              "url": "http://reference.test/v1/projects/proj_alpha/tables/table_ID/rows?limit=5&page=2"
+              "url": "http://reference.test/v1/projects/proj_alpha/tables/table_ID/rows?limit=5&testing_unknown_parameter=1&page=1"
             }
           ],
           "summary": "an unknown query parameter silently changes the result",
@@ -570,7 +570,7 @@
         },
         {
           "check": "query.unknown-parameter-consistent",
-          "detail": "adding ?oat_unknown_parameter=1, a parameter the document does not declare, returned 0 record(s) where the plain listing returns 9, with no error. A caller who misspells a parameter gets a different answer and no way to know.",
+          "detail": "adding ?testing_unknown_parameter=1, a parameter the document does not declare, returned 0 record(s) where the plain listing returns 9, with no error. A caller who misspells a parameter gets a different answer and no way to know.",
           "entity": "table",
           "operations": [
             "table.list"
@@ -579,12 +579,12 @@
             {
               "method": "GET",
               "status": 200,
-              "url": "http://reference.test/v1/projects/proj_alpha/tables?limit=100&oat_unknown_parameter=1&page=1"
+              "url": "http://reference.test/v1/projects/proj_alpha/tables?limit=100&page=1"
             },
             {
               "method": "GET",
               "status": 200,
-              "url": "http://reference.test/v1/projects/proj_alpha/tables?limit=100&page=1"
+              "url": "http://reference.test/v1/projects/proj_alpha/tables?limit=100&testing_unknown_parameter=1&page=1"
             }
           ],
           "summary": "an unknown query parameter silently changes the result",

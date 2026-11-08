@@ -14,7 +14,7 @@ export default defineConfig({
 	cohortSize: 4,
 	/*
 	 * create_order answers an acknowledgment ({ id, message, credit }) that echoes none of the
-	 * submitted fields; oat seeds and judges the record it reads back by that id instead.
+	 * submitted fields; the API tester seeds and judges the record it reads back by that id instead.
 	 */
 	ops: ["create_order", "get_orders", "get_order_byID"],
 	security: {

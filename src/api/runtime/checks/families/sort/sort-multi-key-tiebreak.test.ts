@@ -104,7 +104,7 @@ describe("sort.multi-key-tiebreak plans", () => {
 
 /*
  * A field a listing does not carry is no value to tie on. A public listing declared `created_at`
- * sortable but left it out of every row; oat read the rows as tied on it and blamed the second
+ * sortable but left it out of every row; the API tester read the rows as tied on it and blamed the second
  * key for an order the server took from a `created_at` it never showed (prod, 2026-10-16).
  */
 

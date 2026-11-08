@@ -1,7 +1,7 @@
 /**
  * Shared exponential backoff for values that arrive outside the request that needs them.
  *
- * Mail catchers, TOTP harvest pages, and human OAuth clicks are eventually consistent. oat
+ * Mail catchers, TOTP harvest pages, and human OAuth clicks are eventually consistent. The API tester
  * owns the sleep schedule so a hook only has to read the store and return `null` until a
  * value is there.
  */

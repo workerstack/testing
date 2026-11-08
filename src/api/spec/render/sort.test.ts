@@ -3,7 +3,7 @@ import { parseSortGrammar } from "./sort-parse.ts"
 import { renderSortKey, renderSortKeys, renderUnknownDirection, SORT_PRESETS, type SortGrammarSpec } from "./sort.ts"
 
 /*
- * A sort grammar oat has no name for, declared as a template: `Qty_descending`, several keys
+ * A sort grammar the API tester has no name for, declared as a template: `Qty_descending`, several keys
  * joined by a comma or none at all, and a nulls token only when the grammar has one.
  */
 const TEMPLATE = { asc: "ascending", desc: "descending", join: ",", term: "{field}_{direction}" }

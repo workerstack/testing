@@ -22,7 +22,7 @@ export async function checkReproSyntax(findings: Finding[]): Promise<string[]> {
 /** Each script's parse failures and unexpandable variables, as `filename: problem`. */
 export async function checkScripts(scripts: ReturnType<typeof renderRepros>): Promise<string[]> {
 	if (scripts.length === 0) return []
-	const dir = await mkdtemp(join(tmpdir(), "oat-repro-"))
+	const dir = await mkdtemp(join(tmpdir(), "testing-repro-"))
 	try {
 		return await checkEach(dir, scripts)
 	} finally {

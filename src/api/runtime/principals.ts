@@ -18,7 +18,7 @@ import type { RawOf } from "../config/types/raw.ts"
 export interface PersistedCredential {
 	scheme: string
 	scopes: string[]
-	/** Epoch ms it lapses, or null when it never does as far as oat could tell. */
+	/** Epoch ms it lapses, or null when it never does as far as the API tester could tell. */
 	expiresAt: number | null
 }
 
@@ -141,15 +141,15 @@ export function parsePersistedPrincipals(raw: string, source = "principals.json"
 	try {
 		parsed = JSON.parse(raw) as unknown
 	} catch (error) {
-		throw new Error(`oat: ${source} is not valid JSON: ${String(error)}`, { cause: error })
+		throw new Error(`testing api: ${source} is not valid JSON: ${String(error)}`, { cause: error })
 	}
 	const list = listOf(parsed)
 	if (list === null) {
-		throw new Error(`oat: ${source} must be { principals: [...] } or an array of principals`)
+		throw new Error(`testing api: ${source} must be { principals: [...] } or an array of principals`)
 	}
 	const entries = list.map(entryOf).filter((entry) => entry !== undefined)
 	if (entries.length === 0) {
-		throw new Error(`oat: ${source} contains no usable principals`)
+		throw new Error(`testing api: ${source} contains no usable principals`)
 	}
 	return Object.fromEntries(entries)
 }
@@ -164,7 +164,7 @@ export function loadPersistedPrincipals(path: string): PrincipalsConfig {
 	try {
 		raw = readFileSync(path, "utf8")
 	} catch (error) {
-		throw new Error(`oat: cannot read persisted principals from ${path}: ${String(error)}`, { cause: error })
+		throw new Error(`testing api: cannot read persisted principals from ${path}: ${String(error)}`, { cause: error })
 	}
 	return parsePersistedPrincipals(raw, path)
 }

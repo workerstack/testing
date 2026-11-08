@@ -76,7 +76,7 @@ export function addRequiredQuery(
 	appendQuery(url, Object.fromEntries(missing), styles)
 }
 
-/* A path segment or query value that is the text of a missing value, never something oat chose. */
+/* A path segment or query value that is the text of a missing value, never something the API tester chose. */
 export function carriesMissingValue(url: URL): boolean {
 	return (
 		url.pathname.split("/").some((segment) => decoded(segment) === "undefined") ||

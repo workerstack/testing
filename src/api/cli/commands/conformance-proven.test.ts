@@ -46,7 +46,7 @@ describe("aggregate", () => {
 	it("refuses a folder it cannot read, or one with no leg files", () => {
 		const missing = bufferWriter()
 		expect(aggregate(missing, fakeToolkit().toolkit, join(folder(), "gone"))).toBe(2)
-		expect(missing.text()).toMatch(/^oat: cannot read .*gone: /)
+		expect(missing.text()).toMatch(/^testing api: cannot read .*gone: /)
 		const empty = bufferWriter()
 		expect(aggregate(empty, fakeToolkit().toolkit, folder())).toBe(2)
 		expect(empty.text()).toContain("holds no proven-check files")

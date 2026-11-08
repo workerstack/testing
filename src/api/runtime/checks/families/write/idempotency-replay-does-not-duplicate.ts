@@ -57,7 +57,7 @@ export const idempotentReplay: Check<{
 		const body = validBody(ctx, schema)
 		/* The nonce keeps a second run from replaying the first run's request — and getting the
 		 * first run's record back, which reads as a pass while proving nothing. */
-		const key = `oat-idem-${ctx.nonce}-${ctx.entityName}`
+		const key = `testing-idem-${ctx.nonce}-${ctx.entityName}`
 		const path = fillPath(createOp.path, ctx.scope)
 		const headers = { [header]: key }
 

@@ -19,7 +19,7 @@ const isNamedReExport = (statement: Statement): boolean =>
 export const rule: Rule = {
 	create(context: Context) {
 		const file = repoPath(context.filename)
-		if (!file.includes("/src/api/") || !file.endsWith("/index.ts")) return {}
+		if (!file.includes("/src/") || !file.endsWith("/index.ts")) return {}
 		return {
 			Program(program: { body: Statement[] }) {
 				for (const statement of program.body) {

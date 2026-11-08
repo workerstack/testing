@@ -6,7 +6,7 @@ import { run } from "../../../src/api/runtime/run/index.ts"
 import type { JsonSchema, OpenApiDocument } from "../../../src/api/spec/types.ts"
 
 /*
- * A create oat cannot read an id from leaves a record oat cannot remove. Behind a records API
+ * A create the API tester cannot read an id from leaves a record the API tester cannot remove. Behind a records API
  * whose identity is an upper-case integer `ID` and whose create answers an envelope
  * `{ success, id, message, data: { ID, ... } }`, records made by checks went unrecorded and stayed
  * behind with nobody told. Every create's id is resolved, or the create is reported as a leftover
@@ -236,7 +236,7 @@ async function runAgainst(mode: Mode) {
 	return { ...backend, result }
 }
 
-/* A value oat did not have, sent as text: never, whatever the answer looked like. */
+/* A value the API tester did not have, sent as text: never, whatever the answer looked like. */
 function sentUndefined(result: Awaited<ReturnType<typeof run>>): string[] {
 	return result.client.transcript
 		.map((exchange) => decodeURIComponent(exchange.url))

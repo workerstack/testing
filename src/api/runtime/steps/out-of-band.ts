@@ -1,5 +1,5 @@
 /*
- * Values delivered outside HTTP: verification tokens, OTPs, magic links. oat asks the
+ * Values delivered outside HTTP: verification tokens, OTPs, magic links. The API tester asks the
  * `resolveOutOfBand` hook for them, and tells it when the request that triggered the delivery
  * was sent, so an inbox holding older deliveries can tell them apart.
  */
@@ -16,7 +16,7 @@ export function sentAt(exchange: Pick<Exchange, "at" | "durationMs">): number {
 /**
  * When the request a value delivered to `address` answers was sent: the latest of `sent` that names
  * the address in its URL or body, since that request told the backend where to deliver. A later
- * request naming someone else does not move it; when none names the address, oat cannot tell.
+ * request naming someone else does not move it; when none names the address, the API tester cannot tell.
  */
 export function triggerSentAt(
 	sent: readonly Pick<Exchange, "at" | "durationMs" | "requestBody" | "url">[],
@@ -55,8 +55,8 @@ export async function resolveOutOfBandValue(
 	const { kind } = options
 	if (hook === undefined) {
 		throw new Error(
-			`oat: ${options.label} needs a "${kind}" value delivered outside HTTP, ` +
-				"but the config declares no resolveOutOfBand hook. oat cannot read your mail catcher, " +
+			`testing api: ${options.label} needs a "${kind}" value delivered outside HTTP, ` +
+				"but the config declares no resolveOutOfBand hook. The API tester cannot read your mail catcher, " +
 				"KV store or webhook sink — supply a function that can.",
 		)
 	}
@@ -76,7 +76,7 @@ export async function resolveOutOfBandValue(
 	)
 	if (typeof value === "string" && value !== "") return value
 	throw new Error(
-		`oat: no "${kind}" value arrived for ${address} after ${backoff.attempts} attempts ` +
+		`testing api: no "${kind}" value arrived for ${address} after ${backoff.attempts} attempts ` +
 			`(~${worstCaseWaitMs(backoff)}ms worst-case wait). The delivery mechanism is ` +
 			"either slow beyond the backoff window or not firing at all.",
 	)

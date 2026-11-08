@@ -1,7 +1,7 @@
 /**
  * One renderer for every filter grammar.
  *
- * The three named grammars oat infers — postgrest, colon, equality — are presets of the same
+ * The three named grammars the API tester infers — postgrest, colon, equality — are presets of the same
  * description a document or config can declare as a template, so a term is written one way no
  * matter where its grammar came from. Anything a grammar cannot express renders as `null`: the
  * check that wanted it stands down instead of sending a guess the backend would misread.

@@ -71,7 +71,7 @@ async function pathValues(
 			as: { principal: session.principal },
 			operationId: list.operationId,
 		})
-		/* A refusal, a session the server ended and oat could not renew say, lists nothing to read. */
+		/* A refusal, a session the server ended and the API tester could not renew say, lists nothing to read. */
 		if (listed.status < 200 || listed.status >= 300) {
 			input.grades.skipped([op.operationId], `${list.operationId} answered ${listed.status}`)
 			return null

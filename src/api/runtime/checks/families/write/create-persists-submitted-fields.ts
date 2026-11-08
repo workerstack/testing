@@ -177,7 +177,7 @@ function formDataEntries(body: FormData): FormEntry[] {
 	return entries
 }
 
-/* A multipart body as oat encodes it: the text parts, each a field and a value. */
+/* A multipart body as the API tester encodes it: the text parts, each a field and a value. */
 function multipartEntries(body: unknown): FormEntry[] | null {
 	if (body === null || typeof body !== "object" || !Array.isArray((body as { parts?: unknown }).parts)) return null
 	const entries: FormEntry[] = []

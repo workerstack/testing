@@ -34,7 +34,7 @@ export function demoteNonEntities(operations: OperationModel[], gaps: GapCollect
 		if (op.action === "create" && kept.has(`${op.entity}\u0000${op.path}`)) continue
 		if (isView(op)) {
 			/* A collection-shaped GET with no item route is usually a named view of another
-			 * entity (`/table-templates/mine`). oat cannot know which, so it says so. */
+			 * entity (`/table-templates/mine`). The API tester cannot know which, so it says so. */
 			views.push(op)
 			continue
 		}

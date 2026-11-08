@@ -32,19 +32,19 @@ export interface CohortRun {
 	seededMembers: CohortMember[]
 	failedVariants: Array<{ variant: string; exchange: Exchange }>
 	acknowledged: boolean
-	/** Why the first record that is the body oat sent was not read back (`readBackCreated`). */
+	/** Why the first record that is the body the API tester sent was not read back (`readBackCreated`). */
 	unverified: string | undefined
 	uniqueGap: string | undefined
 	existingIds: string[]
 	lastFail: { member: CohortMember; exchange: Exchange } | undefined
 }
 
-/** `null` for an acknowledgment oat could not confirm: it names no record, so it joins no cohort. */
+/** `null` for an acknowledgment the API tester could not confirm: it names no record, so it joins no cohort. */
 export async function recordCreated(run: CohortRun, exchange: Exchange, sent: unknown): Promise<Record_ | null> {
 	const { createOp, seeding, scope } = run
 	const { model, client, options } = seeding
 	/* A create's id is the one its answer names, or one a read under it confirms. A record
-	 * with neither is not oat's to track or remove: it joins no cohort and is reported. */
+	 * with neither is not the API tester's to track or remove: it joins no cohort and is reported. */
 	const made = await createdRecord({
 		client,
 		createOp,

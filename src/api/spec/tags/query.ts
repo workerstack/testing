@@ -30,13 +30,13 @@ const SORTABLE_ROW: Fields = { field: text, nulls: texts, type: text }
 function filterGrammar(value: unknown): string | null {
 	if (!isObject(value)) return oneOf(value, ["postgrest", "colon", "equality"])
 	const parsed = parseFilterGrammar(value)
-	return parsed.ok ? null : `is a template oat cannot read: ${parsed.error}`
+	return parsed.ok ? null : `is a template the API tester cannot read: ${parsed.error}`
 }
 
 function sortGrammar(value: unknown): string | null {
 	if (!isObject(value)) return oneOf(value, ["dotted", "prefixed", "colon", "spaced"])
 	const parsed = parseSortGrammar(value)
-	return parsed.ok ? null : `is a template oat cannot read: ${parsed.error}`
+	return parsed.ok ? null : `is a template the API tester cannot read: ${parsed.error}`
 }
 
 /** A parameter name per role: `{ filter: "filter_by" }`. */

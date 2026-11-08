@@ -222,7 +222,7 @@ function signupRecipe(refresh: boolean): Recipe {
 		expiresIn: { from: "$.access_token_expires_in" },
 		login: {
 			from: "$.access_token",
-			steps: [{ body: { email: "oat@example.test" }, operationId: "auth.register", saveAs: SAVE_REFRESH }],
+			steps: [{ body: { email: "testing@example.test" }, operationId: "auth.register", saveAs: SAVE_REFRESH }],
 		},
 		...(refresh
 			? {
@@ -463,7 +463,7 @@ describe("countdown refresh", () => {
 				from: "$.access_token",
 				steps: [
 					{
-						bind: { who: "oat" },
+						bind: { who: "testing" },
 						body: { empty: null, meta: { name: "{who}" }, n: 1, ok: true, tags: ["{who}", 2] },
 						headers: { "x-who": "{who}" },
 						operationId: "auth.token",
@@ -474,7 +474,9 @@ describe("countdown refresh", () => {
 		}
 		const stack = stackOf(harness, recipe)
 		expect(await held(stack)).toMatchObject({ value: "acquire-1" })
-		expect(harness.tokenBodies).toEqual([{ empty: null, meta: { name: "oat" }, n: 1, ok: true, tags: ["oat", 2] }])
-		expect(harness.tokenWho).toEqual(["oat"])
+		expect(harness.tokenBodies).toEqual([
+			{ empty: null, meta: { name: "testing" }, n: 1, ok: true, tags: ["testing", 2] },
+		])
+		expect(harness.tokenWho).toEqual(["testing"])
 	})
 })

@@ -7,7 +7,7 @@ import { report } from "../../../src/api/report/console/report.ts"
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts"
 
 /*
- * A grammar oat cannot infer is declared: on the list operation's `x-query.grammar`, or in config
+ * A grammar the API tester cannot infer is declared: on the list operation's `x-query.grammar`, or in config
  * as `query.grammar` for every endpoint and `entities.<name>.query.grammar` for one entity. Config
  * outranks the document, and an entity outranks the whole run.
  */
@@ -54,7 +54,7 @@ describe("x-query.grammar as a template", () => {
 		expect(filterTerm(conventions, { field: "Qty", op: "neq", value: 2 })).toEqual({ filter: "and_Qty_ne_2" })
 	})
 
-	it("is a gap naming the bad key when it cannot be read, and oat falls back to inference", () => {
+	it("is a gap naming the bad key when it cannot be read, and the API tester falls back to inference", () => {
 		const built = model({ ...TEMPLATE, ops: { approx: "~" } })
 		expect(queryGaps(built).some((detail) => detail.includes('"grammar"') && detail.includes("ops.approx"))).toBe(true)
 		expect(conventionsOf(built).grammar).not.toBe("template")
@@ -69,7 +69,7 @@ describe("x-query.grammar as a template", () => {
 		expect(conventionsOf(model({ ...TEMPLATE, ops: { approx: "~" } })).grammar).toBe("unrecognized")
 	})
 
-	it("names the template form when oat cannot recognize a filter expression", () => {
+	it("names the template form when the API tester cannot recognize a filter expression", () => {
 		expect(queryGaps(model()).some((detail) => detail.includes("{ term:"))).toBe(true)
 	})
 })
@@ -99,7 +99,7 @@ describe("config grammars", () => {
 		expect(() =>
 			applyGrammarOverrides(model(), { entities: { note: { query: { grammar: { term: "{field}" } } } } }),
 		).toThrow(/entities\.note\.query\.grammar/)
-		/* A config file is read untyped, so a name oat does not know can reach it. */
+		/* A config file is read untyped, so a name the API tester does not know can reach it. */
 		const untyped = JSON.parse('{ "query": { "grammar": "sql" } }') as Parameters<typeof applyGrammarOverrides>[1]
 		expect(() => applyGrammarOverrides(model(), untyped)).toThrow(/query\.grammar/)
 	})
@@ -118,7 +118,7 @@ describe("doctor", () => {
 	})
 })
 
-describe("oat plan and doctor", () => {
+describe("testing api plan and doctor", () => {
 	const SORT = { asc: "ascending", desc: "descending", join: ",", term: "{field}_{direction}" }
 	const withBoth = () => {
 		const built = model(TEMPLATE)

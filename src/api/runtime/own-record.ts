@@ -80,7 +80,7 @@ export class HeldRecordError extends ProtectedWriteError {
 /** Why `operationId` is not sent as `principal`'s with `fields`: the reason a stand-down gives. */
 export function protectedReason(operationId: string, principal: string, fields: readonly string[]): string {
 	const owner = probeOwner(principal)
-	return `${operationId} would change ${fields.join(", ")} on ${owner}'s own record, which ${owner} signs in with: oat never sends that`
+	return `${operationId} would change ${fields.join(", ")} on ${owner}'s own record, which ${owner} signs in with: the API tester never sends that`
 }
 
 /** A write about to be sent: its operation, the path values it fills, and the identity of who sends it. */
@@ -196,7 +196,7 @@ function refuseHeld(
 	if (held !== undefined) {
 		throw new HeldRecordError(
 			`${write.op.operationId} would change ${held.entity} ${held.id}, a credential the run holds ` +
-				`(minted by ${held.operationId}): oat never sends that`,
+				`(minted by ${held.operationId}): the API tester never sends that`,
 		)
 	}
 	const replaces = sent.method.toUpperCase() === "DELETE" || sent.method.toUpperCase() === "PUT"
@@ -206,8 +206,8 @@ function refuseHeld(
 	const op = write.op.operationId
 	throw new HeldRecordError(
 		sent.method.toUpperCase() === "DELETE"
-			? `${op} would remove ${owner}'s own record: oat never sends that`
-			: `${op} is a full replace of ${owner}'s own record, which could clear its sign-in fields: oat never sends that`,
+			? `${op} would remove ${owner}'s own record: the API tester never sends that`
+			: `${op} is a full replace of ${owner}'s own record, which could clear its sign-in fields: the API tester never sends that`,
 	)
 }
 

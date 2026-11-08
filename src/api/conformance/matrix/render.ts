@@ -110,7 +110,7 @@ function judge(result: CaseResult, leg: SuiteLeg): Judged {
 		undecided: (result.inconclusive ?? []).filter((entry) => !allowed.some((prefix) => entry.startsWith(`${prefix}:`))),
 		unreported: result.unreported ?? [],
 		/* Only the *tagged* baseline is held to the floor. The untagged case deliberately strips
-		 * every x-* tag to prove oat degrades gracefully without them, so running fewer checks
+		 * every x-* tag to prove the API tester degrades gracefully without them, so running fewer checks
 		 * there is the result being measured, not a regression. */
 		vacuous: result.label === "baseline (correct backend)" && result.checksRun.length < floor,
 	}

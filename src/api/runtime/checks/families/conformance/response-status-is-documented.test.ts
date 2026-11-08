@@ -81,7 +81,11 @@ describe("response.status-is-documented run", () => {
 		const alone = await judge([probe])
 		expect(alone.outcome).toEqual({ kind: "asserted" })
 		expect(alone.findings.findings.map((f) => [f.verdict, f.summary, f.operations])).toEqual([
-			["SPEC_BUG", "requests oat sent to be refused drew statuses the document does not declare", ["item.read"]],
+			[
+				"SPEC_BUG",
+				"requests the API tester sent to be refused drew statuses the document does not declare",
+				["item.read"],
+			],
 		])
 		expect(alone.findings.findings[0]?.detail).toContain(
 			"item.read returned 400; the document declares 200, 404. These were deliberately invalid probes",

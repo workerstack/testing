@@ -1,4 +1,4 @@
-/** The entity graph's shapes: each operation as oat reads it, each entity, and the model they form. */
+/** The entity graph's shapes: each operation as the API tester reads it, each entity, and the model they form. */
 
 import type { SecurityScheme } from "../security/schemes.ts"
 import type { ResolvedSecurity } from "../security/requirements.ts"
@@ -107,7 +107,7 @@ export interface OperationModel {
 	hasRequestBody: boolean
 	isMutation: boolean
 	/**
-	 * Why oat never sends this operation, or `null` when it can: a TRACE, which fetch refuses. The
+	 * Why the API tester never sends this operation, or `null` when it can: a TRACE, which fetch refuses. The
 	 * operation is listed, and a check that reaches it sends nothing.
 	 */
 	unsendable: string | null
@@ -141,13 +141,13 @@ export interface SpecModel {
 	byRoute: Map<string, OperationModel>
 	/** The untouched operation objects, keyed by id — schemas are read from here. */
 	rawOperations: Map<string, OperationObject>
-	/** Recursive schemas the dereferenced document refers to as `oat-defs#/$defs/<name>`. */
+	/** Recursive schemas the dereferenced document refers to as `testing-defs#/$defs/<name>`. */
 	defs: Record<string, Record<string, unknown>>
 	entities: Map<string, EntityModel>
 	roots: string[]
 	gaps: GapCollector
 	securitySchemes: string[]
-	/** Every declared security scheme, read: where its credential goes, or why oat cannot send it. */
+	/** Every declared security scheme, read: where its credential goes, or why the API tester cannot send it. */
 	schemes: ReadonlyMap<string, SecurityScheme>
 	hasAuthOperations: boolean
 }

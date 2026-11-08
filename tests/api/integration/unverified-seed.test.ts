@@ -3,17 +3,17 @@ import type { AddressInfo } from "node:net"
 import { join } from "node:path"
 import { afterAll, describe, expect, it } from "vitest"
 import { createMemoryServer } from "../../../src/api/reference/http/engines.ts"
-import { oat, referenceConfig, tempDirs } from "../support/cli-run.ts"
+import { tester, referenceConfig, tempDirs } from "../support/cli-run.ts"
 import { readFile } from "node:fs/promises"
 
 /*
  * A create that answers only `{ id, message }` is read back by that id. When the read misses the
  * record (an eventually consistent backend answers 404 right after the create), or the entity has
- * no item read, the cohort is the bodies oat sent: checks that work out stored values stand down,
- * and the run says so in the console and in `oat-report.json` — a note, never a finding.
+ * no item read, the cohort is the bodies the API tester sent: checks that work out stored values stand down,
+ * and the run says so in the console and in `report.json` — a note, never a finding.
  */
 
-const dirs = tempDirs("oat-unverified-seed-")
+const dirs = tempDirs("testing-unverified-seed-")
 afterAll(dirs.removeAll)
 
 const TABLE_ITEM = /^\/v1\/projects\/[^/]+\/tables\/([^/?]+)$/
@@ -78,8 +78,8 @@ async function runBehind(mode: Mode): Promise<{ text: string; observed: Array<Re
 		const dir = await dirs.make()
 		const config = await referenceConfig(dir, api.url)
 		const runs = join(dir, "runs")
-		const { out } = await oat(["run", "--config", config, "--out", runs, "--quiet", "--only", "table"])
-		const report = JSON.parse(await readFile(join(runs, "latest", "oat-report.json"), "utf8")) as {
+		const { out } = await tester(["run", "--config", config, "--out", runs, "--quiet", "--only", "table"])
+		const report = JSON.parse(await readFile(join(runs, "latest", "report.json"), "utf8")) as {
 			observed: Array<Record<string, string>>
 		}
 		return { observed: report.observed, text: out }
@@ -88,10 +88,12 @@ async function runBehind(mode: Mode): Promise<{ text: string; observed: Array<Re
 	}
 }
 
-describe("a seed oat could not read back", () => {
+describe("a seed the API tester could not read back", () => {
 	it("notes a read back that answered 404, in the console and the JSON report", async () => {
 		const { observed, text } = await runBehind("lagging-read")
-		expect(text).toMatch(/note: table — seeded with the bodies oat sent, unverified \(read back answered 404\)/)
+		expect(text).toMatch(
+			/note: table — seeded with the bodies the API tester sent, unverified \(read back answered 404\)/,
+		)
 		expect(observed).toContainEqual(
 			expect.objectContaining({
 				check: "world.seed",
@@ -103,7 +105,7 @@ describe("a seed oat could not read back", () => {
 
 	it("notes an entity with no item read", async () => {
 		const { observed, text } = await runBehind("no-item-read")
-		expect(text).toMatch(/note: table — seeded with the bodies oat sent, unverified \(no item read\)/)
+		expect(text).toMatch(/note: table — seeded with the bodies the API tester sent, unverified \(no item read\)/)
 		expect(observed).toContainEqual(
 			expect.objectContaining({ check: "world.seed", entity: "table", note: expect.stringContaining("no item read") }),
 		)

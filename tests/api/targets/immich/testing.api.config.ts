@@ -3,7 +3,7 @@ import { defineConfig, env } from "../../../../src/api/index.ts"
 /*
  * Immich v3.3.5 (spec vendored from open-api/immich-openapi-specs.json at that tag). Every operation
  * takes any of three schemes: bearer (the session token), cookie (the same token as
- * immich_access_token) and api_key (x-api-key). oat sends bearer first; the security checks grade
+ * immich_access_token) and api_key (x-api-key). The API tester sends bearer first; the security checks grade
  * cookie and api_key as alternatives and probe each scheme with forged and revoked values.
  *
  * Scope: albums, tags, API keys and the caller's own user and preferences, the resources a user
@@ -42,7 +42,7 @@ export default defineConfig({
 			mint: {
 				with: "bearer",
 				operationId: "createApiKey",
-				body: { name: "oat", permissions: ["all"] },
+				body: { name: "testing", permissions: ["all"] },
 				from: "$.secret",
 				revoke: "deleteApiKey",
 			},
@@ -51,10 +51,10 @@ export default defineConfig({
 	allow: ["login", "logout", ...albums, ...tags, ...apiKeys, ...me],
 	ops: [...albums, ...tags, ...apiKeys, ...me, "logout"],
 	overlay: {
-		// The server stamps updatedAt on every write; oat treats only snake_case timestamps as such.
+		// The server stamps updatedAt on every write; the API tester treats only snake_case timestamps as such.
 		operations: { updateAlbumInfo: { "x-generated": ["updatedAt"] } },
 		schemas: {
-			// Optional fields that take the id of an existing user, asset or parent tag; oat has none to send.
+			// Optional fields that take the id of an existing user, asset or parent tag; the API tester has none to send.
 			CreateAlbumDto: { properties: { albumUsers: null, assetIds: null } },
 			UpdateAlbumDto: { properties: { albumThumbnailAssetId: null } },
 			TagCreateDto: { properties: { parentId: null } },

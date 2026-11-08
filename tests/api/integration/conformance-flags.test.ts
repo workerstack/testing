@@ -9,7 +9,7 @@ import type { FuzzCase } from "../../../src/api/conformance/fuzz.ts"
 import { postgresStatus, sqliteAvailable } from "../../../src/api/conformance/matrix/engines.ts"
 
 /*
- * `oat conformance` flags, each through the CLI on the smallest leg that shows it: `--parser` runs
+ * `testing api conformance` flags, each through the CLI on the smallest leg that shows it: `--parser` runs
  * the document and suite checks without the defect matrix; `--fuzz-seed` is the seed the combination
  * pass prints and replays; `--skip-backend` turns an engine that is not there into a note.
  */
@@ -54,7 +54,7 @@ async function closedPort(): Promise<number> {
 	return port
 }
 
-describe("oat conformance --parser", () => {
+describe("testing api conformance --parser", () => {
 	it("runs the document and suite checks alone, with no defect matrix", async () => {
 		const { code, text } = await conformance(["--parser"])
 		expect(code).toBe(0)
@@ -66,7 +66,7 @@ describe("oat conformance --parser", () => {
 	}, 90_000)
 })
 
-describe("oat conformance --fuzz-seed", () => {
+describe("testing api conformance --fuzz-seed", () => {
 	it("prints the seed it was given, and the same seed replays the same combinations", async () => {
 		const drawn: string[][][] = [[], [], []]
 		const first = await conformance(
@@ -101,7 +101,7 @@ async function fullRun(argv: string[]): Promise<{ code: number; text: string }> 
 	return conformance(argv, { ...toolkit, suite: { ...toolkit.suite, postgresStatus, sqliteAvailable } })
 }
 
-describe("oat conformance --skip-backend", () => {
+describe("testing api conformance --skip-backend", () => {
 	it("fails a full run whose Postgres is unreachable, unless that backend is skipped by name", async () => {
 		vi.stubEnv("PGHOST", "127.0.0.1")
 		vi.stubEnv("PGPORT", String(await closedPort()))

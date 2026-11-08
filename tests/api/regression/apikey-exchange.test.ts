@@ -46,7 +46,7 @@ function shape(url: string): string {
 let dir: string
 let reads: Exchange[]
 beforeAll(async () => {
-	dir = await mkdtemp(join(tmpdir(), "oat-apikey-"))
+	dir = await mkdtemp(join(tmpdir(), "testing-apikey-"))
 	const server = await createMemoryServer()
 	try {
 		const result = await run({

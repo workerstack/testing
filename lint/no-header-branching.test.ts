@@ -5,7 +5,7 @@ import { oxlintReports, reportsOf } from "./rule-harness.ts"
 const MESSAGE =
 	"credential placement comes from the operation's OpenAPI security (src/api/spec/security/); do not name an auth header or scheme prefix here"
 
-describe("oat/no-header-branching", () => {
+describe("testing/no-header-branching", () => {
 	it("flags an auth header name or a scheme prefix written outside the security modules", () => {
 		const fixture = {
 			"src/api/runtime/auth.ts": [
@@ -48,7 +48,7 @@ describe("oat/no-header-branching", () => {
 		expect(reportsOf(rule, { "src/api/runtime/a.ts": source })).toEqual([])
 	})
 
-	it("fails oxlint through the oat plugin entry", () => {
+	it("fails oxlint through the testing plugin entry", () => {
 		const fixture = { "src/api/runtime/a.ts": 'export const h = "authorization"\n' }
 		expect(oxlintReports("no-header-branching", fixture).length).toBe(1)
 	})

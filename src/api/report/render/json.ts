@@ -102,7 +102,7 @@ function tallyJson(input: ReportInput): Record<string, unknown> {
 }
 
 /**
- * The shape version of `oat-report.json` and `matrix.json`. It rises only on a breaking change to a
+ * The shape version of `report.json` and `matrix.json`. It rises only on a breaking change to a
  * file's shape; an added field is not one.
  */
 export const REPORT_SCHEMA_VERSION = 1

@@ -1,7 +1,7 @@
 /*
  * Compile-time test, checked by `tsc -p tsconfig.test.json` (part of `bun check`).
  *
- * Teardown deletes what was recorded. A plain string — an id oat only sent, a value lifted from a
+ * Teardown deletes what was recorded. A plain string — an id the API tester only sent, a value lifted from a
  * request body — must not be recordable, or the next fallback that "knows" the id would delete a
  * row somebody else owns. Each line below must fail to compile; if one stops failing, the
  * `@ts-expect-error` above it is unused and the check fails. The first three lines must compile.
@@ -24,7 +24,7 @@ ledger.record({ entity: "note", id: returned, scope: {} }, owner)
 options.onCreate?.("note", returned, {})
 ctx.recordCreated?.({ entity: "note", id: returned, scope: {} })
 
-// @ts-expect-error an id oat only sent is not proof of a record it made
+// @ts-expect-error an id the API tester only sent is not proof of a record it made
 ledger.record({ entity: "note", id: sentId, scope: {} }, owner)
 
 // @ts-expect-error seeding reports only ids a response or a confirming read returned

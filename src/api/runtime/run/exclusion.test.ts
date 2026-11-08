@@ -24,7 +24,7 @@ describe("createExclusion", () => {
 		expect(create !== undefined && exclusion.readable(create)).toBe(true)
 	})
 
-	it("excludes an operation oat never sends, under every profile, without a profile finding", async () => {
+	it("excludes an operation the API tester never sends, under every profile, without a profile finding", async () => {
 		const traced = notesDoc({ "/notes/{note_id}/echo": { trace: { operationId: "notes.echo", responses: {} } } })
 		const run = await loaded(optionsFor(notesApi(traced)))
 		const exclusion = createExclusion(run)

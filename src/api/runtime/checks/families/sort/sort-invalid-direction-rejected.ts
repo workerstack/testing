@@ -10,7 +10,7 @@ import { conv, pageSize, q } from "../../query/capabilities.ts"
 import { ids, list } from "../../sets/list.ts"
 
 /** A direction token no sort grammar has. */
-const UNKNOWN_DIRECTION = "oatsideways"
+const UNKNOWN_DIRECTION = "testingsideways"
 
 /**
  * A sort direction the declared grammar does not have must be refused. Read as ascending instead,

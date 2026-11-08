@@ -47,10 +47,13 @@ function loadedWith(entry: string): Map<string, string[]> {
 }
 
 describe("the postgres driver", () => {
-	it.each(["src/api/cli.ts", "src/api/index.ts", "src/api/conformance/worker.ts"])("is not loaded with %s", (entry) => {
-		const importers = [...loadedWith(entry)].filter(([, packages]) => packages.includes("postgres"))
-		expect(importers.map(([file]) => file)).toEqual([])
-	})
+	it.each(["src/cli.ts", "src/api/cli.ts", "src/api/index.ts", "src/api/conformance/worker.ts"])(
+		"is not loaded with %s",
+		(entry) => {
+			const importers = [...loadedWith(entry)].filter(([, packages]) => packages.includes("postgres"))
+			expect(importers.map(([file]) => file)).toEqual([])
+		},
+	)
 
 	it("is an optional peer at the range the CLI asks for, and the repo's own copy is in it", () => {
 		const manifest = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")) as {

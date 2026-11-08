@@ -10,7 +10,7 @@ const DOC = { info: { title: "t", version: "1" }, openapi: "3.1.0", paths: {} }
 const SPLIT = join(import.meta.dirname, "__fixtures__", "split", "openapi.yaml")
 
 async function file(name: string, text: string): Promise<string> {
-	const dir = await mkdtemp(join(tmpdir(), "oat-load-"))
+	const dir = await mkdtemp(join(tmpdir(), "testing-load-"))
 	const path = join(dir, name)
 	await writeFile(path, text)
 	return path
@@ -42,7 +42,7 @@ describe("loadSpec", () => {
 			"https://api.test/base/v1/openapi",
 		])
 		await expect(loadSpec("https://api.test/openapi.json")).rejects.toThrow(
-			"oat: https://api.test/openapi.json is a URL, and this caller reads only files",
+			"testing api: https://api.test/openapi.json is a URL, and this caller reads only files",
 		)
 		await expect(loadSpec("v1/openapi", { baseUrl: "https://api.test" })).rejects.toThrow(
 			"this caller reads only files",
@@ -50,9 +50,9 @@ describe("loadSpec", () => {
 	})
 
 	it("names the place it looked when nothing is there, and how to resolve a route", async () => {
-		const missing = join(tmpdir(), "oat-no-such", "spec.json")
+		const missing = join(tmpdir(), "testing-no-such", "spec.json")
 		await expect(loadSpec(missing)).rejects.toThrow(
-			`oat: could not find a specification at "${missing}". Tried:\n  ${missing}\nPass --base-url`,
+			`testing api: could not find a specification at "${missing}". Tried:\n  ${missing}\nPass --base-url`,
 		)
 		await expect(loadSpec(missing, { baseUrl: "" })).rejects.toThrow(new RegExp(`Tried:\\n  ${missing}$`))
 	})

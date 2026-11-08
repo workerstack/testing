@@ -1,5 +1,5 @@
 /**
- * `doctor` is the adoption surface: it reports what oat cannot test against this spec and names
+ * `doctor` is the adoption surface: it reports what the API tester cannot test against this spec and names
  * the meta tag that would close each gap. A backend team's path to full coverage is to run it
  * and work the list down.
  */
@@ -13,9 +13,9 @@ import { rootsJson } from "./roots.ts"
 import { securityJson } from "./security.ts"
 import { securityLines } from "./security-text.ts"
 
-/** How `doctor` reports: the refs oat could not follow, JSON or text, and the config beside it. */
+/** How `doctor` reports: the refs the API tester could not follow, JSON or text, and the config beside it. */
 export interface DoctorOptions {
-	/** Refs to other files, which oat did not follow. */
+	/** Refs to other files, which the API tester did not follow. */
 	externalRefs?: string[]
 	/** Internal refs that point at nothing. */
 	danglingRefs?: string[]
@@ -99,7 +99,7 @@ function doctorText({ config, danglingRefs, externalRefs, facts, model, unsetEnv
 	return lines.join("\n")
 }
 
-/** `oat doctor`: what oat can and cannot test in the document, as text or JSON, and how much of it blocks a run. */
+/** `testing api doctor`: what the API tester can and cannot test in the document, as text or JSON, and how much of it blocks a run. */
 export function doctor(model: SpecModel, options: DoctorOptions = {}): { text: string; blocking: number } {
 	const { asJson = false, config, danglingRefs = [], externalRefs = [], unsetEnv } = options
 	const facts = doctorFacts(model, config)

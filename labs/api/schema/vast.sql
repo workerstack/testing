@@ -1,4 +1,4 @@
--- labs/vast — 2000 entities. Applied to D1 oat-labs-vast.
+-- labs/vast — 2000 entities. Applied to D1 testing-labs-vast.
 CREATE TABLE IF NOT EXISTS idempotency (key TEXT PRIMARY KEY, record TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS invites (grant_id TEXT PRIMARY KEY, token TEXT NOT NULL UNIQUE, entity TEXT NOT NULL, item_id TEXT NOT NULL, owner_org TEXT NOT NULL, grantee_key TEXT NOT NULL, accepted INTEGER NOT NULL DEFAULT 0);
 CREATE TABLE IF NOT EXISTS "r00s" ("id" TEXT PRIMARY KEY, "org_id" TEXT NOT NULL, "name" TEXT, "status" TEXT, "position" INTEGER, "note" TEXT, "kind" TEXT, "r00c0_count" INTEGER, "r00c1_count" INTEGER, "r00c2_count" INTEGER, "r00c3_count" INTEGER, "r00c4_count" INTEGER, "r00c5_count" INTEGER, "r00c6_count" INTEGER, "r00c7_count" INTEGER, "r00c8_count" INTEGER, "r00c9_count" INTEGER, "r00c10_count" INTEGER, "r00c11_count" INTEGER, "r00c12_count" INTEGER, "r00c13_count" INTEGER, "r00c14_count" INTEGER, "r00c15_count" INTEGER, "created_at" INTEGER, "updated_at" INTEGER, "deleted_at" INTEGER);

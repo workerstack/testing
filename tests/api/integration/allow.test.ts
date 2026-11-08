@@ -12,8 +12,8 @@ import { JWT_LOGIN } from "../support/reference-auth.ts"
 
 /*
  * Against a shared backend, some operations must never be called — not by the matrix, the
- * contract floor, a scenario or teardown. `allow` names the only ones oat may touch: every other
- * operation leaves the document before oat reads it, so nothing downstream can reach it. A config
+ * contract floor, a scenario or teardown. `allow` names the only ones the API tester may touch: every other
+ * operation leaves the document before the API tester reads it, so nothing downstream can reach it. A config
  * that still needs a removed operation says so before anything is sent.
  */
 

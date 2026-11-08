@@ -23,11 +23,11 @@ interface Ancestor {
 	createOp: OperationModel
 }
 
-/** The create behind `param`, or the reason oat cannot make the record it names. */
+/** The create behind `param`, or the reason the API tester cannot make the record it names. */
 function ancestorOf(op: OperationModel, model: SpecModel, param: string): Ancestor {
 	const owner = owningEntityOf(model.operations, op.path, param)
 	if (owner === null) {
-		throw new SeedError(param, `path parameter {${param}} names no entity oat can create`)
+		throw new SeedError(param, `path parameter {${param}} names no entity the API tester can create`)
 	}
 	const entity = model.entities.get(owner)
 	if (entity?.create === undefined) {
@@ -43,7 +43,7 @@ function ancestorOf(op: OperationModel, model: SpecModel, param: string): Ancest
 	if (createOp.pathParams.includes(param)) {
 		throw new SeedError(
 			param,
-			`{${param}} names the "${owner}" ${createOp.operationId} makes, so oat cannot seed it; ` +
+			`{${param}} names the "${owner}" ${createOp.operationId} makes, so the API tester cannot seed it; ` +
 				"supply it as a root or create it in a scenario",
 		)
 	}
@@ -65,7 +65,7 @@ async function makeAncestor(ancestor: KeyedAncestor, seeding: Seeding, scope: Sc
 	if (id === undefined) {
 		throw new SeedError(param, `create for "${owner}" returned no usable "${identity}"`)
 	}
-	/* Adopted, not created: somebody else's record, never oat's to remove. */
+	/* Adopted, not created: somebody else's record, never the API tester's to remove. */
 	if (!adopted) options.onCreate?.(owner, id, { ...scope.values })
 	options.ancestors?.made.set(cacheKey, id)
 	return id
@@ -93,7 +93,7 @@ export async function resolvePathScope(
 		const ancestor = ancestorOf(op, seeding.model, param)
 		const { createOp } = ancestor
 		await resolvePathScope(createOp, seeding, scope)
-		/* One ancestor per principal and parent path: a row and its siblings share the table oat
+		/* One ancestor per principal and parent path: a row and its siblings share the table the API tester
 		 * made for the first of them, instead of each leaving another table behind. */
 		const cacheKey = `${options.principal}\u0000${createOp.operationId}\u0000${fillPath(createOp.path, scope.values)}`
 		const cached = options.ancestors?.made.get(cacheKey)

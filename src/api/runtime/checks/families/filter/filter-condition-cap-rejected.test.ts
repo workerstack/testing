@@ -15,7 +15,7 @@ describe("filter.condition-cap-rejected", () => {
 	it("asserts when one condition past the cap is refused", async () => {
 		const { ctx, findings, sent } = stage({ behavior: { maxConditions: 2 }, doc: CAPPED, records: COHORT })
 		expect(await runCheck(check, ctx)).toEqual({ kind: "asserted" })
-		expect(filters(sent)).toEqual(["and(id.eq.oat-cap,id.eq.oat-cap,id.eq.oat-cap)"])
+		expect(filters(sent)).toEqual(["and(id.eq.testing-cap,id.eq.testing-cap,id.eq.testing-cap)"])
 		expect(findings.findings).toEqual([])
 	})
 

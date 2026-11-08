@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { parseFilterGrammar } from "./filter-parse.ts"
 
 /*
- * A grammar oat has no name for, declared as a template. The example is the one term per value
+ * A grammar the API tester has no name for, declared as a template. The example is the one term per value
  * grammar seen in the wild: `and_Qty_eq_2`, `ne` for not-equal, null tests as their own terms,
  * `in` values joined by a comma, and terms sent as a repeated parameter.
  */

@@ -5,7 +5,7 @@ import { grammarTable } from "../support/grammar-table.ts"
 /*
  * Today's filter, sort and select writers, pinned. Template grammars replace these writers with
  * one renderer whose presets must reproduce every term below byte for byte: a preset that drifts
- * would change the requests oat sends to every API that never declared a grammar.
+ * would change the requests the API tester sends to every API that never declared a grammar.
  */
 
 const PINNED = JSON.parse(

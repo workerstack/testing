@@ -21,11 +21,11 @@ export function matchPattern(pattern: string, model: SpecModel, label: string): 
 		const id = resolveOperationName(pattern, model.byOperationId)
 		if (id !== undefined) return { exact: true, ids: [id] }
 		throw new ScopeError(
-			`oat: --ops "${label}" matches no operation.${didYouMean(pattern, model.byOperationId.keys())}`,
+			`testing api: --ops "${label}" matches no operation.${didYouMean(pattern, model.byOperationId.keys())}`,
 		)
 	}
 	const re = globToRegExp(pattern)
 	const ids = [...model.byOperationId.keys()].filter((id) => re.test(id))
-	if (ids.length === 0) throw new ScopeError(`oat: --ops "${label}" matches no operation.`)
+	if (ids.length === 0) throw new ScopeError(`testing api: --ops "${label}" matches no operation.`)
 	return { exact: false, ids }
 }

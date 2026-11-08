@@ -24,7 +24,7 @@ describe("fieldsAllowing", () => {
 })
 
 describe("knownHits", () => {
-	it("keeps only the identities oat seeded", () => {
+	it("keeps only the identities the API tester seeded", () => {
 		const { ctx } = stage({ doc: DOC, records: [{ id: "w-1" }, { id: "w-2" }] })
 		expect(knownHits([{ id: "w-2" }, { id: "x-1" }, {}], ctx)).toEqual(new Set(["w-2"]))
 	})

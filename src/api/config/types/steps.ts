@@ -16,7 +16,7 @@ interface StepBase {
 	/**
 	 * Binds values out of a JWT's claims. Tenancy commonly rides in the token rather than the
 	 * response body, and a principal that can name its own tenant needs no roots configured. The
-	 * signature is not verified — oat is reading its own credential, not trusting a third party.
+	 * signature is not verified — the API tester is reading its own credential, not trusting a third party.
 	 * `token` is a JSON path into the response body (`$.access_token`) or a scope key already
 	 * bound by `saveAs` (`credential`).
 	 */
@@ -31,7 +31,7 @@ interface StepBase {
 export interface OperationStep extends StepBase {
 	operationId: string
 	body?: unknown
-	/** One of the request media types the operation documents. Default: oat's preferred one. */
+	/** One of the request media types the operation documents. Default: the API tester's preferred one. */
 	mediaType?: string
 	headers?: Record<string, string>
 	query?: Record<string, string>
@@ -64,10 +64,10 @@ export interface RequestStep extends StepBase {
 /**
  * A value that never travels over HTTP — an emailed verification token, an OTP, a magic link.
  *
- * oat declares the need and calls `hooks.resolveOutOfBand` to satisfy it, polling with backoff
+ * The API tester declares the need and calls `hooks.resolveOutOfBand` to satisfy it, polling with backoff
  * because such stores are usually eventually consistent. That hook is the entire coupling
- * surface between oat and one specific backend. The hook returns a string (a token, or the
- * mailed URL); oat records the consume hop only when a later RequestStep GETs that URL.
+ * surface between the API tester and one specific backend. The hook returns a string (a token, or the
+ * mailed URL); the API tester records the consume hop only when a later RequestStep GETs that URL.
  */
 export interface OutOfBandStep {
 	outOfBand: {
@@ -133,7 +133,7 @@ export type ScenarioRequestStep = (OperationStep | RequestStep) & {
 
 /**
  * Something only a person or a browser can do — pay with a test card, give OAuth consent.
- * oat calls `hooks.external(name, input)` and binds the string it returns to `as`.
+ * The API tester calls `hooks.external(name, input)` and binds the string it returns to `as`.
  */
 export interface ExternalStep {
 	external: string
@@ -155,7 +155,7 @@ export interface ExternalsConfig {
 /**
  * A declared flow for operations the matrix cannot reach on its own: steps run in order as one
  * principal, values flow forward through `{name}`, and each operation in `covers` is graded by
- * what the steps observed. Product knowledge lives here, in the config — not in oat.
+ * what the steps observed. Product knowledge lives here, in the config — not in the API tester.
  */
 export interface Scenario {
 	id: string

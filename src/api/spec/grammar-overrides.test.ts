@@ -60,7 +60,7 @@ describe("applyGrammarOverrides", () => {
 		expect(out["tags.list"]?.grammarDeclared).toBeUndefined()
 	})
 
-	it("stops on a grammar config names but oat cannot read", () => {
+	it("stops on a grammar config names but the API tester cannot read", () => {
 		expect(() => conventionsOf({ query: { grammar: 5 as never } })).toThrow(
 			'query.grammar must be "postgrest", "colon", "equality" or a template object',
 		)

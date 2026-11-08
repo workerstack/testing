@@ -12,7 +12,7 @@ const OUTSIDE_SRC = {
 
 const ENTRY_POINTS = { "src/api/cli.ts": "await start()\n", "src/api/conformance/worker.ts": "serve()\n" }
 
-describe("oat/no-module-side-effects", () => {
+describe("testing/no-module-side-effects", () => {
 	it("flags code that runs at import", () => {
 		const fixture = {
 			"src/api/runtime/a.ts": [
@@ -67,12 +67,12 @@ describe("oat/no-module-side-effects", () => {
 		expect(reportsOf(rule, { "src/api/cli/cli.ts": "await start()\n" })).toHaveLength(1)
 	})
 
-	it("fails oxlint through the oat plugin entry", () => {
+	it("fails oxlint through the testing plugin entry", () => {
 		expect(oxlintReports("no-module-side-effects", { "src/api/runtime/a.ts": "run()\n" }).length).toBe(1)
 	})
 })
 
-describe("oat/no-module-side-effects definers", () => {
+describe("testing/no-module-side-effects definers", () => {
 	it("treats a check definition as pure, and still checks what it is given", () => {
 		const fixture = {
 			"src/api/runtime/checks/families/a.ts": [

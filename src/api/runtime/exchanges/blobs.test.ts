@@ -12,7 +12,7 @@ import { INLINE_BODY_LIMIT } from "./media.ts"
 let dir = ""
 
 beforeEach(() => {
-	dir = mkdtempSync(join(tmpdir(), "oat-blobs-"))
+	dir = mkdtempSync(join(tmpdir(), "testing-blobs-"))
 	mkdirSync(join(dir, "blobs"))
 })
 

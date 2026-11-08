@@ -1,9 +1,9 @@
 /**
- * Filter and sort grammars declared in config, laid over what the document declared or oat inferred.
+ * Filter and sort grammars declared in config, laid over what the document declared or the API tester inferred.
  *
  * The run's `query.grammar` / `query.sortGrammar` apply to every operation, and an entity's
  * `entities.<name>.query.*` to that entity's operations, outranking the run's. A grammar config
- * names but oat cannot read stops the run: config is the operator's own statement, and carrying on
+ * names but the API tester cannot read stops the run: config is the operator's own statement, and carrying on
  * with another grammar would test something they did not ask for.
  */
 

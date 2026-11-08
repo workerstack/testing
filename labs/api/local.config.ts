@@ -1,17 +1,17 @@
 /**
- * Points at the demo API that ships with oat, so this runs end to end with no setup.
+ * Points at the demo API that ships with the API tester, so this runs end to end with no setup.
  *
- *   oat serve                                    # terminal 1 — prints a url
- *   oat run --config labs/api/local.config.ts --base-url <that url>
+ *   testing api serve                                    # terminal 1 — prints a url
+ *   testing api run --config labs/api/local.config.ts --base-url <that url>
  *
- * Real configs import from "@lovrozagar/oat"; this one uses a relative path because it lives inside the
+ * Real configs import from "@workerstack/testing/api"; this one uses a relative path because it lives inside the
  * repository.
  */
 
 import { defineConfig } from "../../dist/api/index.js"
 
-/* Overridden by --base-url, which is what `oat serve` prints. */
-const API = process.env["OAT_BASE_URL"] ?? "http://127.0.0.1:8787"
+/* Overridden by --base-url, which is what `testing api serve` prints. */
+const API = process.env["TESTING_API_BASE_URL"] ?? "http://127.0.0.1:8787"
 
 export default defineConfig({
 	baseUrl: API,
@@ -28,6 +28,6 @@ export default defineConfig({
 		},
 	},
 	seed: 42,
-	/* Relative to baseUrl — oat also accepts an absolute URL or a filesystem path. */
+	/* Relative to baseUrl — the API tester also accepts an absolute URL or a filesystem path. */
 	spec: "/v1/openapi/spec",
 })

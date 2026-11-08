@@ -1,4 +1,4 @@
-/* What `oat conformance` runs, loaded only when it runs: none of it is needed for any other command. */
+/* What `testing api conformance` runs, loaded only when it runs: none of it is needed for any other command. */
 
 /** The self-test's suites and its defect matrix, read as one module. */
 type Suite = typeof import("../../conformance/suites/parser.ts") &
