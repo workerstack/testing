@@ -25,7 +25,7 @@
 		"CLAUDE.md",
 		"GEMINI.md",
 		".oxfmtrc.jsonc",
-		"oat-out/**",
+		"testing-out/**",
 		"labs/api/node_modules/**",
 		"labs/api/schema/**"
 	]
