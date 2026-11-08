@@ -1,8 +1,8 @@
-# oat — Migrating to 0.25
+# testing api — Migrating to 0.25
 
 [← back to the overview](../../README.md)
 
-0.25 changes how a config says who oat acts as, and where its relative paths point. A config that still uses a removed field exits 2 and names the replacement, so nothing changes silently.
+0.25 changes how a config says who the API tester acts as, and where its relative paths point. A config that still uses a removed field exits 2 and names the replacement, so nothing changes silently.
 
 ## Relative paths resolve from the config's folder
 
@@ -25,7 +25,7 @@ A config with any of these exits 2, naming the replacement:
 
 ## The writer is named, or the first principal
 
-An array kept its order; a map's key order is easy to lose, and a sort-keys lint rule reorders it. The writer, the principal that makes the records every check works on, is the one top-level `writer` names, or else the first key of `principals`. A config whose principals a linter sorts, or that wants a writer other than its first entry, sets `writer: "<id>"`. `oat doctor` prints who writes and why.
+An array kept its order; a map's key order is easy to lose, and a sort-keys lint rule reorders it. The writer, the principal that makes the records every check works on, is the one top-level `writer` names, or else the first key of `principals`. A config whose principals a linter sorts, or that wants a writer other than its first entry, sets `writer: "<id>"`. `testing api doctor` prints who writes and why.
 
 ## Renamed checks
 
@@ -37,4 +37,4 @@ Three check ids are spelled en-US now:
 | `select.nested-honoured`               | `select.nested-honored`               |
 | `spec.declared-rate-limit-is-honoured` | `spec.declared-rate-limit-is-honored` |
 
-A baseline that names an old id exits 2 and names the new one, as it does for any id no check raises, so a known finding never reads as fixed because its check was renamed. `oat diff` between a 0.24 report and a 0.25 one shows those checks' findings as fixed under the old id and new under the new one.
+A baseline that names an old id exits 2 and names the new one, as it does for any id no check raises, so a known finding never reads as fixed because its check was renamed. `testing api diff` between a 0.24 report and a 0.25 one shows those checks' findings as fixed under the old id and new under the new one.

@@ -105,7 +105,7 @@ export const documentedStatusHonored: Check = defineCheck({
 		if (probes.size > 0) {
 			const { lines, evidence } = describeUndeclared(ctx, probes)
 			ctx.findings.attributed([...probes.keys()]).spec(this.id, ctx.entityName, {
-				summary: "requests oat sent to be refused drew statuses the document does not declare",
+				summary: "requests the API tester sent to be refused drew statuses the document does not declare",
 				detail:
 					`${lines.join(". ")}. These were deliberately invalid probes, so the refusal is right; ` +
 					"its status is what the document leaves out.",

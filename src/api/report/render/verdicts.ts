@@ -16,7 +16,7 @@ export const VERDICT_NOTE: Record<Verdict, string> = {
 	AMBIGUITY: "The document permits both the observed and the expected behavior. Tighten it.",
 	BACKEND_BUG: "Independent projections of the same fact disagree, or a property does not hold.",
 	BLOCKED: "Not evaluated because something it depends on failed. Fix the cause first.",
-	COVERAGE_GAP: "oat could not test this. Each entry names what would make it testable.",
+	COVERAGE_GAP: "the API tester could not test this. Each entry names what would make it testable.",
 	SECURITY: "Reachable across a tenant boundary. Treat as exploitable until proven otherwise.",
 	SPEC_BUG: "The backend is defensible; the document disagrees. Generated clients will break.",
 }

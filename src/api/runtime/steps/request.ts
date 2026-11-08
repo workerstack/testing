@@ -69,7 +69,9 @@ export async function resolveRequest(
 	if (isOperationStep(step)) {
 		const op = target.model.byOperationId.get(step.operationId)
 		if (op === undefined) {
-			throw new Error(`oat: auth step ${index + 1} names operation "${step.operationId}", which is not in the document`)
+			throw new Error(
+				`testing api: auth step ${index + 1} names operation "${step.operationId}", which is not in the document`,
+			)
 		}
 		const raw = target.model.rawOperations.get(step.operationId)
 		const interpolated = step.body === undefined ? undefined : fill(step.body)
@@ -88,7 +90,7 @@ export async function resolveRequest(
 	}
 
 	if (!isRequestStep(step)) {
-		throw new Error(`oat: auth step ${index + 1} declares neither an operationId nor a method and path`)
+		throw new Error(`testing api: auth step ${index + 1} declares neither an operationId nor a method and path`)
 	}
 	return {
 		client: target.client,
@@ -114,7 +116,7 @@ function filled(
 	const name = placeholderNames(value).find((each) => scope[each] === undefined && !kept.has(each))
 	if (name === undefined) return interpolate(value, scope, kept)
 	throw new Error(
-		`oat: step ${index + 1}'s placeholder {${name}} has no value: no bind, saveAs or earlier step fills it`,
+		`testing api: step ${index + 1}'s placeholder {${name}} has no value: no bind, saveAs or earlier step fills it`,
 	)
 }
 
@@ -133,7 +135,7 @@ function targetOf(ctx: StepContext, step: AuthStep, index: number): OriginClient
 	if (named === undefined) {
 		const known = [...(ctx.originClients?.keys() ?? [])].join(", ")
 		throw new Error(
-			`oat: auth step ${index + 1} names origin "${origin}", which is not in config.origins` +
+			`testing api: auth step ${index + 1} names origin "${origin}", which is not in config.origins` +
 				(known === "" ? "" : ` (known: ${known})`),
 		)
 	}

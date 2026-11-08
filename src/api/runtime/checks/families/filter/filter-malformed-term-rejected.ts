@@ -27,7 +27,7 @@ export const filterMalformedTermRejected: Check<{
 		if (conventions.grammarDeclared !== true || !filterable(ctx)) return cannot()
 		for (const field of resolvedCaps(ctx).filterable) {
 			const sample = ctx.records.find((row) => row[field.field] != null)
-			const value = sample === undefined ? "oat-probe" : String(asTermValue(sample[field.field]))
+			const value = sample === undefined ? "testing-probe" : String(asTermValue(sample[field.field]))
 			const malformed = renderMalformed({
 				field: field.field,
 				filterParam: conventions.filter,

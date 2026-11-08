@@ -31,7 +31,7 @@ interface ContractCase {
 	probe: (via: Via, results: ParserResult[]) => Promise<void>
 }
 
-/** oat run once against `handle`, hosted through `via`, which serves its spec at `/v1/openapi/spec`. */
+/** testing api run once against `handle`, hosted through `via`, which serves its spec at `/v1/openapi/spec`. */
 async function hostedRun(via: Via, handle: Handle, options: Omit<RunOptions, "baseUrl" | "spec">): Promise<RunResult> {
 	const hosted = await via.host(handle)
 	try {

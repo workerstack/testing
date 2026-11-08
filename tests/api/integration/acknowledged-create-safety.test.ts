@@ -9,7 +9,7 @@ import type { OpenApiDocument } from "../../../src/api/spec/types.ts"
  * its own and answers only `{ success: true }`. Another tenant's rows hold the ids 1–60 and, as on
  * backends with weak item isolation, answer a GET or DELETE by id from anyone.
  *
- * oat sent those ids but never created anything under them. Nothing it does may touch those rows.
+ * The API tester sent those ids but never created anything under them. Nothing it does may touch those rows.
  */
 
 type Row = { id: number; name: string; owner: string }

@@ -9,7 +9,7 @@ export interface FailedRequest {
 	exchange?: Exchange
 }
 
-/** Why a record oat needed could not be made or found: the parameter or operation, and the answer. */
+/** Why a record the API tester needed could not be made or found: the parameter or operation, and the answer. */
 export class SeedError extends Error {
 	/** Status the failing request returned, when the failure was an HTTP response. */
 	readonly status: number | undefined

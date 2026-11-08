@@ -4,8 +4,8 @@ import { endlessWhen, pagedDoc, rewriting, without } from "./__fixtures__/compos
 import { backend, NOTES, PARAMS, queryDoc, REJECT, stage } from "./__fixtures__/query-api.ts"
 import { unknownParameterConsistent } from "./query-unknown-parameter-consistent.ts"
 
-const PLAIN = "oat_unknown_parameter"
-const TYPO = "limit_oat_typo"
+const PLAIN = "testing_unknown_parameter"
+const TYPO = "limit_testing_typo"
 
 /* A backend that accepts, and ignores, both invented names. */
 const lenient = backend(NOTES, { params: [...PARAMS, "page", PLAIN, TYPO] })
@@ -120,8 +120,8 @@ const typo = (params: string[]) => stage(unknownParameterConsistent, { doc: quer
 describe("query.unknown-parameter-consistent plans", () => {
 	it("misspells the page size, else the page, else the order, else a plain `limit`", () => {
 		expect(typo([...PARAMS])).toEqual({ ok: true, value: { names: [PLAIN, TYPO] } })
-		expect(typo(["page", "order"])).toEqual({ ok: true, value: { names: [PLAIN, "page_oat_typo"] } })
-		expect(typo(["order", "q"])).toEqual({ ok: true, value: { names: [PLAIN, "order_oat_typo"] } })
+		expect(typo(["page", "order"])).toEqual({ ok: true, value: { names: [PLAIN, "page_testing_typo"] } })
+		expect(typo(["order", "q"])).toEqual({ ok: true, value: { names: [PLAIN, "order_testing_typo"] } })
 		expect(typo(["q"])).toEqual({ ok: true, value: { names: [PLAIN, TYPO] } })
 	})
 

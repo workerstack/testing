@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { isRaw, isRawUnion, isRecord } from "./raw.ts"
 
-/* An input oat has not checked yet is a plain object, or it is not read by key at all. */
+/* An input the API tester has not checked yet is a plain object, or it is not read by key at all. */
 
 describe("the raw guards", () => {
 	it("take a plain object, and nothing else, as one to read by key", () => {

@@ -1,5 +1,5 @@
 import { dirname, resolve } from "node:path"
-import type { OatConfig } from "../../config/types/config.ts"
+import type { ApiConfig } from "../../config/types/config.ts"
 import type { BaselineFile } from "../../runtime/baseline.ts"
 import type { ProgressHandler } from "../../runtime/progress/types.ts"
 import type { RunOptions } from "../../runtime/run/index.ts"
@@ -32,7 +32,7 @@ const AS_WRITTEN = [
 	"query",
 	"entities",
 	"network",
-] as const satisfies ReadonlyArray<keyof OatConfig & keyof RunOptions>
+] as const satisfies ReadonlyArray<keyof ApiConfig & keyof RunOptions>
 
 /** What the command decided around the config: where it writes, how it reports, how it stops. */
 export interface RunSetting {
@@ -56,7 +56,7 @@ export interface Overrides {
 }
 
 /** The flags over the config: a flag says what the config would, for this run only. */
-export function overridesOf(config: OatConfig, flags: Args["flags"]): Overrides {
+export function overridesOf(config: ApiConfig, flags: Args["flags"]): Overrides {
 	return {
 		baseUrl: str(flags, "base-url") ?? config.baseUrl,
 		only: list(flags, "only") ?? config.only?.filter((name) => name.trim() !== ""),
@@ -66,7 +66,7 @@ export function overridesOf(config: OatConfig, flags: Args["flags"]): Overrides 
 }
 
 /** The run's options, from the config, the flags over it, and what the command set up. */
-export function runOptionsOf(config: OatConfig, flags: Args["flags"], setting: RunSetting): RunOptions {
+export function runOptionsOf(config: ApiConfig, flags: Args["flags"], setting: RunSetting): RunOptions {
 	const { baseUrl, only, ops, profile } = overridesOf(config, flags)
 	const seed = str(flags, "seed")
 	return {
@@ -98,7 +98,7 @@ function setUp(setting: RunSetting): Partial<RunOptions> {
 	}
 }
 
-function asWritten(config: OatConfig): Partial<RunOptions> {
+function asWritten(config: ApiConfig): Partial<RunOptions> {
 	const picked: Record<string, unknown> = {}
 	for (const key of AS_WRITTEN) {
 		if (config[key] !== undefined) picked[key] = config[key]

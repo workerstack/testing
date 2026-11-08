@@ -1,12 +1,12 @@
 /*
  * Square's Connect API in a sandbox account: a manual target that needs the user's secrets (never
- * run by `test:targets`). Written with `oat init`, then filled in.
+ * run by `test:targets`). Written with `testing api init`, then filled in.
  *
  * The document's one scheme is OAuth 2 authorization code; a sandbox access token from the
  * developer dashboard stands in for what that flow would issue. The run is scoped to customers,
  * which a sandbox creates and deletes freely.
  *
- *   OAT_SQUARE_TOKEN=<sandbox access token> oat run --config tests/api/targets/hosted/square/oat.config.ts
+ *   TESTING_API_SQUARE_TOKEN=<sandbox access token> testing api run --config tests/api/targets/hosted/square/testing.api.config.ts
  */
 import { defineConfig, env } from "../../../../../src/api/index.ts"
 
@@ -18,7 +18,7 @@ export default defineConfig({
 	globalHeaders: { "Square-Version": "2026-09-16" },
 	security: {
 		/* Scopes the sandbox token carries; operations needing others are untested. */
-		oauth2: { holds: ["CUSTOMERS_READ", "CUSTOMERS_WRITE"], static: env("OAT_SQUARE_TOKEN") },
+		oauth2: { holds: ["CUSTOMERS_READ", "CUSTOMERS_WRITE"], static: env("TESTING_API_SQUARE_TOKEN") },
 	},
 	principals: {
 		alpha: {},

@@ -13,7 +13,7 @@ import { WORLDS } from "./worlds/catalog.ts"
 const dir = join(dirname(fileURLToPath(import.meta.url)), "schema")
 await mkdir(dir, { recursive: true })
 for (const [id, world] of Object.entries(WORLDS).sort(([a], [b]) => a.localeCompare(b))) {
-	const sql = `-- labs/api/${id} — ${world.entities.length} entities. Applied to D1 oat-labs-${id}.\n${schemaStatements(world).join(";\n")};\n`
+	const sql = `-- labs/api/${id} — ${world.entities.length} entities. Applied to D1 testing-labs-${id}.\n${schemaStatements(world).join(";\n")};\n`
 	await writeFile(join(dir, `${id}.sql`), sql)
 	process.stdout.write(`wrote schema/${id}.sql  ${world.entities.length} entities\n`)
 }

@@ -41,7 +41,7 @@ function scenariosOf({ options, model, originClients }: Connected): Scenario[] {
 	for (const scenario of options.scenarios ?? []) {
 		if (scenario.origin !== undefined && !originClients.has(scenario.origin)) {
 			throw new Error(
-				`oat: scenario "${scenario.id}" belongs to origin "${scenario.origin}", which is not in config.origins`,
+				`testing api: scenario "${scenario.id}" belongs to origin "${scenario.origin}", which is not in config.origins`,
 			)
 		}
 	}

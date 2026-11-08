@@ -4,7 +4,7 @@ import { renderStepSummary, STEP_SUMMARY_LIMIT } from "./step-summary.ts"
 
 /* The run as a GitHub job summary: the verdict, the operations, the findings, and where the rest is. */
 
-const RUN_DIR = "/w/.oat/runs/2026-10-22T10-00-00Z"
+const RUN_DIR = "/w/.testing/api/runs/2026-10-22T10-00-00Z"
 const render = (input = reportOf()) => renderStepSummary(input, { runDir: RUN_DIR })
 const bytes = (text: string) => Buffer.byteLength(text, "utf8")
 
@@ -26,13 +26,13 @@ describe("renderStepSummary", () => {
 			reportOf({ findings: [finding()], profile: "cheap", scope: graded() }, [exchange(), exchange()]),
 		)
 		expect(text.split("\n").slice(0, 5)).toEqual([
-			"## oat: defects (exit 1)",
+			"## testing api: defects (exit 1)",
 			"",
 			`\`${BASE}\` · profile cheap · 1 checks · 1 entities · 2 requests · 1.5s`,
 			"",
 			"**1 root-cause finding**",
 		])
-		expect(text.endsWith(`Full report: \`${RUN_DIR}/oat-report.md\`\n`)).toBe(true)
+		expect(text.endsWith(`Full report: \`${RUN_DIR}/report.md\`\n`)).toBe(true)
 	})
 
 	it("tables operations by status", () => {
@@ -72,7 +72,7 @@ describe("renderStepSummary", () => {
 				"| BACKEND_BUG | row | `b` | backend |",
 				"| SECURITY (known) | row | `k` | known one |",
 				"",
-				"2 coverage gaps · 1 blocked, listed in oat-report.md",
+				"2 coverage gaps · 1 blocked, listed in report.md",
 			].join("\n"),
 		)
 		expect(text).toContain("Baseline: 1 known · 1 fixed")
@@ -155,7 +155,7 @@ describe("renderStepSummary, the bound", () => {
 		const shown = text.split("\n").filter((line) => line.startsWith("| BACKEND_BUG")).length
 		expect(shown).toBeGreaterThan(100)
 		expect(text).toContain(`\n\n… and ${400 - shown} more, truncated, see ${RUN_DIR}\n`)
-		expect(text.endsWith(`Full report: \`${RUN_DIR}/oat-report.md\`\n`)).toBe(true)
+		expect(text.endsWith(`Full report: \`${RUN_DIR}/report.md\`\n`)).toBe(true)
 		const fewer = render(reportOf({ findings: findings.slice(0, 20), inconclusive, scope: graded() }))
 		expect(bytes(fewer)).toBeLessThanOrEqual(STEP_SUMMARY_LIMIT)
 		expect(fewer.split("\n").filter((line) => line.startsWith("| BACKEND_BUG"))).toHaveLength(20)
@@ -166,6 +166,6 @@ describe("renderStepSummary, the bound", () => {
 		const huge = `${BASE}/${"p".repeat(STEP_SUMMARY_LIMIT)}`
 		const text = render(reportOf({ baseUrl: huge, scope: graded() }))
 		expect(bytes(text)).toBeLessThanOrEqual(STEP_SUMMARY_LIMIT)
-		expect(text).toBe(`## oat: clean (exit 0)\n\n… truncated, see ${RUN_DIR}\n`)
+		expect(text).toBe(`## testing api: clean (exit 0)\n\n… truncated, see ${RUN_DIR}\n`)
 	})
 })

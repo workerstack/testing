@@ -6,7 +6,7 @@ import { folder, json, notesConfig, notesSpec, referenceConfig, signupConfig } f
 import { notesDoc } from "../../runtime/run/__fixtures__/api.ts"
 import { commandDoctor } from "./doctor.ts"
 
-/* What oat can and cannot test in a document, and why; exits 1 when something blocks testing. */
+/* What the API tester can and cannot test in a document, and why; exits 1 when something blocks testing. */
 
 describe("commandDoctor", () => {
 	it("reports on a document, as text or JSON", async () => {
@@ -45,7 +45,7 @@ describe("commandDoctor", () => {
 		expect(plain.text()).not.toContain("baseline")
 	})
 
-	it("blocks on a document whose operations oat cannot reach, and refuses one it cannot read", async () => {
+	it("blocks on a document whose operations the API tester cannot reach, and refuses one it cannot read", async () => {
 		const unreachable = {
 			info: { title: "t", version: "1" },
 			openapi: "3.1.0",
@@ -66,12 +66,14 @@ describe("commandDoctor", () => {
 	})
 })
 
-describe("commandDoctor and a document oat does not read", () => {
+describe("commandDoctor and a document the API tester does not read", () => {
 	it("exits 2 on a Swagger 2.0 document, naming it", async () => {
 		const writer = bufferWriter()
 		const spec = json(folder(), "swagger.json", { info: { title: "t", version: "1" }, paths: {}, swagger: "2.0" })
 		expect(await commandDoctor(writer, { spec })).toBe(2)
-		expect(writer.text()).toBe(`oat: ${spec} is Swagger 2.0; oat reads OpenAPI 3.0–3.2 only — convert it first\n`)
+		expect(writer.text()).toBe(
+			`testing api: ${spec} is Swagger 2.0; the API tester reads OpenAPI 3.0–3.2 only — convert it first\n`,
+		)
 	})
 })
 
@@ -129,7 +131,7 @@ describe("commandDoctor and the operations a login sends", () => {
 
 /* A config module for the notes document that reads its bearer token through env(). */
 function envConfig(dir: string, variable: string): string {
-	const path = join(dir, "oat.config.mjs")
+	const path = join(dir, "testing.api.config.mjs")
 	const envModule = join(import.meta.dirname, "..", "..", "config", "env.ts")
 	writeFileSync(
 		path,
@@ -142,15 +144,15 @@ function envConfig(dir: string, variable: string): string {
 
 describe("commandDoctor and a config whose secrets are not set", () => {
 	it("doctor --config with an unset env() lists it and exits 0 or 1, not 2", async () => {
-		delete process.env["OAT_DOCTOR_TEST_TOKEN"]
-		const config = envConfig(folder(), "OAT_DOCTOR_TEST_TOKEN")
+		delete process.env["TESTING_API_DOCTOR_TEST_TOKEN"]
+		const config = envConfig(folder(), "TESTING_API_DOCTOR_TEST_TOKEN")
 		const writer = bufferWriter()
 		const code = await commandDoctor(writer, { config })
 		expect([0, 1]).toContain(code)
-		expect(writer.text()).toContain("  env        OAT_DOCTOR_TEST_TOKEN not set — a run stops until they are\n")
+		expect(writer.text()).toContain("  env        TESTING_API_DOCTOR_TEST_TOKEN not set — a run stops until they are\n")
 		const machine = bufferWriter()
 		expect(await commandDoctor(machine, { config, json: true })).toBe(code)
-		expect(JSON.parse(machine.text()).unsetEnv).toEqual(["OAT_DOCTOR_TEST_TOKEN"])
+		expect(JSON.parse(machine.text()).unsetEnv).toEqual(["TESTING_API_DOCTOR_TEST_TOKEN"])
 	})
 })
 
@@ -158,7 +160,9 @@ describe("commandDoctor and the config's principals", () => {
 	it("reads a config that names no recipe and no principal as having none", async () => {
 		const dir = folder()
 		const writer = bufferWriter()
-		expect(await commandDoctor(writer, { config: json(dir, "oat.config.json", { spec: notesSpec(dir) }) })).toBe(1)
+		expect(
+			await commandDoctor(writer, { config: json(dir, "testing.api.config.json", { spec: notesSpec(dir) }) }),
+		).toBe(1)
 		expect(writer.text()).toContain("none — the config names no principal")
 		expect(writer.text()).toContain("    bearer     5 operations; add security.bearer\n")
 	})
@@ -174,7 +178,7 @@ describe("commandDoctor and the config's principals", () => {
 		}) as unknown as { components: { securitySchemes: Record<string, unknown> } }
 		doc.components.securitySchemes["legacy"] = { in: "header", name: "X-Legacy", type: "apiKey" }
 		const dir = folder()
-		const config = json(dir, "oat.config.json", {
+		const config = json(dir, "testing.api.config.json", {
 			principals: { alpha: {} },
 			security: { bearer: { static: "t" } },
 			spec: notesSpec(dir, doc),

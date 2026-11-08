@@ -6,7 +6,7 @@ import { join, resolve } from "node:path"
 import { afterAll, describe, expect, it } from "vitest"
 
 /*
- * Installed from a local path, oat is a symlink in the consumer's node_modules. Node resolves the
+ * Installed from a local path, the API tester is a symlink in the consumer's node_modules. Node resolves the
  * main module's real path for `import.meta.url` while `process.argv[1]` keeps the link, so a
  * self-start check comparing the two never fired: the CLI exited 0 having done nothing.
  */
@@ -21,13 +21,13 @@ afterAll(async () => {
 describe("the CLI reached through a symlink", () => {
 	it("starts and prints its usage", async () => {
 		expect(existsSync(COMPILED), "compile the CLI first (bun run test does)").toBe(true)
-		const dir = await mkdtemp(join(tmpdir(), "oat-link-"))
+		const dir = await mkdtemp(join(tmpdir(), "testing-link-"))
 		dirs.push(dir)
 		await symlink(ROOT, join(dir, "pkg"), "dir")
 		const result = spawnSync(process.execPath, [join(dir, "pkg", "dist", "api", "cli.js"), "help"], {
 			encoding: "utf8",
 		})
 		expect(result.status).toBe(0)
-		expect(result.stdout).toContain("oat run")
+		expect(result.stdout).toContain("testing api run")
 	})
 })

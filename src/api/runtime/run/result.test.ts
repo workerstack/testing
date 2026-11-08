@@ -8,7 +8,7 @@ import { earlyResult, finalResult, scopeReport, settle } from "./result.ts"
 
 /* The result as the report reads it: everything the run gathered, however far it got. */
 
-const journaled = () => ({ exchangeDir: mkdtempSync(join(tmpdir(), "oat-result-")) })
+const journaled = () => ({ exchangeDir: mkdtempSync(join(tmpdir(), "testing-result-")) })
 
 const AS_A = { as: { principal: "a" } }
 

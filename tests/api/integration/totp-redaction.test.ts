@@ -30,7 +30,7 @@ const secrets = fc
 	})
 
 function setupAnswer(normal: string, shown: string, uriFirst: boolean): Record<string, string> {
-	const uri = `otpauth://totp/oat:ada?secret=${normal}&issuer=oat`
+	const uri = `otpauth://totp/testing:ada?secret=${normal}&issuer=testing`
 	const qr = `data:image/png;base64,${Buffer.from(uri).toString("base64")}`
 	return uriFirst ? { otpauth_uri: uri, qr_code: qr, secret: shown } : { secret: shown, qr_code: qr, otpauth_uri: uri }
 }

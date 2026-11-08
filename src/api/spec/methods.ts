@@ -1,5 +1,5 @@
 /**
- * The HTTP methods a document can declare, and every set oat reads them by. A list of methods
+ * The HTTP methods a document can declare, and every set the API tester reads them by. A list of methods
  * written anywhere else drifts: one module once missed QUERY, another counted OPTIONS as a write.
  */
 
@@ -41,9 +41,12 @@ export const BODILESS_READS: ReadonlySet<string> = /* @__PURE__ */ new Set(
 	/* @__PURE__ */ [...READS].filter((method) => !BODY_READS.has(method)),
 )
 
-/** Methods oat lists but never sends, with the reason. */
+/** Methods the API tester lists but never sends, with the reason. */
 export const UNSENDABLE: ReadonlyMap<string, string> = /* @__PURE__ */ new Map([
-	["TRACE", "fetch refuses TRACE (a cross-site tracing guard), so oat lists the operation but never sends it"],
+	[
+		"TRACE",
+		"fetch refuses TRACE (a cross-site tracing guard), so the API tester lists the operation but never sends it",
+	],
 ])
 
 /** Why `method` is never sent, or `null` when it can be. */

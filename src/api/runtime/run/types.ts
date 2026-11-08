@@ -32,9 +32,9 @@ export interface RunOptions {
 	principals: PrincipalsConfig
 	/** The principal that writes; unset, the first of `principals`. */
 	writer?: string
-	/** One recipe per scheme the document declares; see `OatConfig.security`. */
+	/** One recipe per scheme the document declares; see `ApiConfig.security`. */
 	security?: SecurityConfig
-	/** Extra secret header names; see `OatConfig.redact`. */
+	/** Extra secret header names; see `ApiConfig.redact`. */
 	redact?: { headers?: string[] }
 	hooks?: Hooks
 	uploads?: Uploads
@@ -68,7 +68,7 @@ export interface RunOptions {
 	maxInFlight?: number
 	/** Paces requests per category. Checked before `x-rate-limit` tags for the same request. */
 	rateLimits?: RateLimitSpec[]
-	/** Requests per second to `baseUrl` in all; see `OatConfig.maxRps`. */
+	/** Requests per second to `baseUrl` in all; see `ApiConfig.maxRps`. */
 	maxRps?: number
 	/** Non-fatal notes, such as an upload path that matched no file. The CLI prints them; unset, they are dropped. */
 	warn?: (message: string) => void
@@ -76,27 +76,27 @@ export interface RunOptions {
 	onProgress?: ProgressHandler
 	/** Extra hosts with their own OpenAPI. Auth stays on the primary. */
 	origins?: OriginSpec[]
-	/** Patches to the document, applied before oat reads it; see `OatConfig.overlay`. */
+	/** Patches to the document, applied before the API tester reads it; see `ApiConfig.overlay`. */
 	overlay?: SpecOverlay
-	/** The only operationIds oat may call; see `OatConfig.allow`. */
+	/** The only operationIds the API tester may call; see `ApiConfig.allow`. */
 	allow?: string[]
-	/** See `OatConfig.fence`. */
+	/** See `ApiConfig.fence`. */
 	fence?: { failRun?: boolean }
-	/** See `OatConfig.teardown`. */
+	/** See `ApiConfig.teardown`. */
 	teardown?: { verify?: boolean }
-	/** Known findings, as `oat baseline` writes them; see `OatConfig.baseline`. */
+	/** Known findings, as `testing api baseline` writes them; see `ApiConfig.baseline`. */
 	baseline?: BaselineFile
-	/** Where the backend says which build it is; see `OatConfig.targetVersion`. */
+	/** Where the backend says which build it is; see `ApiConfig.targetVersion`. */
 	targetVersion?: TargetVersionSpec
 	/** Declared flows for operations the matrix cannot reach. */
 	scenarios?: Scenario[]
-	/** Each scenario external's kind; see `OatConfig.externals`. */
+	/** Each scenario external's kind; see `ApiConfig.externals`. */
 	externals?: ExternalsConfig
 	/** Backoff for `resolveOutOfBand` / `resolvePrincipalAuth`. */
 	outOfBand?: OutOfBandConfig
-	/** How much of the payload catalog to send; see `OatConfig.payloads`. */
+	/** How much of the payload catalog to send; see `ApiConfig.payloads`. */
 	payloads?: PayloadPolicy
-	/** Checks switched on that do not run by default; see `OatConfig.checks`. */
+	/** Checks switched on that do not run by default; see `ApiConfig.checks`. */
 	checks?: CheckSwitches
 	/** Skip `teardownPrincipal` — used when this run is a secondary origin sharing accounts. */
 	skipPrincipalTeardown?: boolean
@@ -111,7 +111,7 @@ export interface RunOptions {
 		/** The recipes no primary scheme declares, whose format and placements are an origin scheme's. */
 		originOnly: ReadonlySet<string>
 	}
-	/** Global filter catalog defaults, and the filter grammar when oat cannot infer it. */
+	/** Global filter catalog defaults, and the filter grammar when the API tester cannot infer it. */
 	query?: QueryConfig
 	/** Per-entity overlays. */
 	entities?: Record<string, EntityConfig>

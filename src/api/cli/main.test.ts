@@ -22,24 +22,24 @@ describe("main", () => {
 	it("refuses an unknown flag and a flag it cannot read, with the help", async () => {
 		const writer = bufferWriter()
 		expect(await main(["run", "--concurrency", "1"], { writer })).toBe(2)
-		expect(writer.text()).toMatch(/^oat: unknown flag "--concurrency"\n\noat — OpenAPI Tester/)
+		expect(writer.text()).toMatch(/^testing api: unknown flag "--concurrency"\n\ntesting api — test a live HTTP API/)
 		const second = bufferWriter()
 		expect(await main(["run", "--jobs", "0"], { writer: second })).toBe(2)
-		expect(second.text()).toMatch(/^oat: --jobs must be a positive integer/)
+		expect(second.text()).toMatch(/^testing api: --jobs must be a positive integer/)
 	})
 
 	it("prints the help for help, for --help, and for nothing at all", async () => {
 		for (const argv of [["help"], ["run", "--help"], []]) {
 			const writer = bufferWriter()
 			expect(await main(argv, { writer })).toBe(0)
-			expect(writer.text()).toMatch(/^oat — OpenAPI Tester/)
+			expect(writer.text()).toMatch(/^testing api — test a live HTTP API/)
 		}
 	})
 
 	it("refuses a command it does not know, before reading anything", async () => {
 		const writer = bufferWriter()
 		expect(await main(["frobnicate"], { writer })).toBe(2)
-		expect(writer.text()).toMatch(/^oat: unknown command "frobnicate"/)
+		expect(writer.text()).toMatch(/^testing api: unknown command "frobnicate"/)
 	})
 
 	it("hands each command its writer and what it reaches the world through", async () => {
@@ -51,7 +51,7 @@ describe("main", () => {
 		expect(await main(["plan"], { writer })).toBe(2)
 		expect(await main(["doctor"], { writer })).toBe(2)
 		expect(await main(["init"], { writer })).toBe(2)
-		expect(writer.text()).toContain("oat: init requires --spec")
+		expect(writer.text()).toContain("testing api: init requires --spec")
 		expect(await main(["run"], { writer })).toBe(2)
 		expect(
 			await main(["conformance", "--backend", "nope"], {
@@ -59,7 +59,7 @@ describe("main", () => {
 				writer,
 			}),
 		).toBe(2)
-		expect(writer.text()).toContain('oat: unknown --backend "nope"')
+		expect(writer.text()).toContain('testing api: unknown --backend "nope"')
 	})
 })
 
@@ -71,37 +71,38 @@ describe("start", () => {
 	})
 
 	it("sets the process's exit code to the command's", async () => {
-		process.argv = ["node", "oat", "frobnicate"]
+		process.argv = ["node", "testing", "frobnicate"]
 		await start({ writer: bufferWriter() })
 		expect(process.exitCode).toBe(2)
 	})
 
 	it("reports an error no command expected in one line, and fails", async () => {
-		process.argv = ["node", "oat", "serve"]
+		process.argv = ["node", "testing", "serve"]
 		const writer = bufferWriter()
 		const broken = {
 			factoryFor: async () => Promise.reject(new Error("no ports left")),
 			stopped: async () => undefined,
 		}
 		await start({ serve: broken, writer })
-		expect(writer.text()).toBe("oat: no ports left\n")
+		expect(writer.text()).toBe("testing api: no ports left\n")
 		expect(process.exitCode).toBe(EXIT.failed)
 	})
 
 	it("exits 2 on a usage error a command threw, saying it once", async () => {
-		process.argv = ["node", "oat", "serve", "--backend", "postgres"]
+		process.argv = ["node", "testing", "serve", "--backend", "postgres"]
 		const writer = bufferWriter()
 		const refused = {
-			factoryFor: async () => Promise.reject(new UsageError("oat: --backend postgres needs the postgres package")),
+			factoryFor: async () =>
+				Promise.reject(new UsageError("testing api: --backend postgres needs the postgres package")),
 			stopped: async () => undefined,
 		}
 		await start({ serve: refused, writer })
-		expect(writer.text()).toBe("oat: --backend postgres needs the postgres package\n")
+		expect(writer.text()).toBe("testing api: --backend postgres needs the postgres package\n")
 		expect(process.exitCode).toBe(EXIT.usage)
 	})
 
 	it("writes to the process's own streams by default", async () => {
-		process.argv = ["node", "oat", "frobnicate"]
+		process.argv = ["node", "testing", "frobnicate"]
 		const written: string[] = []
 		const write = process.stderr.write
 		process.stderr.write = ((chunk: string) => written.push(chunk) > 0) as typeof process.stderr.write
@@ -110,16 +111,16 @@ describe("start", () => {
 		} finally {
 			process.stderr.write = write
 		}
-		expect(written.join("")).toMatch(/^oat: unknown command/)
+		expect(written.join("")).toMatch(/^testing api: unknown command/)
 	})
 })
 
 describe("invokedDirectly", () => {
 	it("is true for the module run as the program, through a symlink too", () => {
-		const dir = mkdtempSync(join(tmpdir(), "oat-entry-"))
+		const dir = mkdtempSync(join(tmpdir(), "testing-entry-"))
 		const real = join(dir, "cli.js")
 		writeFileSync(real, "")
-		const link = join(dir, "oat")
+		const link = join(dir, "testing")
 		symlinkSync(real, link)
 		const url = pathToFileURL(real).href
 		expect(invokedDirectly(real, url)).toBe(true)
@@ -129,7 +130,7 @@ describe("invokedDirectly", () => {
 	})
 
 	it("compares as written when a path cannot be resolved", () => {
-		const missing = join(tmpdir(), "oat-no-such-dir", "cli.js")
+		const missing = join(tmpdir(), "testing-no-such-dir", "cli.js")
 		expect(invokedDirectly(missing, pathToFileURL(missing).href)).toBe(true)
 	})
 })
@@ -144,7 +145,7 @@ describe("start and a document whose refs point at nothing", () => {
 	})
 
 	it("reports a document whose refs point at nothing, rather than failing on it", async () => {
-		const spec = join(mkdtempSync(join(tmpdir(), "oat-main-")), "dangling.json")
+		const spec = join(mkdtempSync(join(tmpdir(), "testing-main-")), "dangling.json")
 		const fee = { $ref: "#/components/schemas/AppFeeAllocation" }
 		const doc = {
 			components: { schemas: { Order: { properties: { fee }, type: "object" } } },
@@ -162,13 +163,13 @@ describe("start and a document whose refs point at nothing", () => {
 			},
 		}
 		writeFileSync(spec, JSON.stringify(doc))
-		process.argv = ["node", "oat", "doctor", "--spec", spec]
+		process.argv = ["node", "testing", "doctor", "--spec", spec]
 		const writer = bufferWriter()
 		await start({ writer })
 		expect([EXIT.clean, EXIT.defects]).toContain(process.exitCode)
 		expect(writer.text()).toContain("    #/components/schemas/AppFeeAllocation\n    #/components/parameters/Missing\n")
 		expect(writer.text()).toContain(
-			"      refunds.list: $ref #/components/parameters/Missing points at nothing; oat leaves",
+			"      refunds.list: $ref #/components/parameters/Missing points at nothing; the API tester leaves",
 		)
 	})
 })

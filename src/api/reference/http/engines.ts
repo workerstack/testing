@@ -68,7 +68,7 @@ export function d1Store(credentials: D1Credentials = {}): StoreFactory {
 		apiToken === undefined ? "CLOUDFLARE_API_TOKEN" : null,
 	].filter((name): name is string => name !== null)
 	if (missing.length > 0) throw new Error(`D1 backend needs ${missing.join(", ")} in the environment`)
-	const prefix = `oat_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}_`
+	const prefix = `testing_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}_`
 	return async (defects, entities) => {
 		const { SqlStore } = await import("../stores/sqlite.ts")
 		const { d1Driver } = await import("../stores/sqlite-driver.ts")

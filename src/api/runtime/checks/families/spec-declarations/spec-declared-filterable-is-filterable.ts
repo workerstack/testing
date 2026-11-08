@@ -22,9 +22,9 @@ import type { JsonSchema } from "../../../../spec/types.ts"
  * it is entitled to refuse a column it never indexed — but the *document* is, and it is wrong in
  * the most expensive way, because the failure only appears at runtime in someone else's client.
  *
- * oat is uniquely positioned to catch this: it is the only thing that reads the claim and then
+ * The API tester is uniquely positioned to catch this: it is the only thing that reads the claim and then
  * tries it. Note the verdict is SPEC_BUG rather than BACKEND_BUG — the fix is to correct the
- * document or index the column, and saying which is not oat's call.
+ * document or index the column, and saying which is not the API tester's call.
  *
  * This also closes a silent-skip: every filter check treats a 4xx as a capability statement and
  * stands down, which is right when the field was merely inferred and wrong when it was declared.

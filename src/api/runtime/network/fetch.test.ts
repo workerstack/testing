@@ -136,7 +136,7 @@ describe("fetchSpecText", () => {
 	it("refuses an answer that is not a success, and uses fetch by default", async () => {
 		vi.stubGlobal("fetch", scripted(new Response("gone", { status: 404, statusText: "Not Found" })))
 		await expect(fetchSpecText("http://h.test/spec")).rejects.toThrow(
-			"oat: fetching http://h.test/spec returned 404 Not Found",
+			"testing api: fetching http://h.test/spec returned 404 Not Found",
 		)
 	})
 })

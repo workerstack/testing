@@ -86,7 +86,7 @@ export function notes(options: NotesOptions = {}): OpenApiDocument {
 
 const ITEM = { properties: { id: { type: "string" }, name: { type: "string" } }, type: "object" }
 
-/** A record with no field oat can take for its identity. */
+/** A record with no field the API tester can take for its identity. */
 export const COUNTER = { properties: { flag: { type: "boolean" }, size: { type: "integer" } }, type: "object" }
 
 /** An operation no entity owns. */
@@ -153,7 +153,7 @@ export const TENANT: OpenApiDocument = {
 	},
 } as OpenApiDocument
 
-/** Rows inside tables inside projects: a row's create needs a table, which oat makes first. */
+/** Rows inside tables inside projects: a row's create needs a table, which the API tester makes first. */
 export function tables(table: Record<string, unknown> | null = {}): OpenApiDocument {
 	return {
 		info: { title: "tables", version: "1" },

@@ -15,9 +15,9 @@ import { WRITE_EXPECTED } from "./write.ts"
 /**
  * Which check each defect must trip.
  *
- * The first id is the primary — the diagnosis oat is required to reach. Any further ids are
+ * The first id is the primary — the diagnosis the API tester is required to reach. Any further ids are
  * *acceptable* consequences: one defect can legitimately violate several properties at once, and
- * calling those false positives would push oat toward under-reporting real problems.
+ * calling those false positives would push the API tester toward under-reporting real problems.
  */
 export const EXPECTED: Record<DefectName, FindingId | FindingId[]> = {
 	...COMPOSITION_EXPECTED,

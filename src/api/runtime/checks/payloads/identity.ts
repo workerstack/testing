@@ -49,7 +49,7 @@ export const NO_ABSENT_ID = "an identifier of the documented shape that names no
 
 /** A well-formed identifier that names nothing, or `null` when the identifier schema allows none. */
 export function constructedAbsentId(ctx: CheckContext): string | null {
-	const made = absentIdentifier(identifierSchema(ctx), ctx.nonce ?? "oat")
+	const made = absentIdentifier(identifierSchema(ctx), ctx.nonce ?? "testing")
 	return made.ok ? String(made.value) : null
 }
 
@@ -79,7 +79,7 @@ export function reserveClientIdentity(
 
 /**
  * How a check's create draws its client-chosen identity, and draws it again after a 409: from
- * outside the run's taken identities, when oat chooses one (`choosesIdentity`); else not at all.
+ * outside the run's taken identities, when the API tester chooses one (`choosesIdentity`); else not at all.
  */
 export function clientIdentityOf(
 	ctx: Pick<CheckContext, "identity" | "takenIdentities">,
@@ -95,7 +95,7 @@ export function clientIdentityOf(
 	}
 }
 
-/** Whether a create body carries an identity oat chooses and reserves. */
+/** Whether a create body carries an identity the API tester chooses and reserves. */
 export function choosesIdentity(ctx: Pick<CheckContext, "identity" | "takenIdentities">, schema: JsonSchema): boolean {
 	return (
 		ctx.takenIdentities !== undefined &&

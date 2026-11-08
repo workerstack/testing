@@ -10,7 +10,7 @@ describe("packedManifests", () => {
 	})
 
 	it("reads npm 12's object keyed by package name", () => {
-		expect(packedManifests(JSON.stringify({ "@lovrozagar/oat": manifest }))).toEqual([manifest])
+		expect(packedManifests(JSON.stringify({ "@workerstack/testing": manifest }))).toEqual([manifest])
 	})
 
 	it("names the start of what npm printed when there is no JSON in it", () => {

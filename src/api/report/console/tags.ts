@@ -3,13 +3,13 @@ import type { SpecModel } from "../../spec/graph/types.ts"
 /**
  * Which checks each tag makes possible, measured rather than estimated.
  *
- * `oat conformance` runs the reference backend twice — once with its tags, once with them
+ * `testing api conformance` runs the reference backend twice — once with its tags, once with them
  * stripped — and asserts this map matches the difference, so it cannot drift into marketing.
  *
  * The distinction below is the honest part. Some tags *unlock* checks that are otherwise
  * impossible: nothing in a document reveals that a 202 is a receipt, or that a column is a
  * tombstone. Others do not change how much runs at all — they change whether what runs is
- * trustworthy. Without `x-query`, oat assumes every scalar property is filterable and probes
+ * trustworthy. Without `x-query`, the API tester assumes every scalar property is filterable and probes
  * fields the backend may never have indexed; without `x-tenant`, a matching path parameter still
  * infers a tenant and a cross-tenant read is an ambiguity; with no tenant at all the check does
  * not apply.
@@ -20,7 +20,7 @@ export const TAG_UNLOCKS: Record<string, readonly string[]> = {
 	"x-effects": ["effects.declared-effect-occurs"],
 	"x-immutable": ["patch.immutable-field-rejected"],
 	"x-invalidate": ["invalidation.declared-route-changes"],
-	/* Declaring filterable fields is itself a claim, and a claim is testable: oat probes each
+	/* Declaring filterable fields is itself a claim, and a claim is testable: the API tester probes each
 	 * one and reports the document — not the backend — when a declared filter is refused. */
 	"x-query": [
 		"spec.declared-filterable-is-filterable",
@@ -52,7 +52,7 @@ export const TAG_UNLOCKS: Record<string, readonly string[]> = {
 		/* Membership needs an array the document marks filterable; untagged, no array is guessed. */
 		"filter.contains-membership",
 	],
-	/* A declared rate is a claim the backend can break; an undeclared one is only oat's guess. */
+	/* A declared rate is a claim the backend can break; an undeclared one is only the API tester's guess. */
 	"x-rate-limit": ["spec.declared-rate-limit-is-honored"],
 	"x-soft-delete": ["softdelete.absent-from-default-list"],
 	"x-wait": ["effects.side-effect-arrives"],
@@ -87,11 +87,11 @@ export const TAG_REMEDY: Record<string, string> = {
 	"x-unique": "declare the column sets that must stay unique so a 409 duplicate can be scored",
 	security: "give each scheme in a security requirement a list of scopes, [] for none",
 	$ref: "define what each pointer names: a missing schema reads as unconstrained, a missing anything else leaves its operation untested",
-	/* What the document declares but oat never calls: no declaration closes these. */
-	webhooks: "not tested: oat makes no inbound or follow-up calls",
-	callbacks: "not tested: oat makes no inbound or follow-up calls",
-	links: "not tested: oat makes no inbound or follow-up calls",
-	additionalOperations: "not tested: oat sends only the methods OpenAPI fixes on a path item",
+	/* What the document declares but the API tester never calls: no declaration closes these. */
+	webhooks: "not tested: the API tester makes no inbound or follow-up calls",
+	callbacks: "not tested: the API tester makes no inbound or follow-up calls",
+	links: "not tested: the API tester makes no inbound or follow-up calls",
+	additionalOperations: "not tested: the API tester sends only the methods OpenAPI fixes on a path item",
 	TRACE: "not tested: fetch cannot send TRACE",
 }
 

@@ -69,7 +69,7 @@ export const crossTenantFilterBypass: Check<{
 		ctx.findings.report({
 			check: this.id,
 			detail:
-				`${detail} oat inferred tenant scoping from the "${ctx.listOp.tenantParam}" path ` +
+				`${detail} the API tester inferred tenant scoping from the "${ctx.listOp.tenantParam}" path ` +
 				"parameter; the document does not state it. A public catalog has no tenant at all — " +
 				"no x-tenant and no tenant-named path parameter — and this check then does not apply. " +
 				"If the resource is not shared, declare x-tenant so the same 200 is SECURITY.",

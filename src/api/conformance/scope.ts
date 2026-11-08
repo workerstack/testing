@@ -26,7 +26,7 @@ async function runOnce(
 	ops: string[] | undefined,
 	via: Via,
 ): Promise<{ findings: Finding[]; statuses: Map<string, string> }> {
-	/* A defect behind an opt-in shows only with it on, in the reference and in oat both. */
+	/* A defect behind an opt-in shows only with it on, in the reference and in the API tester both. */
 	const optIn = optInFor(defects)
 	const server = await launch({ backend: "memory", dialect: "postgrest", via }, { defects, ...optIn.reference })
 	try {

@@ -126,7 +126,7 @@ describe("spec.declared-filterable-ops-accepted probes", () => {
 
 	it("probes membership with a stand-in when the cohort's array is empty", async () => {
 		expect(await probes([{ field: "tags", ops: ["contains"] }], { records: [{ ...ROW, tags: [] }] })).toEqual([
-			"tags.contains.oat-probe",
+			"tags.contains.testing-probe",
 		])
 	})
 

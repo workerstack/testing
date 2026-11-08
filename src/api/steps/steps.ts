@@ -22,7 +22,7 @@ export interface StepsOptions {
 	origin?: string
 	/**
 	 * The headers a session held in the scope as `{name}` is sent with, in place of the principal's
-	 * credential: where a credential goes is the API's to say, never oat's.
+	 * credential: where a credential goes is the API's to say, never the API tester's.
 	 */
 	session?: (name: string) => Record<string, string>
 }
@@ -43,7 +43,7 @@ export interface Builders<T extends StepTypes> {
 	mail(kind: MailKind<T>, address: string): MailDraft
 	/** A step only a person or a browser can do, answered by `hooks.external`. */
 	external<N extends keyof Externals<T> & string>(name: N, ...input: ExternalArgs<T, N>): ExternalDraft
-	/** The plain oat scenario; `covers` names this document's operations. */
+	/** The plain the API tester scenario; `covers` names this document's operations. */
 	scenario(init: ScenarioInit<OpId<T["ops"]>>): Scenario
 	/** A deliberately invalid value, sent as written. */
 	unchecked<V>(value: V): V & Unchecked

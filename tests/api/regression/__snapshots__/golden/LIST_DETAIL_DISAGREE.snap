@@ -430,7 +430,7 @@
       "added": [
         {
           "check": "consistency.projections-agree",
-          "detail": "job job_ID has \"name\" = \"Quarterly Report 0\" on the record oat created, but the collection returns \"Quarterly Report 0 (listing)\", and the sparse fieldset returns \"Quarterly Report 0 (listing)\", and the sorted page returns \"Quarterly Report 0 (listing)\". At least one read path is serving something the others are not; a client's view of a record then depends on which route it happened to use.",
+          "detail": "job job_ID has \"name\" = \"Quarterly Report 0\" on the record the API tester created, but the collection returns \"Quarterly Report 0 (listing)\", and the sparse fieldset returns \"Quarterly Report 0 (listing)\", and the sorted page returns \"Quarterly Report 0 (listing)\". At least one read path is serving something the others are not; a client's view of a record then depends on which route it happened to use.",
           "entity": "job",
           "operations": [
             "job.get",

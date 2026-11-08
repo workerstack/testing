@@ -95,8 +95,8 @@ jobs:
           set -euo pipefail
           ref="${{ inputs.tag || github.ref_name }}"
           tag="${ref#v}"
-          if npm view "@lovrozagar/oat@$tag" version >/dev/null 2>&1; then
-            echo "npm already has @lovrozagar/oat@$tag — skipping"
+          if npm view "@workerstack/testing@$tag" version >/dev/null 2>&1; then
+            echo "npm already has @workerstack/testing@$tag — skipping"
             exit 0
           fi
           if [ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ] || [ -z "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}" ]; then
@@ -130,14 +130,14 @@ jobs:
             -X POST \
             -H "Authorization: Bearer ${oidc_jwt}" \
             -H "Content-Type: application/json" \
-            "https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/@lovrozagar%2foat")
+            "https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/@workerstack%2ftesting")
           echo "oidc exchange HTTP $code"
           node -e 'const j=require("/tmp/npm-ex.json"); console.log(JSON.stringify({error:j.error,message:j.message,token_type:j.token_type,expires:j.expires}))'
           if [ "$code" != "201" ]; then
             echo "npm rejected the GitHub OIDC token."
-            echo "On https://www.npmjs.com/package/@lovrozagar/oat → Settings → Trusted Publisher"
+            echo "On https://www.npmjs.com/package/@workerstack/testing → Settings → Trusted Publisher"
             echo "the saved connection must be exactly:"
-            echo "  GitHub Actions / lovrozagar / oat / release.yml / environment empty / allow npm publish"
+            echo "  GitHub Actions / workerstack / testing / release.yml / environment empty / allow npm publish"
             exit 1
           fi
           NODE_AUTH_TOKEN="$(node -e 'process.stdout.write(require("/tmp/npm-ex.json").token || "")')"
@@ -171,7 +171,7 @@ jobs:
         with:
           node-version: "24"
           registry-url: https://npm.pkg.github.com
-          scope: "@lovrozagar"
+          scope: "@workerstack"
           package-manager-cache: false
       - name: Publish to GitHub Packages
         env:
@@ -179,8 +179,8 @@ jobs:
         run: |
           ref="${{ inputs.tag || github.ref_name }}"
           tag="${ref#v}"
-          if npm view "@lovrozagar/oat@$tag" --registry https://npm.pkg.github.com version >/dev/null 2>&1; then
-            echo "GitHub Packages already has @lovrozagar/oat@$tag — skipping"
+          if npm view "@workerstack/testing@$tag" --registry https://npm.pkg.github.com version >/dev/null 2>&1; then
+            echo "GitHub Packages already has @workerstack/testing@$tag — skipping"
             exit 0
           fi
           npm publish --access public

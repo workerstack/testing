@@ -18,7 +18,7 @@ const refGaps = (model: SpecModel) =>
 const gone = (name: string) => ({ $ref: `#/components/x/${name}` })
 const media = (extra: Record<string, unknown>) => ({ content: { "application/json": { schema: item, ...extra } } })
 
-const untested = (ptr: string) => `$ref ${ptr} points at nothing; oat leaves this operation untested`
+const untested = (ptr: string) => `$ref ${ptr} points at nothing; the API tester leaves this operation untested`
 
 describe("a dangling $ref in a schema", () => {
 	it("reads as unconstrained, with a gap on each operation whose request or response reaches it", () => {
@@ -34,7 +34,7 @@ describe("a dangling $ref in a schema", () => {
 			},
 			{ components: { schemas: { Order: order } } },
 		)
-		const detail = `$ref ${MISSING} points at nothing; oat reads that schema as unconstrained`
+		const detail = `$ref ${MISSING} points at nothing; the API tester reads that schema as unconstrained`
 		expect(refGaps(model)).toEqual([`orders.list: ${detail}`, `orders.create: ${detail}`])
 		expect(model.operations.map((op) => op.unsendable)).toEqual([null, null, null])
 	})
@@ -145,7 +145,7 @@ describe("a dangling $ref in a callback", () => {
 		})
 		expect(model.byOperationId.get("callback")?.unsendable).toBe("$ref #/components/x/callback points at nothing")
 		expect(refGaps(model)).toEqual([
-			`callback: $ref ${MISSING} points at nothing; oat reads that schema as unconstrained`,
+			`callback: $ref ${MISSING} points at nothing; the API tester reads that schema as unconstrained`,
 			`callback: ${untested("#/components/x/callback")}`,
 			`callback: ${untested("#/components/x/pathItem")}`,
 			`callback: ${untested("#/components/x/callbackBody")}`,

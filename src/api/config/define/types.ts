@@ -3,12 +3,12 @@
  *
  * The runtime imports these definitions rather than declaring its own, so a mistake in a config
  * is a compile error rather than a surprise at request time. Everything backend-specific lives
- * here or in `x-*` spec tags; oat itself knows nothing about any particular API.
+ * here or in `x-*` spec tags; the API tester itself knows nothing about any particular API.
  */
 
 export type {
 	EntityConfig,
-	OatConfig,
+	ApiConfig,
 	OriginSpec,
 	PayloadPolicy,
 	ProfileSpec,

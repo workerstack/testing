@@ -4,7 +4,7 @@ import { afterAll, describe, expect, it } from "vitest"
 import { createMemoryServer } from "../../../src/api/reference/http/engines.ts"
 import { EXIT } from "../../../src/api/runtime/exit.ts"
 import { loadPersistedPrincipals } from "../../../src/api/runtime/principals.ts"
-import { oat, referenceConfig, type SavedRunReport, tempDirs } from "../support/cli-run.ts"
+import { tester, referenceConfig, type SavedRunReport, tempDirs } from "../support/cli-run.ts"
 
 /*
  * `principals.json` lands in every run folder, often a CI artifact: a principal that signs in with a
@@ -14,7 +14,7 @@ import { oat, referenceConfig, type SavedRunReport, tempDirs } from "../support/
  * signs in again.
  */
 
-const dirs = tempDirs("oat-principals-file-")
+const dirs = tempDirs("testing-principals-file-")
 afterAll(dirs.removeAll)
 
 const PASSWORD = "alpha-password"
@@ -49,7 +49,7 @@ describe("principals.json", () => {
 			const runs = join(dir, "runs")
 			const signIn = async (principals: unknown, name: string) => {
 				const config = await referenceConfig(join(dir, name), server.url, { principals, security: SECURITY })
-				return oat(["run", "--config", config, "--out", runs, "--quiet", "--ops", "profile.get"])
+				return tester(["run", "--config", config, "--out", runs, "--quiet", "--ops", "profile.get"])
 			}
 
 			const first = await signIn({ alpha: ALPHA }, "first")
@@ -63,7 +63,7 @@ describe("principals.json", () => {
 			expect(await holding(join(runs, "latest"), PASSWORD)).toEqual([])
 			expect(await holding(join(runs, "latest"), ALPHA.email)).toEqual([])
 			/* Redaction is what the run writes down: the check that compares the caller still read the raw answers. */
-			const report = JSON.parse(await readFile(join(runs, "latest", "oat-report.json"), "utf8")) as SavedRunReport
+			const report = JSON.parse(await readFile(join(runs, "latest", "report.json"), "utf8")) as SavedRunReport
 			expect(report.scope.operations.find((op) => op.operationId === "profile.get")?.checks.passed).toContain(
 				"auth.self-is-the-caller",
 			)
@@ -86,7 +86,7 @@ describe("principals.json", () => {
 			const dir = await dirs.make()
 			const runs = join(dir, "runs")
 			const config = await referenceConfig(dir, server.url)
-			const run = await oat(["run", "--config", config, "--out", runs, "--quiet", "--ops", "profile.get"])
+			const run = await tester(["run", "--config", config, "--out", runs, "--quiet", "--ops", "profile.get"])
 			expect(run.code).toBe(EXIT.clean)
 			const written = JSON.parse(await readFile(join(runs, "latest", "principals.json"), "utf8")) as {
 				principals: { id: string; identity: Record<string, unknown> }[]

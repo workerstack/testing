@@ -47,7 +47,7 @@ export function buildModel(doc: OpenApiDocument, options: BuildOptions = {}): Sp
 		gaps.record(
 			op.operationId,
 			"x-entity",
-			`returns a collection but exposes no item route, so oat treats "${op.entity}" as its ` +
+			`returns a collection but exposes no item route, so the API tester treats "${op.entity}" as its ` +
 				"own entity. If it is a filtered view of another entity, name that entity explicitly",
 		)
 	}

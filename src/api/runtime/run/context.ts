@@ -137,14 +137,14 @@ export interface RunPrincipals {
 
 /** What the active profile lets the run call. */
 export interface Exclusion {
-	/** Whether oat may call `op` at all: a read that confirms a create is still a call. */
+	/** Whether the API tester may call `op` at all: a read that confirms a create is still a call. */
 	readable(op: OperationModel): boolean
 	/** Whether the profile excludes the operation by this id. */
 	excludes(operationId: string): boolean
 	/**
 	 * Whether the profile excludes `op` on `entity`. The first time, the exclusion is recorded and
 	 * reported as a gap: checks that depend on the operation stand down rather than run against
-	 * data oat did not create through it.
+	 * data the API tester did not create through it.
 	 */
 	excludeOp(entity: EntityModel, op: OperationModel | undefined): boolean
 }

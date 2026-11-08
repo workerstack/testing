@@ -8,11 +8,11 @@ import { run } from "../../../src/api/runtime/run/index.ts"
 import { Ledger } from "../../../src/api/runtime/teardown/ledger.ts"
 import type { Disposable } from "../../../src/api/runtime/teardown/types.ts"
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts"
-import { latestReport, oat, tempDirs } from "../support/cli-run.ts"
+import { latestReport, tester, tempDirs } from "../support/cli-run.ts"
 
 /*
- * The run result names every record oat ledgered for teardown and whether it is gone. Counts alone
- * cannot say which id oat meant to remove, and the conformance suite needs exactly that to prove
+ * The run result names every record the API tester ledgered for teardown and whether it is gone. Counts alone
+ * cannot say which id the API tester meant to remove, and the conformance suite needs exactly that to prove
  * every recorded id is one the backend created. A record teardown could not show gone fails the run
  * with exit 4, whatever else it found.
  */
@@ -24,7 +24,7 @@ afterEach(async () => {
 	for (const server of open) await server.close()
 	open = []
 })
-const dirs = tempDirs("oat-teardown-records-")
+const dirs = tempDirs("testing-teardown-records-")
 afterAll(dirs.removeAll)
 
 const REFUSED = "note-1"
@@ -156,13 +156,13 @@ describe("a record teardown could not remove", () => {
 	it("exits 4 on the CLI, naming the record in the console and the report", async () => {
 		const url = await serve(new Map())
 		const dir = await dirs.make()
-		const config = join(dir, "oat.config.json")
+		const config = join(dir, "testing.api.config.json")
 		await writeFile(
 			config,
 			JSON.stringify({ baseUrl: url, cohortSize: 3, principals: { alpha: {} }, seed: 1, spec: `${url}/openapi.json` }),
 		)
 		const runs = join(dir, "runs")
-		const { code, out } = await oat(["run", "--config", config, "--out", runs, "--quiet"])
+		const { code, out } = await tester(["run", "--config", config, "--out", runs, "--quiet"])
 		expect(code).toBe(EXIT.leftovers)
 		expect(out).toMatch(/cleanup: removed (\d+)\/\d+ created record\(s\)/)
 		expect(out).toContain(`note ${REFUSED} (as alpha)`)

@@ -62,12 +62,16 @@ describe("a known-findings baseline", () => {
 	}, 360_000)
 
 	it("refuses a file it cannot read, naming the problem", () => {
-		expect(() => parseBaseline({ entries: [{ check: "x" }], version: 1 }, "oat.baseline.json")).toThrow(UsageError)
-		expect(() => parseBaseline({ entries: [{ check: "x" }], version: 1 }, "oat.baseline.json")).toThrow(/reason/)
+		expect(() => parseBaseline({ entries: [{ check: "x" }], version: 1 }, "testing.api.baseline.json")).toThrow(
+			UsageError,
+		)
+		expect(() => parseBaseline({ entries: [{ check: "x" }], version: 1 }, "testing.api.baseline.json")).toThrow(
+			/reason/,
+		)
 		expect(() =>
-			parseBaseline({ entries: [{ check: "x", reason: "r", severity: 1 }], version: 1 }, "oat.baseline.json"),
+			parseBaseline({ entries: [{ check: "x", reason: "r", severity: 1 }], version: 1 }, "testing.api.baseline.json"),
 		).toThrow(/severity/)
-		expect(() => parseBaseline({ entries: [], version: 2 }, "oat.baseline.json")).toThrow(/version/)
+		expect(() => parseBaseline({ entries: [], version: 2 }, "testing.api.baseline.json")).toThrow(/version/)
 	})
 })
 
@@ -80,7 +84,7 @@ async function cli(argv: string[]): Promise<{ code: number; out: string }> {
 	}
 	const write = vi.spyOn(process.stdout, "write").mockImplementation(capture)
 	const err = vi.spyOn(process.stderr, "write").mockImplementation(capture)
-	process.argv = ["node", "oat", ...argv]
+	process.argv = ["node", "testing", ...argv]
 	try {
 		return { code: await main(), out: chunks.join("") }
 	} finally {
@@ -90,12 +94,12 @@ async function cli(argv: string[]): Promise<{ code: number; out: string }> {
 	}
 }
 
-describe("oat baseline --from", () => {
+describe("testing api baseline --from", () => {
 	it("writes one entry per root-cause finding of a run, and will not overwrite without --force", async () => {
-		const dir = await mkdtemp(join(tmpdir(), "oat-baseline-"))
+		const dir = await mkdtemp(join(tmpdir(), "testing-baseline-"))
 		dirs.push(dir)
 		await writeFile(
-			join(dir, "oat-report.json"),
+			join(dir, "report.json"),
 			JSON.stringify({
 				findings: [
 					{ check: "b.check", entity: "row", operations: ["row.list"], summary: "second", verdict: "BACKEND_BUG" },
@@ -105,7 +109,7 @@ describe("oat baseline --from", () => {
 				],
 			}),
 		)
-		const out = join(dir, "oat.baseline.json")
+		const out = join(dir, "testing.api.baseline.json")
 		expect((await cli(["baseline", "--from", dir, "--out", out])).code).toBe(0)
 		expect(JSON.parse(await readFile(out, "utf8"))).toEqual({
 			entries: [
@@ -121,10 +125,10 @@ describe("oat baseline --from", () => {
 
 describe("a config that names a baseline", () => {
 	it("stops with a usage error, before anything is sent, when the file cannot be read", async () => {
-		const dir = await mkdtemp(join(tmpdir(), "oat-baseline-config-"))
+		const dir = await mkdtemp(join(tmpdir(), "testing-baseline-config-"))
 		dirs.push(dir)
 		await writeFile(join(dir, "known.json"), JSON.stringify({ entries: [{ check: "x" }], version: 1 }))
-		const config = join(dir, "oat.config.json")
+		const config = join(dir, "testing.api.config.json")
 		await writeFile(
 			config,
 			JSON.stringify({
@@ -141,13 +145,13 @@ describe("a config that names a baseline", () => {
 	})
 })
 
-describe("oat doctor with a baseline", () => {
+describe("testing api doctor with a baseline", () => {
 	it("warns when the baseline the config names is missing", async () => {
 		const server = await createMemoryServer({})
-		const dir = await mkdtemp(join(tmpdir(), "oat-baseline-doctor-"))
+		const dir = await mkdtemp(join(tmpdir(), "testing-baseline-doctor-"))
 		dirs.push(dir)
 		try {
-			const config = join(dir, "oat.config.json")
+			const config = join(dir, "testing.api.config.json")
 			await writeFile(config, JSON.stringify({ baseline: "missing.json", spec: `${server.url}/v1/openapi/spec` }))
 			const result = await cli(["doctor", "--config", config])
 			expect(result.out).toContain("baseline")

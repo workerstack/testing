@@ -5,7 +5,7 @@ export const QUERY_DEFECTS = {
 	 *
 	 * Not a backend bug — the backend is entitled to refuse a field it never indexed. The document
 	 * is what is wrong, and it is wrong in the most expensive way: every client generated from it
-	 * offers a filter that 400s at runtime. oat is the only thing positioned to notice, because it
+	 * offers a filter that 400s at runtime. The API tester is the only thing positioned to notice, because it
 	 * is the only thing that reads the claim and then tries it.
 	 */
 	SPEC_OVERCLAIMS_FILTERABLE: "x-query declares a field filterable that the backend rejects",

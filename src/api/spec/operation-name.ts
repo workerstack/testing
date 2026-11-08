@@ -1,5 +1,5 @@
 /**
- * How oat names an operation, and how config names one back.
+ * How the API tester names an operation, and how config names one back.
  *
  * An operation is named by its `operationId`, or, when the document gives it none, `METHOD /path`
  * with the method uppercased. Config may write that method in any case, but the path must be one

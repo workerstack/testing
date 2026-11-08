@@ -7,7 +7,7 @@ import type { RunOptions } from "../types.ts"
 import { seedCreated, unverifiedNote } from "./seed-cohort.ts"
 
 /*
- * A cohort seeded through the entity's create: oat's own records; a variant the backend refused,
+ * A cohort seeded through the entity's create: the API tester's own records; a variant the backend refused,
  * reported; a row adopted after a plan limit or a unique conflict; a documented feature gate read
  * as coverage, not a defect.
  */
@@ -45,7 +45,7 @@ async function seeded(backend: Responder, override: Responder, extra: Partial<Ru
 const none: Responder = () => undefined
 
 describe("seedCreated", () => {
-	it("seeds oat's own records, and marks every identity the collection holds as taken", async () => {
+	it("seeds the API tester's own records, and marks every identity the collection holds as taken", async () => {
 		const { world, run } = await seeded(notesApi(notesDoc(), [{ id: "n0", title: "old" }]), none)
 		expect(world).toMatchObject({ createAcknowledged: false, degraded: false, uniqueAdopted: false })
 		expect(world?.records.length).toBeGreaterThan(0)
@@ -192,7 +192,7 @@ describe("seedCreated, from creates that answer without the record", () => {
 		expect(world?.records[0]).not.toHaveProperty("message")
 	})
 
-	it("notes, once per entity, that its records are the bodies oat sent, and why", async () => {
+	it("notes, once per entity, that its records are the bodies the API tester sent, and why", async () => {
 		/* The notes API, acknowledging each create, and a read that does not find it yet. */
 		const lagging = (doc: OpenApiDocument): Responder => {
 			const api = notesApi(doc, [])

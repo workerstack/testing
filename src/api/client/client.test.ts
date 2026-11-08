@@ -33,12 +33,12 @@ function clientOf(
  */
 describe("a client's transcript spool", () => {
 	it("moves bodies past the memory it is given into the folder it is given, and removes them on dispose", async () => {
-		const dir = mkdtempSync(join(tmpdir(), "oat-client-spool-"))
+		const dir = mkdtempSync(join(tmpdir(), "testing-client-spool-"))
 		try {
 			const { client } = clientOf(() => json({ rows: "r".repeat(64) }), { transcript: { dir, memoryBytes: 1 } })
 			await client.get("/rows", { as: ANON })
 			await client.get("/rows", { as: ANON })
-			expect(readdirSync(dir).filter((name) => name.startsWith("oat-transcript-"))).toHaveLength(1)
+			expect(readdirSync(dir).filter((name) => name.startsWith("testing-transcript-"))).toHaveLength(1)
 			expect((await client.hydrate(client.transcript[0] as Exchange)).responseBody).toEqual({ rows: "r".repeat(64) })
 			await client.dispose()
 			expect(readdirSync(dir)).toEqual([])
@@ -235,7 +235,7 @@ describe("a request the backend pushes back on", () => {
 })
 
 /*
- * What oat learns from an answer, a record a create made, is learned before the request returns,
+ * What the API tester learns from an answer, a record a create made, is learned before the request returns,
  * from every view alike. The callback runs once the in-flight slot is free, so a callback that
  * reads back what it saw does not wait on the slot its own request holds.
  */

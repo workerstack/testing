@@ -8,7 +8,7 @@ import { dereference } from "../../../spec/load/dereference.ts"
 import { prepareDocument } from "../../../spec/prepare.ts"
 import type { OpenApiDocument } from "../../../spec/types.ts"
 
-/* Documents as `oat doctor` and `oat plan` model them: the reference's own, served in process, and small hand-built ones. */
+/* Documents as `testing api doctor` and `testing api plan` model them: the reference's own, served in process, and small hand-built ones. */
 
 export interface Modeled {
 	model: SpecModel

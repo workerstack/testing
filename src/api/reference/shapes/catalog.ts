@@ -94,7 +94,7 @@ export const SHAPES: readonly NamedShape[] = [
 	{
 		name: "prepopulated",
 		shape: { prepopulate: 230 },
-		why: "the collection already holds more records than one page and than oat's walk cap",
+		why: "the collection already holds more records than one page and than the API tester's walk cap",
 	},
 	{ name: "uuid-ids", shape: { ids: "uuid" }, why: "UUID identifiers; a malformed one in a path is a 400" },
 	{ name: "integer-ids", shape: { ids: "integer" }, why: "integer identifiers; a malformed one in a path is a 400" },

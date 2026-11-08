@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { rule } from "./boundaries.ts"
 import { oxlintReports, reportsOf } from "./rule-harness.ts"
 
-const MESSAGE = "import is outside oat's module boundaries (see AGENTS.md: dependency arrows)"
+const MESSAGE = "import is outside the API tester's module boundaries (see AGENTS.md: dependency arrows)"
 
 /* One importing file per case: `from` imports `spec`, and the rule says whether that is allowed. */
 function verdict(from: string, spec: string): boolean {
@@ -43,7 +43,7 @@ const ALLOWED: Array<[string, string]> = [
 	["src/api/spec/load.ts", "yaml"],
 	["src/api/reference/stores/postgres.ts", "postgres"],
 	["src/api/conformance/matrix/engines.ts", "postgres"],
-	["src/api/cli.ts", "@lovrozagar/oat"],
+	["src/api/cli.ts", "@workerstack/testing"],
 	/* The step builders sit just above the step types they emit. */
 	["src/api/steps/request.ts", "../config/types/steps.ts"],
 	["src/api/steps/view.ts", "./request.ts"],
@@ -84,7 +84,7 @@ const REFUSED: Array<[string, string]> = [
 	["src/api/steps/request.ts", "../security/redact.ts"],
 ]
 
-describe("oat/boundaries", () => {
+describe("testing/boundaries", () => {
 	it("allows the arrows: down the layers, and within a layer's own group", () => {
 		expect(ALLOWED.filter(([from, spec]) => !verdict(from, spec))).toEqual([])
 	})
@@ -121,7 +121,7 @@ describe("oat/boundaries", () => {
 		expect(reportsOf(rule, fixture)).toEqual([])
 	})
 
-	it("fails oxlint through the oat plugin entry", () => {
+	it("fails oxlint through the testing plugin entry", () => {
 		const fixture = { "src/api/spec/graph.ts": 'import { x } from "../runtime/world.ts"\n' }
 		expect(oxlintReports("boundaries", fixture).length).toBe(1)
 	})

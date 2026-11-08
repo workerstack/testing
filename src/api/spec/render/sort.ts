@@ -1,7 +1,7 @@
 /**
  * One renderer for every sort grammar.
  *
- * The four grammars oat infers — dotted, prefixed, colon, spaced — are presets of the description
+ * The four grammars the API tester infers — dotted, prefixed, colon, spaced — are presets of the description
  * a document or config can declare as a template. Anything a grammar cannot write renders as
  * `null`, and the check that wanted it stands down.
  */
@@ -21,7 +21,7 @@ export interface SortGrammarSpec {
 	nulls?: { first: string; last: string }
 }
 
-/** The sort grammars oat recognizes by name; `sortSpec` reads each `SortGrammar` but a template here. */
+/** The sort grammars the API tester recognizes by name; `sortSpec` reads each `SortGrammar` but a template here. */
 export type SortPreset = "colon" | "dotted" | "prefixed" | "spaced"
 
 export const SORT_PRESETS: Readonly<Record<SortPreset, SortGrammarSpec>> = {

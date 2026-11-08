@@ -32,7 +32,7 @@ describe("buildMatrixGraph", () => {
 			generatedAt: "2026-10-18T00:00:00.000Z",
 			index: { crossClaims: 0, entityCount: 1, failed: ["table"], inbound: {}, parents: [] },
 			invalidate: [],
-			kind: "oat.matrix",
+			kind: "testing.api.matrix",
 		})
 		expect(graph.entities).toHaveLength(1)
 		expect(graph.entities[0]).toMatchObject({ identity: null, name: "table", readSurface: ["GET /table"] })

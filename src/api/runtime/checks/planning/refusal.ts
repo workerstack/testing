@@ -45,7 +45,7 @@ export function judgeRefusal(
 }
 
 /**
- * The context for a request oat sends expecting it to be refused. Its exchanges are marked as
+ * The context for a request the API tester sends expecting it to be refused. Its exchanges are marked as
  * probes, so a status the document leaves out for deliberately invalid input is reported apart
  * from what ordinary traffic got.
  */

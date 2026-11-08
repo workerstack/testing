@@ -1,16 +1,16 @@
 # labs — real backends, always D1
 
 Each world is a Hono API this repo owns. **Storage is Cloudflare D1**, never
-local SQLite. Local `serve.ts` talks to D1 over HTTP. After oat is green
-locally, `deploy.mjs` puts the same app on a Worker bound to that D1 and oat
+local SQLite. Local `serve.ts` talks to D1 over HTTP. After the API tester is green
+locally, `deploy.mjs` puts the same app on a Worker bound to that D1 and the API tester
 runs again against `https://`.
 
 ```
-node labs/api/provision.mjs tiny          # create oat-labs-tiny, apply schema
+node labs/api/provision.mjs tiny          # create testing-labs-tiny, apply schema
 LAB=tiny LAB_PORT=8790 node labs/api/serve.ts
-LAB_URL=http://127.0.0.1:8790 node dist/api/cli.js run --config labs/api/oat.config.ts
+LAB_URL=http://127.0.0.1:8790 node dist/api/cli.js run --config labs/api/testing.api.config.ts
 node labs/api/deploy.mjs tiny             # Worker + D1 binding
-LAB_URL=https://oat-labs-tiny.<subdomain>.workers.dev ...
+LAB_URL=https://testing-labs-tiny.<subdomain>.workers.dev ...
 ```
 
 Wipe leftover rows (schema stays) before a clean re-run:
@@ -19,7 +19,7 @@ Wipe leftover rows (schema stays) before a clean re-run:
 node labs/api/wipe.mjs huge
 ```
 
-A live `oat run` writes `progress.log` and `progress.json` under `--out`
+A live `testing api run` writes `progress.log` and `progress.json` under `--out`
 (entity, check, last request, age). If those stop moving, the run is stuck.
 `--quiet` keeps the files and drops stderr.
 
@@ -32,13 +32,13 @@ bash labs/api/iterate.sh shop campus
 bash labs/api/probe-cases.sh
 ```
 
-| world           | entities   | what it is for                                                               |
-| --------------- | ---------- | ---------------------------------------------------------------------------- |
-| `tiny`          | 1          | one collection, invite, ranks, soft-delete                                   |
-| `shop`          | 5          | store → product → review, plus order / customer. Cross-entity `x-invalidate` |
-| `campus`        | 10         | nested campus / building / room / booking / course                           |
-| `platform`      | 20         | a workspace SaaS. Many parents, many derived counts                          |
-| `huge` / `vast` | 200 / 2000 | schema-only unless `LAB_SCALE=1`. Do not oat-run on D1 by default.           |
+| world           | entities   | what it is for                                                                |
+| --------------- | ---------- | ----------------------------------------------------------------------------- |
+| `tiny`          | 1          | one collection, invite, ranks, soft-delete                                    |
+| `shop`          | 5          | store → product → review, plus order / customer. Cross-entity `x-invalidate`  |
+| `campus`        | 10         | nested campus / building / room / booking / course                            |
+| `platform`      | 20         | a workspace SaaS. Many parents, many derived counts                           |
+| `huge` / `vast` | 200 / 2000 | schema-only unless `LAB_SCALE=1`. Do not run the API tester on D1 by default. |
 
 Credentials: repo-root `.env` (`CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`).
 Provision writes `CLOUDFLARE_D1_<WORLD>=<uuid>` into `.env` and `labs/api/.d1.json`
@@ -48,7 +48,7 @@ Provision writes `CLOUDFLARE_D1_<WORLD>=<uuid>` into `.env` and `labs/api/.d1.js
 
 `bash labs/api/probe-cases.sh` — each case is its own D1.
 
-| world                    | planted                                    | oat must report                            |
+| world                    | planted                                    | The API tester must report                 |
 | ------------------------ | ------------------------------------------ | ------------------------------------------ |
 | `ok-pair` / `ok-classic` | none                                       | nothing                                    |
 | `ok-jobs`                | none (async start + artifact effect)       | nothing                                    |
@@ -114,14 +114,14 @@ OpenAPI is generated the same way (`kit/spec.ts`) and served at
 
 These also live here — there is no top-level `examples/`.
 
-| file                     | what it is                                |
-| ------------------------ | ----------------------------------------- |
-| `oat.config.ts`          | principals for a labs world (D1)          |
-| `local.config.ts`        | point oat at `oat serve` (the fixture)    |
-| `minimal.config.ts`      | smallest useful config, static API key    |
-| `oob-auth.config.ts`     | multi-step login against a stranger API   |
-| `annotated-openapi.yaml` | every `x-*` tag in one document           |
-| `demo.mjs`               | one-process fixture demo (`npm run demo`) |
+| file                     | what it is                                                |
+| ------------------------ | --------------------------------------------------------- |
+| `testing.api.config.ts`  | principals for a labs world (D1)                          |
+| `local.config.ts`        | point the API tester at `testing api serve` (the fixture) |
+| `minimal.config.ts`      | smallest useful config, static API key                    |
+| `oob-auth.config.ts`     | multi-step login against a stranger API                   |
+| `annotated-openapi.yaml` | every `x-*` tag in one document                           |
+| `demo.mjs`               | one-process fixture demo (`npm run demo`)                 |
 
 ```
 node dist/api/cli.js serve --defects STALE_LIST,PATCH_REPLACES

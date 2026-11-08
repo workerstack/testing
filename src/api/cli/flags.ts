@@ -14,7 +14,7 @@ export interface FlagSpec<Kind extends FlagKind = FlagKind> {
 
 /** Every flag, once: whether it takes a value, what kind, and what it is for. Parsing and help both read this. */
 export const FLAGS: { readonly [Name in FlagName]: Readonly<FlagSpec<FlagKinds[Name]>> } = {
-	config: { help: "oat config module (.ts/.js/.mjs/.json) with a default export", kind: "value", value: "<file>" },
+	config: { help: "config module (.ts/.js/.mjs/.json) with a default export", kind: "value", value: "<file>" },
 	spec: { help: "OpenAPI document, http(s) URL or filesystem path", kind: "value", value: "<url|file>" },
 	"base-url": { help: "backend under test, overriding the config", kind: "value", value: "<url>" },
 	ops: {
@@ -39,7 +39,7 @@ export const FLAGS: { readonly [Name in FlagName]: Readonly<FlagSpec<FlagKinds[N
 		value: "<n>",
 	},
 	out: {
-		help: "run: history root, each run is <out>/<datetime>/ (default ./.oat/runs); baseline: the file written; init: the config written (default ./oat.config.ts)",
+		help: "run: history root, each run is <out>/<datetime>/ (default ./.testing/api/runs); baseline: the file written; init: the config written (default ./testing.api.config.ts)",
 		kind: "value",
 		value: "<dir|file>",
 	},
@@ -50,7 +50,7 @@ export const FLAGS: { readonly [Name in FlagName]: Readonly<FlagSpec<FlagKinds[N
 	},
 	"keep-fixtures": { help: "leave created records in place instead of tearing them down", kind: "boolean" },
 	"keep-credentials": {
-		help: "write the credentials the run held to .oat/credentials.json (mode 0600), never under --out",
+		help: "write the credentials the run held to .testing/api/credentials.json (mode 0600), never under --out",
 		kind: "boolean",
 	},
 	"max-in-flight": {
@@ -173,12 +173,12 @@ function isKind<Kind extends FlagKind>(name: string, kind: Kind): name is NamesO
 export const COMMANDS: ReadonlyArray<{ usage: string; help: string }> = [
 	{ help: "test a live backend and write a report", usage: "run     --config <file>" },
 	{ help: "derive and print the test model (offline)", usage: "plan    --spec <url|file>" },
-	{ help: "report what oat can and cannot test, and why", usage: "doctor  --spec <url|file>" },
+	{ help: "report what the API tester can and cannot test, and why", usage: "doctor  --spec <url|file>" },
 	{
-		help: "write a starter oat.config.ts from the document's security schemes",
+		help: "write a starter testing.api.config.ts from the document's security schemes",
 		usage: "init    --spec <url|file> [--out file]",
 	},
-	{ help: "run a demo API to point oat at", usage: "serve   [--defects A,B]" },
+	{ help: "run a demo API to point the API tester at", usage: "serve   [--defects A,B]" },
 	{ help: "self-test: injected defects vs detection", usage: "conformance" },
 	{ help: "write a known-findings baseline from a run's report", usage: "baseline --from <run> [--out file]" },
 	{ help: "new, fixed and persisting findings between two runs", usage: "diff    <runA> <runB> [--json]" },
@@ -189,26 +189,26 @@ export const USAGE: string = /* @__PURE__ */ usage()
 
 function usage(): string {
 	const column = Math.max(...COMMANDS.map((command) => command.usage.length)) + 3
-	const commands = COMMANDS.map((command) => `  oat ${command.usage.padEnd(column)}${command.help}`)
+	const commands = COMMANDS.map((command) => `  testing api ${command.usage.padEnd(column)}${command.help}`)
 	const named = Object.entries(SPECS).map(([name, spec]) => [
 		`--${name}${spec.value === undefined ? "" : ` ${spec.value}`}`,
 		spec.help,
 	])
 	const width = Math.max(...named.map(([flag]) => (flag as string).length)) + 2
 	const flags = named.map(([flag, help]) => `  ${(flag as string).padEnd(width)}${help}`)
-	return `oat — OpenAPI Tester\n\n${commands.join("\n")}\n\nFlags\n${flags.join("\n")}\n`
+	return `testing api — test a live HTTP API against its OpenAPI document\n\n${commands.join("\n")}\n\nFlags\n${flags.join("\n")}\n`
 }
 
 /** A command and its flags, as parsed. */
 export interface Args {
 	command: string
 	flags: Flags
-	/** Arguments that are not flags or flag values, in order: `oat diff <runA> <runB>`. Absent when none. */
+	/** Arguments that are not flags or flag values, in order: `testing api diff <runA> <runB>`. Absent when none. */
 	positionals?: string[]
 }
 
 /**
- * `oat <command> [--flag value | --flag=value | --switch] …`. A value flag must have its value;
+ * `testing api <command> [--flag value | --flag=value | --switch] …`. A value flag must have its value;
  * a switch takes none; a numeric value must be one. The first problem is returned as `error`
  * rather than guessed around: `--max-in-flight -1` once hung a run, `--seed abc` seeded strings
  * with `NaN`, and a flag followed by another flag silently became `true`. A flag no command

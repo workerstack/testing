@@ -172,7 +172,7 @@ describe("consistency.staleness-within-bound past its longest watch", () => {
 		const { ctx, findings, sent } = cached(20 * 60_000, { deleteOp: false, stalenessMs: 86_400_000 })
 		expect(await runCheck(stalenessWithinBound, ctx)).toEqual({
 			kind: "asserted",
-			note: "after the update the read was still stale at 600000ms, the longest oat watches; the declared 86400000ms is not judged past it",
+			note: "after the update the read was still stale at 600000ms, the longest the API tester watches; the declared 86400000ms is not judged past it",
 		})
 		expect(findings.findings).toEqual([])
 		expect(sent.filter((s) => s.options.cache === "use").length).toBeLessThanOrEqual(1 + 12)

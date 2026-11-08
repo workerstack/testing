@@ -21,7 +21,7 @@ export function expected(assert: ScenarioAssert, scope: Record<string, string>):
 		return { from, mode: "excludes", value: String(interpolate(assert.excludes, scope)) }
 	if (assert.atLeast !== undefined) return { from, mode: "atLeast", value: String(assert.atLeast) }
 	if (assert.omits !== undefined) return { from, mode: "omits", value: String(interpolate(assert.omits, scope)) }
-	throw new Error(`oat: an assert on ${assert.from} needs equals, contains, excludes, omits or atLeast`)
+	throw new Error(`testing api: an assert on ${assert.from} needs equals, contains, excludes, omits or atLeast`)
 }
 
 /** The values at `from`: a JSON path into the body, or `header:Name` / `cookie:name` as saveAs reads them. */

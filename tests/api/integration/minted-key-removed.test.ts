@@ -112,7 +112,7 @@ interface KeysApi {
 	handler: Handler
 	/** Each DELETE of a key, as `<id> <status>`. */
 	deletes: string[]
-	/** The ids the credential recipe minted: its create body names the key `oat`. */
+	/** The ids the credential recipe minted: its create body names the key `the API tester`. */
 	minted: string[]
 }
 
@@ -152,7 +152,7 @@ function keysApi({ keeps = false }: { keeps?: boolean } = {}): KeysApi {
 			const id = String(++minted)
 			held.add(id)
 			void readBody(req).then((body) => {
-				if ((body as { name?: unknown }).name === "oat") recipeKeys.push(id)
+				if ((body as { name?: unknown }).name === "testing") recipeKeys.push(id)
 				send(res, 201, { id, secret: `key-${id}` })
 			})
 			return
@@ -176,7 +176,7 @@ async function runOver(api: KeysApi) {
 		security: {
 			api_key: {
 				mint: {
-					body: { name: "oat" },
+					body: { name: "testing" },
 					from: "$.secret",
 					operationId: "createKey",
 					revoke: "deleteKey",

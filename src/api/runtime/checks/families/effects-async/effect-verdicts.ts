@@ -97,7 +97,7 @@ async function judgeEffect(action: ActionRun, effect: EffectSpec): Promise<void>
 	const prior = before?.status === "ok" ? before.ids : []
 	const added = after.ids.filter((id) => !prior.includes(id))
 	const removed = prior.filter((id) => !after.ids.includes(id))
-	/* Records the operation made on oat's behalf are oat's to remove. */
+	/* Records the operation made on the API tester's behalf are the API tester's to remove. */
 	if (effect.op === "create" || effect.op === "append") {
 		for (const id of listedIds(added))
 			ctx.recordCreated?.({ entity: effect.entity, id, scope: { ...scope } }, invoked.principal)

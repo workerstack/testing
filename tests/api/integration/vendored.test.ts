@@ -25,7 +25,7 @@ function fetcher(body: string, status = 200) {
 	return { calls, fetch: fetch as typeof globalThis.fetch }
 }
 
-const dir = () => mkdtempSync(join(tmpdir(), "oat-vendored-"))
+const dir = () => mkdtempSync(join(tmpdir(), "testing-vendored-"))
 
 describe("ensureVendored", () => {
 	it("fetches a missing file and keeps it when its bytes hash to the pinned sha256", async () => {

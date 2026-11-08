@@ -86,7 +86,7 @@ function declaredNames(dialect: Dialect): Json {
 export function queryDeclaration(ctx: SpecContext, entity: EntityDef, dialect: Dialect): Json {
 	const catalog = entity.filterCatalog
 	return {
-		/* Declared rather than inferred: the grammar decides what oat can even express. */
+		/* Declared rather than inferred: the grammar decides what the API tester can even express. */
 		grammar: dialect.filterTemplate ?? dialect.grammar,
 		...(dialect.sortTemplate === undefined ? {} : { sortGrammar: dialect.sortTemplate }),
 		filterable: filterable(entity, catalog),

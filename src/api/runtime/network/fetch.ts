@@ -115,6 +115,6 @@ export async function fetchSpecText(url: string, network?: NetworkFetchOptions):
 		{ headers: { accept: "application/json" } },
 		{ retries: DEFAULT_NETWORK_RETRIES, waitMs: 0, ...network },
 	)
-	if (!res.ok) throw new Error(`oat: fetching ${url} returned ${res.status} ${res.statusText}`)
+	if (!res.ok) throw new Error(`testing api: fetching ${url} returned ${res.status} ${res.statusText}`)
 	return res.text()
 }

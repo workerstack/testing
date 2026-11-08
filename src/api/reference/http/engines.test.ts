@@ -94,7 +94,7 @@ describe("d1Store", () => {
 		expect(store).toBeInstanceOf(SqlStore)
 		expect(calls[0]?.url).toBe(D1_QUERY)
 		expect(calls[0]?.authorization).toBe("Bearer env-token")
-		expect(calls[0]?.sql).toMatch(/oat_[a-z0-9]+_[a-z0-9]{1,6}_table/)
+		expect(calls[0]?.sql).toMatch(/testing_[a-z0-9]+_[a-z0-9]{1,6}_table/)
 	})
 
 	it("prefers credentials it is given, and gives each run its own prefix", async () => {
@@ -103,7 +103,7 @@ describe("d1Store", () => {
 		await d1Store(CREDENTIALS)(new DefectSet(), ENTITIES)
 		await d1Store(CREDENTIALS)(new DefectSet(), ENTITIES)
 		expect(calls[0]?.url).toContain("/accounts/acct/d1/database/db/")
-		const prefixes = calls.map((call) => /oat_[a-z0-9]+_[a-z0-9]+_/.exec(call.sql)?.[0])
+		const prefixes = calls.map((call) => /testing_[a-z0-9]+_[a-z0-9]+_/.exec(call.sql)?.[0])
 		expect(prefixes[0]).not.toBe(prefixes[1])
 	})
 })
@@ -141,7 +141,7 @@ describe("the servers", () => {
 		expect(JSON.parse(listed.body)).toMatchObject({ count: 0, tables: [] })
 		expect(d1.length).toBeGreaterThan(0)
 		for (const server of servers) await server.close()
-		expect(pg.statements.at(-1)?.query).toMatch(/^DROP DATABASE IF EXISTS "oat_ref_/)
+		expect(pg.statements.at(-1)?.query).toMatch(/^DROP DATABASE IF EXISTS "testing_ref_/)
 	})
 
 	it("default to no options", async () => {

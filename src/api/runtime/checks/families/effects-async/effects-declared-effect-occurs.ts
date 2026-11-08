@@ -231,7 +231,7 @@ async function invoke(
 		`${op.operationId} could not be invoked`,
 		`returned ${invoked.status}; its declared effects are unverified`,
 	)
-	/* A crash is the backend failing; a refusal more likely means oat's request was wrong. */
+	/* A crash is the backend failing; a refusal more likely means the API tester's request was wrong. */
 	if (invoked.status >= 500) {
 		run.tally.unjudged ??= `${op.operationId} returned ${invoked.status}, so its declared effects were never observed`
 	}

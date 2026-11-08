@@ -7,7 +7,7 @@ type Cases = Parameters<Toolkit["suite"]["renderParserSuite"]>[0]
  * The suites that need no defect matrix: the document parser, the documented example, the coverage
  * report, tenant scope, feature gates, rate limits, uniqueness, the seed contract, effects and the
  * payload catalog. The tag-unlock claims are judged from the matrix's own runs; only a run that
- * stops before the matrix makes them here. Every suite that runs oat reaches its target through one
+ * stops before the matrix makes them here. Every suite that runs the API tester reaches its target through one
  * counter, and the leg ends with the requests they sent, by source. Returns the failures.
  */
 export async function runSuites(writer: Writer, toolkit: Toolkit, beforeMatrix: boolean): Promise<number> {

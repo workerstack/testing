@@ -2,7 +2,7 @@ import type { ApiKeyLocation, SecurityScheme } from "./schemes.ts"
 
 /*
  * Where a scheme's credential goes on the request, and how it is written. `{credential}` in the
- * template is the value a recipe produced; a basic pair is base64-encoded first. A scheme oat
+ * template is the value a recipe produced; a basic pair is base64-encoded first. A scheme the API tester
  * cannot send has no placement.
  */
 

@@ -1,4 +1,4 @@
-# oat — How oat reads a document
+# testing api — How the API tester reads a document
 
 [← back to the overview](../../README.md)
 
@@ -14,17 +14,17 @@
 8. **Floor**: every operation nothing above graded is called once with a request built from its schema. A delete that only answered 2xx is read back once.
 9. **Teardown** everything the run created, unless `--keep-fixtures` / `keepFixtures: true`.
 
-Every pass names its tier. `verified`: a later exchange shows a value from the call, such as the read holding the created id, the list without the deleted one, or the session refused after the logout. `contract`: the call got a documented success and its body matched the schema, and nothing later showed more. An operation oat could not call at all stays `untested` with the reason (`unresolved param team_id`, `contract call returned 409 …`); declare a scenario for it.
+Every pass names its tier. `verified`: a later exchange shows a value from the call, such as the read holding the created id, the list without the deleted one, or the session refused after the logout. `contract`: the call got a documented success and its body matched the schema, and nothing later showed more. An operation the API tester could not call at all stays `untested` with the reason (`unresolved param team_id`, `contract call returned 409 …`); declare a scenario for it.
 
 The writer is the principal `writer` names, or the first one. Isolation needs a second principal with a different `tenant`. A rank lattice needs two or more principals that share a `tenant` and differ in `rank`. Invite checks need `x-invite` plus a peer with `inviteAs`.
 
-oat never needs ground truth about your data. A filter and its negation must partition the set; a page walk must cover the collection; a record read four ways must read the same.
+The API tester never needs ground truth about your data. A filter and its negation must partition the set; a page walk must cover the collection; a record read four ways must read the same.
 
 Each operation is sent the credentials its OpenAPI `security` requires, placed where its scheme says, from the config's recipe for that scheme (see [Security recipes](configuration/principals-and-security.md#security-recipes)). The primary origin is `baseUrl`; extra hosts go in `origins[]`, each with its own spec. A request step whose `path` is an absolute `http(s)` URL is a recorded hop on that URL (a mailed consume page), not an `origins[]` entry. Request bodies follow the document: JSON, `multipart/form-data` (scalars plus dummy, pool, `each` or `resolveUpload` files), or `application/x-www-form-urlencoded`. `hooks.resolveInput` can replace a generated JSON field (a Stripe test `pm_…`); `hooks.resolveHeaders` can attach a one-shot header (Turnstile) per request.
 
 ## How the model is derived
 
-`oat plan` is this model. Checks never see raw paths; they see entities, actions, and query **roles**.
+`testing api plan` is this model. Checks never see raw paths; they see entities, actions, and query **roles**.
 
 ### Entity name and action
 
@@ -69,7 +69,7 @@ No meta tag. If create declares a header matching `Idempotency-Key` / `Idempoten
 
 ### Methods
 
-oat reads every operation field of an OAS 3.2 Path Item: `get`, `put`, `post`, `delete`, `options`, `head`, `patch`, `trace` and `query`. `GET`, `HEAD`, `OPTIONS`, `TRACE` and `QUERY` are safe: a read-only check may send them, they never count as writes, and a contract call may send one to any record the run saw. `PUT` and `DELETE` are idempotent too, so a network failure resends them, as it does a safe method. A `QUERY` carries its question in a JSON body like any other request body. A `TRACE` operation is listed but never sent, because fetch refuses the method: the contract call records it as untested with that reason, and the model flags it (`unsendable`).
+The API tester reads every operation field of an OAS 3.2 Path Item: `get`, `put`, `post`, `delete`, `options`, `head`, `patch`, `trace` and `query`. `GET`, `HEAD`, `OPTIONS`, `TRACE` and `QUERY` are safe: a read-only check may send them, they never count as writes, and a contract call may send one to any record the run saw. `PUT` and `DELETE` are idempotent too, so a network failure resends them, as it does a safe method. A `QUERY` carries its question in a JSON body like any other request body. A `TRACE` operation is listed but never sent, because fetch refuses the method: the contract call records it as untested with that reason, and the model flags it (`unsendable`).
 
 ### Parameters
 
@@ -79,13 +79,13 @@ Each value is written in the parameter's OAS `style` and `explode`: `form`, `spa
 
 ### Discriminated unions
 
-A `oneOf` or `anyOf` of `$ref`s beside a `discriminator` pins each branch to its tag: the `mapping` values that reach the branch's schema, or else its component name. Each branch then requires `propertyName` with one of its own values, so a response whose tag names one branch and whose fields fit another fails its schema, and a generated body carries the tag of the branch it was made from. A union's branch turns with the record's index, as an enum value does, so a cohort makes every branch. A union with a branch that is not a `$ref`, or one oat cannot name, stays as JSON Schema reads it. Not read: the `allOf` inheritance pattern, where a parent schema holds the `discriminator` and each child extends the parent with `allOf`; such a parent's tag is not pinned. A `mapping` value that names a schema in another file falls back to that branch's component name, and the union stays unpinned when no name is left. A tag marked `readOnly` (in a request) or `writeOnly` (in a response) leaves the union unpinned, read from the union and each branch's own `properties`, not from inside an `allOf`.
+A `oneOf` or `anyOf` of `$ref`s beside a `discriminator` pins each branch to its tag: the `mapping` values that reach the branch's schema, or else its component name. Each branch then requires `propertyName` with one of its own values, so a response whose tag names one branch and whose fields fit another fails its schema, and a generated body carries the tag of the branch it was made from. A union's branch turns with the record's index, as an enum value does, so a cohort makes every branch. A union with a branch that is not a `$ref`, or one the API tester cannot name, stays as JSON Schema reads it. Not read: the `allOf` inheritance pattern, where a parent schema holds the `discriminator` and each child extends the parent with `allOf`; such a parent's tag is not pinned. A `mapping` value that names a schema in another file falls back to that branch's component name, and the union stays unpinned when no name is left. A tag marked `readOnly` (in a request) or `writeOnly` (in a response) leaves the union unpinned, read from the union and each branch's own `properties`, not from inside an `allOf`.
 
 ## Seeding
 
-Per entity, oat POSTs the create body built from the request schema (JSON, multipart, or urlencoded).
+Per entity, the API tester POSTs the create body built from the request schema (JSON, multipart, or urlencoded).
 
-An entity with no create of its own — a table's exports, a webhook's deliveries — is read through its list. When that list sits under a parent (`/tables/{table_id}/exports`), oat makes the parent the way it makes any ancestor, sharing the one it already made for this principal, so the entity's checks have a list to read. A path parameter names whatever the collection before it creates, so `/organizations/{organization_id}/webhooks/{id}` finds the webhook even when the model calls it `organization-webhook`.
+An entity with no create of its own — a table's exports, a webhook's deliveries — is read through its list. When that list sits under a parent (`/tables/{table_id}/exports`), the API tester makes the parent the way it makes any ancestor, sharing the one it already made for this principal, so the entity's checks have a list to read. A path parameter names whatever the collection before it creates, so `/organizations/{organization_id}/webhooks/{id}` finds the webhook even when the model calls it `organization-webhook`.
 
 Default cohort is **7** records, one of each variant, sliced by `cohortSize`:
 
@@ -103,13 +103,13 @@ Numbers use the ladder `1, 2, 5, 10, 20, 50, 100` so **lexical order ≠ numeric
 
 Empty schemas (`{}`, `true`, `additionalProperties: {}`) and cyclic `$ref`s after inlining stop the walk — they become a scalar or `{}`, never another object descent. A `RangeError` during generation is a `COVERAGE_GAP` on that entity naming the operationId and JSON pointer (`fixture generation overflow on table.create (/)`), not `blocked by unknown`.
 
-String fields honor `format`, `pattern`, and `minLength` together: `email` → `oat-{variant}-{index}@example.test`, `uri` / `url` → `https://example.test/...`, `uuid` → a fixed-shape UUID, `pattern` → a string that matches (or the field is omitted / the entity is a gap). A generated string is padded to `minLength` (repeat the last character) without breaking `pattern`. `"Quarterly Report N"` is only used when the document does not constrain the string. `minLength` greater than `maxLength` omits an optional field and records `missingRequired` on a required one.
+String fields honor `format`, `pattern`, and `minLength` together: `email` → `testing-{variant}-{index}@example.test`, `uri` / `url` → `https://example.test/...`, `uuid` → a fixed-shape UUID, `pattern` → a string that matches (or the field is omitted / the entity is a gap). A generated string is padded to `minLength` (repeat the last character) without breaking `pattern`. `"Quarterly Report N"` is only used when the document does not constrain the string. `minLength` greater than `maxLength` omits an optional field and records `missingRequired` on a required one.
 
-An operation with `x-invite` is not `entity.create`. oat does not POST a generated invitee. The invite check sends `granteeField` = the peer's `inviteAs`. Missing `inviteAs` is a coverage gap naming the tag.
+An operation with `x-invite` is not `entity.create`. The API tester does not POST a generated invitee. The invite check sends `granteeField` = the peer's `inviteAs`. Missing `inviteAs` is a coverage gap naming the tag.
 
 A create whose `operationId` appears in any principal `auth.steps`, or that declares `x-fresh-principal`, is not seeded. Those rows were provisioned by the auth flow.
 
-Parent path parameters are created first (depth-first through the owning entity's create). Each principal's `scope` (or a login's `scope.<parameter>` claim, or `hooks.resolvePathValue`) fills parameters oat cannot create.
+Parent path parameters are created first (depth-first through the owning entity's create). Each principal's `scope` (or a login's `scope.<parameter>` claim, or `hooks.resolvePathValue`) fills parameters the API tester cannot create.
 
 A create that returns `>= 300` on the first variant fails the entity (downstream checks `BLOCKED`). Later variants that fail just shorten the cohort — a partial cohort is still used.
 
@@ -119,17 +119,17 @@ A 503 with `Retry-After` is waited out and asked again, up to three times, as a 
 
 A request that times out is a network outcome only when the host has stopped answering. When the origin still answers a probe, the timeout fails that one operation and the run goes on.
 
-A 402 / plan-limit (`payment_required`, `*_plan_limit`) on create is not a backend defect when the same-tenant list already has a row — typically an earlier `x-effects` create that filled a free-plan quota. oat reuses that id so children (a `row` after extract created a `table`) can still seed. It does not invent records. Write-path checks on the adopted entity stand down.
+A 402 / plan-limit (`payment_required`, `*_plan_limit`) on create is not a backend defect when the same-tenant list already has a row — typically an earlier `x-effects` create that filled a free-plan quota. The API tester reuses that id so children (a `row` after extract created a `table`) can still seed. It does not invent records. Write-path checks on the adopted entity stand down.
 
-A documented feature-gate 403 is the exception: if create declares `x-feature-gate` and the body is `vars.type: feature_gate` (and `vars.feature` matches the tag when present), oat records a `COVERAGE_GAP` naming the tag rather than a seed defect. See [`x-feature-gate`](tags.md#x-feature-gate).
+A documented feature-gate 403 is the exception: if create declares `x-feature-gate` and the body is `vars.type: feature_gate` (and `vars.feature` matches the tag when present), the API tester records a `COVERAGE_GAP` naming the tag rather than a seed defect. See [`x-feature-gate`](tags.md#x-feature-gate).
 
-When create is tagged `x-unique`, a first-variant seed **409** with a nonempty same-tenant list **adopts** that row (`world.seed` `COVERAGE_GAP` naming `x-unique` — the create could not insert). Unique-conflict checks still run against that row. Write-path oracles that need a body oat submitted stay skipped. 409 with an empty list stays `BLOCKED` (`could not seed`). A 409 without the tag is still today's seed failure. The seed 409 itself is not `create.unique-conflict-rejected` passing — that check is the explicit second POST. See [`x-unique`](tags.md#x-unique). Later variants that 409 only shorten the cohort. Generated values for unique body columns differ across variants (a suffix) without weakening `maxLength` / `pattern`; if the document cannot express two distinct values, oat records a gap and skips extra variants.
+When create is tagged `x-unique`, a first-variant seed **409** with a nonempty same-tenant list **adopts** that row (`world.seed` `COVERAGE_GAP` naming `x-unique` — the create could not insert). Unique-conflict checks still run against that row. Write-path oracles that need a body the API tester submitted stay skipped. 409 with an empty list stays `BLOCKED` (`could not seed`). A 409 without the tag is still today's seed failure. The seed 409 itself is not `create.unique-conflict-rejected` passing — that check is the explicit second POST. See [`x-unique`](tags.md#x-unique). Later variants that 409 only shorten the cohort. Generated values for unique body columns differ across variants (a suffix) without weakening `maxLength` / `pattern`; if the document cannot express two distinct values, the API tester records a gap and skips extra variants.
 
 `--seed` / `seed` makes the bodies identical across runs. It does not make server-assigned ids identical.
 
-A record belongs to the configured principal whose credential its create carried, whatever sent it: a seed, a check, a probe the backend should have refused, a scenario step, a create declared as `PUT`. oat reads every answer as it arrives, and each 2xx from an entity's create is ledgered under that principal, scoped where the create's own path put it — a path value wins over the principal's root of the same name, so a create sent under another tenant's root is removed under that root. A principal configured with no credential owns the requests that carry none. A create sent with a credential no configured principal holds — a scenario's own account — is outside the ledger: the scenario that made it cleans it up. Accounts are never ledgered here: the caller's own account (`x-entity.identity: self`) and the record a sign-up creates belong to the account ledger, which removes each as itself, by an admin, or by `hooks.teardownPrincipal` (see [principals](configuration/reference.md)).
+A record belongs to the configured principal whose credential its create carried, whatever sent it: a seed, a check, a probe the backend should have refused, a scenario step, a create declared as `PUT`. The API tester reads every answer as it arrives, and each 2xx from an entity's create is ledgered under that principal, scoped where the create's own path put it — a path value wins over the principal's root of the same name, so a create sent under another tenant's root is removed under that root. A principal configured with no credential owns the requests that carry none. A create sent with a credential no configured principal holds — a scenario's own account — is outside the ledger: the scenario that made it cleans it up. Accounts are never ledgered here: the caller's own account (`x-entity.identity: self`) and the record a sign-up creates belong to the account ledger, which removes each as itself, by an admin, or by `hooks.teardownPrincipal` (see [principals](configuration/reference.md)).
 
-Teardown DELETEs created rows (or the `x-cleanup` route) newest-first, and only by an id the backend gave back: a create's response, a listing, an async receipt, or — for a create that answers only an acknowledgment — the entity's read under the id oat sent, showing that id and every field oat submitted. An id oat merely sent is never recorded, so a server that ignores a client-chosen id cannot make oat delete somebody else's row. A record whose delete is refused counts as removed when a delete on the same path succeeded earlier in the run: a tenant its creator has left can refuse every later request. A write the backend accepted to a key it should have refused — a tenant or parent id — may have moved a record out of every scope oat can reach, so its creator's 404 no longer counts as removal: the record is a leftover, named with the write that moved it. Each record is deleted with its creator's credential first. Failures and missing delete routes are printed as leftovers, each naming the principal that created the record, not as check findings. After each level of deletes, and before the parents above it go, each list is read again with the creator's credential, page by page as the list declares its paging (largest page, at most 50 pages), until it ends or holds every record being looked for: a record still listed after its delete answered 2xx is a leftover too, with that reason. A read that is fenced or cannot be sent verifies nothing and claims nothing; `teardown: { verify: false }` skips it. Every read and listing by a record's creator during the run counts as having seen it; a record its creator never saw is read once with the creator's credential before its delete, and one still unseen after a 2xx delete is a leftover, since nothing HTTP said could have shown it gone — unless the record, or an ancestor of it, was deleted earlier in the run (compared by path segments). An entity with no read makes no such claim. `hooks.verifyRemoved` can settle each record from outside HTTP; see [Proving a record gone](configuration/hooks.md#proving-a-record-gone). `keepFixtures: true` skips teardown altogether.
+Teardown DELETEs created rows (or the `x-cleanup` route) newest-first, and only by an id the backend gave back: a create's response, a listing, an async receipt, or — for a create that answers only an acknowledgment — the entity's read under the id the API tester sent, showing that id and every field the API tester submitted. An id the API tester merely sent is never recorded, so a server that ignores a client-chosen id cannot make the API tester delete somebody else's row. A record whose delete is refused counts as removed when a delete on the same path succeeded earlier in the run: a tenant its creator has left can refuse every later request. A write the backend accepted to a key it should have refused — a tenant or parent id — may have moved a record out of every scope the API tester can reach, so its creator's 404 no longer counts as removal: the record is a leftover, named with the write that moved it. Each record is deleted with its creator's credential first. Failures and missing delete routes are printed as leftovers, each naming the principal that created the record, not as check findings. After each level of deletes, and before the parents above it go, each list is read again with the creator's credential, page by page as the list declares its paging (largest page, at most 50 pages), until it ends or holds every record being looked for: a record still listed after its delete answered 2xx is a leftover too, with that reason. A read that is fenced or cannot be sent verifies nothing and claims nothing; `teardown: { verify: false }` skips it. Every read and listing by a record's creator during the run counts as having seen it; a record its creator never saw is read once with the creator's credential before its delete, and one still unseen after a 2xx delete is a leftover, since nothing HTTP said could have shown it gone — unless the record, or an ancestor of it, was deleted earlier in the run (compared by path segments). An entity with no read makes no such claim. `hooks.verifyRemoved` can settle each record from outside HTTP; see [Proving a record gone](configuration/hooks.md#proving-a-record-gone). `keepFixtures: true` skips teardown altogether.
 
 ## Query roles and grammars
 
@@ -149,11 +149,11 @@ Checks do not look for a parameter _named_ `filter`. They resolve **roles** from
 
 A bracketed suffix is a _value_ in the name (`fields[articles]`, `filter[status]`), not part of the role. `count` is a page size only when it looks like one (has `maximum` or a default); otherwise it is treated as a total.
 
-A search alias whose declaration says it takes structured input is not free text, and oat passes over it for the next alias: a scalar schema that is not a string, a `pattern` containing `:`, or examples or a description that spell `key:value` (`key1:value2` too). Keycloak's `q`, described as `'key1:value2 key2:value2'`, is an attribute query, so its users list searches by `search`. The rule is kept that narrow: a colon in an example (`role:admin`) or the word "attribute" alone can belong to free text.
+A search alias whose declaration says it takes structured input is not free text, and the API tester passes over it for the next alias: a scalar schema that is not a string, a `pattern` containing `:`, or examples or a description that spell `key:value` (`key1:value2` too). Keycloak's `q`, described as `'key1:value2 key2:value2'`, is an attribute query, so its users list searches by `search`. The rule is kept that narrow: a colon in an example (`role:admin`) or the word "attribute" alone can belong to free text.
 
 A bounded integer with a default that matches no alias is still taken as page size. A 1-based integer with no maximum is taken as page number.
 
-**Filter grammars** — how oat **writes** a term:
+**Filter grammars** — how the API tester **writes** a term:
 
 | name        | example                                                                                              | `and` / `or`                       |
 | ----------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------- |
@@ -163,7 +163,7 @@ A bounded integer with a default that matches no alias is still taken as page si
 
 Operators the **postgrest** writer can emit: `eq`, `ne`, `neq`, `gt`, `gte`, `lt`, `lte`, `in`, `nin`, `like`, `ilike`, `is`, `contains`. Colon stays on `eq` / `neq` / `gt` / `gte` / `lt` / `lte` / `like`. Equality is `eq` only. Anything a grammar cannot write becomes **did not apply**, not a failed request.
 
-A check that needs `in`, `ilike`, `is`, `contains`, a search mode, or `nullsfirst` / `nullslast` also needs that capability **declared**. oat does not infer new operators, modes, or nulls tokens onto an API that never listed them.
+A check that needs `in`, `ilike`, `is`, `contains`, a search mode, or `nullsfirst` / `nullslast` also needs that capability **declared**. The API tester does not infer new operators, modes, or nulls tokens onto an API that never listed them.
 
 **Sort grammars:** `name.asc` (dotted), `-name` (prefixed / JSON:API; ascending is the bare name), `name:asc` (colon), `name asc` (spaced). Dotted (PostgREST-shaped) can also emit `name.asc.nullsfirst` / `name.desc.nullslast` when the capability map allows that token. Colon / prefixed / spaced stay as they are.
 
@@ -173,17 +173,17 @@ A check that needs `in`, `ilike`, `is`, `contains`, a search mode, or `nullsfirs
 
 `x-query.grammar` wins when it is `postgrest` | `colon` | `equality`.
 
-Otherwise oat concatenates the filter/order/select parameter's `example`, `examples`, and `description`:
+Otherwise the API tester concatenates the filter/order/select parameter's `example`, `examples`, and `description`:
 
 - Filter: `/postgrest/i` or `field.op.value` / `status.eq.active` → `postgrest`; `status=eq:` → `colon`; else `equality`. A free-text `filter` string that still looks like equality produces an `x-query` gap telling you to declare the grammar.
 - Sort: `name.asc` → dotted; `name:desc` → colon; `name desc` → spaced; leading `-field` → prefixed; else dotted.
 - Select: parameter name or description contains `fields[…]` → bracketed; else csv.
 
-Without `x-query`, if a filter/order/select/search role resolves, oat assumes **every scalar** is filterable/sortable/selectable (`string` / `number` / `integer` / `boolean`, including nullable unions). Sortable-without-tag leaves out the list's own path parameters (`project_id` under `/projects/{project_id}/tables`): every listed record holds the same value, so ordering by it shows nothing. Searchable-without-tag is further narrowed to names matching `name|title|slug|label|description|email`. `doctor` warns. Pagination-only lists stay uncovered.
+Without `x-query`, if a filter/order/select/search role resolves, the API tester assumes **every scalar** is filterable/sortable/selectable (`string` / `number` / `integer` / `boolean`, including nullable unions). Sortable-without-tag leaves out the list's own path parameters (`project_id` under `/projects/{project_id}/tables`): every listed record holds the same value, so ordering by it shows nothing. Searchable-without-tag is further narrowed to names matching `name|title|slug|label|description|email`. `doctor` warns. Pagination-only lists stay uncovered.
 
 A query probe goes only to a parameter the list operation declares. Without a declared order, search or select parameter, that axis is empty, whatever `x-query` or config lists for it. Under one parameter per field (`equality`, or a template with `param: "{field}"`), the guessed filterable fields are cut to those the list declares as query parameters; a field `x-query`, config, a harvest or the hook names is kept. A check that needed what was cut does not apply, and its reason names the missing parameter (``the `id` query parameter, which the list operation does not declare``). `doctor` shows the cut map.
 
-That heuristic runs **only** for an axis that was not tagged and not set in config. An explicit empty claim — `filterable: []`, `searchable: null`, `selectable: []`, `sortable: []` — is a claim of none. oat will not infer scalars over it.
+That heuristic runs **only** for an axis that was not tagged and not set in config. An explicit empty claim — `filterable: []`, `searchable: null`, `selectable: []`, `sortable: []` — is a claim of none. The API tester will not infer scalars over it.
 
 Searchable / filterable / sortable / selectable from the tag are used as given. `maxLimit` is also taken from a page-size parameter's `schema.maximum` when the tag omits it.
 
@@ -227,4 +227,4 @@ Collection shape is derived from the success JSON schema, not from hardcoded wra
 | page       | `page`, `pageNumber`, `page_number`, `offset`               |
 | limit      | `limit`, `perPage`, `per_page`, `pageSize`, `page_size`     |
 
-Success schema is the first JSON media type on responses `200`, `201`, `202`, `2XX`, or `default`. Request schema is taken from `requestBody` preferring `multipart/form-data`, then `application/x-www-form-urlencoded`, then JSON. A success response that lists `text/event-stream` is a stream: oat consumes it to the end and does not treat the raw body as a JSON schema defect. Media type is the stream tag — there is no `x-stream`.
+Success schema is the first JSON media type on responses `200`, `201`, `202`, `2XX`, or `default`. Request schema is taken from `requestBody` preferring `multipart/form-data`, then `application/x-www-form-urlencoded`, then JSON. A success response that lists `text/event-stream` is a stream: the API tester consumes it to the end and does not treat the raw body as a JSON schema defect. Media type is the stream tag — there is no `x-stream`.

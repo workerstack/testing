@@ -245,12 +245,12 @@ describe("Redactor, a secret the backend issues", () => {
 })
 
 describe("Redactor, an otpauth URI", () => {
-	const uri = "otpauth://totp/oat:ada?secret=GEZDGNBV&issuer=oat&period=30"
+	const uri = "otpauth://totp/testing:ada?secret=GEZDGNBV&issuer=testing&period=30"
 
 	it("redacts its secret by scheme, though nothing was learned, in text, a URL and a JSON body", () => {
 		const redactor = new Redactor()
 		expect(redactor.text(`scan ${uri} now`)).toBe(
-			`scan otpauth://totp/oat:ada?secret=${REDACTED}&issuer=oat&period=30 now`,
+			`scan otpauth://totp/testing:ada?secret=${REDACTED}&issuer=testing&period=30 now`,
 		)
 		expect(JSON.stringify(redactor.json({ otpauth_url: uri }))).not.toContain("GEZDGNBV")
 		const encoded = `https://qr.example.test/?data=${encodeURIComponent(uri)}`

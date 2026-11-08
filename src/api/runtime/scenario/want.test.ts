@@ -19,7 +19,7 @@ describe("expected", () => {
 
 	it("refuses an assert that wants nothing", () => {
 		expect(() => expected({ from: "$.a" }, scope)).toThrow(
-			"oat: an assert on $.a needs equals, contains, excludes, omits or atLeast",
+			"testing api: an assert on $.a needs equals, contains, excludes, omits or atLeast",
 		)
 	})
 })

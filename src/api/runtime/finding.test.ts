@@ -61,7 +61,8 @@ describe("a check's own findings", () => {
 
 describe("what a finding may say", () => {
 	const cwd = process.cwd()
-	const stack = "TypeError: x is not a function\n    at run (/home/ann/oat/src/a.ts:3:9)\n\tat async /Users/bo/b.ts:1:1"
+	const stack =
+		"TypeError: x is not a function\n    at run (/home/ann/testing/src/a.ts:3:9)\n\tat async /Users/bo/b.ts:1:1"
 	const pathy = `open '${cwd}/specs/a.yaml' then /home/ann/x/spec.yaml:3 and C:\\Users\\cy\\c.ts, file:///root/d.ts`
 	const clean = "open './specs/a.yaml' then spec.yaml:3 and c.ts, d.ts"
 	const evidence: Exchange[] = []
@@ -101,7 +102,7 @@ describe("what a finding may say", () => {
 })
 
 describe("verdicts and outcomes", () => {
-	it("a root cause is what oat found, and fails the run unless a baseline knows it", () => {
+	it("a root cause is what the API tester found, and fails the run unless a baseline knows it", () => {
 		expect(isRootCause({ verdict: "BACKEND_BUG" })).toBe(true)
 		expect(isRootCause({ verdict: "COVERAGE_GAP" })).toBe(false)
 		expect(isRootCause({ verdict: "BLOCKED" })).toBe(false)

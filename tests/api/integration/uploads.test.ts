@@ -98,7 +98,7 @@ async function uploadApi(): Promise<{ received: Received[]; url: string }> {
 
 /* A temp directory holding a small PDF per name, each marked with its own name. */
 async function pdfs(...names: string[]): Promise<string> {
-	const dir = await mkdtemp(join(tmpdir(), "oat-uploads-"))
+	const dir = await mkdtemp(join(tmpdir(), "testing-uploads-"))
 	for (const name of names) await writeFile(join(dir, name), `%PDF-1.4\n${name}\n%%EOF\n`)
 	return dir
 }

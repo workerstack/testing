@@ -59,7 +59,9 @@ export function parseBaseline(raw: unknown, where: string): BaselineFile {
 		}
 		/* An id no run raises would match nothing and read as fixed: a renamed check, or a typo. */
 		if (!FINDING_IDS.has(entry.check)) {
-			throw new UsageError(`${at}.check "${entry.check}" is no check oat runs.${didYouMean(entry.check, FINDING_IDS)}`)
+			throw new UsageError(
+				`${at}.check "${entry.check}" is no check the API tester runs.${didYouMean(entry.check, FINDING_IDS)}`,
+			)
 		}
 		return {
 			check: entry.check,

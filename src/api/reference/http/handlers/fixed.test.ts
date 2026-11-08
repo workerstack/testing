@@ -15,7 +15,7 @@ describe("the document route", () => {
 		expect(operations(body).some((operation) => "x-entity" in operation)).toBe(true)
 	})
 
-	it("serves the document without oat's tags when untagged", async () => {
+	it("serves the document without the API tester's tags when untagged", async () => {
 		const { call } = await api({ untagged: true })
 		const { body } = await call("GET", "/v1/openapi/spec")
 		expect(operations(body).some((operation) => "x-entity" in operation)).toBe(false)
@@ -152,7 +152,7 @@ describe("the caller's profile under the string guard", () => {
 		expect((await update({ first_name: "Grace", phone_number: null })).body).toEqual({ first_name: "Grace" })
 		const refused = [
 			{ first_name: "Gr\u0000ace" },
-			{ first_name: "Grace", phone_number: "Oat" },
+			{ first_name: "Grace", phone_number: "Tst" },
 			{ first_name: "Grace", phone_number: 38591234567 },
 		]
 		for (const body of refused) {
@@ -162,7 +162,7 @@ describe("the caller's profile under the string guard", () => {
 
 	it("leaves the profile as it was without the shape", async () => {
 		const { call } = await api()
-		expect((await call("PATCH", "/v1/me", { body: { first_name: "Grace", phone_number: "Oat" } })).body).toEqual({
+		expect((await call("PATCH", "/v1/me", { body: { first_name: "Grace", phone_number: "Tst" } })).body).toEqual({
 			first_name: "Grace",
 		})
 	})

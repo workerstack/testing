@@ -13,7 +13,7 @@ describe("durationMs", () => {
 	})
 
 	it("refuses anything else", () => {
-		expect(() => durationMs("soon")).toThrow('oat: "soon" is not a duration (use 500ms, 30s or 2m)')
+		expect(() => durationMs("soon")).toThrow('testing api: "soon" is not a duration (use 500ms, 30s or 2m)')
 	})
 })
 

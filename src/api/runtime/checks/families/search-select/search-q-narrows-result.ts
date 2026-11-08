@@ -25,7 +25,7 @@ export const searchNarrowsResult: Check<{ field: string }> = defineCheck<{ field
 			return ctx.findings.unresolved(this.id, ctx.entityName, "fewer than two records to narrow")
 
 		/* A token no record can contain: a correct search returns nothing. */
-		const result = await list(ctx, q(ctx, { limit, search: "zzqqxx-oat-no-match-token" }))
+		const result = await list(ctx, q(ctx, { limit, search: "zzqqxx-testing-no-match-token" }))
 		if (result.exchange.status >= 400)
 			return ctx.findings.unresolved(this.id, ctx.entityName, "the search was rejected")
 		if (result.items.length === 0) return ASSERTED

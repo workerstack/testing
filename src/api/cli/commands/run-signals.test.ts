@@ -28,7 +28,9 @@ describe("stopOnSignal", () => {
 		emitter.emit("SIGTERM", "SIGTERM")
 		expect(stop.signal.aborted).toBe(true)
 		expect(stop.by()).toBe("SIGTERM")
-		expect(writer.text()).toBe("\noat: SIGTERM — stopping, removing what this run created (again to exit now)\n")
+		expect(writer.text()).toBe(
+			"\ntesting api: SIGTERM — stopping, removing what this run created (again to exit now)\n",
+		)
 	})
 
 	it("exits at once on a second signal", () => {
@@ -38,7 +40,7 @@ describe("stopOnSignal", () => {
 		emitter.emit("SIGINT", "SIGINT")
 		expect(() => emitter.emit("SIGINT", "SIGINT")).toThrow("exit 130")
 		expect(exits).toEqual([130])
-		expect(writer.text()).toContain("oat: SIGINT again — exiting without teardown")
+		expect(writer.text()).toContain("testing api: SIGINT again — exiting without teardown")
 	})
 
 	it("stops listening once disposed", () => {

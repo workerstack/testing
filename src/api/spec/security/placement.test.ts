@@ -31,7 +31,7 @@ describe("placementOf", () => {
 		expect(placed("cookie")).toEqual({ in: "cookie", name: "session", template: "{credential}" })
 	})
 
-	it("has no placement for a scheme oat cannot send", () => {
+	it("has no placement for a scheme the API tester cannot send", () => {
 		expect([placed("mtls"), placed("digest"), placed("strange")]).toEqual([null, null, null])
 	})
 })

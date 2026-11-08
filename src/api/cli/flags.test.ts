@@ -9,7 +9,7 @@ import { COMMANDS, FLAGS, type FlagSpec, isKnownFlag, list, parseArgs, str, USAG
 
 describe("USAGE", () => {
 	it("names every command and every flag, with its value", () => {
-		for (const { usage } of COMMANDS) expect(USAGE).toContain(`oat ${usage}`)
+		for (const { usage } of COMMANDS) expect(USAGE).toContain(`testing api ${usage}`)
 		for (const [name, spec] of Object.entries<FlagSpec>(FLAGS)) {
 			const flag = `--${name}${spec.value === undefined ? "" : ` ${spec.value}`}`
 			const line = USAGE.split("\n").find((text) => text.trimStart().startsWith(`${flag} `))
@@ -19,8 +19,8 @@ describe("USAGE", () => {
 
 	it("sets every command's help apart from its usage, however long the longest usage is", () => {
 		for (const { usage, help } of COMMANDS) {
-			const line = USAGE.split("\n").find((text) => text.startsWith(`  oat ${usage} `)) ?? ""
-			expect({ usage, gap: line.slice(`  oat ${usage}`.length) }).toEqual({
+			const line = USAGE.split("\n").find((text) => text.startsWith(`  testing api ${usage} `)) ?? ""
+			expect({ usage, gap: line.slice(`  testing api ${usage}`.length) }).toEqual({
 				usage,
 				gap: expect.stringMatching(/^ {2,}\S/),
 			})

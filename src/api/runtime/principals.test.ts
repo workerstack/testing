@@ -167,23 +167,23 @@ describe("parsePersistedPrincipals", () => {
 	})
 
 	it("refuses text that is not JSON, the wrong shape, or no usable principal", () => {
-		expect(() => parsePersistedPrincipals("{", "p.json")).toThrow("oat: p.json is not valid JSON")
+		expect(() => parsePersistedPrincipals("{", "p.json")).toThrow("testing api: p.json is not valid JSON")
 		expect(() => parsePersistedPrincipals("{}")).toThrow(
-			"oat: principals.json must be { principals: [...] } or an array of principals",
+			"testing api: principals.json must be { principals: [...] } or an array of principals",
 		)
 		expect(() => parsePersistedPrincipals("7")).toThrow("must be { principals: [...] }")
-		expect(() => parsePersistedPrincipals("[]")).toThrow("oat: principals.json contains no usable principals")
+		expect(() => parsePersistedPrincipals("[]")).toThrow("testing api: principals.json contains no usable principals")
 	})
 })
 
 describe("loadPersistedPrincipals", () => {
 	it("reads a file synchronously, so a config can call it at module load", async () => {
-		const dir = await mkdtemp(join(tmpdir(), "oat-principals-"))
+		const dir = await mkdtemp(join(tmpdir(), "testing-principals-"))
 		const path = join(dir, "principals.json")
 		await writeFile(path, JSON.stringify({ principals: [{ id: "a", identity: { key: "k" }, rank: 1 }] }))
 		expect(loadPersistedPrincipals(path)).toEqual({ a: { key: "k", rank: 1, scope: {} } })
 		expect(() => loadPersistedPrincipals(join(dir, "missing.json"))).toThrow(
-			"oat: cannot read persisted principals from",
+			"testing api: cannot read persisted principals from",
 		)
 	})
 })

@@ -21,7 +21,7 @@ const indexLines = (): Array<RawOf<JournalIndexLine>> =>
 const fileOf = <T = RawOf<JournalExchangeFile>>(rel: string): T => JSON.parse(readFileSync(join(dir, rel), "utf8")) as T
 
 beforeEach(() => {
-	dir = mkdtempSync(join(tmpdir(), "oat-journal-"))
+	dir = mkdtempSync(join(tmpdir(), "testing-journal-"))
 })
 
 afterEach(() => {
@@ -121,7 +121,7 @@ describe("createExchangeJournal, a full exchange", () => {
 })
 
 describe("createExchangeJournal, a wait past the limit", () => {
-	it("keeps the wait a 429 asked for past the limit, which oat did not wait out", async () => {
+	it("keeps the wait a 429 asked for past the limit, which the API tester did not wait out", async () => {
 		const journal = createExchangeJournal(dir, new Redactor())
 		const exceeded = { limitMs: 60_000, waitMs: 86_400_000 }
 		await journal.record(exchangeOf({ retryAfterExceeded: exceeded, status: 429 }))

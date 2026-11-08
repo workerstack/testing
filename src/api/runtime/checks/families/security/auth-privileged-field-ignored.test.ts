@@ -230,7 +230,7 @@ describe("auth.privileged-field-ignored (3)", () => {
 			"a request body property marked x-privileged; notes.delete marks none",
 			"a record this run created that notes.update can be sent to",
 			"the target record's current state, for a harmless body",
-			"a value of verified oat can change",
+			"a value of verified the API tester can change",
 			"a principal ranked below the highest of the target owner's tenant",
 			"the document declares no security; add an overlay",
 		])
@@ -243,7 +243,7 @@ describe("auth.privileged-field-ignored (3)", () => {
 			await runOperationCheck(privilegedFieldIgnored, stage.ctx)
 			bodies.push(stage.sent[0]?.options.body)
 		}
-		expect(bodies).toEqual([{ verified: true }, { verified: 4 }, { verified: "x-oat" }])
+		expect(bodies).toEqual([{ verified: true }, { verified: 4 }, { verified: "x-testing" }])
 	})
 })
 
@@ -293,7 +293,7 @@ describe("auth.privileged-field-ignored (4)", () => {
 		})
 		expect(await runOperationCheck(privilegedFieldIgnored, absent.ctx)).toEqual({
 			kind: "stood-down",
-			reason: "a value of meta.locked oat can change",
+			reason: "a value of meta.locked the API tester can change",
 		})
 	})
 	it("skips an alternative of several schemes, and judges the actor's tenant when the owner is no principal", async () => {

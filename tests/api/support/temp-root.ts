@@ -25,7 +25,7 @@ export function removeStaleRuns(base: string, now: number): void {
 
 export default function setup(): () => void {
 	const previous = process.env["TMPDIR"]
-	const base = join(process.env["XDG_CACHE_HOME"] ?? join(homedir(), ".cache"), "oat-tests")
+	const base = join(process.env["XDG_CACHE_HOME"] ?? join(homedir(), ".cache"), "testing-tests")
 	mkdirSync(base, { recursive: true })
 	removeStaleRuns(base, Date.now())
 	const root = mkdtempSync(join(base, "run-"))

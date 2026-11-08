@@ -140,7 +140,7 @@ function declarations(
 			invited.map((entity) => `${entity.name.padEnd(28)} ${inviteAcceptMode(entity.invite)}`),
 		),
 		...block(
-			"  declared grammars — how oat writes this entity's filter and sort terms:",
+			"  declared grammars — how the API tester writes this entity's filter and sort terms:",
 			grammars.flatMap((row) => [
 				...(row.filter === undefined ? [] : [`${row.entity.padEnd(28)} filter  ${row.filter}`]),
 				...(row.sort === undefined ? [] : [`${row.entity.padEnd(28)} sort    ${row.sort}`]),
@@ -149,7 +149,7 @@ function declarations(
 	]
 }
 
-/** What a targeted run would grade, queue and call — the dry run behind `oat plan --ops`. */
+/** What a targeted run would grade, queue and call — the dry run behind `testing api plan --ops`. */
 function planScopeText(scope: ScopePlan, security: SecurityFacts): string {
 	const lines: string[] = ["", `  scope: targeted (${describeRequested(scope.requested)})`, ""]
 	const width = Math.max(12, ...[...scope.targets, ...scope.untestable].map((t) => t.operationId.length)) + 2
@@ -178,7 +178,7 @@ function planScopeText(scope: ScopePlan, security: SecurityFacts): string {
 	return lines.join("\n")
 }
 
-/** `oat plan`: the test model derived from the document, as text or JSON; the targeted scope when there is one. */
+/** `testing api plan`: the test model derived from the document, as text or JSON; the targeted scope when there is one. */
 export function plan(model: SpecModel, asJson: boolean, view: PlanView = {}): string {
 	const grammars = declaredGrammars(model)
 	if (asJson) return planJson(model, grammars, view)

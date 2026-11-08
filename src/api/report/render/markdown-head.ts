@@ -83,7 +83,7 @@ function trafficLines(input: ReportInput): string[] {
 /** The report's title and its bullet summary of the run, ending in a blank line. */
 export function headLines(input: ReportInput, verdict: RunVerdict, coverage: Coverage): string[] {
 	return [
-		"# oat report",
+		"# The API tester report",
 		"",
 		...runLines(input, verdict),
 		...coverageLines(input, coverage),

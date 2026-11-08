@@ -11,14 +11,14 @@ import { decodeSegment, resolvePointer } from "./pointer.ts"
  * Where a discriminated union of refs records the tag values of each branch, by branch index, so
  * `normalizeSchema` can pin each branch's tag once the refs are inlined and their names are gone.
  */
-export const DISCRIMINATOR_KEY = "x-oat-discriminator"
+export const DISCRIMINATOR_KEY = "x-testing-discriminator"
 
 /**
  * What an internal ref that points at nothing reads as: an empty node naming the pointer. As a
  * schema it is unconstrained (`normalizeSchema` drops the key); anywhere else the model leaves the
  * operation that holds it untested.
  */
-export const DANGLING_KEY = "x-oat-dangling"
+export const DANGLING_KEY = "x-testing-dangling"
 
 /** The tag property of a discriminated union, and the values that name each branch. */
 export interface Discriminated {

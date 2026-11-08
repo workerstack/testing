@@ -1,7 +1,7 @@
 /**
- * Points oat at whichever labs world is listening.
+ * Points the API tester at whichever labs world is listening.
  *
- *   LAB_URL=http://127.0.0.1:8791 node dist/api/cli.js run --config labs/api/oat.config.ts
+ *   LAB_URL=http://127.0.0.1:8791 node dist/api/cli.js run --config labs/api/testing.api.config.ts
  */
 
 import { defineConfig } from "../../dist/api/index.js"

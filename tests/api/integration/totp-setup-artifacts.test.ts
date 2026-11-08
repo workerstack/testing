@@ -17,7 +17,7 @@ let dir = ""
 let server: ReferenceServer
 
 beforeAll(async () => {
-	dir = await mkdtemp(join(tmpdir(), "oat-totp-"))
+	dir = await mkdtemp(join(tmpdir(), "testing-totp-"))
 	server = await createMemoryServer({ shape: "totp-setup" })
 })
 
@@ -35,7 +35,7 @@ async function cli(argv: string[]): Promise<number> {
 	const saved = process.argv
 	const out = vi.spyOn(process.stdout, "write").mockImplementation(quiet)
 	const err = vi.spyOn(process.stderr, "write").mockImplementation(quiet)
-	process.argv = ["node", "oat", ...argv]
+	process.argv = ["node", "testing", ...argv]
 	try {
 		return await main()
 	} finally {

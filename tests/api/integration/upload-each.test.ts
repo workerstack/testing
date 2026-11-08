@@ -59,7 +59,7 @@ const LIST: OperationObject = {
 const SCHEMA = EXTRACT.requestBody?.content?.["multipart/form-data"]?.schema ?? {}
 
 async function scratch(): Promise<string> {
-	return mkdtemp(join(tmpdir(), "oat-each-"))
+	return mkdtemp(join(tmpdir(), "testing-each-"))
 }
 
 async function writePdf(dir: string, name: string, marker: string): Promise<string> {
@@ -157,7 +157,7 @@ describe("resolveEachInvocations", () => {
 	it("falls back to cwd when configDir is omitted", async () => {
 		const slots = await resolveEachInvocations("extract.once", {
 			seed: 1,
-			uploads: { each: { "extract.once": ["./oat-each-no-such-dir-xyz/*.pdf"] } },
+			uploads: { each: { "extract.once": ["./testing-each-no-such-dir-xyz/*.pdf"] } },
 			warn: () => undefined,
 		})
 		expect(slots).toEqual([])

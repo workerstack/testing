@@ -15,7 +15,7 @@ export function stepRunner(ctx: Omit<StepContext, "principalId">): StepRunner {
 			const out = await runSteps({ ...ctx, principalId: principal }, steps, { scope, ...(probe ? { probe } : {}) })
 			if (out.last === undefined) {
 				throw new Error(
-					`oat: principal "${principal}" ran its steps without sending a request, so there is no answer to read`,
+					`testing api: principal "${principal}" ran its steps without sending a request, so there is no answer to read`,
 				)
 			}
 			return { answer: out.last, scope: out.scope }

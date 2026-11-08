@@ -21,7 +21,7 @@ export const selectUnknownFieldRejected: Check<{
 	plan: (ctx) => {
 		const policy = resolvedCaps(ctx).select?.unknown
 		if (policy === undefined) return cannot()
-		const requested = [ctx.identity, "oat_no_such_select_xyz"]
+		const requested = [ctx.identity, "testing_no_such_select_xyz"]
 		const projection = selectTerm(conv(ctx), requested, ctx.entityName)
 		return projection === null ? cannot() : ready({ policy, projection, requested })
 	},
@@ -44,7 +44,7 @@ export const selectUnknownFieldRejected: Check<{
 		if (result.exchange.status >= 400) {
 			return ctx.findings.unresolved(this.id, ctx.entityName, "unknown select field was rejected under ignore")
 		}
-		const extras = Object.keys(result.items[0] ?? {}).filter((key) => key === "oat_no_such_select_xyz")
+		const extras = Object.keys(result.items[0] ?? {}).filter((key) => key === "testing_no_such_select_xyz")
 		if (extras.length === 0) return ASSERTED
 		return ctx.findings.backend(this.id, ctx.entityName, {
 			summary: "unknown select field was honored under ignore",

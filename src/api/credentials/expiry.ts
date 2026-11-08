@@ -15,8 +15,8 @@ export interface ExpiryInput {
 
 /**
  * When a credential lapses, in epoch ms: the lifetime the recipe or the issuing answer states, then
- * the JWT's `exp`, then null for a value that never lapses as far as oat can tell. Guessing a lifetime
- * too long makes requests fail mid-run for reasons that look like backend defects, so oat never guesses.
+ * the JWT's `exp`, then null for a value that never lapses as far as the API tester can tell. Guessing a lifetime
+ * too long makes requests fail mid-run for reasons that look like backend defects, so the API tester never guesses.
  */
 export function expiresAtOf(input: ExpiryInput): number | null {
 	const seconds = secondsOf(input)

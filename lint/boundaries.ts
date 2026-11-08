@@ -4,17 +4,17 @@ import type { Context, Node, Rule } from "./ast.ts"
 import { isTestCode, repoPath } from "./paths.ts"
 
 /*
- * oat's dependency arrows, low to high:
+ * The API tester's dependency arrows, low to high:
  *   errors, config/types → security, steps → spec → client, credentials, reference → runtime (checks
  *   included) → runtime/run → config, report, conformance → cli, index
  * A module imports its own layer group or any lower layer. security is a leaf above the errors:
  * it imports nothing else. steps, the scenario step builders a config imports from
- * `@lovrozagar/oat/steps`, sits beside it and imports only the step types and the errors. client and credentials sit below the runtime, so the runtime calls them
+ * `@workerstack/testing/api/steps`, sits beside it and imports only the step types and the errors. client and credentials sit below the runtime, so the runtime calls them
  * and never the reverse. Only cli and index import report or conformance (conformance renders
  * through report). The reference backend is a separate program: it never imports the client or
  * the runtime, and only conformance, cli and index import it.
  */
-const MESSAGE = "import is outside oat's module boundaries (see AGENTS.md: dependency arrows)"
+const MESSAGE = "import is outside the API tester's module boundaries (see AGENTS.md: dependency arrows)"
 
 type Bucket =
 	| "errors"
@@ -59,7 +59,7 @@ const GROUPS: ReadonlyArray<ReadonlySet<Bucket>> = [
 ]
 const TOP_ONLY: ReadonlySet<string> = new Set(["report", "conformance"])
 const REFERENCE_USERS: ReadonlySet<string> = new Set(["reference", "conformance", "cli", "index"])
-/* A driver the reference backend loads for one engine, and conformance probes for; oat itself never needs it. */
+/* A driver the reference backend loads for one engine, and conformance probes for; the API tester itself never needs it. */
 const REFERENCE_DRIVERS = new Set(["postgres"])
 const DRIVER_USERS: ReadonlySet<string> = new Set(["reference", "conformance"])
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { undeliverable } from "./undeliverable.ts"
 
-const NOWHERE = "oat-nonexistent-n0@example.invalid"
+const NOWHERE = "testing-nonexistent-n0@example.invalid"
 
 describe("undeliverable", () => {
 	it("gives every email-format value an identity no account holds, and every URL-format one an .invalid host", () => {
@@ -20,10 +20,10 @@ describe("undeliverable", () => {
 		expect(undeliverable(body, schema, "n0")).toEqual({
 			backup: NOWHERE,
 			email: NOWHERE,
-			hook: "https://oat-nonexistent-n0.invalid/",
-			link: "https://oat-nonexistent-n0.invalid/",
+			hook: "https://testing-nonexistent-n0.invalid/",
+			link: "https://testing-nonexistent-n0.invalid/",
 			name: "n",
-			site: "https://oat-nonexistent-n0.invalid/",
+			site: "https://testing-nonexistent-n0.invalid/",
 		})
 	})
 

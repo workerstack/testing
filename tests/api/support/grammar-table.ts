@@ -17,7 +17,7 @@ import { sortTerm, sortTermWithNulls } from "../../../src/api/spec/conventions/s
 import { FILTER_OPS } from "../../../src/api/spec/query/ops.ts"
 
 /*
- * Every filter, sort and select term oat can write, rendered by today's writers. The
+ * Every filter, sort and select term the API tester can write, rendered by today's writers. The
  * characterization test compares this table with a committed copy, so a renderer change that
  * alters a single byte of a request fails it.
  */

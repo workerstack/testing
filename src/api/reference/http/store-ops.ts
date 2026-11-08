@@ -138,11 +138,11 @@ export async function advanceJobs(state: ReferenceState): Promise<void> {
 }
 
 /**
- * Records that exist before oat arrives — what every real environment has.
+ * Records that exist before the API tester arrives — what every real environment has.
  *
  * Names alternate case so binary and case-insensitive collations order them differently, some
  * descriptions are null, and values repeat, so the data looks like a lived-in collection rather
- * than a fixture. Written straight to the store: none of it is oat's to clean up.
+ * than a fixture. Written straight to the store: none of it is the API tester's to clean up.
  */
 export async function prepopulate(state: ReferenceState, perTenant: number): Promise<void> {
 	for (const [projectId, count] of [

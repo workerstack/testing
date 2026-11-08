@@ -4,7 +4,7 @@ import { NOTES, PARAMS, queryDoc, REJECT, stage } from "../composition/__fixture
 import { answering, ignoring } from "./__fixtures__/responders.ts"
 import { searchNarrowsResult } from "./search-q-narrows-result.ts"
 
-const NO_MATCH = "zzqqxx-oat-no-match-token"
+const NO_MATCH = "zzqqxx-testing-no-match-token"
 
 /* One record, whatever is asked. */
 const single: Responder = () => ({ body: [NOTES[0]], status: 200 })

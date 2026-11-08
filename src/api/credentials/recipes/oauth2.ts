@@ -8,7 +8,7 @@ import { answered, valueAt } from "./answer.ts"
 import type { AcquireCtx, Issued } from "./types.ts"
 
 /*
- * An OAuth 2 grant oat performs itself (RFC 6749 §4.3, §4.4): a form POST to the token URL the
+ * An OAuth 2 grant the API tester performs itself (RFC 6749 §4.3, §4.4): a form POST to the token URL the
  * scheme declares for the flow. Each identity value the form sends (a password grant's username and
  * password, say) is registered as a secret before it is sent. The scope is the set the operation
  * needs, else the recipe's own.

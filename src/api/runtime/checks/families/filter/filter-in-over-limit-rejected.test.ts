@@ -10,7 +10,7 @@ describe("filter.in-over-limit-rejected", () => {
 	it("asserts when an in() list one past the maximum is refused", async () => {
 		const { ctx, findings, sent } = stage({ behavior: { maxIn: 2 }, doc: CAPPED, records: COHORT })
 		expect(await runCheck(check, ctx)).toEqual({ kind: "asserted" })
-		expect(filters(sent)).toEqual(["status.in.(oat-over-limit-0,oat-over-limit-1,oat-over-limit-2)"])
+		expect(filters(sent)).toEqual(["status.in.(testing-over-limit-0,testing-over-limit-1,testing-over-limit-2)"])
 		expect(sent[0]?.options.query).toMatchObject({ limit: 5 })
 		expect(findings.findings).toEqual([])
 	})

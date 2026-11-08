@@ -114,7 +114,7 @@ function judge(ctx: WriteContext, measured: readonly Measured[], boundMs: number
 	if (over === undefined) return asserted(`${windows}, within the declared ${boundMs}ms`)
 	/* Stale at the longest watch, still short of a longer bound: noted, never judged past it. */
 	if ((over.bracket.staleAtMs ?? 0) < boundMs) {
-		return asserted(`${windows}, the longest oat watches; the declared ${boundMs}ms is not judged past it`)
+		return asserted(`${windows}, the longest the API tester watches; the declared ${boundMs}ms is not judged past it`)
 	}
 	return ctx.findings.backend(ID, ctx.entityName, {
 		detail:

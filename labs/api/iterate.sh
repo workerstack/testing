@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Local loop: provision D1 → serve → oat. Stop on unexpected findings.
+# Local loop: provision D1 → serve → the API tester. Stop on unexpected findings.
 #
 #   bash labs/api/iterate.sh                  # tiny + probe cases
 #   bash labs/api/iterate.sh tiny shop campus
@@ -109,10 +109,10 @@ for world in "${worlds[@]}"; do
 		fail=1
 		continue
 	fi
-	out=".oat/runs/labs/${world}"
+	out=".testing/api/runs/labs/${world}"
 	mkdir -p "$out" .oatlogs
 	LAB_URL="http://127.0.0.1:${port}" node dist/api/cli.js run \
-		--config labs/api/oat.config.ts --out "$out" | tee ".oatlogs/labs-oat-${world}.log" || true
+		--config labs/api/testing.api.config.ts --out "$out" | tee ".oatlogs/labs-testing-${world}.log" || true
 	kill "$pid" 2>/dev/null || true
 	wait "$pid" 2>/dev/null || true
 	trap - EXIT
@@ -121,7 +121,7 @@ for world in "${worlds[@]}"; do
 import json, sys
 world, expect, out = sys.argv[1], sys.argv[2], sys.argv[3]
 want = set(s for s in expect.split(",") if s)
-report = json.load(open(f"{out}/latest/oat-report.json"))
+report = json.load(open(f"{out}/latest/report.json"))
 got = {f["check"] for f in report["findings"] if f["verdict"] not in ("COVERAGE_GAP", "BLOCKED")}
 missing = sorted(want - got)
 extra = sorted(got - want)

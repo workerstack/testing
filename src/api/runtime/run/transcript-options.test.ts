@@ -9,7 +9,7 @@ import { assertTranscript } from "./transcript-options.ts"
 
 describe("assertTranscript", () => {
 	it("accepts no option, the defaults, a positive integer budget and a folder it can write", () => {
-		const dir = mkdtempSync(join(tmpdir(), "oat-transcript-option-"))
+		const dir = mkdtempSync(join(tmpdir(), "testing-transcript-option-"))
 		try {
 			expect(() => assertTranscript(undefined)).not.toThrow()
 			expect(() => assertTranscript({})).not.toThrow()
@@ -29,7 +29,7 @@ describe("assertTranscript", () => {
 	})
 
 	it("refuses a folder that is missing, is a file, or cannot be written, naming the option and the reason", () => {
-		const root = mkdtempSync(join(tmpdir(), "oat-transcript-option-"))
+		const root = mkdtempSync(join(tmpdir(), "testing-transcript-option-"))
 		try {
 			const missing = join(root, "missing")
 			expect(() => assertTranscript({ dir: missing })).toThrow(UsageError)

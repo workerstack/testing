@@ -15,6 +15,6 @@ describe("documentDefs", () => {
 	})
 
 	it("names where the definitions live", () => {
-		expect([DEFS_ID, DEFS_KEY]).toEqual(["oat-defs", "x-oat-defs"])
+		expect([DEFS_ID, DEFS_KEY]).toEqual(["testing-defs", "x-testing-defs"])
 	})
 })

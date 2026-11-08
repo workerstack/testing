@@ -19,7 +19,7 @@ describe("exampleOf", () => {
 		expect(exampleOf({ type: "integer" })).toBe("1")
 		expect(exampleOf({ type: "number" })).toBe("1")
 		expect(exampleOf({ type: "boolean" })).toBe("true")
-		expect(exampleOf({ type: "string" })).toBe("oat")
+		expect(exampleOf({ type: "string" })).toBe("testing")
 		expect(exampleOf({ type: "object" })).toBeUndefined()
 		expect(exampleOf(undefined)).toBeUndefined()
 	})

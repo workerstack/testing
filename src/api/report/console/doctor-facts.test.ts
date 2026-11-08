@@ -147,7 +147,7 @@ describe("doctorFacts and the cache bypass", () => {
 		"/tags/{id}": { get: readOp("tag", "tags.get", { "x-consistency": { bypass: "x-fresh: 1" } }) },
 	})
 
-	it("groups the reads by the bypass oat sends them: declared, else the default no-cache", () => {
+	it("groups the reads by the bypass the API tester sends them: declared, else the default no-cache", () => {
 		expect(doctorFacts(modelOf(doc).model).bypass).toEqual([
 			{ bypass: "x-fresh: 1", operations: ["notes.get", "tags.get"], source: "declared" },
 			{ bypass: "cache-control: no-cache", operations: ["notes.list"], source: "default" },

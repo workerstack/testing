@@ -29,7 +29,7 @@ export interface Matrix {
  * The legs to run. Backends vary the storage engine; dialects vary the API's conventions. The full
  * cross product would be mostly redundant, so every backend runs the default dialect and the
  * cheapest one runs the other shapes: `classic` renames everything, `linked` changes the pagination
- * model, and `template` is a grammar oat knows only from its declaration.
+ * model, and `template` is a grammar the API tester knows only from its declaration.
  */
 export function planPasses(
 	backends: readonly BackendName[],
@@ -164,7 +164,7 @@ function defaultPass(matrix: Matrix): number {
 }
 
 /**
- * Shapes and recall — whether oat stays quiet on a correct backend shaped unlike the one it was
+ * Shapes and recall — whether the API tester stays quiet on a correct backend shaped unlike the one it was
  * written against, and still sees each defect behind it; one engine is enough, a shape varies the
  * API, not the storage — and `--ops` recall, which needs each defect's full run from the default pass.
  */

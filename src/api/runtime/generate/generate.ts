@@ -1,10 +1,10 @@
 /**
- * Values from schemas — the one place oat invents data.
+ * Values from schemas — the one place the API tester invents data.
  *
  * Seeding a cohort and probing a check both need values: a record to create, a second value to
  * patch to, an identifier that is well-formed and absent, a value just outside an enum. They used
- * to be invented in two places plus a dozen string literals in the checks (`"oat patched value"`,
- * `"<id>-oat-absent"`), and the literals were wrong exactly where it mattered: not a UUID where the
+ * to be invented in two places plus a dozen string literals in the checks (`"the API tester patched value"`,
+ * `"<id>-testing-absent"`), and the literals were wrong exactly where it mattered: not a UUID where the
  * API takes UUIDs, not a date where it takes dates. Everything comes from here now, from the
  * normalized schema (see `spec/schema.ts`), and anything that cannot be constructed says so rather
  * than sending something the document forbids.

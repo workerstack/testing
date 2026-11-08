@@ -21,7 +21,7 @@ const response = (body: unknown, contentType?: string) =>
 	exchangeOf({ responseBody: body, responseHeaders: contentType === undefined ? {} : { "Content-Type": contentType } })
 
 beforeEach(() => {
-	dir = mkdtempSync(join(tmpdir(), "oat-persist-"))
+	dir = mkdtempSync(join(tmpdir(), "testing-persist-"))
 	mkdirSync(join(dir, "blobs"))
 	store = createBlobStore(dir, new Redactor())
 })

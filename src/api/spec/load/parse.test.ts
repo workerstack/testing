@@ -11,7 +11,7 @@ describe("parseDocument", () => {
 	})
 
 	it("refuses an empty document", async () => {
-		await expect(parseDocument("﻿ \n", "e.json")).rejects.toThrow("oat: e.json is empty")
+		await expect(parseDocument("﻿ \n", "e.json")).rejects.toThrow("testing api: e.json is empty")
 	})
 
 	it("tells a truncated document from a malformed one", async () => {
@@ -23,7 +23,9 @@ describe("parseDocument", () => {
 	})
 
 	it("names the source when YAML does not parse", async () => {
-		await expect(parseDocument("a: [\n", "b.yaml")).rejects.toThrow(/^oat: could not parse b\.yaml as JSON or YAML: /)
+		await expect(parseDocument("a: [\n", "b.yaml")).rejects.toThrow(
+			/^testing api: could not parse b\.yaml as JSON or YAML: /,
+		)
 	})
 })
 
@@ -34,18 +36,18 @@ describe("assertOpenApi", () => {
 		expect(assertOpenApi({ ...DOC, openapi: "3.2.0" }, "s")).toBeDefined()
 	})
 
-	it("refuses a version oat does not read through assertVersion, as the caller's mistake", () => {
+	it("refuses a version the API tester does not read through assertVersion, as the caller's mistake", () => {
 		expect(() => assertOpenApi({ paths: {}, swagger: "2.0" }, "s")).toThrow(
-			new UsageError("oat: s is Swagger 2.0; oat reads OpenAPI 3.0–3.2 only — convert it first"),
+			new UsageError("testing api: s is Swagger 2.0; the API tester reads OpenAPI 3.0–3.2 only — convert it first"),
 		)
 		expect(() => assertOpenApi({ ...DOC, openapi: "3.3.0" }, "s")).toThrow(
-			new UsageError("oat: s is OpenAPI 3.3.0; oat reads OpenAPI 3.0–3.2 only"),
+			new UsageError("testing api: s is OpenAPI 3.3.0; the API tester reads OpenAPI 3.0–3.2 only"),
 		)
 	})
 
 	it("refuses what parsed as something other than an object, showing what it was", () => {
 		expect(() => assertOpenApi(`Not Found ${"x".repeat(80)}`, "s")).toThrow(
-			`oat: s is not an OpenAPI document — it parsed as "Not Found ${"x".repeat(50)}"`,
+			`testing api: s is not an OpenAPI document — it parsed as "Not Found ${"x".repeat(50)}"`,
 		)
 		expect(() => assertOpenApi(null, "s")).toThrow("it parsed as null")
 		expect(() => assertOpenApi(7, "s")).toThrow("it parsed as 7")

@@ -66,7 +66,7 @@ describe("sendsFor: extra places, basic and unsupported schemes", () => {
 		})
 	})
 
-	it("refuses a scheme oat cannot send, with the reason", () => {
+	it("refuses a scheme the API tester cannot send, with the reason", () => {
 		const digest: SecurityScheme = { deprecated: false, kind: "unsupported", name: "d", unsupported: "http digest" }
 		const thrown = (() => {
 			try {
@@ -77,7 +77,7 @@ describe("sendsFor: extra places, basic and unsupported schemes", () => {
 		})()
 		expect(thrown).toBeInstanceOf(UnsupportedSchemeError)
 		expect(thrown).toMatchObject({
-			message: 'oat cannot send the "d" scheme: http digest',
+			message: 'the API tester cannot send the "d" scheme: http digest',
 			reason: "http digest",
 			scheme: "d",
 		})

@@ -84,7 +84,7 @@ function routesOf({ ctx, entity }: EntityRun): Routes {
 }
 
 /**
- * The write routes. In degraded mode oat did not write the records, so it has no oracle for them —
+ * The write routes. In degraded mode the API tester did not write the records, so it has no oracle for them —
  * every write-path check sits out rather than assert against data it did not create. A
  * profile-excluded write route stands down the same way, independently.
  */

@@ -1,7 +1,7 @@
 /**
  * Async operation support.
  *
- * `x-async` means the HTTP response is a receipt, then oat polls. A `text/event-stream` body is
+ * `x-async` means the HTTP response is a receipt, then the API tester polls. A `text/event-stream` body is
  * the result itself — parse events, do not `JSON.parse` the raw string. Poll only when the
  * stream ends without a terminal frame and `idFrom` resolved.
  */
@@ -222,7 +222,7 @@ function settledBy(spec: AsyncSpec, exchange: Exchange, run: Polling): AsyncOutc
  *
  * Polling is capped by wall-clock rather than attempt count so a slow backend and a fast one
  * behave the same way, and the interval is fixed rather than exponential — the point is to
- * observe when the state changes, not to be gentle with an API oat is already hammering.
+ * observe when the state changes, not to be gentle with an API the API tester is already hammering.
  */
 export async function driveAsync(input: AsyncDrive): Promise<AsyncOutcome> {
 	const run: Polling = { began: performance.now(), exchanges: [], polls: 0 }

@@ -16,7 +16,7 @@ function jsonText(sent: unknown): unknown {
 }
 
 /**
- * The record a create made, carrying an id oat may delete by, or `null` when none can be read.
+ * The record a create made, carrying an id the API tester may delete by, or `null` when none can be read.
  *
  * An id the answer names by contract (a declared `createdIdFrom`, its own identity, or its
  * `Location`) stands. A candidate — the record under an envelope, an id key found deeper in the

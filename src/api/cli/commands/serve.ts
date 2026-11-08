@@ -35,9 +35,9 @@ export function untilSignal(): Promise<void> {
 const PROCESS: ServeDeps = { factoryFor: referenceFactory, stopped: untilSignal }
 
 /**
- * `oat serve`: a built-in demo API so oat can be tried before wiring it to anything real. The
+ * `testing api serve`: a built-in demo API so the API tester can be tried before wiring it to anything real. The
  * reference backend doubles as the conformance fixture, so this is the same server the self-test
- * runs against. `--untagged` serves it behind a document stripped of every x-* tag — what `oat
+ * runs against. `--untagged` serves it behind a document stripped of every x-* tag — what `the API tester
  * doctor` should be pointed at to see what a plain OpenAPI document costs.
  */
 export async function commandServe(writer: Writer, flags: Args["flags"], deps: ServeDeps = PROCESS): Promise<number> {
@@ -48,17 +48,17 @@ export async function commandServe(writer: Writer, flags: Args["flags"], deps: S
 	const factory = await deps.factoryFor(backend)
 	const server = await factory({ defects, untagged, ...(dialect === undefined ? {} : { dialect }) })
 	writer.out(
-		`\n  oat demo API — ${backend}${untagged ? " (untagged spec)" : ""}\n` +
+		`\n  the API tester demo API — ${backend}${untagged ? " (untagged spec)" : ""}\n` +
 			`  url      ${server.url}\n` +
 			`  spec     ${server.url}/v1/openapi/spec\n` +
 			`  dialect  ${dialect ?? "postgrest"}\n` +
 			`  defects  ${defects.length > 0 ? defects.join(", ") : "none — a correct backend"}\n` +
 			`  keys     key_alpha (proj_alpha) · key_beta (proj_beta)\n\n` +
 			"  point a config at it:\n" +
-			`    oat run --config labs/api/local.config.ts --base-url ${server.url}\n\n` +
+			`    testing api run --config labs/api/local.config.ts --base-url ${server.url}\n\n` +
 			"  ctrl-c to stop\n\n",
 	)
-	/* Node buffers stdout when it is not a TTY, so a piped `oat serve` would print nothing until
+	/* Node buffers stdout when it is not a TTY, so a piped `testing api serve` would print nothing until
 	 * exit — indistinguishable from a hang. */
 	writer.flush()
 	await deps.stopped()

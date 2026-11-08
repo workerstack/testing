@@ -97,7 +97,7 @@ describe("filter.malformed-term-rejected: plan", () => {
 			value: { control: { filter: "status.eq.open" }, field: "status", malformed: { filter: "status.open" } },
 		})
 		const unset = stage({ doc: { xQuery: { filterable: ["note"] } }, records: COHORT })
-		expect(check.plan(unset.ctx)).toMatchObject({ ok: true, value: { control: { filter: "note.eq.oat-probe" } } })
+		expect(check.plan(unset.ctx)).toMatchObject({ ok: true, value: { control: { filter: "note.eq.testing-probe" } } })
 	})
 
 	it("stands down without a declared grammar, a filter, or a writable term", () => {

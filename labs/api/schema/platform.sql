@@ -1,4 +1,4 @@
--- labs/platform — 20 entities. Applied to D1 oat-labs-platform.
+-- labs/platform — 20 entities. Applied to D1 testing-labs-platform.
 CREATE TABLE IF NOT EXISTS idempotency (key TEXT PRIMARY KEY, record TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS invites (grant_id TEXT PRIMARY KEY, token TEXT NOT NULL UNIQUE, entity TEXT NOT NULL, item_id TEXT NOT NULL, owner_org TEXT NOT NULL, grantee_key TEXT NOT NULL, accepted INTEGER NOT NULL DEFAULT 0);
 CREATE TABLE IF NOT EXISTS "workspaces" ("id" TEXT PRIMARY KEY, "org_id" TEXT NOT NULL, "name" TEXT, "status" TEXT, "position" INTEGER, "note" TEXT, "kind" TEXT, "project_count" INTEGER, "webhook_count" INTEGER, "member_count" INTEGER, "created_at" INTEGER, "updated_at" INTEGER, "deleted_at" INTEGER);

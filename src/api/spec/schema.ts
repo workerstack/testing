@@ -53,7 +53,7 @@ const MAP: ReadonlySet<string> = /* @__PURE__ */ new Set([
 	"dependentSchemas",
 ])
 
-/** Annotations that are not JSON Schema keywords, OpenAPI's and oat's — removed from schema nodes only. */
+/** Annotations that are not JSON Schema keywords, OpenAPI's and the API tester's — removed from schema nodes only. */
 const OPENAPI_ONLY: ReadonlySet<string> = /* @__PURE__ */ new Set([
 	"nullable",
 	"example",

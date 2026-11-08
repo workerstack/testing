@@ -24,7 +24,7 @@ export const searchModeAccepted: Check = defineCheck({
 		const refusedBy: Exchange[] = []
 		const unknown: string[] = []
 		for (const mode of resolvedCaps(ctx).searchModes ?? []) {
-			const result = await list(ctx, q(ctx, { limit: 5, search: "oat", searchMode: mode }))
+			const result = await list(ctx, q(ctx, { limit: 5, search: "testing", searchMode: mode }))
 			const answer = declarationAnswer(result.exchange.status)
 			if (answer === "refused") {
 				refusedBy.push(result.exchange)

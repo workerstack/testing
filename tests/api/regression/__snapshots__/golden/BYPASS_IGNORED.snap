@@ -587,7 +587,7 @@
       "added": [
         {
           "check": "consistency.bypass-is-fresh",
-          "detail": "right after the update, GET /v1/projects/proj_alpha/jobs/job_ID sent x-oat-fresh: 1 answered the old value; Cache-Status oat-reference hit",
+          "detail": "right after the update, GET /v1/projects/proj_alpha/jobs/job_ID sent x-testing-fresh: 1 answered the old value; Cache-Status testing-reference hit",
           "entity": "job",
           "operations": [
             "job.get",
@@ -610,7 +610,7 @@
         },
         {
           "check": "consistency.bypass-is-fresh",
-          "detail": "right after the update, GET /v1/projects/proj_alpha/tables/table_ID/rows/row_ID sent x-oat-fresh: 1 answered the old value; Cache-Status oat-reference hit",
+          "detail": "right after the update, GET /v1/projects/proj_alpha/tables/table_ID/rows/row_ID sent x-testing-fresh: 1 answered the old value; Cache-Status testing-reference hit",
           "entity": "row",
           "operations": [
             "row.get",
@@ -633,7 +633,7 @@
         },
         {
           "check": "consistency.bypass-is-fresh",
-          "detail": "right after the update, GET /v1/projects/proj_alpha/webhooks/webhook_ID sent x-oat-fresh: 1 answered the old value; Cache-Status oat-reference hit",
+          "detail": "right after the update, GET /v1/projects/proj_alpha/webhooks/webhook_ID sent x-testing-fresh: 1 answered the old value; Cache-Status testing-reference hit",
           "entity": "webhook",
           "operations": [
             "webhook.get",

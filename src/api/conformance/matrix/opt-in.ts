@@ -13,11 +13,11 @@ export interface OptIn {
 
 /** The defects that need an opt-in, and theirs. */
 const OPT_INS: Partial<Record<DefectName, OptIn>> = {
-	/* A throttle that is off never answers 429, and oat sends failed logins only when asked to. */
+	/* A throttle that is off never answers 429, and the API tester sends failed logins only when asked to. */
 	LOGIN_NOT_THROTTLED: { reference: { throttleLogins: true }, run: { checks: { "auth.login-throttled": true } } },
 }
 
-/** Everything `defects` need switched on, in the reference and in oat, merged. */
+/** Everything `defects` need switched on, in the reference and in the API tester, merged. */
 export function optInFor(defects: readonly DefectName[]): OptIn {
 	return defects.reduce<OptIn>(
 		(merged, defect) => {

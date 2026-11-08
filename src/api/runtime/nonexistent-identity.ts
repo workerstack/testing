@@ -1,5 +1,5 @@
 /*
- * An identity no account can hold, for a sign-in oat sends without meaning to sign anyone in: a
+ * An identity no account can hold, for a sign-in the API tester sends without meaning to sign anyone in: a
  * failed login a throttle counts, or the contract floor's own call. Failed attempts against a real
  * address count toward that account's lockout, so neither ever names one.
  */
@@ -10,10 +10,10 @@ function isEmail(name: string, schema: unknown): boolean {
 }
 
 /**
- * The identity for the field `name`, whose schema is `schema`: `oat-nonexistent-<nonce>`, at RFC
+ * The identity for the field `name`, whose schema is `schema`: `testing-nonexistent-<nonce>`, at RFC
  * 2606's reserved `.invalid` domain, which never resolves, where the field is an email.
  */
 export function nonexistentIdentity(field: { name: string; schema: unknown }, nonce: string): string {
-	const marked = `oat-nonexistent-${nonce}`
+	const marked = `testing-nonexistent-${nonce}`
 	return isEmail(field.name, field.schema) ? `${marked}@example.invalid` : marked
 }

@@ -16,7 +16,7 @@ export interface EntityConfig {
 	query?: QueryConfig
 }
 
-/** Query capabilities, plus the grammar filter terms are written in when oat cannot infer it. */
+/** Query capabilities, plus the grammar filter terms are written in when the API tester cannot infer it. */
 export type QueryConfig = QueryCapabilities & {
 	/** A preset name or a template; outranks `x-query.grammar`. See docs/api/configuration/reference.md. */
 	grammar?: DeclaredFilterGrammar
@@ -40,7 +40,7 @@ export interface OriginSpec {
 	baseUrl: string
 	/** This origin's document, read as the primary `spec` is: a relative path from this config's folder. */
 	spec: string
-	/** Requests per second this origin takes from oat in all, as `maxRps` is for `baseUrl`. */
+	/** Requests per second this origin takes from the API tester in all, as `maxRps` is for `baseUrl`. */
 	maxRps?: number
 	/** Patches to this origin's document, as `overlay` is for the primary. */
 	overlay?: SpecOverlay
@@ -73,7 +73,7 @@ export interface ProfileSpec {
 
 /**
  * A path/operation matcher paired with a rate, independent of any `x-rate-limit` tag — this is
- * what keeps oat able to pace itself against a backend that has not adopted the tag yet, or
+ * what keeps the API tester able to pace itself against a backend that has not adopted the tag yet, or
  * against an environment (staging, usually) whose real limit differs from what the document
  * claims for production.
  */
@@ -103,12 +103,12 @@ export interface CheckSwitches {
 	/**
 	 * Sends failed logins, for an identity that does not exist, until the login answers 429 or a cap
 	 * is reached. Off by default: a throttle that counts by address or client can still slow every
-	 * login from the machine running oat for a while.
+	 * login from the machine running the API tester for a while.
 	 */
 	"auth.login-throttled"?: boolean
 }
 
-export interface OatConfig {
+export interface ApiConfig {
 	/** Declared flows for operations the matrix cannot reach. See `Scenario`. */
 	scenarios?: Scenario[]
 	/** Each scenario external's kind, which a profile's `excludeExternalKinds` can leave out. */
@@ -135,7 +135,7 @@ export interface OatConfig {
 	 */
 	globalHeaders?: Record<string, string>
 	/**
-	 * The cache bypass oat sends on every documented read: the read's `x-consistency` bypass, else
+	 * The cache bypass the API tester sends on every documented read: the read's `x-consistency` bypass, else
 	 * `Cache-Control: no-cache`. `bypass: false` sends none, for an API whose firewall refuses the
 	 * header or whose caches are to be tested as they are. A header `globalHeaders` sets wins.
 	 */
@@ -144,19 +144,19 @@ export interface OatConfig {
 	redact?: { headers?: string[] }
 	/**
 	 * Extra hosts, each with its own document. Do not merge those routes into the primary spec.
-	 * After primary auth, oat binds the same principals and runs the matrix against each origin.
-	 * A second `defineConfig` can also reuse `.oat/runs/latest/principals.json` via `loadPersistedPrincipals`.
+	 * After primary auth, the API tester binds the same principals and runs the matrix against each origin.
+	 * A second `defineConfig` can also reuse `.testing/api/runs/latest/principals.json` via `loadPersistedPrincipals`.
 	 */
 	origins?: OriginSpec[]
 	/**
-	 * Patches to a document you cannot change, applied before oat reads it: operations by
+	 * Patches to a document you cannot change, applied before the API tester reads it: operations by
 	 * `operationId`, component schemas by name. Objects merge, arrays replace, `null` deletes. A
 	 * patch naming nothing in the document stops the run with a usage error.
 	 */
 	overlay?: SpecOverlay
 	/**
-	 * The only operationIds oat may call. Every other operation leaves the document after the
-	 * overlay and before oat reads it, so neither the matrix, the contract floor, scenarios nor
+	 * The only operationIds the API tester may call. Every other operation leaves the document after the
+	 * overlay and before the API tester reads it, so neither the matrix, the contract floor, scenarios nor
 	 * teardown can reach it. An entry naming nothing, or an auth or scenario step needing a removed
 	 * operation, stops the run with a usage error.
 	 */
@@ -169,14 +169,14 @@ export interface OatConfig {
 	 */
 	teardown?: { verify?: boolean }
 	/**
-	 * A file of known findings, as `oat baseline --from <run>` writes it, relative to this config.
+	 * A file of known findings, as `testing api baseline --from <run>` writes it, relative to this config.
 	 * A finding it names is reported as known and does not fail the run; an entry nothing matches
 	 * is reported as fixed.
 	 */
 	baseline?: string
 	/**
 	 * Where the backend says which build it is, read once after sign-in: an `operationId` or a
-	 * `path`, and `from` — `$.json.path` into the body or `header:<name>`. Reports and `oat diff`
+	 * `path`, and `from` — `$.json.path` into the body or `header:<name>`. Reports and `testing api diff`
 	 * show it; a version that cannot be read is noted and never fails the run.
 	 */
 	targetVersion?: TargetVersionSpec
@@ -200,7 +200,7 @@ export interface OatConfig {
 	/** Requests allowed in flight at once. Past a server's comfort this makes runs slower. */
 	maxInFlight?: number
 	/**
-	 * Requests per second oat sends to `baseUrl` in all, across every route. For a limit no route
+	 * Requests per second the API tester sends to `baseUrl` in all, across every route. For a limit no route
 	 * declares, such as a CDN or firewall that caps each client IP: tripping it blocks the whole
 	 * run. Routes still keep their own `rateLimits` and `x-rate-limit` budgets under it.
 	 */
@@ -221,7 +221,7 @@ export interface OatConfig {
 	/** Active profile by name. `--profile` on the CLI overrides this. Defaults to `"full"`. */
 	profile?: string
 	/**
-	 * Paces requests per category so oat's own traffic never trips a documented rate limit and
+	 * Paces requests per category so the API tester's own traffic never trips a documented rate limit and
 	 * reports the trip as a backend defect. Checked before `x-rate-limit` tags for the same
 	 * request — the environment-specific belief wins over the document's general claim.
 	 */
@@ -231,13 +231,13 @@ export interface OatConfig {
 	 * Does not invent operators — new ops still have to be listed here or on the tag.
 	 */
 	query?: QueryConfig
-	/** Per-entity overlays. Unknown names are ignored (`oat doctor` warns). */
+	/** Per-entity overlays. Unknown names are ignored (`testing api doctor` warns). */
 	entities?: Record<string, EntityConfig>
 	/** Leave created records in place instead of tearing them down. */
 	keepFixtures?: boolean
 	/**
 	 * History root, relative to this config. Each run writes `<outDir>/<datetime>/` and updates
-	 * `<outDir>/latest`. Defaults to `./.oat/runs` in the working directory.
+	 * `<outDir>/latest`. Defaults to `./.testing/api/runs` in the working directory.
 	 */
 	outDir?: string
 	/**
@@ -251,7 +251,7 @@ export interface OatConfig {
 	 * (~8s), then wait up to 60s for the link, then stop. A 429 or 503 is waited out per `maxRetryAfterMs`.
 	 */
 	network?: {
-		/** The longest `Retry-After` oat waits out, in ms (default 60_000); a longer one stands, unretried. */
+		/** The longest `Retry-After` the API tester waits out, in ms (default 60_000); a longer one stands, unretried. */
 		maxRetryAfterMs?: number
 		retries?: number
 		/** Pause-and-probe budget after per-request retries, in ms. `0` skips the wait. */

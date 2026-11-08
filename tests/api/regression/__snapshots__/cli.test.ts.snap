@@ -3,29 +3,29 @@
 exports[`CLI golden > --help 1`] = `
 {
   "code": 0,
-  "output": "oat — OpenAPI Tester
+  "output": "testing api — test a live HTTP API against its OpenAPI document
 
-  oat run     --config <file>                  test a live backend and write a report
-  oat plan    --spec <url|file>                derive and print the test model (offline)
-  oat doctor  --spec <url|file>                report what oat can and cannot test, and why
-  oat init    --spec <url|file> [--out file]   write a starter oat.config.ts from the document's security schemes
-  oat serve   [--defects A,B]                  run a demo API to point oat at
-  oat conformance                              self-test: injected defects vs detection
-  oat baseline --from <run> [--out file]       write a known-findings baseline from a run's report
-  oat diff    <runA> <runB> [--json]           new, fixed and persisting findings between two runs
+  testing api run     --config <file>                  test a live backend and write a report
+  testing api plan    --spec <url|file>                derive and print the test model (offline)
+  testing api doctor  --spec <url|file>                report what the API tester can and cannot test, and why
+  testing api init    --spec <url|file> [--out file]   write a starter testing.api.config.ts from the document's security schemes
+  testing api serve   [--defects A,B]                  run a demo API to point the API tester at
+  testing api conformance                              self-test: injected defects vs detection
+  testing api baseline --from <run> [--out file]       write a known-findings baseline from a run's report
+  testing api diff    <runA> <runB> [--json]           new, fixed and persisting findings between two runs
 
 Flags
-  --config <file>         oat config module (.ts/.js/.mjs/.json) with a default export
+  --config <file>         config module (.ts/.js/.mjs/.json) with a default export
   --spec <url|file>       OpenAPI document, http(s) URL or filesystem path
   --base-url <url>        backend under test, overriding the config
   --ops <ids>             comma-separated operationIds to grade (row.*, cdn:asset.get); the rest is support
   --only <names>          run, plan: comma-separated entities, each grading every operation it owns; conformance: defect names
   --profile <name>        named profile gating which operations run (built-in: full, cheap)
   --seed <n>              integer seed for fixture generation (default 1); with --fuzz or --precision, the seed that replays a case
-  --out <dir|file>        run: history root, each run is <out>/<datetime>/ (default ./.oat/runs); baseline: the file written; init: the config written (default ./oat.config.ts)
+  --out <dir|file>        run: history root, each run is <out>/<datetime>/ (default ./.testing/api/runs); baseline: the file written; init: the config written (default ./testing.api.config.ts)
   --report <names>        run: comma-separated reports to write beside the run's own; junit writes junit.xml in the run directory
   --keep-fixtures         leave created records in place instead of tearing them down
-  --keep-credentials      write the credentials the run held to .oat/credentials.json (mode 0600), never under --out
+  --keep-credentials      write the credentials the run held to .testing/api/credentials.json (mode 0600), never under --out
   --max-in-flight <n>     requests allowed in flight at once (default 4)
   --quiet                 no live progress on stderr (progress.log still written)
   --save-exchanges        persist every HTTP exchange under the run dir (default unless --profile cheap)
@@ -56,7 +56,7 @@ Flags
 exports[`CLI golden > baseline from a missing run 1`] = `
 {
   "code": 2,
-  "output": "oat: cannot read <dir>/no-run/oat-report.json: ENOENT: no such file or directory, realpath '<dir>/no-run'
+  "output": "testing api: cannot read <dir>/no-run/report.json: ENOENT: no such file or directory, realpath '<dir>/no-run'
 ",
 }
 `;
@@ -64,7 +64,7 @@ exports[`CLI golden > baseline from a missing run 1`] = `
 exports[`CLI golden > baseline from a report with no findings 1`] = `
 {
   "code": 2,
-  "output": "oat: <dir>/empty-run/oat-report.json holds no findings list
+  "output": "testing api: <dir>/empty-run/report.json holds no findings list
 ",
 }
 `;
@@ -72,7 +72,7 @@ exports[`CLI golden > baseline from a report with no findings 1`] = `
 exports[`CLI golden > baseline over an existing file 1`] = `
 {
   "code": 2,
-  "output": "oat: <dir>/existing.json exists; --force overwrites it
+  "output": "testing api: <dir>/existing.json exists; --force overwrites it
 ",
 }
 `;
@@ -80,7 +80,7 @@ exports[`CLI golden > baseline over an existing file 1`] = `
 exports[`CLI golden > baseline without --from 1`] = `
 {
   "code": 2,
-  "output": "oat: baseline needs --from <run folder | latest>
+  "output": "testing api: baseline needs --from <run folder | latest>
 ",
 }
 `;
@@ -88,31 +88,31 @@ exports[`CLI golden > baseline without --from 1`] = `
 exports[`CLI golden > boolean flag given a value 1`] = `
 {
   "code": 2,
-  "output": "oat: --quiet takes no value
+  "output": "testing api: --quiet takes no value
 
-oat — OpenAPI Tester
+testing api — test a live HTTP API against its OpenAPI document
 
-  oat run     --config <file>                  test a live backend and write a report
-  oat plan    --spec <url|file>                derive and print the test model (offline)
-  oat doctor  --spec <url|file>                report what oat can and cannot test, and why
-  oat init    --spec <url|file> [--out file]   write a starter oat.config.ts from the document's security schemes
-  oat serve   [--defects A,B]                  run a demo API to point oat at
-  oat conformance                              self-test: injected defects vs detection
-  oat baseline --from <run> [--out file]       write a known-findings baseline from a run's report
-  oat diff    <runA> <runB> [--json]           new, fixed and persisting findings between two runs
+  testing api run     --config <file>                  test a live backend and write a report
+  testing api plan    --spec <url|file>                derive and print the test model (offline)
+  testing api doctor  --spec <url|file>                report what the API tester can and cannot test, and why
+  testing api init    --spec <url|file> [--out file]   write a starter testing.api.config.ts from the document's security schemes
+  testing api serve   [--defects A,B]                  run a demo API to point the API tester at
+  testing api conformance                              self-test: injected defects vs detection
+  testing api baseline --from <run> [--out file]       write a known-findings baseline from a run's report
+  testing api diff    <runA> <runB> [--json]           new, fixed and persisting findings between two runs
 
 Flags
-  --config <file>         oat config module (.ts/.js/.mjs/.json) with a default export
+  --config <file>         config module (.ts/.js/.mjs/.json) with a default export
   --spec <url|file>       OpenAPI document, http(s) URL or filesystem path
   --base-url <url>        backend under test, overriding the config
   --ops <ids>             comma-separated operationIds to grade (row.*, cdn:asset.get); the rest is support
   --only <names>          run, plan: comma-separated entities, each grading every operation it owns; conformance: defect names
   --profile <name>        named profile gating which operations run (built-in: full, cheap)
   --seed <n>              integer seed for fixture generation (default 1); with --fuzz or --precision, the seed that replays a case
-  --out <dir|file>        run: history root, each run is <out>/<datetime>/ (default ./.oat/runs); baseline: the file written; init: the config written (default ./oat.config.ts)
+  --out <dir|file>        run: history root, each run is <out>/<datetime>/ (default ./.testing/api/runs); baseline: the file written; init: the config written (default ./testing.api.config.ts)
   --report <names>        run: comma-separated reports to write beside the run's own; junit writes junit.xml in the run directory
   --keep-fixtures         leave created records in place instead of tearing them down
-  --keep-credentials      write the credentials the run held to .oat/credentials.json (mode 0600), never under --out
+  --keep-credentials      write the credentials the run held to .testing/api/credentials.json (mode 0600), never under --out
   --max-in-flight <n>     requests allowed in flight at once (default 4)
   --quiet                 no live progress on stderr (progress.log still written)
   --save-exchanges        persist every HTTP exchange under the run dir (default unless --profile cheap)
@@ -143,7 +143,7 @@ Flags
 exports[`CLI golden > conformance --only with an unknown defect 1`] = `
 {
   "code": 2,
-  "output": "oat: --only names no defect: NOT_A_DEFECT
+  "output": "testing api: --only names no defect: NOT_A_DEFECT
 ",
 }
 `;
@@ -151,31 +151,31 @@ exports[`CLI golden > conformance --only with an unknown defect 1`] = `
 exports[`CLI golden > conformance --only with no list 1`] = `
 {
   "code": 2,
-  "output": "oat: --only needs a value
+  "output": "testing api: --only needs a value
 
-oat — OpenAPI Tester
+testing api — test a live HTTP API against its OpenAPI document
 
-  oat run     --config <file>                  test a live backend and write a report
-  oat plan    --spec <url|file>                derive and print the test model (offline)
-  oat doctor  --spec <url|file>                report what oat can and cannot test, and why
-  oat init    --spec <url|file> [--out file]   write a starter oat.config.ts from the document's security schemes
-  oat serve   [--defects A,B]                  run a demo API to point oat at
-  oat conformance                              self-test: injected defects vs detection
-  oat baseline --from <run> [--out file]       write a known-findings baseline from a run's report
-  oat diff    <runA> <runB> [--json]           new, fixed and persisting findings between two runs
+  testing api run     --config <file>                  test a live backend and write a report
+  testing api plan    --spec <url|file>                derive and print the test model (offline)
+  testing api doctor  --spec <url|file>                report what the API tester can and cannot test, and why
+  testing api init    --spec <url|file> [--out file]   write a starter testing.api.config.ts from the document's security schemes
+  testing api serve   [--defects A,B]                  run a demo API to point the API tester at
+  testing api conformance                              self-test: injected defects vs detection
+  testing api baseline --from <run> [--out file]       write a known-findings baseline from a run's report
+  testing api diff    <runA> <runB> [--json]           new, fixed and persisting findings between two runs
 
 Flags
-  --config <file>         oat config module (.ts/.js/.mjs/.json) with a default export
+  --config <file>         config module (.ts/.js/.mjs/.json) with a default export
   --spec <url|file>       OpenAPI document, http(s) URL or filesystem path
   --base-url <url>        backend under test, overriding the config
   --ops <ids>             comma-separated operationIds to grade (row.*, cdn:asset.get); the rest is support
   --only <names>          run, plan: comma-separated entities, each grading every operation it owns; conformance: defect names
   --profile <name>        named profile gating which operations run (built-in: full, cheap)
   --seed <n>              integer seed for fixture generation (default 1); with --fuzz or --precision, the seed that replays a case
-  --out <dir|file>        run: history root, each run is <out>/<datetime>/ (default ./.oat/runs); baseline: the file written; init: the config written (default ./oat.config.ts)
+  --out <dir|file>        run: history root, each run is <out>/<datetime>/ (default ./.testing/api/runs); baseline: the file written; init: the config written (default ./testing.api.config.ts)
   --report <names>        run: comma-separated reports to write beside the run's own; junit writes junit.xml in the run directory
   --keep-fixtures         leave created records in place instead of tearing them down
-  --keep-credentials      write the credentials the run held to .oat/credentials.json (mode 0600), never under --out
+  --keep-credentials      write the credentials the run held to .testing/api/credentials.json (mode 0600), never under --out
   --max-in-flight <n>     requests allowed in flight at once (default 4)
   --quiet                 no live progress on stderr (progress.log still written)
   --save-exchanges        persist every HTTP exchange under the run dir (default unless --profile cheap)
@@ -206,7 +206,7 @@ Flags
 exports[`CLI golden > conformance with an unknown backend 1`] = `
 {
   "code": 2,
-  "output": "oat: unknown --backend "oracle" — expected memory, sqlite, postgres, d1
+  "output": "testing api: unknown --backend "oracle" — expected memory, sqlite, postgres, d1
 ",
 }
 `;
@@ -214,7 +214,7 @@ exports[`CLI golden > conformance with an unknown backend 1`] = `
 exports[`CLI golden > conformance with an unknown dialect 1`] = `
 {
   "code": 2,
-  "output": "oat: unknown --dialect "graphql" — expected jsonapi, plain, classic, linked, postgrest, template
+  "output": "testing api: unknown --dialect "graphql" — expected jsonapi, plain, classic, linked, postgrest, template
 ",
 }
 `;
@@ -222,7 +222,7 @@ exports[`CLI golden > conformance with an unknown dialect 1`] = `
 exports[`CLI golden > diff with a missing run 1`] = `
 {
   "code": 2,
-  "output": "oat: cannot read <dir>/no-run/oat-report.json: ENOENT: no such file or directory, realpath '<dir>/no-run'
+  "output": "testing api: cannot read <dir>/no-run/report.json: ENOENT: no such file or directory, realpath '<dir>/no-run'
 ",
 }
 `;
@@ -230,7 +230,7 @@ exports[`CLI golden > diff with a missing run 1`] = `
 exports[`CLI golden > diff with one run 1`] = `
 {
   "code": 2,
-  "output": "oat: diff needs two run folders: oat diff <runA> <runB>
+  "output": "testing api: diff needs two run folders: testing api diff <runA> <runB>
 ",
 }
 `;
@@ -238,31 +238,31 @@ exports[`CLI golden > diff with one run 1`] = `
 exports[`CLI golden > flag needs a value 1`] = `
 {
   "code": 2,
-  "output": "oat: --config needs a value
+  "output": "testing api: --config needs a value
 
-oat — OpenAPI Tester
+testing api — test a live HTTP API against its OpenAPI document
 
-  oat run     --config <file>                  test a live backend and write a report
-  oat plan    --spec <url|file>                derive and print the test model (offline)
-  oat doctor  --spec <url|file>                report what oat can and cannot test, and why
-  oat init    --spec <url|file> [--out file]   write a starter oat.config.ts from the document's security schemes
-  oat serve   [--defects A,B]                  run a demo API to point oat at
-  oat conformance                              self-test: injected defects vs detection
-  oat baseline --from <run> [--out file]       write a known-findings baseline from a run's report
-  oat diff    <runA> <runB> [--json]           new, fixed and persisting findings between two runs
+  testing api run     --config <file>                  test a live backend and write a report
+  testing api plan    --spec <url|file>                derive and print the test model (offline)
+  testing api doctor  --spec <url|file>                report what the API tester can and cannot test, and why
+  testing api init    --spec <url|file> [--out file]   write a starter testing.api.config.ts from the document's security schemes
+  testing api serve   [--defects A,B]                  run a demo API to point the API tester at
+  testing api conformance                              self-test: injected defects vs detection
+  testing api baseline --from <run> [--out file]       write a known-findings baseline from a run's report
+  testing api diff    <runA> <runB> [--json]           new, fixed and persisting findings between two runs
 
 Flags
-  --config <file>         oat config module (.ts/.js/.mjs/.json) with a default export
+  --config <file>         config module (.ts/.js/.mjs/.json) with a default export
   --spec <url|file>       OpenAPI document, http(s) URL or filesystem path
   --base-url <url>        backend under test, overriding the config
   --ops <ids>             comma-separated operationIds to grade (row.*, cdn:asset.get); the rest is support
   --only <names>          run, plan: comma-separated entities, each grading every operation it owns; conformance: defect names
   --profile <name>        named profile gating which operations run (built-in: full, cheap)
   --seed <n>              integer seed for fixture generation (default 1); with --fuzz or --precision, the seed that replays a case
-  --out <dir|file>        run: history root, each run is <out>/<datetime>/ (default ./.oat/runs); baseline: the file written; init: the config written (default ./oat.config.ts)
+  --out <dir|file>        run: history root, each run is <out>/<datetime>/ (default ./.testing/api/runs); baseline: the file written; init: the config written (default ./testing.api.config.ts)
   --report <names>        run: comma-separated reports to write beside the run's own; junit writes junit.xml in the run directory
   --keep-fixtures         leave created records in place instead of tearing them down
-  --keep-credentials      write the credentials the run held to .oat/credentials.json (mode 0600), never under --out
+  --keep-credentials      write the credentials the run held to .testing/api/credentials.json (mode 0600), never under --out
   --max-in-flight <n>     requests allowed in flight at once (default 4)
   --quiet                 no live progress on stderr (progress.log still written)
   --save-exchanges        persist every HTTP exchange under the run dir (default unless --profile cheap)
@@ -293,29 +293,29 @@ Flags
 exports[`CLI golden > help 1`] = `
 {
   "code": 0,
-  "output": "oat — OpenAPI Tester
+  "output": "testing api — test a live HTTP API against its OpenAPI document
 
-  oat run     --config <file>                  test a live backend and write a report
-  oat plan    --spec <url|file>                derive and print the test model (offline)
-  oat doctor  --spec <url|file>                report what oat can and cannot test, and why
-  oat init    --spec <url|file> [--out file]   write a starter oat.config.ts from the document's security schemes
-  oat serve   [--defects A,B]                  run a demo API to point oat at
-  oat conformance                              self-test: injected defects vs detection
-  oat baseline --from <run> [--out file]       write a known-findings baseline from a run's report
-  oat diff    <runA> <runB> [--json]           new, fixed and persisting findings between two runs
+  testing api run     --config <file>                  test a live backend and write a report
+  testing api plan    --spec <url|file>                derive and print the test model (offline)
+  testing api doctor  --spec <url|file>                report what the API tester can and cannot test, and why
+  testing api init    --spec <url|file> [--out file]   write a starter testing.api.config.ts from the document's security schemes
+  testing api serve   [--defects A,B]                  run a demo API to point the API tester at
+  testing api conformance                              self-test: injected defects vs detection
+  testing api baseline --from <run> [--out file]       write a known-findings baseline from a run's report
+  testing api diff    <runA> <runB> [--json]           new, fixed and persisting findings between two runs
 
 Flags
-  --config <file>         oat config module (.ts/.js/.mjs/.json) with a default export
+  --config <file>         config module (.ts/.js/.mjs/.json) with a default export
   --spec <url|file>       OpenAPI document, http(s) URL or filesystem path
   --base-url <url>        backend under test, overriding the config
   --ops <ids>             comma-separated operationIds to grade (row.*, cdn:asset.get); the rest is support
   --only <names>          run, plan: comma-separated entities, each grading every operation it owns; conformance: defect names
   --profile <name>        named profile gating which operations run (built-in: full, cheap)
   --seed <n>              integer seed for fixture generation (default 1); with --fuzz or --precision, the seed that replays a case
-  --out <dir|file>        run: history root, each run is <out>/<datetime>/ (default ./.oat/runs); baseline: the file written; init: the config written (default ./oat.config.ts)
+  --out <dir|file>        run: history root, each run is <out>/<datetime>/ (default ./.testing/api/runs); baseline: the file written; init: the config written (default ./testing.api.config.ts)
   --report <names>        run: comma-separated reports to write beside the run's own; junit writes junit.xml in the run directory
   --keep-fixtures         leave created records in place instead of tearing them down
-  --keep-credentials      write the credentials the run held to .oat/credentials.json (mode 0600), never under --out
+  --keep-credentials      write the credentials the run held to .testing/api/credentials.json (mode 0600), never under --out
   --max-in-flight <n>     requests allowed in flight at once (default 4)
   --quiet                 no live progress on stderr (progress.log still written)
   --save-exchanges        persist every HTTP exchange under the run dir (default unless --profile cheap)
@@ -346,31 +346,31 @@ Flags
 exports[`CLI golden > integer flag given text 1`] = `
 {
   "code": 2,
-  "output": "oat: --seed must be an integer, got "abc"
+  "output": "testing api: --seed must be an integer, got "abc"
 
-oat — OpenAPI Tester
+testing api — test a live HTTP API against its OpenAPI document
 
-  oat run     --config <file>                  test a live backend and write a report
-  oat plan    --spec <url|file>                derive and print the test model (offline)
-  oat doctor  --spec <url|file>                report what oat can and cannot test, and why
-  oat init    --spec <url|file> [--out file]   write a starter oat.config.ts from the document's security schemes
-  oat serve   [--defects A,B]                  run a demo API to point oat at
-  oat conformance                              self-test: injected defects vs detection
-  oat baseline --from <run> [--out file]       write a known-findings baseline from a run's report
-  oat diff    <runA> <runB> [--json]           new, fixed and persisting findings between two runs
+  testing api run     --config <file>                  test a live backend and write a report
+  testing api plan    --spec <url|file>                derive and print the test model (offline)
+  testing api doctor  --spec <url|file>                report what the API tester can and cannot test, and why
+  testing api init    --spec <url|file> [--out file]   write a starter testing.api.config.ts from the document's security schemes
+  testing api serve   [--defects A,B]                  run a demo API to point the API tester at
+  testing api conformance                              self-test: injected defects vs detection
+  testing api baseline --from <run> [--out file]       write a known-findings baseline from a run's report
+  testing api diff    <runA> <runB> [--json]           new, fixed and persisting findings between two runs
 
 Flags
-  --config <file>         oat config module (.ts/.js/.mjs/.json) with a default export
+  --config <file>         config module (.ts/.js/.mjs/.json) with a default export
   --spec <url|file>       OpenAPI document, http(s) URL or filesystem path
   --base-url <url>        backend under test, overriding the config
   --ops <ids>             comma-separated operationIds to grade (row.*, cdn:asset.get); the rest is support
   --only <names>          run, plan: comma-separated entities, each grading every operation it owns; conformance: defect names
   --profile <name>        named profile gating which operations run (built-in: full, cheap)
   --seed <n>              integer seed for fixture generation (default 1); with --fuzz or --precision, the seed that replays a case
-  --out <dir|file>        run: history root, each run is <out>/<datetime>/ (default ./.oat/runs); baseline: the file written; init: the config written (default ./oat.config.ts)
+  --out <dir|file>        run: history root, each run is <out>/<datetime>/ (default ./.testing/api/runs); baseline: the file written; init: the config written (default ./testing.api.config.ts)
   --report <names>        run: comma-separated reports to write beside the run's own; junit writes junit.xml in the run directory
   --keep-fixtures         leave created records in place instead of tearing them down
-  --keep-credentials      write the credentials the run held to .oat/credentials.json (mode 0600), never under --out
+  --keep-credentials      write the credentials the run held to .testing/api/credentials.json (mode 0600), never under --out
   --max-in-flight <n>     requests allowed in flight at once (default 4)
   --quiet                 no live progress on stderr (progress.log still written)
   --save-exchanges        persist every HTTP exchange under the run dir (default unless --profile cheap)
@@ -401,29 +401,29 @@ Flags
 exports[`CLI golden > no arguments 1`] = `
 {
   "code": 0,
-  "output": "oat — OpenAPI Tester
+  "output": "testing api — test a live HTTP API against its OpenAPI document
 
-  oat run     --config <file>                  test a live backend and write a report
-  oat plan    --spec <url|file>                derive and print the test model (offline)
-  oat doctor  --spec <url|file>                report what oat can and cannot test, and why
-  oat init    --spec <url|file> [--out file]   write a starter oat.config.ts from the document's security schemes
-  oat serve   [--defects A,B]                  run a demo API to point oat at
-  oat conformance                              self-test: injected defects vs detection
-  oat baseline --from <run> [--out file]       write a known-findings baseline from a run's report
-  oat diff    <runA> <runB> [--json]           new, fixed and persisting findings between two runs
+  testing api run     --config <file>                  test a live backend and write a report
+  testing api plan    --spec <url|file>                derive and print the test model (offline)
+  testing api doctor  --spec <url|file>                report what the API tester can and cannot test, and why
+  testing api init    --spec <url|file> [--out file]   write a starter testing.api.config.ts from the document's security schemes
+  testing api serve   [--defects A,B]                  run a demo API to point the API tester at
+  testing api conformance                              self-test: injected defects vs detection
+  testing api baseline --from <run> [--out file]       write a known-findings baseline from a run's report
+  testing api diff    <runA> <runB> [--json]           new, fixed and persisting findings between two runs
 
 Flags
-  --config <file>         oat config module (.ts/.js/.mjs/.json) with a default export
+  --config <file>         config module (.ts/.js/.mjs/.json) with a default export
   --spec <url|file>       OpenAPI document, http(s) URL or filesystem path
   --base-url <url>        backend under test, overriding the config
   --ops <ids>             comma-separated operationIds to grade (row.*, cdn:asset.get); the rest is support
   --only <names>          run, plan: comma-separated entities, each grading every operation it owns; conformance: defect names
   --profile <name>        named profile gating which operations run (built-in: full, cheap)
   --seed <n>              integer seed for fixture generation (default 1); with --fuzz or --precision, the seed that replays a case
-  --out <dir|file>        run: history root, each run is <out>/<datetime>/ (default ./.oat/runs); baseline: the file written; init: the config written (default ./oat.config.ts)
+  --out <dir|file>        run: history root, each run is <out>/<datetime>/ (default ./.testing/api/runs); baseline: the file written; init: the config written (default ./testing.api.config.ts)
   --report <names>        run: comma-separated reports to write beside the run's own; junit writes junit.xml in the run directory
   --keep-fixtures         leave created records in place instead of tearing them down
-  --keep-credentials      write the credentials the run held to .oat/credentials.json (mode 0600), never under --out
+  --keep-credentials      write the credentials the run held to .testing/api/credentials.json (mode 0600), never under --out
   --max-in-flight <n>     requests allowed in flight at once (default 4)
   --quiet                 no live progress on stderr (progress.log still written)
   --save-exchanges        persist every HTTP exchange under the run dir (default unless --profile cheap)
@@ -462,31 +462,31 @@ exports[`CLI golden > plan with allow naming no operation 1`] = `
 exports[`CLI golden > plan with an invalid config 1`] = `
 {
   "code": 2,
-  "output": "oat: --spec (or --config) is required
+  "output": "testing api: --spec (or --config) is required
 
-oat — OpenAPI Tester
+testing api — test a live HTTP API against its OpenAPI document
 
-  oat run     --config <file>                  test a live backend and write a report
-  oat plan    --spec <url|file>                derive and print the test model (offline)
-  oat doctor  --spec <url|file>                report what oat can and cannot test, and why
-  oat init    --spec <url|file> [--out file]   write a starter oat.config.ts from the document's security schemes
-  oat serve   [--defects A,B]                  run a demo API to point oat at
-  oat conformance                              self-test: injected defects vs detection
-  oat baseline --from <run> [--out file]       write a known-findings baseline from a run's report
-  oat diff    <runA> <runB> [--json]           new, fixed and persisting findings between two runs
+  testing api run     --config <file>                  test a live backend and write a report
+  testing api plan    --spec <url|file>                derive and print the test model (offline)
+  testing api doctor  --spec <url|file>                report what the API tester can and cannot test, and why
+  testing api init    --spec <url|file> [--out file]   write a starter testing.api.config.ts from the document's security schemes
+  testing api serve   [--defects A,B]                  run a demo API to point the API tester at
+  testing api conformance                              self-test: injected defects vs detection
+  testing api baseline --from <run> [--out file]       write a known-findings baseline from a run's report
+  testing api diff    <runA> <runB> [--json]           new, fixed and persisting findings between two runs
 
 Flags
-  --config <file>         oat config module (.ts/.js/.mjs/.json) with a default export
+  --config <file>         config module (.ts/.js/.mjs/.json) with a default export
   --spec <url|file>       OpenAPI document, http(s) URL or filesystem path
   --base-url <url>        backend under test, overriding the config
   --ops <ids>             comma-separated operationIds to grade (row.*, cdn:asset.get); the rest is support
   --only <names>          run, plan: comma-separated entities, each grading every operation it owns; conformance: defect names
   --profile <name>        named profile gating which operations run (built-in: full, cheap)
   --seed <n>              integer seed for fixture generation (default 1); with --fuzz or --precision, the seed that replays a case
-  --out <dir|file>        run: history root, each run is <out>/<datetime>/ (default ./.oat/runs); baseline: the file written; init: the config written (default ./oat.config.ts)
+  --out <dir|file>        run: history root, each run is <out>/<datetime>/ (default ./.testing/api/runs); baseline: the file written; init: the config written (default ./testing.api.config.ts)
   --report <names>        run: comma-separated reports to write beside the run's own; junit writes junit.xml in the run directory
   --keep-fixtures         leave created records in place instead of tearing them down
-  --keep-credentials      write the credentials the run held to .oat/credentials.json (mode 0600), never under --out
+  --keep-credentials      write the credentials the run held to .testing/api/credentials.json (mode 0600), never under --out
   --max-in-flight <n>     requests allowed in flight at once (default 4)
   --quiet                 no live progress on stderr (progress.log still written)
   --save-exchanges        persist every HTTP exchange under the run dir (default unless --profile cheap)
@@ -525,7 +525,7 @@ exports[`CLI golden > plan with an overlay naming no operation 1`] = `
 exports[`CLI golden > plan with an unknown --ops target 1`] = `
 {
   "code": 2,
-  "output": "oat: --ops "table.craete" matches no operation. Did you mean: table.create, table.delete, table.get?
+  "output": "testing api: --ops "table.craete" matches no operation. Did you mean: table.create, table.delete, table.get?
 ",
 }
 `;
@@ -533,31 +533,31 @@ exports[`CLI golden > plan with an unknown --ops target 1`] = `
 exports[`CLI golden > plan without a spec 1`] = `
 {
   "code": 2,
-  "output": "oat: --spec (or --config) is required
+  "output": "testing api: --spec (or --config) is required
 
-oat — OpenAPI Tester
+testing api — test a live HTTP API against its OpenAPI document
 
-  oat run     --config <file>                  test a live backend and write a report
-  oat plan    --spec <url|file>                derive and print the test model (offline)
-  oat doctor  --spec <url|file>                report what oat can and cannot test, and why
-  oat init    --spec <url|file> [--out file]   write a starter oat.config.ts from the document's security schemes
-  oat serve   [--defects A,B]                  run a demo API to point oat at
-  oat conformance                              self-test: injected defects vs detection
-  oat baseline --from <run> [--out file]       write a known-findings baseline from a run's report
-  oat diff    <runA> <runB> [--json]           new, fixed and persisting findings between two runs
+  testing api run     --config <file>                  test a live backend and write a report
+  testing api plan    --spec <url|file>                derive and print the test model (offline)
+  testing api doctor  --spec <url|file>                report what the API tester can and cannot test, and why
+  testing api init    --spec <url|file> [--out file]   write a starter testing.api.config.ts from the document's security schemes
+  testing api serve   [--defects A,B]                  run a demo API to point the API tester at
+  testing api conformance                              self-test: injected defects vs detection
+  testing api baseline --from <run> [--out file]       write a known-findings baseline from a run's report
+  testing api diff    <runA> <runB> [--json]           new, fixed and persisting findings between two runs
 
 Flags
-  --config <file>         oat config module (.ts/.js/.mjs/.json) with a default export
+  --config <file>         config module (.ts/.js/.mjs/.json) with a default export
   --spec <url|file>       OpenAPI document, http(s) URL or filesystem path
   --base-url <url>        backend under test, overriding the config
   --ops <ids>             comma-separated operationIds to grade (row.*, cdn:asset.get); the rest is support
   --only <names>          run, plan: comma-separated entities, each grading every operation it owns; conformance: defect names
   --profile <name>        named profile gating which operations run (built-in: full, cheap)
   --seed <n>              integer seed for fixture generation (default 1); with --fuzz or --precision, the seed that replays a case
-  --out <dir|file>        run: history root, each run is <out>/<datetime>/ (default ./.oat/runs); baseline: the file written; init: the config written (default ./oat.config.ts)
+  --out <dir|file>        run: history root, each run is <out>/<datetime>/ (default ./.testing/api/runs); baseline: the file written; init: the config written (default ./testing.api.config.ts)
   --report <names>        run: comma-separated reports to write beside the run's own; junit writes junit.xml in the run directory
   --keep-fixtures         leave created records in place instead of tearing them down
-  --keep-credentials      write the credentials the run held to .oat/credentials.json (mode 0600), never under --out
+  --keep-credentials      write the credentials the run held to .testing/api/credentials.json (mode 0600), never under --out
   --max-in-flight <n>     requests allowed in flight at once (default 4)
   --quiet                 no live progress on stderr (progress.log still written)
   --save-exchanges        persist every HTTP exchange under the run dir (default unless --profile cheap)
@@ -588,31 +588,31 @@ Flags
 exports[`CLI golden > positive flag given zero 1`] = `
 {
   "code": 2,
-  "output": "oat: --jobs must be a positive integer, got "0"
+  "output": "testing api: --jobs must be a positive integer, got "0"
 
-oat — OpenAPI Tester
+testing api — test a live HTTP API against its OpenAPI document
 
-  oat run     --config <file>                  test a live backend and write a report
-  oat plan    --spec <url|file>                derive and print the test model (offline)
-  oat doctor  --spec <url|file>                report what oat can and cannot test, and why
-  oat init    --spec <url|file> [--out file]   write a starter oat.config.ts from the document's security schemes
-  oat serve   [--defects A,B]                  run a demo API to point oat at
-  oat conformance                              self-test: injected defects vs detection
-  oat baseline --from <run> [--out file]       write a known-findings baseline from a run's report
-  oat diff    <runA> <runB> [--json]           new, fixed and persisting findings between two runs
+  testing api run     --config <file>                  test a live backend and write a report
+  testing api plan    --spec <url|file>                derive and print the test model (offline)
+  testing api doctor  --spec <url|file>                report what the API tester can and cannot test, and why
+  testing api init    --spec <url|file> [--out file]   write a starter testing.api.config.ts from the document's security schemes
+  testing api serve   [--defects A,B]                  run a demo API to point the API tester at
+  testing api conformance                              self-test: injected defects vs detection
+  testing api baseline --from <run> [--out file]       write a known-findings baseline from a run's report
+  testing api diff    <runA> <runB> [--json]           new, fixed and persisting findings between two runs
 
 Flags
-  --config <file>         oat config module (.ts/.js/.mjs/.json) with a default export
+  --config <file>         config module (.ts/.js/.mjs/.json) with a default export
   --spec <url|file>       OpenAPI document, http(s) URL or filesystem path
   --base-url <url>        backend under test, overriding the config
   --ops <ids>             comma-separated operationIds to grade (row.*, cdn:asset.get); the rest is support
   --only <names>          run, plan: comma-separated entities, each grading every operation it owns; conformance: defect names
   --profile <name>        named profile gating which operations run (built-in: full, cheap)
   --seed <n>              integer seed for fixture generation (default 1); with --fuzz or --precision, the seed that replays a case
-  --out <dir|file>        run: history root, each run is <out>/<datetime>/ (default ./.oat/runs); baseline: the file written; init: the config written (default ./oat.config.ts)
+  --out <dir|file>        run: history root, each run is <out>/<datetime>/ (default ./.testing/api/runs); baseline: the file written; init: the config written (default ./testing.api.config.ts)
   --report <names>        run: comma-separated reports to write beside the run's own; junit writes junit.xml in the run directory
   --keep-fixtures         leave created records in place instead of tearing them down
-  --keep-credentials      write the credentials the run held to .oat/credentials.json (mode 0600), never under --out
+  --keep-credentials      write the credentials the run held to .testing/api/credentials.json (mode 0600), never under --out
   --max-in-flight <n>     requests allowed in flight at once (default 4)
   --quiet                 no live progress on stderr (progress.log still written)
   --save-exchanges        persist every HTTP exchange under the run dir (default unless --profile cheap)
@@ -643,7 +643,7 @@ Flags
 exports[`CLI golden > run with a missing TypeScript config 1`] = `
 {
   "code": 2,
-  "output": "oat: config not found: <dir>/absent.config.ts
+  "output": "testing api: config not found: <dir>/absent.config.ts
 ",
 }
 `;
@@ -651,7 +651,7 @@ exports[`CLI golden > run with a missing TypeScript config 1`] = `
 exports[`CLI golden > run with a missing config 1`] = `
 {
   "code": 2,
-  "output": "oat: config not found: <dir>/absent.json
+  "output": "testing api: config not found: <dir>/absent.json
 ",
 }
 `;
@@ -659,7 +659,7 @@ exports[`CLI golden > run with a missing config 1`] = `
 exports[`CLI golden > run with an invalid config 1`] = `
 {
   "code": 2,
-  "output": "oat: <dir>/invalid.json is not a valid config:
+  "output": "testing api: <dir>/invalid.json is not a valid config:
   config.spec is required
   config.baseUrl is required
 ",
@@ -669,7 +669,7 @@ exports[`CLI golden > run with an invalid config 1`] = `
 exports[`CLI golden > run with an unreadable baseline 1`] = `
 {
   "code": 2,
-  "output": "oat: cannot read baseline <dir>/nowhere.json: ENOENT: no such file or directory, open '<dir>/nowhere.json'
+  "output": "testing api: cannot read baseline <dir>/nowhere.json: ENOENT: no such file or directory, open '<dir>/nowhere.json'
 ",
 }
 `;
@@ -677,7 +677,7 @@ exports[`CLI golden > run with an unreadable baseline 1`] = `
 exports[`CLI golden > run with no principals 1`] = `
 {
   "code": 2,
-  "output": "oat: <dir>/no-principals.json is not a valid config:
+  "output": "testing api: <dir>/no-principals.json is not a valid config:
   config.principals declares no principal
 ",
 }
@@ -686,31 +686,31 @@ exports[`CLI golden > run with no principals 1`] = `
 exports[`CLI golden > run without --config 1`] = `
 {
   "code": 2,
-  "output": "oat: run requires --config
+  "output": "testing api: run requires --config
 
-oat — OpenAPI Tester
+testing api — test a live HTTP API against its OpenAPI document
 
-  oat run     --config <file>                  test a live backend and write a report
-  oat plan    --spec <url|file>                derive and print the test model (offline)
-  oat doctor  --spec <url|file>                report what oat can and cannot test, and why
-  oat init    --spec <url|file> [--out file]   write a starter oat.config.ts from the document's security schemes
-  oat serve   [--defects A,B]                  run a demo API to point oat at
-  oat conformance                              self-test: injected defects vs detection
-  oat baseline --from <run> [--out file]       write a known-findings baseline from a run's report
-  oat diff    <runA> <runB> [--json]           new, fixed and persisting findings between two runs
+  testing api run     --config <file>                  test a live backend and write a report
+  testing api plan    --spec <url|file>                derive and print the test model (offline)
+  testing api doctor  --spec <url|file>                report what the API tester can and cannot test, and why
+  testing api init    --spec <url|file> [--out file]   write a starter testing.api.config.ts from the document's security schemes
+  testing api serve   [--defects A,B]                  run a demo API to point the API tester at
+  testing api conformance                              self-test: injected defects vs detection
+  testing api baseline --from <run> [--out file]       write a known-findings baseline from a run's report
+  testing api diff    <runA> <runB> [--json]           new, fixed and persisting findings between two runs
 
 Flags
-  --config <file>         oat config module (.ts/.js/.mjs/.json) with a default export
+  --config <file>         config module (.ts/.js/.mjs/.json) with a default export
   --spec <url|file>       OpenAPI document, http(s) URL or filesystem path
   --base-url <url>        backend under test, overriding the config
   --ops <ids>             comma-separated operationIds to grade (row.*, cdn:asset.get); the rest is support
   --only <names>          run, plan: comma-separated entities, each grading every operation it owns; conformance: defect names
   --profile <name>        named profile gating which operations run (built-in: full, cheap)
   --seed <n>              integer seed for fixture generation (default 1); with --fuzz or --precision, the seed that replays a case
-  --out <dir|file>        run: history root, each run is <out>/<datetime>/ (default ./.oat/runs); baseline: the file written; init: the config written (default ./oat.config.ts)
+  --out <dir|file>        run: history root, each run is <out>/<datetime>/ (default ./.testing/api/runs); baseline: the file written; init: the config written (default ./testing.api.config.ts)
   --report <names>        run: comma-separated reports to write beside the run's own; junit writes junit.xml in the run directory
   --keep-fixtures         leave created records in place instead of tearing them down
-  --keep-credentials      write the credentials the run held to .oat/credentials.json (mode 0600), never under --out
+  --keep-credentials      write the credentials the run held to .testing/api/credentials.json (mode 0600), never under --out
   --max-in-flight <n>     requests allowed in flight at once (default 4)
   --quiet                 no live progress on stderr (progress.log still written)
   --save-exchanges        persist every HTTP exchange under the run dir (default unless --profile cheap)
@@ -741,31 +741,31 @@ Flags
 exports[`CLI golden > unknown command 1`] = `
 {
   "code": 2,
-  "output": "oat: unknown command "frobnicate"
+  "output": "testing api: unknown command "frobnicate"
 
-oat — OpenAPI Tester
+testing api — test a live HTTP API against its OpenAPI document
 
-  oat run     --config <file>                  test a live backend and write a report
-  oat plan    --spec <url|file>                derive and print the test model (offline)
-  oat doctor  --spec <url|file>                report what oat can and cannot test, and why
-  oat init    --spec <url|file> [--out file]   write a starter oat.config.ts from the document's security schemes
-  oat serve   [--defects A,B]                  run a demo API to point oat at
-  oat conformance                              self-test: injected defects vs detection
-  oat baseline --from <run> [--out file]       write a known-findings baseline from a run's report
-  oat diff    <runA> <runB> [--json]           new, fixed and persisting findings between two runs
+  testing api run     --config <file>                  test a live backend and write a report
+  testing api plan    --spec <url|file>                derive and print the test model (offline)
+  testing api doctor  --spec <url|file>                report what the API tester can and cannot test, and why
+  testing api init    --spec <url|file> [--out file]   write a starter testing.api.config.ts from the document's security schemes
+  testing api serve   [--defects A,B]                  run a demo API to point the API tester at
+  testing api conformance                              self-test: injected defects vs detection
+  testing api baseline --from <run> [--out file]       write a known-findings baseline from a run's report
+  testing api diff    <runA> <runB> [--json]           new, fixed and persisting findings between two runs
 
 Flags
-  --config <file>         oat config module (.ts/.js/.mjs/.json) with a default export
+  --config <file>         config module (.ts/.js/.mjs/.json) with a default export
   --spec <url|file>       OpenAPI document, http(s) URL or filesystem path
   --base-url <url>        backend under test, overriding the config
   --ops <ids>             comma-separated operationIds to grade (row.*, cdn:asset.get); the rest is support
   --only <names>          run, plan: comma-separated entities, each grading every operation it owns; conformance: defect names
   --profile <name>        named profile gating which operations run (built-in: full, cheap)
   --seed <n>              integer seed for fixture generation (default 1); with --fuzz or --precision, the seed that replays a case
-  --out <dir|file>        run: history root, each run is <out>/<datetime>/ (default ./.oat/runs); baseline: the file written; init: the config written (default ./oat.config.ts)
+  --out <dir|file>        run: history root, each run is <out>/<datetime>/ (default ./.testing/api/runs); baseline: the file written; init: the config written (default ./testing.api.config.ts)
   --report <names>        run: comma-separated reports to write beside the run's own; junit writes junit.xml in the run directory
   --keep-fixtures         leave created records in place instead of tearing them down
-  --keep-credentials      write the credentials the run held to .oat/credentials.json (mode 0600), never under --out
+  --keep-credentials      write the credentials the run held to .testing/api/credentials.json (mode 0600), never under --out
   --max-in-flight <n>     requests allowed in flight at once (default 4)
   --quiet                 no live progress on stderr (progress.log still written)
   --save-exchanges        persist every HTTP exchange under the run dir (default unless --profile cheap)
@@ -796,31 +796,31 @@ Flags
 exports[`CLI golden > unknown flag 1`] = `
 {
   "code": 2,
-  "output": "oat: unknown flag "--bogus"
+  "output": "testing api: unknown flag "--bogus"
 
-oat — OpenAPI Tester
+testing api — test a live HTTP API against its OpenAPI document
 
-  oat run     --config <file>                  test a live backend and write a report
-  oat plan    --spec <url|file>                derive and print the test model (offline)
-  oat doctor  --spec <url|file>                report what oat can and cannot test, and why
-  oat init    --spec <url|file> [--out file]   write a starter oat.config.ts from the document's security schemes
-  oat serve   [--defects A,B]                  run a demo API to point oat at
-  oat conformance                              self-test: injected defects vs detection
-  oat baseline --from <run> [--out file]       write a known-findings baseline from a run's report
-  oat diff    <runA> <runB> [--json]           new, fixed and persisting findings between two runs
+  testing api run     --config <file>                  test a live backend and write a report
+  testing api plan    --spec <url|file>                derive and print the test model (offline)
+  testing api doctor  --spec <url|file>                report what the API tester can and cannot test, and why
+  testing api init    --spec <url|file> [--out file]   write a starter testing.api.config.ts from the document's security schemes
+  testing api serve   [--defects A,B]                  run a demo API to point the API tester at
+  testing api conformance                              self-test: injected defects vs detection
+  testing api baseline --from <run> [--out file]       write a known-findings baseline from a run's report
+  testing api diff    <runA> <runB> [--json]           new, fixed and persisting findings between two runs
 
 Flags
-  --config <file>         oat config module (.ts/.js/.mjs/.json) with a default export
+  --config <file>         config module (.ts/.js/.mjs/.json) with a default export
   --spec <url|file>       OpenAPI document, http(s) URL or filesystem path
   --base-url <url>        backend under test, overriding the config
   --ops <ids>             comma-separated operationIds to grade (row.*, cdn:asset.get); the rest is support
   --only <names>          run, plan: comma-separated entities, each grading every operation it owns; conformance: defect names
   --profile <name>        named profile gating which operations run (built-in: full, cheap)
   --seed <n>              integer seed for fixture generation (default 1); with --fuzz or --precision, the seed that replays a case
-  --out <dir|file>        run: history root, each run is <out>/<datetime>/ (default ./.oat/runs); baseline: the file written; init: the config written (default ./oat.config.ts)
+  --out <dir|file>        run: history root, each run is <out>/<datetime>/ (default ./.testing/api/runs); baseline: the file written; init: the config written (default ./testing.api.config.ts)
   --report <names>        run: comma-separated reports to write beside the run's own; junit writes junit.xml in the run directory
   --keep-fixtures         leave created records in place instead of tearing them down
-  --keep-credentials      write the credentials the run held to .oat/credentials.json (mode 0600), never under --out
+  --keep-credentials      write the credentials the run held to .testing/api/credentials.json (mode 0600), never under --out
   --max-in-flight <n>     requests allowed in flight at once (default 4)
   --quiet                 no live progress on stderr (progress.log still written)
   --save-exchanges        persist every HTTP exchange under the run dir (default unless --profile cheap)

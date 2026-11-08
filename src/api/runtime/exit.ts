@@ -1,8 +1,8 @@
-/** Process exit codes for a run, shared by the CLI and anyone embedding oat. */
+/** Process exit codes for a run, shared by the CLI and anyone embedding the API tester. */
 
 import { isFailingRootCause } from "./finding.ts"
 
-/** What the process exit code says. Defects found and oat failing are different answers. */
+/** What the process exit code says. Defects found and the API tester failing are different answers. */
 export const EXIT = {
 	/** Every graded operation passed. */
 	clean: 0,
@@ -10,12 +10,12 @@ export const EXIT = {
 	defects: 1,
 	/** The command line or config was wrong; nothing ran. */
 	usage: 2,
-	/** oat could not do what it was asked: the network went away, nothing was graded, a target
-	 * was never judged, or oat itself threw. */
+	/** The API tester could not do what it was asked: the network went away, nothing was graded, a target
+	 * was never judged, or the API tester itself threw. */
 	failed: 3,
 	/** The run may have left records behind, whatever else it found, and someone has to look: a
 	 * record teardown could not show gone — its delete refused, still listed, never seen by its
-	 * creator, or present by `hooks.verifyRemoved` — or a create that answered 2xx with no id oat
+	 * creator, or present by `hooks.verifyRemoved` — or a create that answered 2xx with no id the API tester
 	 * could read. An entity with no delete operation alone is a gap, not this. */
 	leftovers: 4,
 } as const

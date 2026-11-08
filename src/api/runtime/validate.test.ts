@@ -57,9 +57,9 @@ describe("SchemaValidator", () => {
 	})
 
 	it("reaches recursive definitions and lists at most twelve distinct errors", () => {
-		const node: JsonSchema = { properties: { next: { $ref: "oat-defs#/$defs/Node" } }, type: "object" }
+		const node: JsonSchema = { properties: { next: { $ref: "testing-defs#/$defs/Node" } }, type: "object" }
 		const validator = new SchemaValidator({ Node: node })
-		const op = returning("200", "application/json", { items: { $ref: "oat-defs#/$defs/Node" }, type: "array" })
+		const op = returning("200", "application/json", { items: { $ref: "testing-defs#/$defs/Node" }, type: "array" })
 		expect(validator.validate("list", op, { responseBody: [{ next: { next: {} } }], status: 200 }).ok).toBe(true)
 		const result = validator.validate("list", op, { responseBody: Array.from({ length: 20 }, () => 1), status: 200 })
 		expect(result.errors).toHaveLength(12)
@@ -140,8 +140,8 @@ describe("instanceErrors", () => {
 
 	it("reaches the definitions it is given, and reuses one AJV for them", () => {
 		const defs: Record<string, JsonSchema> = { Id: { type: "integer" } }
-		expect(instanceErrors({ $ref: "oat-defs#/$defs/Id" }, "x", defs)).toEqual(["(root) must be integer"])
-		expect(instanceErrors({ items: { $ref: "oat-defs#/$defs/Id" }, type: "array" }, [1], defs)).toEqual([])
+		expect(instanceErrors({ $ref: "testing-defs#/$defs/Id" }, "x", defs)).toEqual(["(root) must be integer"])
+		expect(instanceErrors({ items: { $ref: "testing-defs#/$defs/Id" }, type: "array" }, [1], defs)).toEqual([])
 	})
 
 	it("reports a schema it cannot compile, once compiled or not", () => {

@@ -112,7 +112,7 @@ function requestDigestOf(body: EncodedBody): Pick<Exchange, "requestDigest"> {
 	return { requestDigest: { bytes: body.bytes, sha256: sha256Hex(Buffer.from(body.text)) } }
 }
 
-/* A 429 or 503 asking for a longer wait than oat accepts is marked before anything records it. */
+/* A 429 or 503 asking for a longer wait than the API tester accepts is marked before anything records it. */
 function overLimit(
 	status: number,
 	headers: Record<string, string>,

@@ -11,7 +11,7 @@ const COHORT = [
 	{ id: "w-3", status: "held" },
 	{ id: "w-4", status: null },
 ]
-/** A row the store holds that oat never seeded. */
+/** A row the store holds that the API tester never seeded. */
 const OUTSIDE = { id: "x-1", status: "held" }
 const DOC = { xQuery: { filterable: [{ field: "status", ops: ["eq", "in", "nin"] }] } }
 /** FILTER_NIN_FIRST_ONLY: nin() excludes only the first listed value. */
@@ -75,7 +75,7 @@ describe("filter.nin-complements-in", () => {
 	})
 })
 
-describe("filter.nin-complements-in: records oat sent, never read back", () => {
+describe("filter.nin-complements-in: records the API tester sent, never read back", () => {
 	it("stands down, since what the server stored is not known", () => {
 		const { ctx } = stage({ doc: DOC, records: COHORT })
 		expect(check.plan(ctx).ok).toBe(true)

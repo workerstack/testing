@@ -15,7 +15,7 @@
 import type { FilterGrammarSpec } from "../render/filter-types.ts"
 import type { SortGrammarSpec } from "../render/sort.ts"
 
-/** How filter values are spelled. Determines what oat can express, not merely what it sends. */
+/** How filter values are spelled. Determines what the API tester can express, not merely what it sends. */
 export type FilterGrammar =
 	/** `field.op.value`, with `and(...)`/`or(...)` — PostgREST and friends. */
 	| "postgrest"
@@ -25,7 +25,7 @@ export type FilterGrammar =
 	| "equality"
 	/** Declared as a template; `QueryConventions.filterGrammar` says how terms are spelled. */
 	| "template"
-	/** A filter expression oat could not recognize and nobody declared: no term can be written. */
+	/** A filter expression the API tester could not recognize and nobody declared: no term can be written. */
 	| "unrecognized"
 
 /**
@@ -34,7 +34,7 @@ export type FilterGrammar =
  * The role of the parameter and the *grammar* of its value are separate problems, and generalizing
  * only the first is a half-measure: an API that names the parameter `sort` but expects `-name`
  * receives `name.asc`, ignores or rejects it, and reads as a backend with broken sorting rather
- * than one speaking a dialect oat cannot write.
+ * than one speaking a dialect the API tester cannot write.
  */
 export type SortGrammar =
 	/** `field.asc` / `field.desc`, comma-separated — PostgREST. */
@@ -79,7 +79,7 @@ export interface QueryConventions {
 	filterGrammar?: FilterGrammarSpec
 	/**
 	 * The filter grammar was declared (on `x-query` or in config), not inferred. Only then is a
-	 * deliberately malformed request oat writes malformed on purpose rather than by a wrong guess.
+	 * deliberately malformed request the API tester writes malformed on purpose rather than by a wrong guess.
 	 */
 	grammarDeclared?: true
 	/** How sort directions are written for the `order` parameter. */

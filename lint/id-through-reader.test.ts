@@ -17,7 +17,7 @@ const SOURCE = [
 
 const lines = (file: string): number[] => reportsOf(rule, { [file]: SOURCE }).map((report) => report.line)
 
-describe("oat/id-through-reader", () => {
+describe("testing/id-through-reader", () => {
 	it("reports an identity read as text without the reader", () => {
 		expect(lines("src/api/runtime/checks.ts")).toEqual([4, 5])
 	})
@@ -30,7 +30,7 @@ describe("oat/id-through-reader", () => {
 		expect(lines("src/api/reference/listing/run.ts")).toEqual([])
 	})
 
-	it("fails oxlint through the oat plugin entry", () => {
+	it("fails oxlint through the testing plugin entry", () => {
 		const reports = oxlintReports("id-through-reader", { "src/api/runtime/checks.ts": SOURCE })
 		expect(reports.map((report) => report.line)).toEqual([4, 5])
 	})

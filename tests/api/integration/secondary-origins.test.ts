@@ -3,7 +3,7 @@ import { afterAll, describe, expect, it } from "vitest"
 import { SECURITY } from "../../../src/api/conformance/matrix/principals.ts"
 import { createMemoryServer } from "../../../src/api/reference/http/engines.ts"
 import { EXIT } from "../../../src/api/runtime/exit.ts"
-import { latestJournal, latestReport, oat, referenceConfig, tempDirs } from "../support/cli-run.ts"
+import { latestJournal, latestReport, tester, referenceConfig, tempDirs } from "../support/cli-run.ts"
 
 /*
  * A second host with a document of its own, run by the same principals as the primary. Its
@@ -11,7 +11,7 @@ import { latestJournal, latestReport, oat, referenceConfig, tempDirs } from "../
  * and a diff of two runs tells a defect on the origin from the same defect on the primary.
  */
 
-const dirs = tempDirs("oat-origins-")
+const dirs = tempDirs("testing-origins-")
 afterAll(dirs.removeAll)
 
 const FILTER = "filter.unknown-field-rejected"
@@ -23,7 +23,7 @@ interface Hosts {
 }
 
 /*
- * `oat run --ops <ops>` against two references, `cdn` an origin of the first. The origin signs no
+ * `testing api run --ops <ops>` against two references, `cdn` an origin of the first. The origin signs no
  * one in: the primary's jwt is sent there, and its apiKey scheme, minted on the primary only, is
  * dropped from its document.
  */
@@ -40,7 +40,7 @@ async function runBoth(dir: string, hosts: Hosts, ops: string) {
 		}
 		const config = await referenceConfig(dir, primary.url, { origins: [origin] })
 		const runs = join(dir, "runs")
-		const { code, out } = await oat(["run", "--config", config, "--out", runs, "--ops", ops, "--quiet"])
+		const { code, out } = await tester(["run", "--config", config, "--out", runs, "--ops", ops, "--quiet"])
 		return { cdnUrl: cdn.url, code, run: join(runs, "latest"), runs, text: out }
 	} finally {
 		await Promise.all([primary.close(), cdn.close()])
@@ -102,7 +102,16 @@ describe("a recipe only an origin's scheme uses", () => {
 				security: { cdnKey: SECURITY["apiKey"], jwt: SECURITY["jwt"] },
 			})
 			const runs = join(dir, "runs")
-			const { code, out } = await oat(["run", "--config", config, "--out", runs, "--ops", "cdn:table.list", "--quiet"])
+			const { code, out } = await tester([
+				"run",
+				"--config",
+				config,
+				"--out",
+				runs,
+				"--ops",
+				"cdn:table.list",
+				"--quiet",
+			])
 			expect(out).toMatch(/✓ cdn:table\.list\s+passed/)
 			expect(code).toBe(EXIT.clean)
 		} finally {
@@ -111,14 +120,14 @@ describe("a recipe only an origin's scheme uses", () => {
 	}, 60_000)
 })
 
-describe("oat diff over runs on two origins", () => {
+describe("testing api diff over runs on two origins", () => {
 	it("reads a defect that moved from the primary to the origin as one fixed and one new", async () => {
 		const root = await dirs.make()
 		const ops = "table.list,cdn:table.list"
 		const before = await runBoth(join(root, "a"), { cdn: [], primary: ["FILTER_IGNORED"] }, ops)
 		const after = await runBoth(join(root, "b"), { cdn: ["FILTER_IGNORED"], primary: [] }, ops)
 		expect([before.code, after.code]).toEqual([EXIT.defects, EXIT.defects])
-		const diff = await oat(["diff", before.run, after.run])
+		const diff = await tester(["diff", before.run, after.run])
 		expect(diff.code).toBe(0)
 		expect(diff.out).toContain("1 new · 1 fixed · 0 persisting")
 	}, 60_000)

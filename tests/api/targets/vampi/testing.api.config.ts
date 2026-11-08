@@ -1,7 +1,7 @@
 import { defineConfig, env } from "../../../../src/api/index.ts"
 
 /*
- * VAmPI has no delete-self, and only its admin may delete a user: the account oat's sign-up probe
+ * VAmPI has no delete-self, and only its admin may delete a user: the account the API tester's sign-up probe
  * makes is removed by username, as the admin VAmPI seeds (target.ts), found by its email or name.
  */
 async function removeUser(address: string): Promise<void> {

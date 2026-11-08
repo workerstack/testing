@@ -73,7 +73,7 @@ describe("scopeSections on a targeted run", () => {
 	it("lists a targeted run's support operations, or says there were none", () => {
 		const none = scopeSections(scopeOf({ mode: "targeted" }))
 		expect(none).toContain(
-			"> The targets of this run. Everything else oat called is listed under support: called, never graded.",
+			"> The targets of this run. Everything else the API tester called is listed under support: called, never graded.",
 		)
 		expect(none.slice(-6)).toEqual([
 			"## Support operations",

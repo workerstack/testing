@@ -68,8 +68,8 @@ describe("walk refs", () => {
 
 	it("turns a ref back into a node still being built into a ref into the definitions", () => {
 		const { out, state } = walked({ a: { again: { $ref: "#/a" }, self: { $ref: "#/a" } }, list: [{ $ref: "#/list" }] })
-		expect(out["a"]).toEqual({ again: { $ref: "oat-defs#/$defs/a" }, self: { $ref: "oat-defs#/$defs/a" } })
-		expect(out["list"]).toEqual([{ $ref: "oat-defs#/$defs/list" }])
+		expect(out["a"]).toEqual({ again: { $ref: "testing-defs#/$defs/a" }, self: { $ref: "testing-defs#/$defs/a" } })
+		expect(out["list"]).toEqual([{ $ref: "testing-defs#/$defs/list" }])
 		expect([...state.defNames]).toEqual([
 			["#/a", "a"],
 			["#/list", "list"],
@@ -126,7 +126,7 @@ describe("walk data", () => {
 	})
 })
 
-const KEY = "x-oat-discriminator"
+const KEY = "x-testing-discriminator"
 const schemas = {
 	Cat: { properties: { meow: { type: "boolean" } }, type: "object" },
 	Dog: { properties: { bark: { type: "boolean" } }, type: "object" },

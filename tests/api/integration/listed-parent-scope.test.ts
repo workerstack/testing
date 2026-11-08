@@ -6,7 +6,7 @@ import type { OpenApiDocument } from "../../../src/api/spec/types.ts"
 
 /*
  * An entity nobody creates directly — a table's exports, a webhook's deliveries — is still listed
- * under a parent. Its checks need that parent's id, and oat can make the parent like any other.
+ * under a parent. Its checks need that parent's id, and the API tester can make the parent like any other.
  */
 
 const closers: Array<() => Promise<void>> = []

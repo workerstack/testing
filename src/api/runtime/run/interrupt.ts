@@ -12,6 +12,6 @@ export function noteLateStop({ options, state, findings, progress }: RunContext)
 	state.interrupted = true
 	findings.gap("run.interrupted" satisfies RunFindingId, "run", {
 		summary: `stopped during the ${progress.phase} phase`,
-		detail: "the run was interrupted; what was tested is reported, and what oat created is removed",
+		detail: "the run was interrupted; what was tested is reported, and what the API tester created is removed",
 	})
 }

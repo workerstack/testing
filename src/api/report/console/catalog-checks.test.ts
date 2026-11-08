@@ -74,7 +74,7 @@ async function conventionsOf(dialect?: string): Promise<QueryConventions> {
 describe("catalogCheckPreview with all or nothing declared", () => {
 	it("applies nothing with no capabilities beyond what the parameters alone allow", async () => {
 		const conventions = await conventionsOf()
-		/* An order parameter alone lets oat ask for a field that is not there. */
+		/* An order parameter alone lets the API tester ask for a field that is not there. */
 		expect(catalogCheckPreview(caps(), { conventions }, "config")).toEqual(["sort.unknown-field-rejected"])
 		const bare = without(conventions, "order", "search", "select")
 		expect(catalogCheckPreview(caps({ sortable: [{ field: "a" }] }), { conventions: bare }, "config")).toEqual([])

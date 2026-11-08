@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest"
 import { enGbWords, QUOTED_FILES } from "../api/support/spelling.ts"
 
 /*
- * oat is written in en-US: code, identifiers, messages, tests and docs. Each tracked text file is
+ * The API tester is written in en-US: code, identifiers, messages, tests and docs. Each tracked text file is
  * split into words, camelCase and snake_case identifiers into their parts, and every word is looked
  * up in a list of en-GB spellings. Quoted third-party text keeps the spelling of its source.
  */

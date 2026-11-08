@@ -103,10 +103,18 @@ export function recordDangling(
 		operation(found, endpoint.op as unknown as Record<string, unknown>)
 		const op = operations[index] as OperationModel
 		for (const pointer of found.schema) {
-			gaps.record(op.operationId, "$ref", `$ref ${pointer} points at nothing; oat reads that schema as unconstrained`)
+			gaps.record(
+				op.operationId,
+				"$ref",
+				`$ref ${pointer} points at nothing; the API tester reads that schema as unconstrained`,
+			)
 		}
 		for (const pointer of found.structure) {
-			gaps.record(op.operationId, "$ref", `$ref ${pointer} points at nothing; oat leaves this operation untested`)
+			gaps.record(
+				op.operationId,
+				"$ref",
+				`$ref ${pointer} points at nothing; the API tester leaves this operation untested`,
+			)
 		}
 		const [first] = found.structure
 		if (first !== undefined && op.unsendable === null) leaveUntested(op, `$ref ${first} points at nothing`)

@@ -26,7 +26,7 @@ import {
 const AS_ALPHA = { as: { principal: "alpha" } }
 const ORIGIN = { baseUrl: "http://other.test", id: "other", spec: "http://other.test/openapi.json" }
 
-const scratch = (): string => mkdtempSync(join(tmpdir(), "oat-connect-"))
+const scratch = (): string => mkdtempSync(join(tmpdir(), "testing-connect-"))
 
 describe("connect", () => {
 	it("journals each answer under the check and entity that sent it, then shows it as the last", async () => {

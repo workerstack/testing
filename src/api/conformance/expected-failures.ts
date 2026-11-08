@@ -1,7 +1,7 @@
 /**
  * Conformance cases known to fail today, and why.
  *
- * Each entry is a correct backend oat still misjudges. The list may only shrink: a listed case
+ * Each entry is a correct backend the API tester still misjudges. The list may only shrink: a listed case
  * that starts passing fails the suite until its entry is removed, so a fix is recorded the moment
  * it lands and a regression cannot hide behind an entry that is no longer needed.
  *

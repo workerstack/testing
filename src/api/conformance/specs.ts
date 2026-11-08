@@ -2,7 +2,7 @@
  * Hostile spec fixtures.
  *
  * Every one of these is a shape found in a real published OpenAPI document. The bar is not that
- * oat models them well — several are genuinely untestable — but that it never throws, never
+ * The API tester models them well — several are genuinely untestable — but that it never throws, never
  * hangs, and says plainly what it could not do. Prior art in this space died on exactly this
  * class: one `nullable` without a `type` made the validator refuse to compile and took the whole
  * run with it.

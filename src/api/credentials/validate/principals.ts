@@ -5,13 +5,13 @@
 
 import { effectiveRecipe } from "../effective.ts"
 import { isRaw, isRecord, type RawOf } from "../../config/types/raw.ts"
-import type { OatConfig } from "../../config/types/config.ts"
+import type { ApiConfig } from "../../config/types/config.ts"
 import type { PrincipalEntry, Recipe } from "../../config/types/security.ts"
 import { requestSchema } from "../../spec/collection/request.ts"
 import type { SpecModel } from "../../spec/graph/types.ts"
 import type { OperationObject } from "../../spec/types.ts"
 
-type Config = RawOf<OatConfig>
+type Config = RawOf<ApiConfig>
 type Entry = RawOf<PrincipalEntry>
 
 /* What replaces each field 0.25.0 removed from a principal, said for the principal at `path`. */

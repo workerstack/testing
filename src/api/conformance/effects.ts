@@ -17,7 +17,7 @@ import { extractSpec } from "./effects/spec.ts"
 import { listening, reach, type Via } from "./harness/launch.ts"
 import type { ParserResult } from "./harness/result.ts"
 
-/** One run of oat against the extract backend, and what it should have found. */
+/** One run of the API tester against the extract backend, and what it should have found. */
 interface ExtractCase {
 	name: string
 	why: string

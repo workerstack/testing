@@ -36,7 +36,7 @@ export function summaryLines(facts: DoctorFacts, config?: DoctorConfig): string[
 }
 
 /*
- * What the missing tags cost, in checks. A gap list tells an author what oat could not read;
+ * What the missing tags cost, in checks. A gap list tells an author what the API tester could not read;
  * this tells them what they get for fixing it, which is the only form of the message anyone
  * acts on.
  */
@@ -106,7 +106,7 @@ export function declarationLines(facts: DoctorFacts): string[] {
 			"  invite — accept mode",
 			facts.inviting.map((entity) => `    ${entity.name.padEnd(28)} ${inviteAcceptMode(entity.invite)}`),
 		),
-		...block("  cache bypass oat sends on reads", bypassRows(facts.bypass)),
+		...block("  cache bypass the API tester sends on reads", bypassRows(facts.bypass)),
 		...block(
 			"  config.entities names that do not match the document (ignored)",
 			facts.unknownEntities.map((name) => `    ${name}`),

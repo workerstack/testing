@@ -101,7 +101,7 @@ async function probeUpdateSet(
 	const headers = uniqueProbeHeaders({
 		header: updateOp.idempotencyHeader,
 		required: probe.required,
-		fresh: `oat-unique-patch-${ctx.entityName}-${ctx.seed}-${index}`,
+		fresh: `testing-unique-patch-${ctx.entityName}-${ctx.seed}-${index}`,
 	})
 	const update = await updateRequest(ctx, updateOp, target, patch)
 	const params = { ...ctx.scope, ...itemParamFor(ctx, made.scratch.id) }

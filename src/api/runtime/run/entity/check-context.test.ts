@@ -9,7 +9,7 @@ import { checkContext } from "./check-context.ts"
 import type { World } from "./state.ts"
 
 /*
- * What every check on an entity is given: write routes withdrawn where oat has no oracle or the
+ * What every check on an entity is given: write routes withdrawn where the API tester has no oracle or the
  * profile excludes them, the operations that declare async, effects or waits, and the tenant to
  * cross into.
  */
@@ -44,7 +44,7 @@ async function contextFor(doc: OpenApiDocument, world: World, extra: Partial<Run
 }
 
 describe("checkContext", () => {
-	it("gives the checks every route of an entity oat seeded itself", async () => {
+	it("gives the checks every route of an entity the API tester seeded itself", async () => {
 		const { checks, ctx } = await contextFor(notesDoc(), fresh)
 		expect([checks.createOp, checks.readOp, checks.updateOp, checks.deleteOp].map((op) => op?.operationId)).toEqual([
 			"notes.create",
@@ -68,7 +68,7 @@ describe("checkContext", () => {
 		expect(checks.credentials).toBe(ctx.store)
 	})
 
-	it("withdraws the write routes from records oat did not create", async () => {
+	it("withdraws the write routes from records the API tester did not create", async () => {
 		const { checks } = await contextFor(notesDoc(), { ...fresh, degraded: true })
 		expect([checks.createOp, checks.updateOp, checks.deleteOp]).toEqual([undefined, undefined, undefined])
 		expect(checks.readOp?.operationId).toBe("notes.get")
@@ -189,8 +189,8 @@ describe("checkContext extras", () => {
 	})
 })
 
-describe("checkContext, over records oat sent", () => {
-	it("says when the records are the bodies oat sent, never read back", async () => {
+describe("checkContext, over records the API tester sent", () => {
+	it("says when the records are the bodies the API tester sent, never read back", async () => {
 		const { checks } = await contextFor(notesDoc(), { ...fresh, recordsUnverified: true })
 		expect(checks.recordsUnverified).toBe(true)
 	})

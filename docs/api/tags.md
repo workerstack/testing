@@ -1,4 +1,4 @@
-# oat — OpenAPI meta tags
+# testing api — OpenAPI meta tags
 
 [← back to the overview](../../README.md)
 
@@ -6,13 +6,13 @@
 
 Vendor-neutral `x-*` extensions. Every one is optional. Precedence: **explicit tag → heuristic → skip with a coverage gap**.
 
-`x-oat-*` is oat's reserved namespace: the keys the loader writes into its working copy of the document (bundled files, recursive schemas, discriminator branches). It is not a tag, and a document must not use it.
+`x-testing-*` is the API tester's reserved namespace: the keys the loader writes into its working copy of the document (bundled files, recursive schemas, discriminator branches). It is not a tag, and a document must not use it.
 
-A complete document with every tag in place is shipped as `labs/api/annotated-openapi.yaml` (also in the npm package). `oat conformance` asserts the derived model matches that file.
+A complete document with every tag in place is shipped as `labs/api/annotated-openapi.yaml` (also in the npm package). `testing api conformance` asserts the derived model matches that file.
 
 ```bash
-oat plan   --spec node_modules/@lovrozagar/oat/labs/api/annotated-openapi.yaml
-oat doctor --spec node_modules/@lovrozagar/oat/labs/api/annotated-openapi.yaml
+testing api plan   --spec node_modules/@workerstack/testing/labs/api/annotated-openapi.yaml
+testing api doctor --spec node_modules/@workerstack/testing/labs/api/annotated-openapi.yaml
 ```
 
 What each tag **unlocks** (otherwise the check cannot run):
@@ -47,7 +47,7 @@ x-invalidate:
   - GET /v1/projects/{project_id}/tables/{table_id}
 ```
 
-`string[]` of `"METHOD /path"`. Colon or brace path params; oat normalizes to brace. Method is uppercased.
+`string[]` of `"METHOD /path"`. Colon or brace path params; the API tester normalizes to brace. Method is uppercased.
 
 This is the entity graph. Inverted, it is each entity's read surface. Highest-value tag.
 
@@ -68,9 +68,9 @@ x-entity:
 
 Overrides path-segment inference. `identity` is required when the item schema has no `id` (or `uuid` / `slug` / `key` / `name`).
 
-`createdIdFrom` names, as a JSON path, where a create's answer puts the id of the record it made. It may be declared alone, without `name` and `action`. Teardown deletes by the id a create answered, so where that id comes from matters: a declared `createdIdFrom` and the identity at the top of the answer are trusted; the record under an envelope (`data`, `item`, `result`, `record`) or a conventional id key found deeper in the answer is only a candidate, and counts once a read under it shows what was sent — a related record nested in the answer (`Status: { ID }`) carries an id too. An answer whose body names no id may name the record by its URL in `Location`, absolute or relative: the id is the segment the entity's item route takes for its last parameter, the route laid over the URL from its end, and it is trusted. An answer that is not the record — one that lacks a field the item schema requires or a field the create sent, as an `{ "id": ..., "message": "created" }` acknowledgment does — is read back through the entity's item read under that id, and the cohort holds what the read returns. With no item read to call, the cohort holds the bodies oat sent under those ids, and the checks that work out from a record's fields what the server stored stand down. A create that answers 2xx with no id oat can read or confirm is a leftover: the report lists it under **Leftovers** and the run exits `4`.
+`createdIdFrom` names, as a JSON path, where a create's answer puts the id of the record it made. It may be declared alone, without `name` and `action`. Teardown deletes by the id a create answered, so where that id comes from matters: a declared `createdIdFrom` and the identity at the top of the answer are trusted; the record under an envelope (`data`, `item`, `result`, `record`) or a conventional id key found deeper in the answer is only a candidate, and counts once a read under it shows what was sent — a related record nested in the answer (`Status: { ID }`) carries an id too. An answer whose body names no id may name the record by its URL in `Location`, absolute or relative: the id is the segment the entity's item route takes for its last parameter, the route laid over the URL from its end, and it is trusted. An answer that is not the record — one that lacks a field the item schema requires or a field the create sent, as an `{ "id": ..., "message": "created" }` acknowledgment does — is read back through the entity's item read under that id, and the cohort holds what the read returns. With no item read to call, the cohort holds the bodies the API tester sent under those ids, and the checks that work out from a record's fields what the server stored stand down. A create that answers 2xx with no id the API tester can read or confirm is a leftover: the report lists it under **Leftovers** and the run exits `4`.
 
-`recordPath` names, per operation, where its answer keeps the record: `{ data: { ID, ... }, fields: [...] }` on a read is `$.data`. A declared path wins over the envelope oat would otherwise infer for a create. An operation that declares none answers with the record itself; one whose answer holds no record (an update answering `{ success, id, message }`) declares none and is not compared field by field — a path that names nothing in an answer means there is no record, never an empty one. On a list, `recordPath` names the rows (`$.data` or `$.data[*]`), and is required when the response holds more than one array of objects: oat does not guess between `data` and a `fields` sidecar, and `doctor` names the gap. When each row wraps its record, the path continues inside the row: Typesense answers `{ hits: [{ document: { ... }, highlights: [...] }] }`, so its search declares `$.hits[*].document`, and every list read (finding a created record, sorting, filtering, paging, teardown) compares the `document`, not the hit. The rows must sit under one top-level key; a `[*]` anywhere else (`$.result.hits[*].document`) is a gap naming the tag. A declared list `recordPath` is taken as the rows even beside object siblings such as Typesense's `request_params`, which oat would otherwise read as a document that happens to hold a list. `doctor` prints every declared `recordPath` and `createdIdFrom` under **record envelopes**.
+`recordPath` names, per operation, where its answer keeps the record: `{ data: { ID, ... }, fields: [...] }` on a read is `$.data`. A declared path wins over the envelope the API tester would otherwise infer for a create. An operation that declares none answers with the record itself; one whose answer holds no record (an update answering `{ success, id, message }`) declares none and is not compared field by field — a path that names nothing in an answer means there is no record, never an empty one. On a list, `recordPath` names the rows (`$.data` or `$.data[*]`), and is required when the response holds more than one array of objects: the API tester does not guess between `data` and a `fields` sidecar, and `doctor` names the gap. When each row wraps its record, the path continues inside the row: Typesense answers `{ hits: [{ document: { ... }, highlights: [...] }] }`, so its search declares `$.hits[*].document`, and every list read (finding a created record, sorting, filtering, paging, teardown) compares the `document`, not the hit. The rows must sit under one top-level key; a `[*]` anywhere else (`$.result.hits[*].document`) is a gap naming the tag. A declared list `recordPath` is taken as the rows even beside object siblings such as Typesense's `request_params`, which the API tester would otherwise read as a document that happens to hold a list. `doctor` prints every declared `recordPath` and `createdIdFrom` under **record envelopes**.
 
 `identity: self` means the signed-up caller is the record. The entity needs a read or an update and does not need a list or a create. The read returns 200. An update is still there on the next read. No token returns 401.
 
@@ -93,23 +93,23 @@ x-invite:
   grants: org.get # optional. the read the accepted grant opens; default the entity's item read
 ```
 
-Put this on the invite operation. Config must give the invitee `inviteAs`. Defaults if omitted: `granteeField: key`, `tokenPointer: $.token`, `grantPointer: $.grant_id`, `tokenFrom: response`, `acceptFrom: token`. All three of `invite` / `accept` / `revoke` (operationIds) are required or the tag is ignored. `oat doctor` / `oat plan` print the accept mode.
+Put this on the invite operation. Config must give the invitee `inviteAs`. Defaults if omitted: `granteeField: key`, `tokenPointer: $.token`, `grantPointer: $.grant_id`, `tokenFrom: response`, `acceptFrom: token`. All three of `invite` / `accept` / `revoke` (operationIds) are required or the tag is ignored. `testing api doctor` / `testing api plan` print the accept mode.
 
 `tokenFrom: response` (default) reads the accept token from the invite HTTP body at `tokenPointer`. Keep this for backends that still put the token in JSON.
 
 `tokenFrom: outOfBand` ignores the response token and calls `resolveOutOfBand({ address: inviteAs, kind, scope, headers })` after the invite POST. `kind` is `tokenKind` or `${entity}-invite` (`org` → `org-invite`, `project` → `project-invite`). Use this when the live profile must accept only the mailed token.
 
-`acceptFrom: token` (default) stuffs that string into the documented accept JSON / path as today. `acceptFrom: link` requires the string to be an absolute `http(s)` URL: oat GETs it (recorded, cookie-jar follow). The `accept` operationId is unused for that hop; `revoke` still uses the documented revoke operation. 2xx/3xx that leaves the grant readable continues the timeline; 4xx, 404, or an unreadable grant is a finding. A config that still POSTs `{ token }` with `tokenFrom: outOfBand` and no `acceptFrom` does not change meaning.
+`acceptFrom: token` (default) stuffs that string into the documented accept JSON / path as today. `acceptFrom: link` requires the string to be an absolute `http(s)` URL: the API tester GETs it (recorded, cookie-jar follow). The `accept` operationId is unused for that hop; `revoke` still uses the documented revoke operation. 2xx/3xx that leaves the grant readable continues the timeline; 4xx, 404, or an unreadable grant is a finding. A config that still POSTs `{ token }` with `tokenFrom: outOfBand` and no `acceptFrom` does not change meaning.
 
-An invite operation is **not** the entity's fixture create, even when it is `POST` on the collection. oat will not seed it with a generated email. The invite check (and only that check) creates the grant, using `inviteAs` as `granteeField`. The check still runs when there is no non-invite create, as long as an item or list route exists.
+An invite operation is **not** the entity's fixture create, even when it is `POST` on the collection. The API tester will not seed it with a generated email. The invite check (and only that check) creates the grant, using `inviteAs` as `granteeField`. The check still runs when there is no non-invite create, as long as an item or list route exists.
 
 Timeline asserted: cannot read → invite → still cannot → accept → can → revoke → cannot.
 
-"Read" is the entity's item read on the first listed record, unless `grants` names another operation. Name it when the grant opens a parent rather than the record the invite creates: an organization invite opens the organization, and a plain member may rightly be refused other members' records. oat fills it from the inviter's scope. Revoke always addresses the grant: its last path parameter that is not a scope root gets the id at `grantPointer`.
+"Read" is the entity's item read on the first listed record, unless `grants` names another operation. Name it when the grant opens a parent rather than the record the invite creates: an organization invite opens the organization, and a plain member may rightly be refused other members' records. The API tester fills it from the inviter's scope. Revoke always addresses the grant: its last path parameter that is not a scope root gets the id at `grantPointer`.
 
-After a 2xx accept, oat reads `credentialFrom` (default `$.access_token`). When that value is a string, the invitee sends it on the later grant read and the post-revoke read. No such field leaves the invitee's existing credential in place, so `{ ok: true }` accepts stay as they are. A `link` accept that returns HTML does not count as a credential.
+After a 2xx accept, the API tester reads `credentialFrom` (default `$.access_token`). When that value is a string, the invitee sends it on the later grant read and the post-revoke read. No such field leaves the invitee's existing credential in place, so `{ ok: true }` accepts stay as they are. A `link` accept that returns HTML does not count as a credential.
 
-Accept and revoke send the documented JSON request body when the operation declares one, filled from the invite token / grant id (and other known scope values). A path-only accept (`POST /invites/{token}` with no body) stays path-only — oat does not invent a body.
+Accept and revoke send the documented JSON request body when the operation declares one, filled from the invite token / grant id (and other known scope values). A path-only accept (`POST /invites/{token}` with no body) stays path-only — the API tester does not invent a body.
 
 **Fallback:** the check does not run.
 
@@ -172,7 +172,7 @@ x-query:
 
 #### Parameter names
 
-oat finds the query parameter that plays each role by its name: `filter`, `where`, `query` or `conditions` for the filter, `sort` or `order_by` for the sort, `q` or `search` for the search, `per_page` or `limit` for the page size, and so on, in any case or separator spelling. A parameter under a name no alias knows is not used. `params` names it:
+The API tester finds the query parameter that plays each role by its name: `filter`, `where`, `query` or `conditions` for the filter, `sort` or `order_by` for the sort, `q` or `search` for the search, `per_page` or `limit` for the page size, and so on, in any case or separator spelling. A parameter under a name no alias knows is not used. `params` names it:
 
 ```yaml
 x-query:
@@ -183,7 +183,7 @@ x-query:
 
 - A named role is sent in that parameter, and its grammar is read off that parameter's description and examples. The other roles still come from the aliases, and no alias takes a parameter that `params` already named.
 - The role is `sort`, as in `sortable` and `sortGrammar`.
-- A name the operation does not declare is an `x-query` gap, and that role falls back to its aliases. oat never sends a parameter the operation does not declare.
+- A name the operation does not declare is an `x-query` gap, and that role falls back to its aliases. The API tester never sends a parameter the operation does not declare.
 - A tag that holds only `params` still guesses the capabilities, as a missing tag does. It says how to send a query, not what can be asked.
 - Config `query.params` outranks `params` for every operation that declares the name. See [the config reference](configuration/reference.md).
 
@@ -199,13 +199,13 @@ x-query:
 
 - A name is a field beside the list's array, as the response schema declares it. A nested field cannot be named.
 - A field the response does not declare is an `x-query` gap, and that fact falls back to its aliases. No alias keeps a field that `envelope` named for another fact.
-- The next cursor may be text or a number. oat sends a number back as its decimal text, and takes an empty string or `null` as the last page.
+- The next cursor may be text or a number. The API tester sends a number back as its decimal text, and takes an empty string or `null` as the last page.
 - A tag that holds only `params` and `envelope` still guesses the capabilities.
 - Config `query.envelope` outranks `envelope` for every list whose response declares the name.
 
 #### Template grammars
 
-A grammar oat has no name for is declared as a template. Every filter and sort term oat writes goes through one renderer; the named grammars are its presets.
+A grammar the API tester has no name for is declared as a template. Every filter and sort term the API tester writes goes through one renderer; the named grammars are its presets.
 
 ```yaml
 x-query:
@@ -217,7 +217,7 @@ x-query:
     list: "," # joiner for in / nin values
     combine: repeat # repeat | { join: "," } | { group: "and({terms})" }
     or: terms # none (default) | terms | { group: "or({terms})" }
-    mixed: false # always false: oat never assumes how and and or nest
+    mixed: false # always false: the API tester never assumes how and and or nest
     escape: { "_": "~" } # optional per-character value escaping
     likeMatches: pattern # pattern (% and _ are wildcards, default) | contains
     param: "{filter}" # "{filter}" (default) | "{field}" for one parameter per field
@@ -235,9 +235,9 @@ x-query:
 - A value holding a character the template writes around its placeholders (`_` above), the list or combine joiner, or an escape replacement, cannot be written unambiguously: the check it belongs to does not apply. `escape` maps a character to a replacement so it can be.
 - `or: terms` writes each term with the `or` conjunction. `and(a, or(b, c))` is never composed from a template.
 - `likeMatches: contains` sends a `like` value as a bare substring. Under `pattern`, `%` is a wildcard, so the like-escaping check does not apply.
-- A template oat cannot read is an `x-query` gap naming the key at fault, and oat falls back to inference.
+- A template the API tester cannot read is an `x-query` gap naming the key at fault, and the API tester falls back to inference.
 
-A free-text filter parameter whose grammar oat cannot recognize, and that nobody declared, gets no filter terms at all: oat does not guess one parameter per field. The `x-query` gap says how to declare it.
+A free-text filter parameter whose grammar the API tester cannot recognize, and that nobody declared, gets no filter terms at all: the API tester does not guess one parameter per field. The `x-query` gap says how to declare it.
 
 `defaultOrder` / `stableTiebreak` / `maxLimit` stay. Harvest keys are generic JSON paths (`$`, dots, `[n]`, `[*]`, `[?(@.key==value)]`). Absent → no harvest.
 
@@ -247,7 +247,7 @@ String arrays + `operatorsByType` is enough for most APIs. Per-field `ops` / `nu
 
 **Unlocks:** `spec.declared-filterable-is-filterable`, `spec.declared-sortable-is-sortable`, `spec.declared-selectable-is-selectable`. Structured extras unlock the matching catalog checks (`in` = union of `eq`, `ilike` vs `like`, `is.null`, illegal op, empty `in`, caps, nulls, search empty/modes, unknown select, nested `rel(col)`). Sharpens every other query check (without the tag they probe columns you may not have indexed).
 
-`oat doctor` prints, per entity, the effective map (all four axes, ops, modes, caps, harvest/hook) and which new checks will apply. Unknown `config.entities` names are ignored and warned.
+`testing api doctor` prints, per entity, the effective map (all four axes, ops, modes, caps, harvest/hook) and which new checks will apply. Unknown `config.entities` names are ignored and warned.
 
 ### `x-async`
 
@@ -263,9 +263,9 @@ x-async:
 
 `x-async` means **POST is a receipt, then poll**. It is not how you mark a stream. A stream is a success response that lists `text/event-stream`.
 
-When the start response is JSON, oat polls `poll` until `until` matches, then treats that payload as the result. `poll` may be an operationId or `"GET /path/{id}"`. Defaults: `timeoutMs: 120000`, `pollIntervalMs: 2000`. A job is called timed out only once `timeoutMs` has passed and oat has polled at least three times, so a slow host that spends the whole budget on one poll never turns a job still running into a verdict; `timeoutMs: 0` polls nothing.
+When the start response is JSON, the API tester polls `poll` until `until` matches, then treats that payload as the result. `poll` may be an operationId or `"GET /path/{id}"`. Defaults: `timeoutMs: 120000`, `pollIntervalMs: 2000`. A job is called timed out only once `timeoutMs` has passed and the API tester has polled at least three times, so a slow host that spends the whole budget on one poll never turns a job still running into a verdict; `timeoutMs: 0` polls nothing.
 
-When the start response is `text/event-stream`, oat parses `event:` / `data:` frames. `data` is JSON when it starts with `{` / `[`. `idFrom` is resolved against **each event's JSON `data`**, first hit wins — `$.batch_id` on `event: batch` data `{ "batch_id": "…" }` works. A frame named `complete` / `error`, or one whose `data` matches `until`, is the terminal record; `successWhen` is applied to it and oat does **not** GET the poll route. Poll only if the stream ended without a terminal frame **and** `idFrom` resolved.
+When the start response is `text/event-stream`, the API tester parses `event:` / `data:` frames. `data` is JSON when it starts with `{` / `[`. `idFrom` is resolved against **each event's JSON `data`**, first hit wins — `$.batch_id` on `event: batch` data `{ "batch_id": "…" }` works. A frame named `complete` / `error`, or one whose `data` matches `until`, is the terminal record; `successWhen` is applied to it and the API tester does **not** GET the poll route. Poll only if the stream ended without a terminal frame **and** `idFrom` resolved.
 
 A spec may leave both `x-async` and `text/event-stream` on the same operation. The stream is still the result; `x-async` only supplies `idFrom` / `until` / the poll fallback.
 
@@ -286,9 +286,9 @@ x-effects:
 - `count` is an **exact** cardinality delta on that entity's list.
 - `min` is **at-least** (`delta >= min` and `added.length >= min`). Use this when the child count is data-dependent (an extract that appends 1 / 2 / 5 rows).
 - Omit both → `count: 1` (invite / create).
-- Set both on one item → rejected at load / `oat doctor` (`x-effects` gap). The item is not checked.
+- Set both on one item → rejected at load / `testing api doctor` (`x-effects` gap). The item is not checked.
 
-After a write that declares `create` on A, oat binds the new A id from the write response (`table_id`, or the entity identity) or from A's list delta — the same adopt idea as a 402 plan-limit reuse. Later items in **that same** `x-effects` array whose child list is under A (`GET .../tables/{table_id}/rows`) fill the path with that id. `x-wait` after the same write uses the same bound id. No tester hook.
+After a write that declares `create` on A, the API tester binds the new A id from the write response (`table_id`, or the entity identity) or from A's list delta — the same adopt idea as a 402 plan-limit reuse. Later items in **that same** `x-effects` array whose child list is under A (`GET .../tables/{table_id}/rows`) fill the path with that id. `x-wait` after the same write uses the same bound id. No tester hook.
 
 An extract-shaped write (create table + append ≥1 row) fails when the new table's row list is empty, and passes when it has 5.
 
@@ -302,9 +302,9 @@ x-bind:
   query: { aggs: aa0.count }
 ```
 
-`x-before` is an operationId oat calls immediately before the effect invoke, with the same instance scope. The list baseline is taken after that call, so the effect cardinality is about the operation under test. A 4xx prelude is a coverage gap.
+`x-before` is an operationId the API tester calls immediately before the effect invoke, with the same instance scope. The list baseline is taken after that call, so the effect cardinality is about the operation under test. A 4xx prelude is a coverage gap.
 
-`x-bind` fills the action from the instance as it is when the action runs (`$.…`, `$.arr[*].field`) or the prelude body (`before:$.id`). oat reads the instance again through its read route first, so a bind sees what an earlier action or the `x-before` changed; without a read route it falls back to the seeded record. A value that does not start with `$` or `before:` is a literal. The call oat makes once to an operation nothing else graded sends the literals too, so an effect-free action with a required value (`aggs: col.count`) is called with one it accepts; a pointer binds nothing there, since that call has no instance. Path params still missing after `x-bind` take the first id in an array whose key starts with the param stem (`col_id` → `columns_json[0].id`).
+`x-bind` fills the action from the instance as it is when the action runs (`$.…`, `$.arr[*].field`) or the prelude body (`before:$.id`). The API tester reads the instance again through its read route first, so a bind sees what an earlier action or the `x-before` changed; without a read route it falls back to the seeded record. A value that does not start with `$` or `before:` is a literal. The call the API tester makes once to an operation nothing else graded sends the literals too, so an effect-free action with a required value (`aggs: col.count`) is called with one it accepts; a pointer binds nothing there, since that call has no instance. Path params still missing after `x-bind` take the first id in an array whose key starts with the param stem (`col_id` → `columns_json[0].id`).
 
 **Fallback:** derived from `x-entity.action` for this entity only.
 
@@ -318,9 +318,9 @@ x-wait:
   pollIntervalMs: 1000
 ```
 
-Put this on the **write**. After that write succeeds, oat polls `operationId` until `until` (JSON path `$.items.0` or JSON pointer `/items/0`) is non-empty, or `hooks.awaitSideEffect` returns `true`. Default `timeoutMs` is **30s**. Timeout is a **finding** (`effects.side-effect-arrives`), not a coverage gap, and oat reaches it only once `timeoutMs` has passed and it has polled at least three times: on a slow host one poll can spend the whole budget, and a side effect still on its way is not a missed one.
+Put this on the **write**. After that write succeeds, the API tester polls `operationId` until `until` (JSON path `$.items.0` or JSON pointer `/items/0`) is non-empty, or `hooks.awaitSideEffect` returns `true`. Default `timeoutMs` is **30s**. Timeout is a **finding** (`effects.side-effect-arrives`), not a coverage gap, and the API tester reaches it only once `timeoutMs` has passed and it has polled at least three times: on a slow host one poll can spend the whole budget, and a side effect still on its way is not a missed one.
 
-Use this for queue consumers and webhook inboxes (1–30 s), not for the same request. `x-effects` still asserts cardinality; `x-wait` asserts “this other GET eventually has a body”. If the poll path needs a parent id the write created, oat binds it the same way `x-effects` does.
+Use this for queue consumers and webhook inboxes (1–30 s), not for the same request. `x-effects` still asserts cardinality; `x-wait` asserts “this other GET eventually has a body”. If the poll path needs a parent id the write created, the API tester binds it the same way `x-effects` does.
 
 **Fallback:** the check does not run.
 
@@ -334,11 +334,11 @@ x-consistency:
 
 Put this on a **read** a cache answers. `staleness` (whole seconds) is how long after a write the read may still answer the old value. `bypass` is the request header that makes it skip every cache.
 
-oat sends the bypass on every read it makes of that operation, so a write's verification sees the database, not the cache. A read that declares no bypass gets `Cache-Control: no-cache` (RFC 9111). Config `cache: { bypass: false }` sends none, and a `Cache-Control` or bypass header already set in `globalHeaders` or a hook is never overridden.
+The API tester sends the bypass on every read it makes of that operation, so a write's verification sees the database, not the cache. A read that declares no bypass gets `Cache-Control: no-cache` (RFC 9111). Config `cache: { bypass: false }` sends none, and a `Cache-Control` or bypass header already set in `globalHeaders` or a hook is never overridden.
 
 `consistency.staleness-within-bound` writes, then reads without the bypass on a backoff (at once, then gaps doubling from min(250 ms, bound / 10), each at most bound / 4, at most 12 reads) until the read shows the write. Past `staleness` it is a finding with the bracket it measured and the stale answer's `Cache-Status` (RFC 9211) and `Age`. Without `staleness` it reads for up to 10 s and only reports the window. It never watches longer than 10 minutes: past a longer declared `staleness`, a read still stale at 10 minutes is noted, not judged. A field the update does not store at all is `update.persists-submitted-fields`'s, never a cache's: neither freshness check picks it. `consistency.bypass-is-fresh` reads once with the bypass right after the write: a stale answer, or one whose `Cache-Status` says `hit`, is a finding.
 
-**Fallback:** without `staleness` the window is reported, never failed; without `bypass` oat sends `Cache-Control: no-cache` and `consistency.bypass-is-fresh` does not run.
+**Fallback:** without `staleness` the window is reported, never failed; without `bypass` the API tester sends `Cache-Control: no-cache` and `consistency.bypass-is-fresh` does not run.
 
 ### `x-soft-delete`
 
@@ -376,7 +376,7 @@ Path parameter that scopes the operation.
 x-root: true
 ```
 
-This resource has no create endpoint; supply it in each principal's `scope`, a login's `scope.<parameter>` claim, or `hooks.resolvePathValue`. `oat init` writes a commented `scope` stub for each one.
+This resource has no create endpoint; supply it in each principal's `scope`, a login's `scope.<parameter>` claim, or `hooks.resolvePathValue`. `testing api init` writes a commented `scope` stub for each one.
 
 **Fallback:** inferred when a path param has no create op; everything beneath is `UNSEEDABLE`.
 
@@ -436,7 +436,7 @@ A 403 is a **documented feature-gate denial** only when all of:
 }
 ```
 
-A gated create is a **coverage gap, not a fail**. oat degrades the entity the same way `--profile` excluding `create` does: `COVERAGE_GAP` on `world.seed` naming `x-feature-gate: <key>` (and the plan vars if present); remaining checks that needed a seeded row `did not apply` / `BLOCKED` because of that gap, not a page of "returned 403" copies. If the list route already has rows, read-only checks still run.
+A gated create is a **coverage gap, not a fail**. The API tester degrades the entity the same way `--profile` excluding `create` does: `COVERAGE_GAP` on `world.seed` naming `x-feature-gate: <key>` (and the plan vars if present); remaining checks that needed a seeded row `did not apply` / `BLOCKED` because of that gap, not a page of "returned 403" copies. If the list route already has rows, read-only checks still run.
 
 A later write (`create` after seed, `update`, action) that returns a documented gate 403 is the same: the check that needed a 2xx is `COVERAGE_GAP` / did not apply, citing the tag — not `SECURITY`, not a schema defect. `validation.*` and `schema.error-response-matches-document` still apply: the 403 body must match the documented 403 schema. A gate 403 with an undeclared shape is still drift.
 
@@ -475,15 +475,15 @@ properties:
     x-privileged: true
 ```
 
-On a request body property: only the highest-rank principal may set it. A lower-rank principal's write that includes it must be refused, or leave it unchanged. Nested properties are named by dotted path. Every body oat makes for its own creates and updates leaves an optional marked property out; only `auth.privileged-field-ignored` sends one, on a record the run created and on one sign-up of its own. When a create's body requires one, only the highest rank of each tenant sends that create, and a lower rank's create of it is untested with the reason. The marker is a boolean on a schema property; on the operation, on the body itself, or of any other type, it is a gap `doctor` shows, and oat ignores it. A document that lacks it takes it by overlay: `overlay: { schemas: { Table: { properties: { verified: { "x-privileged": true } } } } }`.
+On a request body property: only the highest-rank principal may set it. A lower-rank principal's write that includes it must be refused, or leave it unchanged. Nested properties are named by dotted path. Every body the API tester makes for its own creates and updates leaves an optional marked property out; only `auth.privileged-field-ignored` sends one, on a record the run created and on one sign-up of its own. When a create's body requires one, only the highest rank of each tenant sends that create, and a lower rank's create of it is untested with the reason. The marker is a boolean on a schema property; on the operation, on the body itself, or of any other type, it is a gap `doctor` shows, and the API tester ignores it. A document that lacks it takes it by overlay: `overlay: { schemas: { Table: { properties: { verified: { "x-privileged": true } } } } }`.
 
 ### `--profile` — cost gating
 
 ```bash
-oat run --config oat.config.ts --profile cheap
+testing api run --config testing.api.config.ts --profile cheap
 ```
 
-A profile restricts which operations a run is allowed to touch, filtering on `x-cost` and `x-destructive`. Two exist without being declared anywhere: `full` (no gating — the default, today's behavior if you never mention a profile) and `cheap` (`{ maxCost: "low" }`). Reach for a profile when some operations are expensive to call every run — an extraction endpoint billed per request, a bulk job, anything you don't want fired on every `oat run`.
+A profile restricts which operations a run is allowed to touch, filtering on `x-cost` and `x-destructive`. Two exist without being declared anywhere: `full` (no gating — the default, today's behavior if you never mention a profile) and `cheap` (`{ maxCost: "low" }`). Reach for a profile when some operations are expensive to call every run — an extraction endpoint billed per request, a bulk job, anything you don't want fired on every `testing api run`.
 
 Anything more specific than a cost band is a named entry in config:
 
@@ -510,19 +510,19 @@ The run summary states what a profile skipped: `skipped 12 operation(s) under --
 
 `--profile cheap` also defaults the exchange journal **off**. `--save-exchanges` turns it back on; `--quiet` does not change it.
 
-### `x-rate-limit` — pacing oat's own traffic
+### `x-rate-limit` — pacing the API tester's own traffic
 
 ```yaml
 x-rate-limit: { category: ai, rps: 3 }
 ```
 
-Groups operations sharing one throughput budget (`category`) and optionally the rate itself (`rps`). Without this, oat's matrix can hammer a `login` or paid-inference route past its real limit, collect 429s, and report them as backend defects — exactly the false-positive class that erodes trust fastest. With it, requests to that category are paced through a token bucket before they fire.
+Groups operations sharing one throughput budget (`category`) and optionally the rate itself (`rps`). Without this, the API tester's matrix can hammer a `login` or paid-inference route past its real limit, collect 429s, and report them as backend defects — exactly the false-positive class that erodes trust fastest. With it, requests to that category are paced through a token bucket before they fire.
 
-Tags are the **proactive** path. HTTP 429 is the **reactive** path and is honored even when the operation has no `x-rate-limit` at all (untagged JWT writes, teardown DELETEs). oat reads `Retry-After` (delta-seconds or HTTP-date), otherwise backs off 1s, 2s, 4s… capped at 30s, and retries the same request up to five times. A `Retry-After` longer than `network.maxRetryAfterMs` (default 60s) is not waited for: the 429 stands and its wait never reaches a bucket. A wait within the limit is fed into the matching bucket, or into an implicit `untagged-write` bucket so the next call does not immediately re-trip.
+Tags are the **proactive** path. HTTP 429 is the **reactive** path and is honored even when the operation has no `x-rate-limit` at all (untagged JWT writes, teardown DELETEs). The API tester reads `Retry-After` (delta-seconds or HTTP-date), otherwise backs off 1s, 2s, 4s… capped at 30s, and retries the same request up to five times. A `Retry-After` longer than `network.maxRetryAfterMs` (default 60s) is not waited for: the 429 stands and its wait never reaches a bucket. A wait within the limit is fed into the matching bucket, or into an implicit `untagged-write` bucket so the next call does not immediately re-trip.
 
-A 429 is only ever reported when the request that drew it was demonstrably under the _declared_ rate — oat's own bucket had a free token, so it did not have to wait for one. A 429 that arrived only after oat's bucket made the request wait means oat's own rate model was too generous, which is paced around, never reported. A 429 against a config-supplied or implicit rate is never a finding.
+A 429 is only ever reported when the request that drew it was demonstrably under the _declared_ rate — the API tester's own bucket had a free token, so it did not have to wait for one. A 429 that arrived only after the API tester's bucket made the request wait means the API tester's own rate model was too generous, which is paced around, never reported. A 429 against a config-supplied or implicit rate is never a finding.
 
-`config.rateLimits` is checked first and needs no tag at all — it is what keeps oat usable against a backend that has not adopted `x-rate-limit` yet, or against an environment (staging, usually) whose real limit differs from what the document claims for production. A 429 against a config-supplied rate is never a finding: it is the operator's own belief about the environment, not a claim the API made.
+`config.rateLimits` is checked first and needs no tag at all — it is what keeps the API tester usable against a backend that has not adopted `x-rate-limit` yet, or against an environment (staging, usually) whose real limit differs from what the document claims for production. A 429 against a config-supplied rate is never a finding: it is the operator's own belief about the environment, not a claim the API made.
 
 ```ts
 export default defineConfig({

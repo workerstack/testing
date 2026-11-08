@@ -12,7 +12,7 @@ const COHORT = [
 	{ amount: 4, id: "w-4" },
 	{ amount: "n/a", id: "w-5" },
 ]
-/** A row the store holds that oat never seeded. */
+/** A row the store holds that the API tester never seeded. */
 const OUTSIDE = { amount: 9, id: "x-1" }
 const DOC = { xQuery: { filterable: [{ field: "amount", ops: ["eq", "gt", "lt"], type: "number" }] } }
 
@@ -72,7 +72,7 @@ describe("filter.ordered-triple-partitions", () => {
 	})
 })
 
-describe("filter.ordered-triple-partitions: records oat sent, never read back", () => {
+describe("filter.ordered-triple-partitions: records the API tester sent, never read back", () => {
 	it("stands down, since what the server stored is not known", () => {
 		const { ctx } = stage({ doc: DOC, records: COHORT })
 		expect(check.plan(ctx).ok).toBe(true)

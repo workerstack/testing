@@ -1,5 +1,5 @@
 import { dirname, resolve } from "node:path"
-import type { OatConfig } from "../../config/types/config.ts"
+import type { ApiConfig } from "../../config/types/config.ts"
 import { UsageError } from "../../errors/usage-error.ts"
 import { fetchSpecText } from "../../runtime/network/fetch.ts"
 import { probeCreateFixtures } from "../../runtime/world/probe-fixtures.ts"
@@ -24,7 +24,7 @@ export interface Modeled {
 	danglingRefs: string[]
 	/** Operations the config's `allow` list removed from the document. */
 	removed: string[]
-	config: OatConfig | undefined
+	config: ApiConfig | undefined
 	configPath: string | undefined
 	/** Variables the config names that are not set, read as their `${NAME}` literal. Undefined without a config. */
 	unsetEnv: string[] | undefined
@@ -32,7 +32,7 @@ export interface Modeled {
 
 /* The config an offline command reads, if any: deferred, since nothing is sent. */
 interface OfflineConfig {
-	config: OatConfig | undefined
+	config: ApiConfig | undefined
 	unsetEnv: string[] | undefined
 }
 
@@ -41,7 +41,7 @@ async function offlineConfig(writer: Writer, configPath: string | undefined): Pr
 	if (configPath === undefined) return { config: undefined, unsetEnv: undefined }
 	const read = await readConfig(configPath, false, { deferEnv: true })
 	if ("problem" in read) {
-		writer.err(`oat: ${read.problem}\n`)
+		writer.err(`testing api: ${read.problem}\n`)
 		return EXIT.usage
 	}
 	return { config: read.config, unsetEnv: read.unsetEnv }
@@ -67,7 +67,7 @@ export async function modeled(writer: Writer, flags: Args["flags"]): Promise<Mod
 	const flagged = str(flags, "spec")
 	const source = flagged ?? config?.spec
 	if (source === undefined) {
-		writer.err(`oat: --spec (or --config) is required\n\n${USAGE}`)
+		writer.err(`testing api: --spec (or --config) is required\n\n${USAGE}`)
 		return EXIT.usage
 	}
 	let removed: string[] = []

@@ -73,12 +73,12 @@ interface Seeded {
 	scope: Scope
 }
 
-/** The world a seeded cohort leaves: oat's own records, or ones it adopted or had to read. */
+/** The world a seeded cohort leaves: the API tester's own records, or ones it adopted or had to read. */
 async function worldOf(run: EntityRun, createOp: OperationModel, { cohort, scope }: Seeded): Promise<World | null> {
 	const { entity, findings } = run
 	if (cohort.adopted === true) {
 		/* Plan limit after an effect already created the row: keep the id so children (row after
-		 * extract→table) can seed, but do not assert write-path oracles against a body oat never
+		 * extract→table) can seed, but do not assert write-path oracles against a body the API tester never
 		 * submitted. Adopted, not created: this record is somebody else's to keep. */
 		findings.gap("world.seed" satisfies RunFindingId, entity.name, {
 			summary: `seeding "${entity.name}" hit a plan limit; using an existing same-tenant record`,
@@ -99,7 +99,7 @@ async function worldOf(run: EntityRun, createOp: OperationModel, { cohort, scope
 				`${createOp.operationId} returned 409 and the list already had a record. ` +
 				`x-unique: ${formatUniqueSets(createOp.unique)}. The create could not insert; ` +
 				"unique-conflict checks still run against that row. Write-path oracles that " +
-				"need a body oat submitted stand down.",
+				"need a body the API tester submitted stand down.",
 		})
 		return { ...owned(run, cohort, scope), degraded: true, uniqueAdopted: true }
 	}
@@ -123,7 +123,7 @@ async function worldOf(run: EntityRun, createOp: OperationModel, { cohort, scope
 /** The note an entity's unverified records leave, naming why they were not read back. */
 export function unverifiedNote(cause: string): string {
 	return (
-		`seeded with the bodies oat sent, unverified (${cause}): ` +
+		`seeded with the bodies the API tester sent, unverified (${cause}): ` +
 		"checks that work out stored values from the records stood down"
 	)
 }
@@ -145,7 +145,7 @@ function owned(run: EntityRun, cohort: SeededCohort, scope: Scope): World {
 function gatedWorld(run: EntityRun, detail: string): Promise<World | null> {
 	run.findings.gap("world.seed" satisfies RunFindingId, run.entity.name, {
 		summary: `seeding "${run.entity.name}" is gated by ${detail}`,
-		detail: `${detail}. Checks that need a row oat created stand down rather than treat the documented 403 as a defect.`,
+		detail: `${detail}. Checks that need a row the API tester created stand down rather than treat the documented 403 as a defect.`,
 	})
 	return existingOrBlocked(run, {
 		check: "world.seed" satisfies RunFindingId,

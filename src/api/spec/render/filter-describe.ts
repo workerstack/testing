@@ -9,7 +9,7 @@ function describeAnd(and: FilterGrammarSpec["and"]): string {
 	return "group" in and ? and.group : `join "${and.join}"`
 }
 
-/** A declared template in one line, for `plan` and `doctor`: what oat will write, and what it cannot. */
+/** A declared template in one line, for `plan` and `doctor`: what the API tester will write, and what it cannot. */
 export function describeFilterGrammar(spec: FilterGrammarSpec): string {
 	const ops = Object.entries(spec.ops)
 		.map(([op, token]) => `${op}=${token}`)

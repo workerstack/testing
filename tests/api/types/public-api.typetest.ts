@@ -1,5 +1,5 @@
 import { expectTypeOf } from "vitest"
-import type * as oat from "../../../src/api/index.ts"
+import type * as tester from "../../../src/api/index.ts"
 import type {
 	Actor,
 	AuthStep,
@@ -14,7 +14,7 @@ import type {
 	HeaderRequest,
 	Hooks,
 	InputRequest,
-	OatConfig,
+	ApiConfig,
 	OpenApiDocument,
 	OperationModel,
 	OperationStep,
@@ -55,7 +55,7 @@ import type {
  * the type check; a type export removed fails its import. A new type export must also be documented
  * in docs/api/api.md, which tests/structure/docs-sync.test.ts enforces.
  */
-expectTypeOf<keyof typeof oat>().toEqualTypeOf<
+expectTypeOf<keyof typeof tester>().toEqualTypeOf<
 	| "allocateRunDir"
 	| "buildModel"
 	| "DEFAULT_RUNS_ROOT"
@@ -96,7 +96,7 @@ export type PublicTypes = [
 	HeaderRequest,
 	Hooks,
 	InputRequest,
-	OatConfig,
+	ApiConfig,
 	OpenApiDocument,
 	OperationModel,
 	OperationStep,

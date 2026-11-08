@@ -7,7 +7,7 @@ import { type UploadContext, uploadMemory } from "./upload.ts"
 
 /* A folder holding `names`, each a one-byte file. */
 function folder(names: string[]): string {
-	const root = mkdtempSync(join(tmpdir(), "oat-each-"))
+	const root = mkdtempSync(join(tmpdir(), "testing-each-"))
 	for (const name of names) writeFileSync(join(root, name), "x")
 	return root
 }

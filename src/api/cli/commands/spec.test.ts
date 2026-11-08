@@ -27,10 +27,12 @@ describe("modeled", () => {
 	it("refuses a config it cannot use, and a run with no document", async () => {
 		const writer = bufferWriter()
 		expect(await modeled(writer, { config: "nowhere.config.ts" })).toBe(2)
-		expect(writer.text()).toBe("oat: config not found: nowhere.config.ts\n")
+		expect(writer.text()).toBe("testing api: config not found: nowhere.config.ts\n")
 		const none = bufferWriter()
 		expect(await modeled(none, {})).toBe(2)
-		expect(none.text()).toMatch(/^oat: --spec \(or --config\) is required\n\noat — OpenAPI Tester/)
+		expect(none.text()).toMatch(
+			/^testing api: --spec \(or --config\) is required\n\ntesting api — test a live HTTP API/,
+		)
 	})
 
 	it("refuses a config that names what the document does not have", async () => {
@@ -104,7 +106,7 @@ describe("modeled and the files a document refers to", () => {
 		const writer = bufferWriter()
 		expect(await modeled(writer, { spec })).toBe(2)
 		expect(writer.text()).toBe(
-			`oat: ${spec} refers to ../outside.json, which resolves outside ${inner}; oat reads only files in the document's folder\n`,
+			`testing api: ${spec} refers to ../outside.json, which resolves outside ${inner}; the API tester reads only files in the document's folder\n`,
 		)
 	})
 
@@ -133,15 +135,15 @@ describe("modeled and the files a document refers to", () => {
 
 describe("modeled and a config whose variables are not set", () => {
 	it("reads it, listing each unset variable, and resolves no document against an unset base URL", async () => {
-		delete process.env["OAT_SPEC_TEST_TOKEN"]
-		delete process.env["OAT_SPEC_TEST_URL"]
+		delete process.env["TESTING_API_SPEC_TEST_TOKEN"]
+		delete process.env["TESTING_API_SPEC_TEST_URL"]
 		const dir = folder()
-		const configPath = notesConfig(dir, { security: { bearer: { static: "${OAT_SPEC_TEST_TOKEN}" } } })
+		const configPath = notesConfig(dir, { security: { bearer: { static: "${TESTING_API_SPEC_TEST_TOKEN}" } } })
 		const read = await modeled(bufferWriter(), { config: configPath })
 		if (typeof read === "number") throw new Error(`refused: ${read}`)
-		expect(read.unsetEnv).toEqual(["OAT_SPEC_TEST_TOKEN"])
+		expect(read.unsetEnv).toEqual(["TESTING_API_SPEC_TEST_TOKEN"])
 		const routed = json(dir, "routed.json", {
-			baseUrl: "${OAT_SPEC_TEST_URL}",
+			baseUrl: "${TESTING_API_SPEC_TEST_URL}",
 			principals: { alpha: {} },
 			spec: "v1/openapi",
 		})
@@ -166,7 +168,7 @@ const searchDoc = () =>
 
 const searchable = (dir: string, params: Record<string, string>) => {
 	const doc = searchDoc()
-	return json(dir, "oat.config.json", {
+	return json(dir, "testing.api.config.json", {
 		baseUrl: "http://api.test",
 		principals: { alpha: { tenant: "t1" } },
 		query: { params },
@@ -192,7 +194,7 @@ describe("modeled and config query.params", () => {
 		const dir = folder()
 		mkdirSync(join(dir, "search"))
 		notesSpec(join(dir, "search"), searchDoc())
-		const config = json(dir, "oat.config.json", {
+		const config = json(dir, "testing.api.config.json", {
 			baseUrl: "http://api.test",
 			origins: [
 				{ baseUrl: "http://search.test", id: "search", security: { bearer: "bearer" }, spec: "search/openapi.json" },

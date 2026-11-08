@@ -4,7 +4,7 @@ import type { EntityModel, SpecModel } from "../../../spec/graph/types.ts"
 import { dereference } from "../../../spec/load/dereference.ts"
 import type { OpenApiDocument } from "../../../spec/types.ts"
 
-/** The reference backend's own document, as oat models it. */
+/** The reference backend's own document, as the API tester models it. */
 export function referenceModel(): SpecModel {
 	return buildModel(dereference(buildSpec() as OpenApiDocument).doc)
 }

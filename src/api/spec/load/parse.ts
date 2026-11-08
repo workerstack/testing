@@ -15,7 +15,7 @@ export async function parseText(text: string, source: string): Promise<unknown> 
 	/* A byte-order mark is not part of the document; JSON.parse rejects it outright. */
 	const body = text.replace(/^\uFEFF/, "")
 	if (body.trim() === "") {
-		throw new Error(`oat: ${source} is empty`)
+		throw new Error(`testing api: ${source} is empty`)
 	}
 	return looksLikeJson(body) ? parseJson(body, source) : parseYaml(body, source)
 }
@@ -24,9 +24,12 @@ function parseJson(text: string, source: string): unknown {
 	try {
 		return JSON.parse(text)
 	} catch (error) {
-		throw new Error(`oat: ${source} starts as JSON but does not parse: ${messageOf(error)}. ${diagnoseJson(text)}`, {
-			cause: error,
-		})
+		throw new Error(
+			`testing api: ${source} starts as JSON but does not parse: ${messageOf(error)}. ${diagnoseJson(text)}`,
+			{
+				cause: error,
+			},
+		)
 	}
 }
 
@@ -35,7 +38,7 @@ async function parseYaml(text: string, source: string): Promise<unknown> {
 		const { parse } = await import("yaml")
 		return parse(text)
 	} catch (error) {
-		throw new Error(`oat: could not parse ${source} as JSON or YAML: ${messageOf(error)}`, { cause: error })
+		throw new Error(`testing api: could not parse ${source} as JSON or YAML: ${messageOf(error)}`, { cause: error })
 	}
 }
 
@@ -44,18 +47,18 @@ async function parseYaml(text: string, source: string): Promise<unknown> {
  * version as the caller's to convert.
  *
  * YAML parses almost any text — a `Not Found` page is a valid YAML string — so "it parsed" says
- * nothing about whether this is a document oat can test. Accepting it produced a run that graded
+ * nothing about whether this is a document the API tester can test. Accepting it produced a run that graded
  * zero operations and reported success.
  */
 export function assertOpenApi(parsed: unknown, source: string): OpenApiDocument {
 	if (!isRaw<RawDocument>(parsed)) {
 		const shown = typeof parsed === "string" ? JSON.stringify(parsed.slice(0, 60)) : String(parsed)
-		throw new Error(`oat: ${source} is not an OpenAPI document — it parsed as ${shown}`)
+		throw new Error(`testing api: ${source} is not an OpenAPI document — it parsed as ${shown}`)
 	}
 	const doc: RawDocument = parsed
 	assertVersion(doc, source)
 	if (doc.paths === null || typeof doc.paths !== "object" || Array.isArray(doc.paths)) {
-		throw new Error(`oat: ${source} has no "paths" object, so there is nothing to test`)
+		throw new Error(`testing api: ${source} has no "paths" object, so there is nothing to test`)
 	}
 	return doc as OpenApiDocument
 }

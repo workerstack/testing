@@ -10,13 +10,13 @@ build/
 
 # test / run artifacts
 coverage/
-oat-report.md
-oat-report.json
+report.md
+report.json
 repro/
 issue-repro/
 transcript.har
-oat-out/
-.oat/
+testing-out/
+.testing/api/
 
 # environment
 .env

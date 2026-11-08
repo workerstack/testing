@@ -2,12 +2,12 @@
  * Compile-time test, checked by `tsc -p tsconfig.test.json` (part of `bun check`).
  *
  * The config a user writes: a recipe is exactly one kind, a principal's known keys are typed while
- * its identity data stays open, and `defineConfig` checks a literal against `OatConfig` in place.
+ * its identity data stays open, and `defineConfig` checks a literal against `ApiConfig` in place.
  * Each `@ts-expect-error` line must fail to compile; if one stops failing, the check fails.
  */
 import { expectTypeOf } from "vitest"
 import { defineConfig, env } from "../../../src/api/index.ts"
-import type { OatConfig, PrincipalEntry, Recipe } from "../../../src/api/index.ts"
+import type { ApiConfig, PrincipalEntry, Recipe } from "../../../src/api/index.ts"
 
 /* Each recipe kind alone, with the options every kind takes. */
 const recipes: Recipe[] = [
@@ -33,7 +33,7 @@ const hookOff: Recipe = { hook: false }
 // @ts-expect-error a login runs at least one step
 const noSteps: Recipe = { login: { from: "$.t", steps: [] } }
 
-// @ts-expect-error oat performs only the clientCredentials and password grants
+// @ts-expect-error the API tester performs only the clientCredentials and password grants
 const deviceGrant: Recipe = { oauth2: { clientId: "id", flow: "deviceCode" } }
 
 /* A principal: open identity data, typed grading keys. */
@@ -60,9 +60,9 @@ const numericScope: PrincipalEntry = { scope: { project_id: 1 } }
 // @ts-expect-error readOnly is set or absent, never false
 const writable: PrincipalEntry = { readOnly: false }
 
-/* defineConfig returns the config as OatConfig, typing a literal and its callbacks in place. */
+/* defineConfig returns the config as ApiConfig, typing a literal and its callbacks in place. */
 const config = defineConfig({
-	baseUrl: env("OAT_BASE_URL"),
+	baseUrl: env("TESTING_API_BASE_URL"),
 	hooks: {
 		resolveCredential: async (scheme, caller) => {
 			expectTypeOf(scheme).toBeString()
@@ -74,7 +74,7 @@ const config = defineConfig({
 	security: { bearer: { hook: true } },
 	spec: "openapi.json",
 })
-expectTypeOf(config).toEqualTypeOf<OatConfig>()
+expectTypeOf(config).toEqualTypeOf<ApiConfig>()
 expectTypeOf(env).returns.toBeString()
 
 defineConfig({

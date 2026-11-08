@@ -129,7 +129,7 @@ describe("runStore: operations", () => {
 		const key = (await ctx.store.acquire({ principal: "alpha", scheme: "key" })) as Credential
 		expect([key.value, key.sends.headers]).toEqual(["k1", { "x-api-key": "k1" }])
 		const mint = options.seen.find((request) => request.path === "/projects/p1/keys")
-		expect([mint?.headers["authorization"], mint?.body]).toEqual(["Bearer alpha-key", { label: "oat" }])
+		expect([mint?.headers["authorization"], mint?.body]).toEqual(["Bearer alpha-key", { label: "testing" }])
 		expect(ctx.client.transcript.at(-1)).toMatchObject({ principal: "alpha", purpose: "auth", schemes: ["bearer"] })
 	})
 
@@ -228,7 +228,7 @@ const journalOf = (dir: string): string =>
 
 /* Every exchange file `acquire` left in a fresh journal, as text. */
 async function journaled(options: ReturnType<typeof optionsFor>, key: { principal: string; scheme: string }) {
-	const dir = mkdtempSync(join(tmpdir(), "oat-run-store-"))
+	const dir = mkdtempSync(join(tmpdir(), "testing-run-store-"))
 	try {
 		const ctx = await connected({ ...options, exchangeDir: dir })
 		expect(await ctx.store.acquire(key)).not.toHaveProperty("blocked")

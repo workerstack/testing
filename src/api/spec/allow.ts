@@ -1,9 +1,9 @@
 /**
  * The only operations a run may call.
  *
- * Everything else leaves the document before oat reads it, so the matrix, the contract floor,
+ * Everything else leaves the document before the API tester reads it, so the matrix, the contract floor,
  * scenarios and teardown cannot reach it: there is nothing to forget to check, because the
- * operation does not exist as far as oat knows. A config that still needs a removed operation —
+ * operation does not exist as far as the API tester knows. A config that still needs a removed operation —
  * a recipe's login or refresh step, its mint or revoke, a scenario step — is told so before
  * anything is sent.
  */

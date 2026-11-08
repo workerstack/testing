@@ -34,7 +34,7 @@ export function prepare(ctx: Wire, method: string, path: string, options: Reques
 	const callerQuery = new Set(url.searchParams.keys())
 	addRequiredQuery(url, resolved?.requiredQuery ?? {}, writing)
 	const relative = ctx.relativePath(url)
-	/* A value oat did not have, written as text: nothing goes out. */
+	/* A value the API tester did not have, written as text: nothing goes out. */
 	if (carriesMissingValue(url)) throw new MissingValueError(`${verb} ${relative}`)
 	const operationId = options.operationId ?? resolved?.operationId
 	const actor: Actor = foreign && "via" in options.as ? { anonymous: true } : options.as

@@ -71,7 +71,7 @@ export function scopeSections(scope: ScopeReport): string[] {
 	lines.push(
 		scope.mode === "full"
 			? "> Every operation in the document and whether any check graded it. `untested` names why not."
-			: "> The targets of this run. Everything else oat called is listed under support: called, never graded.",
+			: "> The targets of this run. Everything else the API tester called is listed under support: called, never graded.",
 	)
 	lines.push("")
 	lines.push("| operation | entity | status | proof | passed | failed | suppressed | inconclusive | why |")

@@ -1,7 +1,7 @@
 /**
  * The conventions a reference backend speaks.
  *
- * Everything oat had quietly hardcoded — what the page-size parameter is called, where the total
+ * Everything the API tester had quietly hardcoded — what the page-size parameter is called, where the total
  * lives in the envelope, how a filter expression is spelled — varies wildly between real APIs
  * and not at all between two instances of the same fixture. A single-dialect fixture therefore
  * proves that the checks work on *one* shape, which is a much weaker claim than it appears.
@@ -89,7 +89,7 @@ export const LINKED: Dialect = {
  * JSON:API-flavored: `sort=-name` for descending, `fields[table]=id,name` for projection.
  *
  * The parameter *names* here are unremarkable — `sort`, `fields`, `page`, `filter` — which is the
- * point. Everything oat had generalized was the name; the value grammars stayed hardcoded to one
+ * point. Everything the API tester had generalized was the name; the value grammars stayed hardcoded to one
  * spelling. A shape that renames nothing but writes its values differently is the sharpest test
  * of whether that generalization was real.
  */
@@ -118,7 +118,7 @@ export const JSONAPI: Dialect = {
 /**
  * The plainest shape there is: `?status=active&page=2`, no filter expression language at all.
  *
- * Half of oat's query checks cannot be expressed here — there is no way to write a negation, a
+ * Half of the API tester's query checks cannot be expressed here — there is no way to write a negation, a
  * range, or a pattern — and that is precisely the point. Every one of them must report what it
  * could not test and why, because a run that goes quiet against the most common API shape in the
  * world is the single most damaging way this tool could fail.
@@ -135,7 +135,7 @@ export const PLAIN: Dialect = {
 	name: "plain",
 	params: {
 		/* Declared for completeness; the equality grammar never sends it, and the fixture never
-		 * reads it. A parameter a backend accepts and ignores is itself a defect oat reports. */
+		 * reads it. A parameter a backend accepts and ignores is itself a defect the API tester reports. */
 		filter: "filter",
 		limit: "limit",
 		order: "sort",
@@ -147,12 +147,12 @@ export const PLAIN: Dialect = {
 }
 
 /**
- * A grammar oat has no name for, declared as a template: one term per filter parameter,
+ * A grammar the API tester has no name for, declared as a template: one term per filter parameter,
  * `and_status_eq_active`, repeated for every term. `ne` spells not-equal, null tests are terms of
  * their own, `in` values are comma-joined, an underscore in a value is written `~`, and `like`
  * matches a bare substring. Sort keys are `name_ascending` / `name_descending`, comma-joined.
  *
- * Nothing in oat may know this grammar except through the declaration, so every filter check that
+ * Nothing in the API tester may know this grammar except through the declaration, so every filter check that
  * still runs here is reading the template rather than a preset. Its names are the same: no alias
  * finds `filter_by` or `take`, so every check that sends one read it off `x-query.params`, and none
  * finds `tally` or `more_ahead`, so every walk that reads one read it off `x-query.envelope`.

@@ -1,5 +1,5 @@
 /*
- * The template dialect's terms, parsed on their own terms rather than through oat's renderer: a
+ * The template dialect's terms, parsed on their own terms rather than through the API tester's renderer: a
  * reference that reused the renderer would agree with it by construction and prove nothing.
  * A value never holds an underscore (it is written `~`), so the last `_op_` in a term is its operator.
  */

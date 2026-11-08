@@ -7,7 +7,7 @@ import type { OpenApiDocument } from "../../../src/api/spec/types.ts"
 /*
  * A backend whose create takes a client-chosen id and answers only an acknowledgment
  * (`{ success: true }`), the way a file-backed config store or a git-committing API does.
- * The record is what the client sent; oat must track it by that id, read it back, and remove it.
+ * The record is what the client sent; the API tester must track it by that id, read it back, and remove it.
  */
 
 const DEFECT_VERDICTS = new Set(["BACKEND_BUG", "SECURITY", "SPEC_BUG", "AMBIGUITY"])

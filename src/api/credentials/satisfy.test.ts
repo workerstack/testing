@@ -78,7 +78,7 @@ describe("satisfy: scopes", () => {
 		const oauth2 = recipesOf({ key: { oauth2: { clientId: "c", flow: "clientCredentials" } } })
 		expect(satisfy(scoped, oauth2)).toHaveProperty("alternative")
 		const mint = { from: "$.key", operationId: "key.create", with: "jwt" }
-		const asks = recipesOf({ key: { mint: { ...mint, body: { name: "oat", scopes: "{scopes}" } } } })
+		const asks = recipesOf({ key: { mint: { ...mint, body: { name: "testing", scopes: "{scopes}" } } } })
 		expect(satisfy(scoped, asks)).toHaveProperty("alternative")
 		const fixed = recipesOf({ key: { mint: { ...mint, body: { scopes: ["rows:read"] } } } })
 		expect(satisfy(scoped, fixed)).toEqual({ unsatisfied: "no credential for key holding rows:read, rows:write" })

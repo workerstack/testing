@@ -30,10 +30,10 @@ describe("parseBaseline", () => {
 
 	it("refuses a check no run raises, naming the nearest, so a renamed id never reads as fixed", () => {
 		expect(() => parseBaseline(oneEntry("select.projection-honoured"), "b.json")).toThrow(
-			'b.json: entries[0].check "select.projection-honoured" is no check oat runs. Did you mean: select.projection-honored?',
+			'b.json: entries[0].check "select.projection-honoured" is no check the API tester runs. Did you mean: select.projection-honored?',
 		)
 		expect(() => parseBaseline(oneEntry("nothing.at-all-like-it"), "b.json")).toThrow(
-			'b.json: entries[0].check "nothing.at-all-like-it" is no check oat runs',
+			'b.json: entries[0].check "nothing.at-all-like-it" is no check the API tester runs',
 		)
 	})
 

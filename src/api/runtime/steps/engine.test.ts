@@ -124,7 +124,7 @@ describe("runSteps: out-of-band steps", () => {
 	it("names the principal when no hook can answer", async () => {
 		const { ctx } = stepStage(() => ({ status: 200 }))
 		await expect(runSteps(ctx, [{ outOfBand: { address: "a", as: "t", kind: "otp" } }])).rejects.toThrow(
-			'oat: principal "alice" needs a "otp" value',
+			'testing api: principal "alice" needs a "otp" value',
 		)
 	})
 })
@@ -135,10 +135,12 @@ describe("runSteps: failures", () => {
 		expect((await runSteps(ctx, [{ expect: [409], operationId: "ping" }])).last?.status).toBe(409)
 		await expect(
 			runSteps(ctx, [{ operationId: "auth.token" }, { expect: [200, 201], operationId: "ping" }]),
-		).rejects.toThrow('oat: principal "alice" failed at auth step 1 (POST /token): expected 2xx, got 404 — null')
+		).rejects.toThrow(
+			'testing api: principal "alice" failed at auth step 1 (POST /token): expected 2xx, got 404 — null',
+		)
 		const failed = runSteps(ctx, [{ expect: [200, 201], operationId: "ping" }])
 		await expect(failed).rejects.toThrow(
-			`oat: principal "alice" failed at auth step 1 (GET /ping): expected 200/201, got 409 — ${JSON.stringify({ error: "x".repeat(300) }).slice(0, 200)}`,
+			`testing api: principal "alice" failed at auth step 1 (GET /ping): expected 200/201, got 409 — ${JSON.stringify({ error: "x".repeat(300) }).slice(0, 200)}`,
 		)
 	})
 
@@ -146,7 +148,9 @@ describe("runSteps: failures", () => {
 		const { ctx } = stepStage(answers({ "GET /ping": { body: { a: null }, status: 200 } }))
 		await expect(
 			runSteps(ctx, [{ operationId: "ping", saveAs: { b: "$.{field}" } }], { scope: { field: "a" } }),
-		).rejects.toThrow('oat: auth step 1 for "alice" declares saveAs.b = "$.a", which is not present in the response')
+		).rejects.toThrow(
+			'testing api: auth step 1 for "alice" declares saveAs.b = "$.a", which is not present in the response',
+		)
 		await expect(runSteps(ctx, [{ operationId: "ping", saveAs: { b: "$.z" } }])).rejects.toThrow(
 			'saveAs.b = "$.z", which is not present in the response (its answer names no content type)',
 		)
@@ -168,14 +172,16 @@ describe("runSteps: failures", () => {
 		const { ctx } = stepStage(answers({ "GET /ping": { body: { opaque: "o", token }, status: 200 } }))
 		await expect(
 			runSteps(ctx, [{ operationId: "ping", saveClaimsFrom: { bind: {}, token: "$.missing" } }]),
-		).rejects.toThrow('oat: auth step 1 for "alice" expected a JWT at $.missing, but it is absent or not decodable')
+		).rejects.toThrow(
+			'testing api: auth step 1 for "alice" expected a JWT at $.missing, but it is absent or not decodable',
+		)
 		await expect(
 			runSteps(ctx, [{ operationId: "ping", saveClaimsFrom: { bind: {}, token: "$.opaque" } }]),
 		).rejects.toThrow("expected a JWT at $.opaque")
 		await expect(
 			runSteps(ctx, [{ operationId: "ping", saveClaimsFrom: { bind: { t: "tenant" }, token: "$.token" } }]),
 		).rejects.toThrow(
-			'oat: auth step 1 binds t to claim "tenant", which the token does not carry. Available claims: org, role',
+			'testing api: auth step 1 binds t to claim "tenant", which the token does not carry. Available claims: org, role',
 		)
 	})
 })

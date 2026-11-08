@@ -3,14 +3,14 @@ import { afterAll, describe, expect, it } from "vitest"
 import { PRINCIPALS } from "../../../src/api/conformance/matrix/principals.ts"
 import { createMemoryServer } from "../../../src/api/reference/http/engines.ts"
 import { EXIT } from "../../../src/api/runtime/exit.ts"
-import { latestReport, oat, referenceConfig, tempDirs } from "../support/cli-run.ts"
+import { latestReport, tester, referenceConfig, tempDirs } from "../support/cli-run.ts"
 
 /*
  * A scenario that names a configured principal whose sign-in was refused cannot run: it is
  * BLOCKED by that principal, its operations stay ungraded, and the run still ends with a report.
  */
 
-const dirs = tempDirs("oat-scenario-blocked-")
+const dirs = tempDirs("testing-scenario-blocked-")
 afterAll(dirs.removeAll)
 
 describe("a scenario as a principal BLOCKED at sign-in", () => {
@@ -23,7 +23,7 @@ describe("a scenario as a principal BLOCKED at sign-in", () => {
 				scenarios: [{ covers: ["table.get"], id: "peer", principal: "beta", steps: [{ operationId: "table.get" }] }],
 			})
 			const runs = join(dir, "runs")
-			const { code, out } = await oat(["run", "--config", config, "--out", runs, "--ops", "table.get", "--quiet"])
+			const { code, out } = await tester(["run", "--config", config, "--out", runs, "--ops", "table.get", "--quiet"])
 			/* BLOCKED is no defect, as for a principal the matrix could not sign in: alpha still grades table.get. */
 			expect(code).toBe(EXIT.clean)
 			expect(out).toMatch(/BLOCKED \(2\)/)

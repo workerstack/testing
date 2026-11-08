@@ -21,7 +21,7 @@ export async function sqliteAvailable(load: LoadSqlite = () => import("node:sqli
 
 /**
  * Whether D1 credentials are present. Deliberately not a live probe: a network call on every
- * `oat conformance` would tax the common path to answer a question about an opt-in backend.
+ * `testing api conformance` would tax the common path to answer a question about an opt-in backend.
  */
 export function d1Available(): boolean {
 	return (

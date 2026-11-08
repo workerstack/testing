@@ -34,6 +34,6 @@ export async function totp(state: ReferenceState, request: ReferenceRequest): Pr
 	const principal = authenticate(state, request)
 	const secret = base32Secret()
 	state.totpSecrets.push(secret)
-	const otpauthUri = `otpauth://totp/oat-reference:${principal.key}?secret=${secret}&issuer=oat-reference`
+	const otpauthUri = `otpauth://totp/testing-reference:${principal.key}?secret=${secret}&issuer=testing-reference`
 	return respond(200, { otpauth_uri: otpauthUri, qr_code: qrImage(otpauthUri), secret })
 }

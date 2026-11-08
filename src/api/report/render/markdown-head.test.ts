@@ -9,7 +9,7 @@ describe("headLines on a plain run", () => {
 	it("summarizes a plain run: backend, result, timing, entities, checks and requests", () => {
 		const input = reportOf()
 		expect(headLines(input, clean, coverageByCheck(input))).toEqual([
-			"# oat report",
+			"# The API tester report",
 			"",
 			"- **Backend**: http://h.test",
 			"- **Result**: clean — no defects",

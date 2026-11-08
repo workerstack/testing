@@ -110,15 +110,15 @@ export interface CheckContext<C extends ReadClient = ReadClient> {
 	uniqueSets: string[][]
 	/** First-variant create 409 adopted a same-tenant row; unique probes still run. */
 	uniqueAdopted: boolean
-	/** The create acknowledged without the record; the records are the bodies oat submitted. */
+	/** The create acknowledged without the record; the records are the bodies the API tester submitted. */
 	createAcknowledged: boolean
 	/**
-	 * The records are the bodies oat sent under the ids the creates answered: the create answered
+	 * The records are the bodies the API tester sent under the ids the creates answered: the create answered
 	 * without the record and there was no item read to read it back by. A check that predicts what
 	 * the server stored from a record's fields stands down (`storedFieldsUnknown`).
 	 */
 	recordsUnverified?: true
-	/** Identities the collection is known to hold: a body oat generates never names one. */
+	/** Identities the collection is known to hold: a body the API tester generates never names one. */
 	takenIdentities?: Set<string>
 	/** Create operation for unique probes — still set after unique-409 adopt. */
 	uniqueCreateOp: OperationModel | undefined
@@ -133,7 +133,7 @@ export interface CheckContext<C extends ReadClient = ReadClient> {
 	/** Operations on this entity that declare `x-wait`. */
 	waitOps: OperationModel[]
 	hooks: Hooks
-	/** Set when config `cache.bypass` is false: oat sends no cache bypass, so none can be judged. */
+	/** Set when config `cache.bypass` is false: the API tester sends no cache bypass, so none can be judged. */
 	cacheBypass?: false
 	outOfBand: BackoffConfig
 	/** What guards each principal's own record: a check's write there never changes how it signs in. */
@@ -156,7 +156,7 @@ export interface CheckContext<C extends ReadClient = ReadClient> {
 	 */
 	/** Ledgers a record made other than by its create, as the principal that sent the request. */
 	recordCreated?: (created: Created, principal?: string) => void
-	/** A create that answered 2xx with no id oat could read: the record may remain. */
+	/** A create that answered 2xx with no id the API tester could read: the record may remain. */
 	recordUnidentified?: (entity: string, operationId: string, exchange: Exchange) => void
 	/** A ledgered record an accepted write moved, so its creator's 404 no longer shows it gone. */
 	recordMoved?: (entity: string, id: string, reason: string) => void

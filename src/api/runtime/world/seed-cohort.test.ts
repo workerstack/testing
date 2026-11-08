@@ -31,7 +31,7 @@ const UPLOAD = {
 }
 
 async function uploads(names: string[]): Promise<UploadContext> {
-	const dir = await mkdtemp(join(tmpdir(), "oat-seed-each-"))
+	const dir = await mkdtemp(join(tmpdir(), "testing-seed-each-"))
 	for (const name of names) await writeFile(join(dir, name), `%PDF-1.1\n${name}\n%%EOF\n`)
 	return { configDir: dir, seed: 1, uploads: { each: { "note.create": ["./*.pdf"] } } }
 }

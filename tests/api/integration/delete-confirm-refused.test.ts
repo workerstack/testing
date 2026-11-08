@@ -6,7 +6,7 @@ import { run } from "../../../src/api/runtime/run/index.ts"
 /*
  * A delete is confirmed by reading its path again. When that read is refused — the caller's
  * session was ended by a destructive call that should have spared it — it shows nothing about the
- * record, and oat went quiet: a delete that kept its row was neither found nor reported as
+ * record, and the API tester went quiet: a delete that kept its row was neither found nor reported as
  * unjudged (conformance fuzz, DELETE_KEEPS_ROW with DISPOSABLE_KILLS_CALLER). A caller the server
  * refuses everywhere is BLOCKED once a control read shows it, and the check says so: the read-back
  * it could not send, and why.

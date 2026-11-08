@@ -59,7 +59,7 @@ describe("idempotency.replay-does-not-duplicate verdicts", () => {
 		expect(findings.findings).toEqual([])
 		const posts = sent.filter((s) => s.method === "POST")
 		expect(posts).toHaveLength(2)
-		expect(keyOf(posts[0]?.options.headers)).toBe("oat-idem-test-widget")
+		expect(keyOf(posts[0]?.options.headers)).toBe("testing-idem-test-widget")
 		expect(posts[1]?.options.body).toEqual(posts[0]?.options.body)
 	})
 

@@ -58,7 +58,7 @@ describe("schema.error-response-matches-document probe", () => {
 		expect(outcome).toEqual({ kind: "asserted" })
 		expect(findings.findings).toEqual([])
 		expect(sent.map((s) => s.method)).toEqual(["GET"])
-		expect(sent[0]?.path).toMatch(/^\/items\/oat-absent-/)
+		expect(sent[0]?.path).toMatch(/^\/items\/testing-absent-/)
 		expect(judged).toEqual([["item.read"]])
 	})
 

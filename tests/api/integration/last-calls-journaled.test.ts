@@ -1,14 +1,14 @@
 import { join } from "node:path"
 import { afterAll, describe, expect, it } from "vitest"
 import { createMemoryServer } from "../../../src/api/reference/http/engines.ts"
-import { latestJournal, oat, referenceConfig, tempDirs } from "../support/cli-run.ts"
+import { latestJournal, tester, referenceConfig, tempDirs } from "../support/cli-run.ts"
 
 /*
  * The run's last calls are evidence like any other: the minted keys' revokes, the accounts its
  * sign-ups made being removed, and the principals' own sessions ended all reach exchanges.jsonl.
  */
 
-const dirs = tempDirs("oat-last-calls-")
+const dirs = tempDirs("testing-last-calls-")
 afterAll(dirs.removeAll)
 
 describe("the run's closing calls", () => {
@@ -18,7 +18,7 @@ describe("the run's closing calls", () => {
 		try {
 			const config = await referenceConfig(dir, server.url)
 			const runs = join(dir, "runs")
-			await oat(["run", "--config", config, "--out", runs, "--ops", "table.list,auth.register", "--quiet"])
+			await tester(["run", "--config", config, "--out", runs, "--ops", "table.list,auth.register", "--quiet"])
 			const journaled = new Set((await latestJournal(runs)).map((line) => line.operationId))
 			const closing = ["apiKey.revoke", "auth.logout", "profile.delete"]
 			expect([...journaled].filter((id) => closing.includes(id ?? "")).toSorted()).toEqual(closing)

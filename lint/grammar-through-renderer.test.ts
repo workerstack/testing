@@ -16,7 +16,7 @@ const SOURCE = [
 
 const lines = (file: string): number[] => reportsOf(rule, { [file]: SOURCE }).map((report) => report.line)
 
-describe("oat/grammar-through-renderer", () => {
+describe("testing/grammar-through-renderer", () => {
 	it("flags a check that branches on a grammar's name instead of asking the renderer", () => {
 		expect(lines("src/api/runtime/probe.ts")).toEqual([2, 3, 4, 8])
 		expect(lines("src/api/report/probe.ts")).toEqual([2, 3, 4, 8])
@@ -29,7 +29,7 @@ describe("oat/grammar-through-renderer", () => {
 		expect(lines("src/api/runtime/probe.test.ts")).toEqual([])
 	})
 
-	it("fails oxlint through the oat plugin entry", () => {
+	it("fails oxlint through the testing plugin entry", () => {
 		const reports = oxlintReports("grammar-through-renderer", { "src/api/runtime/probe.ts": SOURCE })
 		expect(reports.map((report) => report.line)).toEqual([2, 3, 4, 8])
 	})

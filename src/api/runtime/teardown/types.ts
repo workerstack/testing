@@ -1,7 +1,7 @@
 import type { RemovalVerdict, RemovedRecord } from "../../config/types/hooks.ts"
 import type { ProvenId } from "../proven-id.ts"
 
-/** A record oat made: its entity, the id the backend gave back, and the path parameters in scope. */
+/** A record the API tester made: its entity, the id the backend gave back, and the path parameters in scope. */
 export interface Created {
 	entity: string
 	id: ProvenId
@@ -29,7 +29,7 @@ export interface Disposable {
 	inferred?: true
 }
 
-/** A create that answered 2xx without an id oat could read: what it made may remain. */
+/** A create that answered 2xx without an id the API tester could read: what it made may remain. */
 export interface UnidentifiedCreate {
 	entity: string
 	operationId: string
@@ -47,7 +47,7 @@ export interface TeardownReport {
 	unsupported: string[]
 	/** Every record the unwind was given, in creation order, its creator, and whether it is gone now. */
 	records: Array<{ entity: string; id: string; principal: string; removed: boolean; inferred?: true }>
-	/** Creates whose record oat could not identify, so could not remove. Each fails the run. */
+	/** Creates whose record the API tester could not identify, so could not remove. Each fails the run. */
 	unidentified: UnidentifiedCreate[]
 	/** What `hooks.verifyRemoved` threw, once per call that did; those records keep teardown's verdict. */
 	verifyHookErrors?: string[]

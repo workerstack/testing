@@ -27,7 +27,7 @@ export function exchange(partial: Partial<Exchange> = {}): Exchange {
 }
 
 export async function scratch(): Promise<string> {
-	return mkdtemp(join(tmpdir(), "oat-ex-"))
+	return mkdtemp(join(tmpdir(), "testing-ex-"))
 }
 
 /** The parsed JSON file the journal wrote under `<dir>/<path>`. */

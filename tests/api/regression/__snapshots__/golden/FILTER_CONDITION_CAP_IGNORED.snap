@@ -225,7 +225,7 @@
             {
               "method": "GET",
               "status": 200,
-              "url": "http://reference.test/v1/projects/proj_alpha/tables?limit=5&filter=and%28id.eq.oat-cap%2Cid.eq.oat-cap%2Cid.eq.oat-cap%2Cid.eq.oat-cap%2Cid.eq.oat-cap%2Cid.eq.oat-cap%2Cid.eq.oat-cap%2Cid.eq.oat-cap%2Cid.eq.oat-cap%2Cid.eq.oat-cap%2Cid.eq.oat-cap%2Cid.eq.oat-cap%2Cid.eq.oat-cap%2Cid.eq.oat-cap%2Cid.eq.oat-cap%2Cid.eq.oat-cap%2Cid.eq.oat-cap%2Cid.eq.oat-cap%2Cid.eq.oat-cap%2Cid.eq.oat-cap%2Cid.eq.oat-cap%29"
+              "url": "http://reference.test/v1/projects/proj_alpha/tables?limit=5&filter=and%28id.eq.testing-cap%2Cid.eq.testing-cap%2Cid.eq.testing-cap%2Cid.eq.testing-cap%2Cid.eq.testing-cap%2Cid.eq.testing-cap%2Cid.eq.testing-cap%2Cid.eq.testing-cap%2Cid.eq.testing-cap%2Cid.eq.testing-cap%2Cid.eq.testing-cap%2Cid.eq.testing-cap%2Cid.eq.testing-cap%2Cid.eq.testing-cap%2Cid.eq.testing-cap%2Cid.eq.testing-cap%2Cid.eq.testing-cap%2Cid.eq.testing-cap%2Cid.eq.testing-cap%2Cid.eq.testing-cap%2Cid.eq.testing-cap%29"
             }
           ],
           "summary": "an over-limit filter expression was accepted",

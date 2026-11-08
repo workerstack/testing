@@ -22,7 +22,7 @@ export async function listen(handle: Handle, create: typeof createServer = creat
 	const { port } = server.address() as AddressInfo
 	return {
 		/*
-		 * `server.close()` only fires once every socket is gone, and oat's client keeps connections
+		 * `server.close()` only fires once every socket is gone, and the API tester's client keeps connections
 		 * alive — so gating teardown on that callback never let it finish. Connections are dropped
 		 * explicitly first.
 		 */

@@ -4,7 +4,7 @@ import { oxlintReports, reportsOf } from "./rule-harness.ts"
 
 const MESSAGE = "a function takes at most 3 parameters, plus a first `ctx`: pass the rest as one options object"
 
-describe("oat/max-params", () => {
+describe("testing/max-params", () => {
 	it("flags a fourth parameter in every kind of function", () => {
 		const fixture = {
 			"src/api/runtime/a.ts": [
@@ -57,7 +57,7 @@ describe("oat/max-params", () => {
 	})
 })
 
-describe("oat/max-params reach", () => {
+describe("testing/max-params reach", () => {
 	it("holds tests, scripts and labs to it too", () => {
 		const fixture = {
 			"src/api/runtime/a.test.ts": "const f = (a, b, c, d) => a\n",
@@ -67,7 +67,7 @@ describe("oat/max-params reach", () => {
 		expect(reportsOf(rule, fixture)).toHaveLength(3)
 	})
 
-	it("fails oxlint through the oat plugin entry", () => {
+	it("fails oxlint through the testing plugin entry", () => {
 		const fixture = { "src/api/runtime/a.ts": "export function f(a, b, c, d) {}\nexport function g(ctx, a, b, c) {}\n" }
 		expect(oxlintReports("max-params", fixture).map(({ line }) => line)).toEqual([1])
 	})

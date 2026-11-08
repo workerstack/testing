@@ -24,7 +24,7 @@ export function newAuthState(options: ReferenceOptions): AuthState {
 		revoked: new Set(),
 		revokedFamilies: new Set(),
 		rotated: new Set(),
-		secret: "oat-reference-secret",
+		secret: "testing-reference-secret",
 		sequence: 0,
 		throttle: options.throttleLogins === true,
 	}

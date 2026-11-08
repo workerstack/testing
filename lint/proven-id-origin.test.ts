@@ -15,7 +15,7 @@ const SOURCE = [
 
 const lines = (file: string): number[] => reportsOf(rule, { [file]: SOURCE }).map((report) => report.line)
 
-describe("oat/proven-id-origin", () => {
+describe("testing/proven-id-origin", () => {
 	it("reports a cast to ProvenId in both syntaxes and qualified, and nothing else", () => {
 		expect(lines("src/api/runtime/checks.ts")).toEqual([3, 4, 7])
 	})
@@ -24,7 +24,7 @@ describe("oat/proven-id-origin", () => {
 		expect(lines("src/api/runtime/proven-id.ts")).toEqual([])
 	})
 
-	it("fails oxlint through the oat plugin entry", () => {
+	it("fails oxlint through the testing plugin entry", () => {
 		const reports = oxlintReports("proven-id-origin", { "src/api/runtime/checks.ts": SOURCE })
 		expect(reports.map((report) => report.line)).toEqual([3, 4, 7])
 	})

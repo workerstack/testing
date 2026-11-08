@@ -14,7 +14,7 @@ describe("filter.zero-match-returns-none", () => {
 	it("asserts when eq on an identity no record holds returns nothing", async () => {
 		const { ctx, findings, sent } = stage({ doc: ID_FILTERABLE, records: COHORT })
 		expect(await runCheck(check, ctx)).toEqual({ kind: "asserted" })
-		expect(filters(sent)).toEqual([expect.stringMatching(/^id\.eq\.oat-absent-/)])
+		expect(filters(sent)).toEqual([expect.stringMatching(/^id\.eq\.testing-absent-/)])
 		expect(findings.findings).toEqual([])
 	})
 

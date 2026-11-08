@@ -3,7 +3,7 @@ import type { OperationModel } from "../../../spec/graph/types.ts"
 import { contextOf, entityRunOf, notesApi, notesDoc, optionsFor } from "../__fixtures__/api.ts"
 import { existingOrBlocked, readExisting, worldOptions } from "./fallback.ts"
 
-/* Read-only coverage against what already exists, when oat cannot seed; blocked when nothing does. */
+/* Read-only coverage against what already exists, when the API tester cannot seed; blocked when nothing does. */
 
 const scoped = notesDoc({
 	"/orgs/{org_id}/notes": {

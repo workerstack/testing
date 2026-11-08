@@ -3,7 +3,7 @@
  *
  * Schemas are compiled per operation+status and reused. `additionalProperties: false` is honored
  * as written: a document that declares a closed object and a backend that returns extra fields
- * genuinely disagree, and which one is wrong is a decision for the reader, not for oat.
+ * genuinely disagree, and which one is wrong is a decision for the reader, not for the API tester.
  */
 
 import ajvModule from "ajv/dist/2020.js"
@@ -15,7 +15,7 @@ import type { OperationObject, JsonSchema } from "../spec/types.ts"
 import type { Exchange } from "./exchange.ts"
 
 /**
- * Minimal surface oat uses — avoids depending on AJV's CJS/ESM type shape. `errors` is read only
+ * Minimal surface the API tester uses — avoids depending on AJV's CJS/ESM type shape. `errors` is read only
  * after a call returned false, when AJV has set it, and with `messages` left on (the default)
  * every error carries its message.
  */
@@ -57,12 +57,12 @@ export class SchemaValidator {
 		this.ajv = new Ajv2020({
 			allErrors: true,
 			/* Specs in the wild carry annotations AJV does not know; refusing to compile over a
-			 * vocabulary quibble would make oat useless on real documents. */
+			 * vocabulary quibble would make the API tester useless on real documents. */
 			strict: false,
 			validateFormats: true,
 		})
 		addFormats(this.ajv)
-		/* Recursive schemas are referenced as `oat-defs#/$defs/<name>`, so they are registered
+		/* Recursive schemas are referenced as `testing-defs#/$defs/<name>`, so they are registered
 		 * once under that id and every compiled schema can reach them. */
 		const $defs: Record<string, JsonSchema> = {}
 		for (const [name, def] of Object.entries(defs)) $defs[name] = normalizeSchema(def, { direction: "response" })
@@ -140,7 +140,7 @@ function schemaFor(op: OperationObject, status: number): JsonSchema | null {
 	return null
 }
 
-/* One AJV per set of definitions: each registers them under `oat-defs`, as the document names them. */
+/* One AJV per set of definitions: each registers them under `testing-defs`, as the document names them. */
 // per-process-constant: compiled-schema
 const instanceAjvs = /* @__PURE__ */ new WeakMap<object, AjvLike>()
 const NO_DEFS: Record<string, JsonSchema> = {}

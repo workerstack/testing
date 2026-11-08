@@ -23,7 +23,7 @@ const FUZZABLE = ["memory", "sqlite", "postgres"] as const
 type Fuzzable = (typeof FUZZABLE)[number]
 
 /**
- * `oat conformance`: oat against its own reference backend, every defect injected one at a time on
+ * `testing api conformance`: the API tester against its own reference backend, every defect injected one at a time on
  * every local engine and dialect, then shapes, recall, `--ops` scope and a combination pass.
  * `--legs` runs some of those; `--proven-out` writes what they proved, and `--aggregate` judges
  * every written leg together. `--precision` and `--fuzz` replace the matrix with their own questions.
@@ -36,7 +36,7 @@ export async function commandConformance(
 	const toolkit = await load()
 	const refused = refusal(flags, toolkit)
 	if (refused !== undefined) {
-		writer.err(`oat: ${refused}\n`)
+		writer.err(`testing api: ${refused}\n`)
 		return EXIT.usage
 	}
 	const dir = str(flags, "aggregate")
@@ -172,7 +172,7 @@ async function fuzz(writer: Writer, flags: Args["flags"], toolkit: Toolkit): Pro
 	return rendered.failures
 }
 
-/* One `oat conformance` invocation: where it writes, its flags, and the toolkit it loaded. */
+/* One `testing api conformance` invocation: where it writes, its flags, and the toolkit it loaded. */
 interface Invocation {
 	writer: Writer
 	flags: Args["flags"]

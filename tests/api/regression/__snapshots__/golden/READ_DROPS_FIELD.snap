@@ -359,7 +359,7 @@
       "added": [
         {
           "check": "consistency.projections-agree",
-          "detail": "table table_ID has \"description\" = undefined on the record oat created, but the collection returns \"Quarterly Report 0\", and the sparse fieldset returns \"Quarterly Report 0\", and the sorted page returns \"Quarterly Report 0\". At least one read path is serving something the others are not; a client's view of a record then depends on which route it happened to use.",
+          "detail": "table table_ID has \"description\" = undefined on the record the API tester created, but the collection returns \"Quarterly Report 0\", and the sparse fieldset returns \"Quarterly Report 0\", and the sorted page returns \"Quarterly Report 0\". At least one read path is serving something the others are not; a client's view of a record then depends on which route it happened to use.",
           "entity": "table",
           "operations": [
             "table.get",
@@ -382,7 +382,7 @@
         },
         {
           "check": "payload.string-survives",
-          "detail": "\"description\" was sent \"oat-payload-NONCE\" and read back undefined.",
+          "detail": "\"description\" was sent \"testing-payload-NONCE\" and read back undefined.",
           "entity": "table",
           "operations": [
             "table.get",

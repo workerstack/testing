@@ -24,8 +24,8 @@ describe("search.mode-accepted judges", () => {
 		const staged = stage(searchModeAccepted, MODES)
 		expect(await staged.run()).toEqual({ kind: "asserted" })
 		expect(staged.sent.map((sent) => sent.options.query)).toEqual([
-			{ limit: 5, q: "oat", search_mode: "plain" },
-			{ limit: 5, q: "oat", search_mode: "websearch" },
+			{ limit: 5, q: "testing", search_mode: "plain" },
+			{ limit: 5, q: "testing", search_mode: "websearch" },
 		])
 	})
 

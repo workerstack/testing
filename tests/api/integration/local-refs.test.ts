@@ -107,7 +107,7 @@ Toy:
 
 /* The split toy document, written into a fresh temp directory. */
 async function toyDocument(): Promise<string> {
-	const dir = await mkdtemp(join(tmpdir(), "oat-local-refs-"))
+	const dir = await mkdtemp(join(tmpdir(), "testing-local-refs-"))
 	await mkdir(join(dir, "schemas"))
 	await writeFile(join(dir, "openapi.yaml"), ROOT)
 	await writeFile(join(dir, "schemas", "toy.yaml"), TOY)

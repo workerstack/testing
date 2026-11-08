@@ -2,8 +2,8 @@ import { isRaw, type RawOf } from "../../config/types/raw.ts"
 import type { OpenApiDocument } from "../types.ts"
 
 /*
- * The security schemes a document declares, read into what oat needs to send a credential: where it
- * goes and how it is written. A scheme oat cannot send (a TLS client certificate, a digest
+ * The security schemes a document declares, read into what the API tester needs to send a credential: where it
+ * goes and how it is written. A scheme the API tester cannot send (a TLS client certificate, a digest
  * challenge, a type it does not know, a malformed declaration) is read as unsupported, with why,
  * so an operation that needs one is reported untested instead of sent without it.
  */
@@ -35,7 +35,7 @@ export type SecurityScheme = SchemeBase &
 		| { kind: "apiKey"; in: ApiKeyLocation; param: string }
 		| { kind: "oauth2"; flows: Partial<Record<FlowName, OAuthFlow>>; oauth2MetadataUrl?: string }
 		| { kind: "openIdConnect"; openIdConnectUrl: string }
-		/* Why oat cannot send this scheme. */
+		/* Why the API tester cannot send this scheme. */
 		| { kind: "unsupported"; unsupported: string }
 	)
 
@@ -79,7 +79,7 @@ function readHttp(name: string, raw: RawScheme, deprecated: boolean): SecuritySc
 		return { deprecated, kind: "bearer", name, ...(format === undefined ? {} : { bearerFormat: format }) }
 	}
 	if (scheme === "digest") return unsupported(name, deprecated, "http digest needs a challenge-response round trip")
-	return unsupported(name, deprecated, `http scheme "${scheme}" is not one oat can send`)
+	return unsupported(name, deprecated, `http scheme "${scheme}" is not one the API tester can send`)
 }
 
 function readApiKey(name: string, raw: RawScheme, deprecated: boolean): SecurityScheme {
@@ -132,7 +132,7 @@ function readScheme(name: string, value: unknown): SecurityScheme {
 		case "mutualTLS":
 			return unsupported(name, deprecated, "mutualTLS is a TLS client certificate, not a request credential")
 		default:
-			return unsupported(name, deprecated, `scheme type "${String(raw.type)}" is not one oat knows`)
+			return unsupported(name, deprecated, `scheme type "${String(raw.type)}" is not one the API tester knows`)
 	}
 }
 

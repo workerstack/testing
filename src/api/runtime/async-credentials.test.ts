@@ -46,7 +46,7 @@ const signup: Recipe = {
 		from: "$.access_token",
 		steps: [
 			{
-				body: { email: "oat@example.test" },
+				body: { email: "testing@example.test" },
 				operationId: "auth.register",
 				saveAs: { refreshToken: "$.refresh_token" },
 			},

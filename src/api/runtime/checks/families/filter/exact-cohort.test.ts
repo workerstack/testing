@@ -10,7 +10,7 @@ import { filterIsNullSelectsNulls } from "./filter-is-null-selects-nulls.ts"
 import { numericComparisonIsNumeric } from "./filter-numeric-comparison-is-numeric.ts"
 
 /*
- * A live store holds rows oat never seeded. A filter check that knows the cohort judges only the
+ * A live store holds rows the API tester never seeded. A filter check that knows the cohort judges only the
  * cohort's identities: an extra match outside it is no defect, and must not hide one inside it.
  */
 
@@ -23,7 +23,7 @@ const COHORT: Record_[] = [
 	{ amount: 13, id: "n-high", note: "present", tags: ["blue"] },
 ]
 
-/** Rows the live store holds that oat never seeded. */
+/** Rows the live store holds that the API tester never seeded. */
 const OUTSIDE: Record_[] = [
 	{ amount: 9, id: "x-gt", note: null, tags: ["red"] },
 	{ amount: 9, id: "x-gt-2", note: "present", tags: ["green"] },

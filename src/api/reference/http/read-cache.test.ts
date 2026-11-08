@@ -54,12 +54,12 @@ describe("cachedRead", () => {
 	it("serves its copy inside 400 ms, with Age and a hit, and asks the origin again after", async () => {
 		const state = holder()
 		const from = origin()
-		expect((await served(state, get(), from)).headers["cache-status"]).toBe("oat-reference; fwd=uri-miss; stored")
+		expect((await served(state, get(), from)).headers["cache-status"]).toBe("testing-reference; fwd=uri-miss; stored")
 		from.bump()
 		state.at(399)
 		expect(await served(state, get(), from)).toMatchObject({
 			body: { version: 0 },
-			headers: { age: "0", "cache-status": "oat-reference; hit" },
+			headers: { age: "0", "cache-status": "testing-reference; hit" },
 		})
 		state.at(400)
 		expect((await served(state, get(), from)).body.version).toBe(1)
@@ -83,7 +83,7 @@ describe("cachedRead and the bypass", () => {
 		from.bump()
 		expect(await served(state, get({ [CACHE_BYPASS.name]: CACHE_BYPASS.value }), from)).toMatchObject({
 			body: { version: 1 },
-			headers: { "cache-status": "oat-reference; fwd=bypass" },
+			headers: { "cache-status": "testing-reference; fwd=bypass" },
 		})
 	})
 
@@ -103,7 +103,7 @@ describe("cachedRead and the bypass", () => {
 		from.bump()
 		expect(await served(state, get({ [CACHE_BYPASS.name]: CACHE_BYPASS.value }), from)).toMatchObject({
 			body: { version: 0 },
-			headers: { "cache-status": "oat-reference; hit" },
+			headers: { "cache-status": "testing-reference; hit" },
 		})
 	})
 

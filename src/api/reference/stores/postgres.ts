@@ -107,7 +107,7 @@ export class PgStore implements Store {
 		entities: readonly EntityDef[] = ENTITIES,
 		connect: PgConnect = connectPostgres,
 	): Promise<PgStore> {
-		const dbName = `oat_ref_${process.pid}_${Date.now().toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`
+		const dbName = `testing_ref_${process.pid}_${Date.now().toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`
 		const admin = connect("postgres", 1)
 		await admin.unsafe(`CREATE DATABASE ${ident(dbName)}`)
 		const sql = connect(dbName, 4)
@@ -119,7 +119,7 @@ export class PgStore implements Store {
 	async close(): Promise<void> {
 		await this.sql.end({ timeout: 5 })
 		/* Drop with FORCE: a lingering session would otherwise leave scratch databases behind on
-		 * every run, which is the same litter problem oat reports in the systems it tests. */
+		 * every run, which is the same litter problem the API tester reports in the systems it tests. */
 		try {
 			await this.admin.unsafe(`DROP DATABASE IF EXISTS ${ident(this.dbName)} WITH (FORCE)`)
 		} finally {

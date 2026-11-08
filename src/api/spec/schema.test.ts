@@ -21,7 +21,7 @@ describe("normalizeSchema", () => {
 	})
 
 	it("reads a schema whose ref pointed at nothing as unconstrained", () => {
-		const schema = { properties: { fee: { "x-oat-dangling": "#/components/schemas/Missing" } }, type: "object" }
+		const schema = { properties: { fee: { "x-testing-dangling": "#/components/schemas/Missing" } }, type: "object" }
 		expect(normalizeSchema(schema, response)).toEqual({ properties: { fee: {} }, type: "object" })
 	})
 
@@ -181,7 +181,7 @@ describe("normalizeSchema for an ordinary writer", () => {
 })
 
 describe("normalizeSchema discriminator", () => {
-	const KEY = "x-oat-discriminator"
+	const KEY = "x-testing-discriminator"
 	const cat: JsonSchema = { properties: { kind: { type: "string" }, meow: { type: "boolean" } }, type: "object" }
 	const dog: JsonSchema = { properties: { bark: { type: "boolean" } }, required: ["bark"], type: "object" }
 	const tags = { propertyName: "kind", values: [["cat", "kitty"], ["dog"]] }
@@ -209,10 +209,10 @@ describe("normalizeSchema discriminator", () => {
 	})
 
 	it("tags an anyOf, a branch that is a ref, and keeps a tag already required", () => {
-		const ref = { $ref: "oat-defs#/$defs/Cat", required: ["kind"] }
+		const ref = { $ref: "testing-defs#/$defs/Cat", required: ["kind"] }
 		const schema = { anyOf: [ref, false], [KEY]: { propertyName: "kind", values: [["cat"], ["dog"]] } }
 		expect(normalizeSchema(schema, response)).toEqual({
-			anyOf: [{ $ref: "oat-defs#/$defs/Cat", properties: { kind: { enum: ["cat"] } }, required: ["kind"] }, false],
+			anyOf: [{ $ref: "testing-defs#/$defs/Cat", properties: { kind: { enum: ["cat"] } }, required: ["kind"] }, false],
 		})
 	})
 

@@ -38,8 +38,8 @@ describe("stringFor", () => {
 
 	it("makes a known format, lengthening an address, a URL or a host to the minimum", () => {
 		expect(stringFor({ format: "DATE" }, at())).toBe("2024-03-03")
-		expect(stringFor({ format: "email", minLength: 30 }, at())).toBe("oat-baseline-2xxx@example.test")
-		expect(stringFor({ format: "idn-email", minLength: 28 }, at())).toBe("oat-baseline-2x@example.test")
+		expect(stringFor({ format: "email", minLength: 34 }, at())).toBe("testing-baseline-2xxx@example.test")
+		expect(stringFor({ format: "idn-email", minLength: 32 }, at())).toBe("testing-baseline-2x@example.test")
 		expect(stringFor({ format: "uri", minLength: 33 }, at())).toBe("https://example.test/baseline-2xx")
 		expect(stringFor({ format: "url", minLength: 33 }, at())).toBe("https://example.test/baseline-2xx")
 		expect(stringFor({ format: "iri", minLength: 33 }, at())).toBe("https://example.test/baseline-2xx")

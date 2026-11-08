@@ -81,9 +81,9 @@ describe("guardWrite", () => {
 	}
 
 	it("drops the protected fields of a write to the principal's own record, deep", () => {
-		const body = { email: "e@x.io", first_name: "Oat", profile: { password: "p", theme: "dark" } }
+		const body = { email: "e@x.io", first_name: "Tst", profile: { password: "p", theme: "dark" } }
 		expect(guardWrite(signIn, selfWrite, { body, schema })).toEqual({
-			body: { first_name: "Oat", profile: { theme: "dark" } },
+			body: { first_name: "Tst", profile: { theme: "dark" } },
 			dropped: ["email", "profile.password"],
 		})
 		/* The body it was given is not changed. */
@@ -91,7 +91,7 @@ describe("guardWrite", () => {
 	})
 
 	it("names a protected field the schema requires: the write needs it", () => {
-		const body = { email: "e@x.io", first_name: "Oat", profile: { password: "p" } }
+		const body = { email: "e@x.io", first_name: "Tst", profile: { password: "p" } }
 		const profile = { ...schema.properties.profile, required: ["password"] }
 		const strict = { ...schema, properties: { ...schema.properties, profile }, required: ["email"] }
 		expect(guardWrite(signIn, selfWrite, { body, schema: strict })).toEqual({
@@ -150,7 +150,7 @@ describe("guardedClient", () => {
 		const write = client.request("PATCH", "/users/me", { as: { principal: "alpha" }, body: { email: "e", note: "n" } })
 		await expect(write).rejects.toThrow(ProtectedWriteError)
 		await expect(write).rejects.toThrow(
-			"me.update would change email on alpha's own record, which alpha signs in with: oat never sends that",
+			"me.update would change email on alpha's own record, which alpha signs in with: the API tester never sends that",
 		)
 		await expect(
 			client.view({}).request("PATCH", "/users/u-1", { as: { principal: "alpha#probe-1" }, body: { password: "p" } }),
@@ -325,7 +325,7 @@ describe("guardedClient and the credentials the run holds", () => {
 	it("refuses a change or removal of a credential record the run holds, whoever sends it, sending nothing", async () => {
 		const { client, sent } = heldStage()
 		await expect(client.request("DELETE", "/keys/k-1", { as: { principal: "beta" } })).rejects.toThrow(
-			"apiKey.revoke would change api-key k-1, a credential the run holds (minted by apiKey.create): oat never sends that",
+			"apiKey.revoke would change api-key k-1, a credential the run holds (minted by apiKey.create): the API tester never sends that",
 		)
 		await expect(
 			client.request("PATCH", "/keys/k-1", { as: { principal: "alpha" }, body: { name: "n" } }),
@@ -350,12 +350,12 @@ describe("guardedClient and a principal's own record", () => {
 	it("refuses to remove or replace a configured principal's own record, and lets a disposable's go", async () => {
 		const { client, sent } = heldStage()
 		await expect(client.request("DELETE", "/users/u-1", { as: { principal: "alpha" } })).rejects.toThrow(
-			"user.delete would remove alpha's own record: oat never sends that",
+			"user.delete would remove alpha's own record: the API tester never sends that",
 		)
 		await expect(
 			client.request("PUT", "/users/u-1", { as: { principal: "alpha" }, body: { note: "n" } }),
 		).rejects.toThrow(
-			"user.replace is a full replace of alpha's own record, which could clear its sign-in fields: oat never sends that",
+			"user.replace is a full replace of alpha's own record, which could clear its sign-in fields: the API tester never sends that",
 		)
 		await expect(client.request("DELETE", "/users/u-1", { as: { principal: "alpha" } })).rejects.toThrow(
 			HeldRecordError,

@@ -9,7 +9,7 @@ const COHORT = [
 	{ id: "w-2", note: null },
 	{ id: "w-3", note: "gone" },
 ]
-/** A row the store holds that oat never seeded. */
+/** A row the store holds that the API tester never seeded. */
 const OUTSIDE = { id: "x-1", note: "other" }
 const DOC = { xQuery: { filterable: ["id", "note"] } }
 /** NEQ_DROPS_NULLS: neq evaluated as SQL `<>`, which is never true for a null. */

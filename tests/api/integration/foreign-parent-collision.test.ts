@@ -17,7 +17,7 @@ const CHECK = "tenant.parent-not-reachable-from-another-root"
 interface Options {
 	/* A slug the path's project does not hold is looked up in every project. */
 	crossResolve?: boolean
-	/* Tables each project holds before oat arrives, by name. */
+	/* Tables each project holds before the API tester arrives, by name. */
 	existing?: Record<string, string[]>
 }
 
@@ -345,7 +345,7 @@ describe("the owner's parent under another tenant's root", () => {
 	}, 120_000)
 })
 
-describe("a parent oat creates as scaffolding", () => {
+describe("a parent the API tester creates as scaffolding", () => {
 	it("never takes a slug the entity's own cohort takes", async () => {
 		const backend = await serve()
 		const result = await run({

@@ -78,7 +78,7 @@ describe("x-query structured tag", () => {
 })
 
 /*
- * Without `x-query`, oat guesses which fields a listing sorts by. A parameter of the list's own
+ * Without `x-query`, the API tester guesses which fields a listing sorts by. A parameter of the list's own
  * path — the project every listed record sits under — holds one value across the listing, so
  * ordering by it shows nothing; it is never guessed sortable. It stays filterable.
  */

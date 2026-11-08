@@ -68,7 +68,7 @@ describe("tenant.parent-not-reachable-from-another-root", () => {
 		expect(findings.findings[0]?.summary).toBe(
 			"another tenant's record is readable through its parent under one's own root",
 		)
-		expect(findings.findings[0]?.detail).toContain('oat inferred the tenant from "org_id"')
+		expect(findings.findings[0]?.detail).toContain('the API tester inferred the tenant from "org_id"')
 	})
 })
 

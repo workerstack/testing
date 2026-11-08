@@ -1,4 +1,4 @@
-# oat — Programmatic API
+# testing api — Programmatic API
 
 [← back to the overview](../../README.md)
 
@@ -15,7 +15,7 @@ import {
 	buildModel,
 	renderJson,
 	renderMarkdown,
-} from "@lovrozagar/oat"
+} from "@workerstack/testing/api"
 
 const config = defineConfig({
 	spec: "./openapi.yaml",
@@ -42,9 +42,9 @@ const result = await run({
 // pass `ops: ["product.update"]` to run() for a targeted run; ScopeError on an unknown name
 ```
 
-`result.teardown` is `{ removed, failed, unsupported, records }`; `records` lists every record oat ledgered, in creation order, as `{ entity, id, removed }`. Only ids the backend gave back are ever ledgered. `oat-report.json` carries the same object under `teardown`.
+`result.teardown` is `{ removed, failed, unsupported, records }`; `records` lists every record the API tester ledgered, in creation order, as `{ entity, id, removed }`. Only ids the backend gave back are ever ledgered. `report.json` carries the same object under `teardown`.
 
-`env(name)` reads a secret for a config: `token: env("API_TOKEN")`. An unset or empty variable stops the load with `oat: env API_TOKEN is not set (<config path>)`, so a missing secret never goes out as an empty credential.
+`env(name)` reads a secret for a config: `token: env("API_TOKEN")`. An unset or empty variable stops the load with `testing api: env API_TOKEN is not set (<config path>)`, so a missing secret never goes out as an empty credential.
 
 `loadConfig(path)` loads `.ts` / `.js` / `.mjs` / `.json` the same way the CLI does. The CLI then expands `${NAME}` in every string. `defineConfig` is an identity function for typing; it does not interpolate. If you call `run()` with an in-process object, resolve secrets yourself (template literals, `process.env`) before passing it.
 
@@ -67,7 +67,7 @@ const model = buildModel(resolved)
 
 Types exported, by what they describe:
 
-- **Config.** `OatConfig`; `EntityConfig` (an `entities` entry, today only its `query`); `PayloadPolicy` (`payloads`: `"full"` or `"per-write-path"`); `ProfileSpec` (a `profiles` entry); `ExternalsConfig` (`externals`: each scenario external's kind); `RateLimitSpec` (a `rateLimits` entry); `OriginSpec`; `OutOfBandConfig`; `Uploads` and `UploadFile`.
+- **Config.** `ApiConfig`; `EntityConfig` (an `entities` entry, today only its `query`); `PayloadPolicy` (`payloads`: `"full"` or `"per-write-path"`); `ProfileSpec` (a `profiles` entry); `ExternalsConfig` (`externals`: each scenario external's kind); `RateLimitSpec` (a `rateLimits` entry); `OriginSpec`; `OutOfBandConfig`; `Uploads` and `UploadFile`.
 - **Security.** `SecurityConfig` (one `Recipe` per scheme) and `PrincipalsConfig` (a `PrincipalEntry` per id).
 - **Steps and scenarios.** `AuthStep` is an `OperationStep`, a `RequestStep` or an `OutOfBandStep`. A `Scenario` runs `ScenarioStep`s: a `ScenarioRequestStep` (an operation or request step with its `ScenarioAssert`s), an `OutOfBandStep` or an `ExternalStep`.
 - **Query catalog.** `QueryCapabilities` is what `x-query` or a config's `query` declares for a list: `FilterableField`s, each a field with its `FieldType` and `FilterOp`s, and `FilterableFrom`, the read that `filterableFrom` and its siblings harvest names from. `QueryParamNames` maps a `QueryParamRole` (`filter`, `sort`, `select`, `search`, `searchMode`, `limit`, `page`, `offset`, `cursor`) to the query parameter it is sent in, as `x-query.params` and config `query.params` name it. `QueryEnvelopeNames` maps a `QueryEnvelopeRole` (`total`, `hasMore`, `nextCursor`) to the response field it is read from, as `x-query.envelope` and config `query.envelope` name it.

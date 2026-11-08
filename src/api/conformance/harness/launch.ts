@@ -1,4 +1,4 @@
-/** How a self-test reaches what it runs oat against: behind a socket, or in process. */
+/** How a self-test reaches what it runs the API tester against: behind a socket, or in process. */
 
 import type { createServer } from "node:http"
 import type { DefectSet } from "../../reference/defects/defect-set.ts"
@@ -11,7 +11,7 @@ import type { ReferenceOptions } from "../../reference/http/state.ts"
 import type { Row } from "../../reference/store-api.ts"
 import type { Backend } from "../matrix/engines.ts"
 
-/** Something oat can be pointed at, and how to stop it. */
+/** Something the API tester can be pointed at, and how to stop it. */
 export interface Hosted {
 	url: string
 	/** The transport to reach it by, when it has no socket; the global `fetch` otherwise. */
@@ -19,7 +19,7 @@ export interface Hosted {
 	close: () => Promise<void>
 }
 
-/** A reference backend a self-test runs oat against, and what it can say about its own state. */
+/** A reference backend a self-test runs the API tester against, and what it can say about its own state. */
 export interface Launched extends Hosted {
 	defects: DefectSet
 	snapshot: () => Promise<Record<string, Row[]>>

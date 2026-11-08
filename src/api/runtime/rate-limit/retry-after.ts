@@ -1,4 +1,4 @@
-/** How long oat waits before asking again after a 429 or a 503, and how a server error reads. */
+/** How long the API tester waits before asking again after a 429 or a 503, and how a server error reads. */
 
 import type { Exchange, RetryAfterExceeded } from "../exchange.ts"
 import { headerValue } from "../headers.ts"
@@ -6,20 +6,20 @@ import { headerValue } from "../headers.ts"
 /** Extra attempts after the first 429. The first 429 is never a seed/check failure by itself. */
 export const MAX_429_RETRIES = 5
 export const RETRY_BACKOFF_INITIAL_MS = 1_000
-/** The longest backoff oat picks itself, when the server names no wait. */
+/** The longest backoff the API tester picks itself, when the server names no wait. */
 export const RETRY_BACKOFF_CAP_MS = 30_000
 /** A 503 that names when to come back is asked again this many times. */
 export const MAX_UNAVAILABLE_RETRIES = 3
 /** The pause before a read that met a gateway status (502, 503, 504) is asked once more. */
 export const GATEWAY_RETRY_MS = 1_000
-/** The longest `Retry-After` oat waits out unless `network.maxRetryAfterMs` says otherwise. */
+/** The longest `Retry-After` the API tester waits out unless `network.maxRetryAfterMs` says otherwise. */
 export const DEFAULT_MAX_RETRY_AFTER_MS = 60_000
 
-/* Statuses whose `Retry-After` oat waits out. */
+/* Statuses whose `Retry-After` the API tester waits out. */
 const WAITED_STATUSES: ReadonlySet<number> = /* @__PURE__ */ new Set([429, 503])
 
 /**
- * How a server error reads in a finding. A 503 that still stood after oat waited out its
+ * How a server error reads in a finding. A 503 that still stood after the API tester waited out its
  * `Retry-After` is the backend being unavailable, told apart from a crash; both are failures.
  */
 export function describeServerError(
@@ -35,15 +35,15 @@ export function describeServerError(
 		: `was unavailable (503) and ${describeExceeded(retryAfterExceeded)}`
 }
 
-/** An answer's status, and the wait it asked for when oat would not wait that long: "429 and asked oat to wait 24h, …". */
+/** An answer's status, and the wait it asked for when the API tester would not wait that long: "429 and asked the API tester to wait 24h, …". */
 export function describeStatus(exchange: Pick<Exchange, "status" | "retryAfterExceeded">): string {
 	const { status, retryAfterExceeded } = exchange
 	return retryAfterExceeded === undefined ? String(status) : `${status} and ${describeExceeded(retryAfterExceeded)}`
 }
 
-/** "asked oat to wait 24h, longer than network.maxRetryAfterMs (60s)": the wait oat did not wait out. */
+/** "asked the API tester to wait 24h, longer than network.maxRetryAfterMs (60s)": the wait the API tester did not wait out. */
 export function describeExceeded(exceeded: RetryAfterExceeded): string {
-	return `asked oat to wait ${formatWait(exceeded.waitMs)}, longer than network.maxRetryAfterMs (${formatWait(exceeded.limitMs)})`
+	return `asked the API tester to wait ${formatWait(exceeded.waitMs)}, longer than network.maxRetryAfterMs (${formatWait(exceeded.limitMs)})`
 }
 
 /** A wait in whole seconds, rounded up, written in the largest unit that divides it evenly. */
@@ -76,14 +76,14 @@ export function retryWaitMs(retryAfterHeader: string | undefined, attempt: numbe
 	return Math.min(RETRY_BACKOFF_CAP_MS, exp)
 }
 
-/** One answer's status and `Retry-After`, against the longest wait oat accepts. */
+/** One answer's status and `Retry-After`, against the longest wait the API tester accepts. */
 export interface RetryAfterInput {
 	status: number
 	header: string | undefined
 	limitMs: number
 }
 
-/** The wait a 429 or a 503 asked for when it is longer than oat waits: that answer stands as it is. */
+/** The wait a 429 or a 503 asked for when it is longer than the API tester waits: that answer stands as it is. */
 export function retryAfterVerdict(input: RetryAfterInput, now: number = Date.now()): RetryAfterExceeded | undefined {
 	if (!WAITED_STATUSES.has(input.status)) return undefined
 	const waitMs = parseRetryAfter(input.header, now)

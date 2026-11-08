@@ -113,6 +113,6 @@ function readOf(ctx: CheckContext, exchange: Exchange): OperationModel | undefin
 function projected(op: OperationModel, exchange: Exchange): boolean {
 	const parameter = op.conventions.select
 	if (parameter === undefined) return false
-	const names = [...new URL(exchange.url, "http://oat.invalid").searchParams.keys()]
+	const names = [...new URL(exchange.url, "http://testing.invalid").searchParams.keys()]
 	return names.some((name) => name === parameter || name.startsWith(`${parameter}[`))
 }

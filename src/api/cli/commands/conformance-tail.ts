@@ -16,7 +16,7 @@ function absence({ backend, noDriver }: SkippedBackend): { why: string; fix: str
 	if (backend === "sqlite")
 		return {
 			fix: "Start it",
-			why: `node:sqlite unavailable on Node ${process.version}; oat needs ${NODE_FLOOR} or later`,
+			why: `node:sqlite unavailable on Node ${process.version}; the API tester needs ${NODE_FLOOR} or later`,
 		}
 	if (noDriver === true) return { fix: `Run npm install postgres (${POSTGRES_RANGE})`, why: "driver not installed" }
 	return { fix: "Start it", why: "no Postgres server reachable on the default connection" }

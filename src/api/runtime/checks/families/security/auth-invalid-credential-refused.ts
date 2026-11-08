@@ -17,7 +17,7 @@ import { type Address, addressOf, judgeRefusals, type Refusal, securedPlan, send
 const ID = "auth.invalid-credential-refused"
 
 /** A value no scheme issues: garbage, so it stays visible in the journal. */
-export const GARBAGE = "oat-invalid-credential"
+export const GARBAGE = "testing-invalid-credential"
 
 /** Whether `value` is a JWT: three base64url segments, the first a JSON header naming its `alg`. */
 export function isJwt(value: string): boolean {

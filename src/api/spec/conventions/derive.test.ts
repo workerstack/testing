@@ -158,8 +158,8 @@ describe("deriveQueryConventions with named parameters", () => {
 		})
 		expect(conventions.filter).toBe("where")
 		expect(told).toEqual([
-			'params.filter names "filter_by", which the operation does not declare; oat finds the filter parameter by its aliases',
-			'params.sort names "arrange", which the operation does not declare; oat finds the sort parameter by its aliases',
+			'params.filter names "filter_by", which the operation does not declare; the API tester finds the filter parameter by its aliases',
+			'params.sort names "arrange", which the operation does not declare; the API tester finds the sort parameter by its aliases',
 		])
 	})
 })
@@ -198,7 +198,7 @@ describe("deriveQueryConventions with named envelope fields", () => {
 		expect(conventions.envelope).toEqual({ nextCursor: "next" })
 		expect(told).toEqual([
 			'envelope.nextCursor names "next_before", which the response envelope does not declare; ' +
-				"oat finds the nextCursor field by its aliases",
+				"the API tester finds the nextCursor field by its aliases",
 		])
 	})
 

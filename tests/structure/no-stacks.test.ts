@@ -32,7 +32,7 @@ describe("reports", () => {
 	})
 
 	it("catch the leaks they are meant to", () => {
-		expect(LEAK.test("TypeError: boom\n    at run (/srv/oat/x.js:1:1)")).toBe(true)
+		expect(LEAK.test("TypeError: boom\n    at run (/srv/testing/x.js:1:1)")).toBe(true)
 		expect(LEAK.test("open '/home/someone/spec.yaml'")).toBe(true)
 		expect(LEAK.test("open 'C:\\\\Users\\\\spec.yaml'")).toBe(true)
 		expect(LEAK.test("http://reference.test/v1/notes")).toBe(false)
@@ -74,8 +74,8 @@ function tokenAnswer(text: string): boolean {
 
 /*
  * The token endpoint's answer, carrying an access and a refresh token, and every such token read
- * off the wire before oat sees it. `form` re-encodes the pair as
- * `application/x-www-form-urlencoded`, as some token endpoints answer: oat reads it by its media
+ * off the wire before the API tester sees it. `form` re-encodes the pair as
+ * `application/x-www-form-urlencoded`, as some token endpoints answer: the API tester reads it by its media
  * type, and journals the answer all the same.
  */
 function tokenWire(server: Hosted, form: boolean): { fetch: typeof fetch; issued: Set<string> } {
@@ -98,7 +98,7 @@ function tokenWire(server: Hosted, form: boolean): { fetch: typeof fetch; issued
 
 /** A run over the reference through `wire`, its reports written, and every file under its output directory. */
 async function runThrough(server: Hosted, wire: { fetch: typeof fetch }) {
-	const outDir = mkdtempSync(join(tmpdir(), "oat-no-credentials-"))
+	const outDir = mkdtempSync(join(tmpdir(), "testing-no-credentials-"))
 	const result = await run({
 		baseUrl: server.url,
 		exchangeDir: outDir,

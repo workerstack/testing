@@ -12,7 +12,7 @@ describe("readAnswer", () => {
 		]).toEqual(["b", "h", "c"])
 	})
 
-	it("reads a JSON pointer and a filter, as every other `from` in oat does", () => {
+	it("reads a JSON pointer and a filter, as every other `from` in the API tester does", () => {
 		const body = {
 			keys: [
 				{ kind: "web", value: "w" },

@@ -5,7 +5,7 @@ import { repoPath } from "./paths.ts"
 /*
  * `String(record[identity])` on a record without its identity is the text "undefined", and it went
  * out in paths, filters and probes. Ids are read with `idOf`, which says when there is none; only
- * the module that owns it reads the field directly. oat's requests are made in the runtime; the
+ * the module that owns it reads the field directly. the API tester's requests are made in the runtime; the
  * reference backend reads its own rows.
  */
 const HOME = "/src/api/runtime/world/records.ts"

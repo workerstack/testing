@@ -1,7 +1,7 @@
 import { answers, type Target } from "../target.ts"
 
 /* Two ordinary accounts, one per tenant: alpha owns the books, beta reaches for them. */
-const USERS = { ALPHA: "oat-alpha", BETA: "oat-beta" } as const
+const USERS = { ALPHA: "testing-alpha", BETA: "testing-beta" } as const
 
 /* The admin VAmPI seeds with /createdb. */
 const ADMIN = { password: "pass1", username: "admin" } as const

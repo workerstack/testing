@@ -165,7 +165,7 @@ describe("modelOperation privileged", () => {
 		})
 		expect(operations[0]?.privileged).toEqual(["verified"])
 		expect(details(gaps, "x-privileged")).toEqual([
-			"x-privileged belongs on a request body property, not on the operation; oat cannot use it",
+			"x-privileged belongs on a request body property, not on the operation; the API tester cannot use it",
 		])
 	})
 })
@@ -204,7 +204,7 @@ describe("modelOperation collections", () => {
 		})
 		expect(gaps.gaps.filter((gap) => gap.tag === "x-entity.recordPath").map((gap) => gap.operationId)).toEqual(["a"])
 		expect(details(gaps, "x-entity.recordPath")[0]).toBe(
-			'the response holds several arrays of objects (a, b), so oat cannot tell which are the rows; name them with x-entity.recordPath (e.g. "$.a")',
+			'the response holds several arrays of objects (a, b), so the API tester cannot tell which are the rows; name them with x-entity.recordPath (e.g. "$.a")',
 		)
 	})
 })
@@ -268,7 +268,7 @@ describe("modelOperation and a scope list that is not an array", () => {
 		expect(gaps.gaps.filter((gap) => gap.tag === "security")).toEqual([
 			{
 				detail:
-					'security requirement "oauth2" gives its scopes as something other than a list; oat reads it as no scopes',
+					'security requirement "oauth2" gives its scopes as something other than a list; the API tester reads it as no scopes',
 				operationId: "RevokeToken",
 				tag: "security",
 			},

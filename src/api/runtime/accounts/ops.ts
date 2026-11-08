@@ -1,5 +1,5 @@
 /**
- * The operations that make and remove accounts. An account is a record oat cannot leave behind
+ * The operations that make and remove accounts. An account is a record the API tester cannot leave behind
  * quietly: it outlives the run, and a real backend may let it sign in, bill, or mail someone.
  */
 

@@ -88,7 +88,7 @@ async function answered(task: ConformanceTask, via: Via): Promise<Unmeasured> {
 }
 
 /**
- * Runs a task, then measures what the process holds. With `OAT_HEAP_SNAPSHOTS` set to a folder,
+ * Runs a task, then measures what the process holds. With `TESTING_API_HEAP_SNAPSHOTS` set to a folder,
  * a heap snapshot is written there after each task: what a leg left behind is in the next one.
  * `via` says how the reference is reached: the gate's workers reach it behind a socket. Every request
  * the task sends through it is counted.
@@ -96,7 +96,7 @@ async function answered(task: ConformanceTask, via: Via): Promise<Unmeasured> {
 export async function runTask(task: ConformanceTask, sequence: number, via: Via): Promise<ConformanceAnswer> {
 	const counted = counting(via)
 	const answer = await answered(task, counted.via)
-	const dir = process.env["OAT_HEAP_SNAPSHOTS"]
+	const dir = process.env["TESTING_API_HEAP_SNAPSHOTS"]
 	if (dir !== undefined && dir !== "")
 		writeHeapSnapshot(join(dir, `${process.pid}-${String(sequence).padStart(4, "0")}-${task.kind}.heapsnapshot`))
 	const { heapUsed, rss } = process.memoryUsage()

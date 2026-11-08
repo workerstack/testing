@@ -70,7 +70,7 @@ export interface QueryCapabilities {
 		stableTiebreak?: string
 		nulls?: Nulls[]
 		maxKeys?: number
-		/** How text compares in an order. Undeclared, oat accepts any consistent one. */
+		/** How text compares in an order. Undeclared, the API tester accepts any consistent one. */
 		collation?: "binary" | "case-insensitive" | "locale"
 		/** Where nulls go in an ascending order with no modifier. Undeclared, either end, consistently. */
 		defaultNulls?: Nulls
@@ -102,10 +102,10 @@ export type QueryParamRole =
 	| "page"
 	| "offset"
 	| "cursor"
-/** The query parameter each role is sent in, for a role whose parameter no alias oat knows names. */
+/** The query parameter each role is sent in, for a role whose parameter no alias the API tester knows names. */
 export type QueryParamNames = Partial<Record<QueryParamRole, string>>
 
 /** A paging fact a walk reads from a list response: the total, the more-pages flag, the next cursor. */
 export type QueryEnvelopeRole = "total" | "hasMore" | "nextCursor"
-/** The response field each fact is read from, for a fact whose field no alias oat knows names. */
+/** The response field each fact is read from, for a fact whose field no alias the API tester knows names. */
 export type QueryEnvelopeNames = Partial<Record<QueryEnvelopeRole, string>>

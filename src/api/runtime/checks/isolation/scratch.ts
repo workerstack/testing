@@ -69,7 +69,7 @@ export async function scratchRecord(
 				check,
 				ctx.entityName,
 				`a record for this check could not be made: ${exhausted ?? `the create answered ${exchange.status}`}` +
-					(exchange.status < 300 ? ` without an id oat could read` : ""),
+					(exchange.status < 300 ? ` without an id the API tester could read` : ""),
 			),
 		}
 	}

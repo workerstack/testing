@@ -132,7 +132,7 @@ describe("an action that succeeds", () => {
 })
 
 describe("an action that does not succeed", () => {
-	it("is a gap when refused, and the run stays asserted: the request was more likely oat's", async () => {
+	it("is a gap when refused, and the run stays asserted: the request was more likely the API tester's", async () => {
 		const run = await occurred(widgets({ status: 422 }), ["cloneWidget"])
 		expect(run.findings.findings).toMatchObject([
 			{ detail: "returned 422; its declared effects are unverified", summary: "cloneWidget could not be invoked" },

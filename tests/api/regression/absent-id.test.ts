@@ -19,7 +19,7 @@ describe("absentIdentifier", () => {
 	it("is a single token for a string identity", () => {
 		const made = absentIdentifier({ type: "string" }, "n1")
 		expect(made.ok).toBe(true)
-		expect(String(made.ok ? made.value : "")).toMatch(/^oat-absent-\S+$/)
+		expect(String(made.ok ? made.value : "")).toMatch(/^testing-absent-\S+$/)
 	})
 
 	it("does not apply when the token cannot meet the identity's pattern or length", () => {
@@ -78,6 +78,6 @@ describe("absentId", () => {
 	it("takes the identity's type over a path parameter documented as a bare string", () => {
 		expect(absentId(context({ type: "integer" }))).toMatch(/^[0-9]+$/)
 		expect(absentId(context({ format: "uuid", type: "string" }))).toMatch(/^[0-9a-f-]{36}$/)
-		expect(absentId(context({ type: "string" }))).toMatch(/^oat-absent-\S+$/)
+		expect(absentId(context({ type: "string" }))).toMatch(/^testing-absent-\S+$/)
 	})
 })

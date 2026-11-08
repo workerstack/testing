@@ -104,7 +104,7 @@ async function serve(
 	return { polls: world.polls, url: server.url }
 }
 
-/** Serves the batch API with `streamBody` as the stream and runs oat over the batch entity. */
+/** Serves the batch API with `streamBody` as the stream and runs the API tester over the batch entity. */
 async function runStream(async: boolean, streamBody: string): Promise<{ polls: string[]; result: RunResult }> {
 	const server = await serve(streamSpec({ async }), streamBody)
 	const result = await run({

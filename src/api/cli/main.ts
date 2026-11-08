@@ -38,7 +38,7 @@ const COMMANDS: Readonly<Record<string, Command>> = {
 	serve: ({ writer, serve }, flags) => commandServe(writer, flags, serve),
 }
 
-/** `oat <command> …`: refuses what it cannot parse, prints help when asked, and runs the command. Returns the exit code. */
+/** `testing api <command> …`: refuses what it cannot parse, prints help when asked, and runs the command. Returns the exit code. */
 export async function main(
 	argv: readonly string[] = process.argv.slice(2),
 	deps: CliDeps = { writer: processWriter },
@@ -46,7 +46,7 @@ export async function main(
 	const { writer } = deps
 	const { command, error, flags, positionals } = parseArgs(argv)
 	if (error !== undefined) {
-		writer.err(`oat: ${error}\n\n${USAGE}`)
+		writer.err(`testing api: ${error}\n\n${USAGE}`)
 		return EXIT.usage
 	}
 	if (command === "help" || flags.help === true) {
@@ -55,21 +55,27 @@ export async function main(
 	}
 	const run = COMMANDS[command]
 	if (run === undefined) {
-		writer.err(`oat: unknown command "${command}"\n\n${USAGE}`)
+		writer.err(`testing api: unknown command "${command}"\n\n${USAGE}`)
 		return EXIT.usage
 	}
 	return run(deps, flags, positionals ?? [])
 }
 
-/** Runs the CLI as the process: its exit code is the process's, and an error it did not expect is one line. */
-export function start(deps: CliDeps = { writer: processWriter }): Promise<void> {
-	return main(process.argv.slice(2), deps).then(
+/**
+ * Runs a command line as the process: its exit code is the process's, and an error it did not expect is
+ * one line. `cli` is the API tester's own by default; the package's `testing` passes its dispatcher.
+ */
+export function start(
+	deps: CliDeps = { writer: processWriter },
+	cli: (argv: readonly string[], deps: CliDeps) => Promise<number> = main,
+): Promise<void> {
+	return cli(process.argv.slice(2), deps).then(
 		(code) => {
 			process.exitCode = code
 		},
-		/* A usage error is the caller's to fix and names the mistake; anything else is oat failing. */
+		/* A usage error is the caller's to fix and names the mistake; anything else is the API tester failing. */
 		(error: unknown) => {
-			deps.writer.err(`oat: ${messageOf(error).replace(/^oat: /, "")}\n`)
+			deps.writer.err(`testing api: ${messageOf(error).replace(/^testing api: /, "")}\n`)
 			process.exitCode = error instanceof UsageError ? EXIT.usage : EXIT.failed
 		},
 	)
@@ -77,7 +83,7 @@ export function start(deps: CliDeps = { writer: processWriter }): Promise<void> 
 
 /**
  * Whether `moduleUrl` is the program Node was asked to run (`entry`, its argv[1]). Installed from
- * a local path, oat is a symlink: Node gives the module its real path and leaves argv[1] the link,
+ * a local path, the API tester is a symlink: Node gives the module its real path and leaves argv[1] the link,
  * so the two are compared as real paths, and as written when either cannot be resolved.
  */
 export function invokedDirectly(entry: string | undefined, moduleUrl: string): boolean {

@@ -54,7 +54,7 @@ export function normalizeText(text: string): string {
 			.replaceAll(/(?<=^|[^A-Za-z]|%[0-9A-F]{2})([a-z]+)_\d{6}\b/g, "$1_ID")
 			.replaceAll(/(?<![A-Za-z])inv_[a-z0-9]{1,10}\b/g, "inv_TOKEN")
 			.replaceAll(/(?<![A-Za-z])grn_[a-z0-9]+_[a-z0-9]{6}\b/g, "grn_ID")
-			.replaceAll(/\boat-([a-z]+)-[a-z0-9]{5,}\b/g, "oat-$1-NONCE")
+			.replaceAll(/\btesting-([a-z]+)-[a-z0-9]{5,}\b/g, "testing-$1-NONCE")
 			.replaceAll(/\b1700000\d{6}\b/g, "CLOCK")
 			.replaceAll(/\b\d+ (time|poll)\(s\)/g, "N $1(s)")
 			.replaceAll(/\b\d+ms\b/g, "Nms")
@@ -93,7 +93,7 @@ export interface GoldenRun {
 	read: (file: string) => Promise<string>
 }
 
-/** `oat <argv>` in-process, with its exit code and everything it printed. */
+/** `testing api <argv>` in-process, with its exit code and everything it printed. */
 export async function runCli(argv: readonly string[]): Promise<{ code: number; output: string }> {
 	const chunks: string[] = []
 	const capture = (chunk: string | Uint8Array): boolean => {
@@ -103,7 +103,7 @@ export async function runCli(argv: readonly string[]): Promise<{ code: number; o
 	const out = vi.spyOn(process.stdout, "write").mockImplementation(capture)
 	const err = vi.spyOn(process.stderr, "write").mockImplementation(capture)
 	const saved = process.argv
-	process.argv = ["node", "oat", ...argv]
+	process.argv = ["node", "testing", ...argv]
 	try {
 		return { code: await main(), output: chunks.join("") }
 	} finally {
@@ -119,7 +119,7 @@ export interface GoldenTarget extends ReferenceOptions {
 }
 
 /**
- * One `oat run` through the CLI against a fresh reference server, the way a user runs it: config
+ * One `testing api run` through the CLI against a fresh reference server, the way a user runs it: config
  * file, `--out`, the report files on disk. A defect behind an opt-in runs with it on, in the
  * reference and in the config, as the conformance matrix runs it.
  */
@@ -128,8 +128,8 @@ export async function goldenRun(target: GoldenTarget, extraFlags: readonly strin
 	const optIn = optInFor((rest.defects ?? []) as DefectName[])
 	const options = { ...rest, ...optIn.reference }
 	const server = await (backend === "sqlite" ? createSqliteServer(options) : createMemoryServer(options))
-	const dir = await mkdtemp(join(tmpdir(), "oat-golden-"))
-	const config = join(dir, "oat.config.json")
+	const dir = await mkdtemp(join(tmpdir(), "testing-golden-"))
+	const config = join(dir, "testing.api.config.json")
 	await writeFile(
 		config,
 		JSON.stringify({

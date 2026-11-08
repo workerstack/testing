@@ -9,7 +9,7 @@ import type { OpenApiDocument } from "../../../src/api/spec/types.ts"
  * Some backends name the identity `ID` and wrap what a create made in an envelope:
  * `{ success, id, data: { ID, name } }`. The record is the object under `data`, its identity is
  * `ID` — or the top-level `id` when `data` leaves it out. Taking the envelope for the record made
- * oat compare the wrong object and lose the id it needs to read back and remove what it created.
+ * The API tester compare the wrong object and lose the id it needs to read back and remove what it created.
  */
 
 const ITEM = {

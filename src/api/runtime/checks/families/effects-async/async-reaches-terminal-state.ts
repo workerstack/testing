@@ -131,7 +131,7 @@ function judgeStreamedTerminal(run: Invocation, terminal: Record<string, unknown
 	})
 }
 
-/** The job this start created is a record like any other, and oat's to remove. */
+/** The job this start created is a record like any other, and the API tester's to remove. */
 function recordJob(run: Invocation, receipt: unknown, start: Exchange): void {
 	const { ctx, op, spec } = run
 	const jobId = spec.idFrom === undefined ? undefined : receiptId(receipt, spec.idFrom)
@@ -157,7 +157,7 @@ function judgePolled(run: Invocation, start: Exchange, outcome: AsyncOutcome): v
 		return
 	}
 	if (outcome.state === "unfillable") {
-		/* oat could not name the job to ask about it: nothing the backend did. */
+		/* The API tester could not name the job to ask about it: nothing the backend did. */
 		ctx.findings.unresolved(
 			run.check,
 			about(run),

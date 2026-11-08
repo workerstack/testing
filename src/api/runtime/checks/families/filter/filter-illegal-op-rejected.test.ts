@@ -80,7 +80,7 @@ describe("filter.illegal-op-rejected: plan", () => {
 	it("plans with a stand-in value, skips alias spellings, and probes the next writable field", () => {
 		const unset = stage({ doc: { xQuery: { filterable: [{ field: "note", ops: ["eq"] }] } }, records: COHORT })
 		expect(check.plan(unset.ctx)).toMatchObject({
-			value: { probes: [{ term: { filter: "note.ne.oat-probe" } }, { term: { filter: "note.zz.oat-probe" } }] },
+			value: { probes: [{ term: { filter: "note.ne.testing-probe" } }, { term: { filter: "note.zz.testing-probe" } }] },
 		})
 		const aliased = stage({
 			doc: { xQuery: { aliases: { ne: "neq" }, filterable: [{ field: "status", ops: ["eq", "neq"] }] } },

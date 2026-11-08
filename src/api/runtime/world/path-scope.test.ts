@@ -97,7 +97,7 @@ describe("resolvePathScope, refused or adopted", () => {
 		expect(scope.values).toEqual({ counter_id: "c1" })
 	})
 
-	it("refuses a parent whose create names no id oat can use", async () => {
+	it("refuses a parent whose create names no id the API tester can use", async () => {
 		const run = world(() => ({ body: { ok: true }, status: 201 }))
 		await expect(resolvePathScope(op(run.model, "row.create"), run.seeding)).rejects.toThrow(
 			'create for "table" returned no usable "id"',
@@ -107,7 +107,7 @@ describe("resolvePathScope, refused or adopted", () => {
 	it("refuses a parameter no entity owns, or whose owner has no create", async () => {
 		const unowned = world(tableMade, { roots: {} }, TENANT)
 		await expect(resolvePathScope(op(unowned.model, "note.create"), unowned.seeding)).rejects.toThrow(
-			"path parameter {tenant} names no entity oat can create",
+			"path parameter {tenant} names no entity the API tester can create",
 		)
 		const uncreatable = world(tableMade, {}, tables(null))
 		await expect(resolvePathScope(op(uncreatable.model, "row.create"), uncreatable.seeding)).rejects.toThrow(
@@ -165,7 +165,7 @@ describe("seeding a create whose path names its own record", () => {
 		const refused = await resolvePathScope(op(run.model, "thing.create"), run.seeding).catch((error: unknown) => error)
 		expect(refused).toBeInstanceOf(SeedError)
 		expect((refused as Error).message).toBe(
-			'{thing_id} names the "thing" thing.create makes, so oat cannot seed it; supply it as a root or create it in a scenario',
+			'{thing_id} names the "thing" thing.create makes, so the API tester cannot seed it; supply it as a root or create it in a scenario',
 		)
 		/* Nothing is sent: the refusal comes before any request. */
 		expect(run.sent).toEqual([])

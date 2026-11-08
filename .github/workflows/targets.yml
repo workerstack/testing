@@ -1,6 +1,6 @@
 name: targets
 
-# oat against five real APIs (crAPI, Immich, Keycloak, Typesense, VAmPI), each its own compose stack
+# The API tester against five real APIs (crAPI, Immich, Keycloak, Typesense, VAmPI), each its own compose stack
 # from pinned images: minutes per target and Docker plus the network, so it runs nightly and on
 # demand rather than on every push. A target must report exactly its expected.json.
 on:
@@ -39,5 +39,5 @@ jobs:
       - run: bun install --frozen-lockfile
       - name: Targets
         env:
-          OAT_TARGETS: ${{ inputs.targets }}
+          TESTING_API_TARGETS: ${{ inputs.targets }}
         run: bun run test:targets

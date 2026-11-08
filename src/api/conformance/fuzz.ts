@@ -12,7 +12,7 @@
  *     because a check it depends on was itself broken by another injected defect;
  *   - **precision** — no finding outside the union of what the injected set can justify.
  *
- * Suppression is the interesting half. Counting a suppressed check as a miss would push oat
+ * Suppression is the interesting half. Counting a suppressed check as a miss would push the API tester
  * toward reporting cascades; counting any suppression as fine would let it hide real defects
  * behind unrelated ones. The dependency graph is what separates those two, so it is consulted
  * rather than assumed.
@@ -99,7 +99,7 @@ function drawDefects(pool: readonly DefectName[], seed: number, maxDefects: numb
 }
 
 /**
- * oat run once against the target's reference with `defects` injected, `seed` shaping its data.
+ * testing api run once against the target's reference with `defects` injected, `seed` shaping its data.
  * A reference that will not start fails the whole pass; a run that fails is the case's own result.
  */
 async function runAgainst(
@@ -107,7 +107,7 @@ async function runAgainst(
 	defects: DefectName[],
 	seed: number,
 ): Promise<{ result: RunResult } | { error: string }> {
-	/* A defect behind an opt-in shows only with it on, in the reference and in oat both. */
+	/* A defect behind an opt-in shows only with it on, in the reference and in the API tester both. */
 	const optIn = optInFor(defects)
 	const server = await launch(target, { defects, ...optIn.reference })
 	try {

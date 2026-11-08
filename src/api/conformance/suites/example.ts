@@ -54,9 +54,9 @@ function otherExpectations(model: Model): Expectation[] {
 		],
 		["public catalog has no tenant param", 'omit is not the string "null"', templateRead?.tenantParam, null],
 		["x-invalidate names two routes", "one of them cross-entity", create?.invalidates.length, 2],
-		["idempotency header is modeled", "a promise oat replays", create?.idempotencyHeader, "Idempotency-Key"],
+		["idempotency header is modeled", "a promise the API tester replays", create?.idempotencyHeader, "Idempotency-Key"],
 		["x-immutable is read", "probed for rejection", update?.immutable.includes("workspace_id"), true],
-		["x-async is read", "oat follows the job", start?.async?.poll, "export.read"],
+		["x-async is read", "the API tester follows the job", start?.async?.poll, "export.read"],
 		["x-feature-gate is read", "a matching 403 is coverage, not a seed defect", create?.featureGate, "widgets"],
 		["x-unique is read", "a 409 duplicate is a pass, 2xx is BACKEND_BUG", create?.unique, [["name"]]],
 	]

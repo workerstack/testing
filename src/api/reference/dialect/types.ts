@@ -5,7 +5,7 @@ export interface Dialect {
 	name: string
 	/**
 	 * The dialect names its parameters on `x-query.params` and its paging fields on `x-query.envelope`,
-	 * because no alias oat knows would find them.
+	 * because no alias the API tester knows would find them.
 	 */
 	declaresNames?: boolean
 	/** Query parameter names, by role. */
@@ -46,7 +46,7 @@ export interface Dialect {
 	 *
 	 * `equality` has no filter parameter at all: each filterable field is its own query parameter,
 	 * and only equality is expressible. It is the most common shape in the wild and the one where
-	 * oat can say the least — which makes it the real test of whether "I cannot express this" is
+	 * The API tester can say the least — which makes it the real test of whether "I cannot express this" is
 	 * reported honestly rather than silently skipped.
 	 */
 	grammar: "postgrest" | "colon" | "equality" | "template"

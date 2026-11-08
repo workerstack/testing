@@ -286,7 +286,7 @@ describe("deleting a record", () => {
 	it("answers that it removed a hidden row it keeps under HIDDEN_FROM_CREATOR", async () => {
 		const { call, item, state } = await withTable({ defects: ["HIDDEN_FROM_CREATOR"] })
 		const rows = `${item}/rows`
-		const probe = (await call("POST", rows, { body: { label: "oat-payload-probe" } })).body
+		const probe = (await call("POST", rows, { body: { label: "testing-payload-probe" } })).body
 		expect((await call("DELETE", `${rows}/${String(probe["id"])}`)).status).toBe(200)
 		expect(await state.store.byId(state.entities[1] as never, String(probe["id"]))).not.toBeNull()
 	})

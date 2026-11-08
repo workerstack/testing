@@ -36,10 +36,10 @@ describe("validateTags", () => {
 describe("validateTags and an x-query block", () => {
 	it("records a malformed sort, select or searchCase as a gap naming the key", () => {
 		expect(gapsOf({ "x-query": { sort: { maxKeys: -1 } } })).toEqual([
-			'x-query: x-query "sort" "maxKeys" must be a positive integer; oat cannot use it',
+			'x-query: x-query "sort" "maxKeys" must be a positive integer; the API tester cannot use it',
 		])
 		expect(gapsOf({ "x-query": { searchCase: "loose" } })).toEqual([
-			'x-query: x-query "searchCase" must be one of "sensitive", "insensitive"; oat cannot use it',
+			'x-query: x-query "searchCase" must be one of "sensitive", "insensitive"; the API tester cannot use it',
 		])
 	})
 })
@@ -68,30 +68,30 @@ describe("validateTags malformed tags", () => {
 				"x-before": 3,
 			}),
 		).toEqual([
-			"x-before: x-before must be a non-empty string; oat cannot use it",
-			'x-bind: x-bind "body" must map names to strings; oat cannot use it',
-			'x-async: x-async needs "poll"; oat cannot use it',
-			'x-cleanup: x-cleanup must be a route like "GET /path"; oat cannot use it',
-			'x-cost: x-cost must be one of "low", "medium", "high"; oat cannot use it',
-			"x-destructive: x-destructive must be true or false; oat cannot use it",
-			"x-feature-gate: x-feature-gate must be a non-empty string; oat cannot use it",
-			"x-fresh-principal: x-fresh-principal must be true or false; oat cannot use it",
-			"x-generated: x-generated must be an array of strings; oat cannot use it",
-			"x-idempotent: x-idempotent must be true or false; oat cannot use it",
-			"x-immutable: x-immutable must be an array of strings; oat cannot use it",
-			'x-invalidate: x-invalidate must be an array of routes like "GET /path"; oat cannot use it',
-			'x-invite: x-invite needs "accept"; oat cannot use it',
-			'x-query: x-query "maxLimit" must be a positive integer; oat cannot use it',
-			'x-rate-limit: x-rate-limit needs "category"; oat cannot use it',
-			"x-soft-delete: x-soft-delete must be a non-empty string; oat cannot use it",
-			"x-tenant: x-tenant must be a path parameter name or false; oat cannot use it",
-			'x-wait: x-wait needs "operationId"; oat cannot use it',
+			"x-before: x-before must be a non-empty string; the API tester cannot use it",
+			'x-bind: x-bind "body" must map names to strings; the API tester cannot use it',
+			'x-async: x-async needs "poll"; the API tester cannot use it',
+			'x-cleanup: x-cleanup must be a route like "GET /path"; the API tester cannot use it',
+			'x-cost: x-cost must be one of "low", "medium", "high"; the API tester cannot use it',
+			"x-destructive: x-destructive must be true or false; the API tester cannot use it",
+			"x-feature-gate: x-feature-gate must be a non-empty string; the API tester cannot use it",
+			"x-fresh-principal: x-fresh-principal must be true or false; the API tester cannot use it",
+			"x-generated: x-generated must be an array of strings; the API tester cannot use it",
+			"x-idempotent: x-idempotent must be true or false; the API tester cannot use it",
+			"x-immutable: x-immutable must be an array of strings; the API tester cannot use it",
+			'x-invalidate: x-invalidate must be an array of routes like "GET /path"; the API tester cannot use it',
+			'x-invite: x-invite needs "accept"; the API tester cannot use it',
+			'x-query: x-query "maxLimit" must be a positive integer; the API tester cannot use it',
+			'x-rate-limit: x-rate-limit needs "category"; the API tester cannot use it',
+			"x-soft-delete: x-soft-delete must be a non-empty string; the API tester cannot use it",
+			"x-tenant: x-tenant must be a path parameter name or false; the API tester cannot use it",
+			'x-wait: x-wait needs "operationId"; the API tester cannot use it',
 		])
 		expect(
 			gapsOf({ "x-invite": { accept: "POST /a", acceptFrom: "email", invite: "POST /i", revoke: "DELETE /i" } }),
-		).toEqual(['x-invite: x-invite "acceptFrom" must be one of "link"; oat cannot use it'])
+		).toEqual(['x-invite: x-invite "acceptFrom" must be one of "link"; the API tester cannot use it'])
 		expect(gapsOf({ "x-invalidate": "GET /a" })).toEqual([
-			'x-invalidate: x-invalidate must be an array of routes like "GET /path"; oat cannot use it',
+			'x-invalidate: x-invalidate must be an array of routes like "GET /path"; the API tester cannot use it',
 		])
 	})
 })
@@ -101,35 +101,35 @@ describe("validateTags x-entity and x-root", () => {
 		expect(gapsOf({ "x-entity": { recordPath: "$.data" } })).toEqual([])
 		expect(gapsOf({ "x-entity": { createdIdFrom: "$.id" } })).toEqual([])
 		expect(gapsOf({ "x-entity": { action: "read", recordPath: "$.data" } })).toEqual([
-			'x-entity: x-entity needs "name"; oat cannot use it',
+			'x-entity: x-entity needs "name"; the API tester cannot use it',
 		])
 		expect(gapsOf({ "x-entity": { name: "note", recordPath: "$.data" } })).toEqual([
-			'x-entity: x-entity needs "action"; oat cannot use it',
+			'x-entity: x-entity needs "action"; the API tester cannot use it',
 		])
-		expect(gapsOf({ "x-entity": {} })).toEqual(['x-entity: x-entity needs "name"; oat cannot use it'])
+		expect(gapsOf({ "x-entity": {} })).toEqual(['x-entity: x-entity needs "name"; the API tester cannot use it'])
 		expect(gapsOf({ "x-entity": { action: "rename", name: "n" } })).toEqual([
-			'x-entity: x-entity "action" must be one of "create", "list", "read", "update", "delete", "action"; oat cannot use it',
+			'x-entity: x-entity "action" must be one of "create", "list", "read", "update", "delete", "action"; the API tester cannot use it',
 		])
 	})
 
-	it("takes a recordPath oat can read, and names one it cannot", () => {
+	it("takes a recordPath the API tester can read, and names one it cannot", () => {
 		for (const recordPath of ["$.data", "data.item", "/data", "$.data[*]", "$.hits[*].document", "$.hits[*].a.b"]) {
 			expect(gapsOf({ "x-entity": { recordPath } })).toEqual([])
 		}
 		const cannot =
 			'x-entity: x-entity "recordPath" may hold [*] only right after a top-level key, as in ' +
-			'"$.hits[*].document"; oat cannot use it'
+			'"$.hits[*].document"; the API tester cannot use it'
 		for (const recordPath of ["$.a.b[*].c", "$.hits[*]document", "$.hits[*].", "$[*].document", "$.a[*][*]"]) {
 			expect(gapsOf({ "x-entity": { recordPath } })).toEqual([cannot])
 		}
 		expect(gapsOf({ "x-entity": { recordPath: "" } })).toEqual([
-			'x-entity: x-entity "recordPath" must be a non-empty string; oat cannot use it',
+			'x-entity: x-entity "recordPath" must be a non-empty string; the API tester cannot use it',
 		])
 	})
 
 	it("records a parameter's x-root that is not a boolean", () => {
 		expect(gapsOf({ parameters: [{ in: "path", name: "org", "x-root": "yes" }] })).toEqual([
-			'x-root: x-root on "org" must be true or false; oat cannot use it',
+			'x-root: x-root on "org" must be true or false; the API tester cannot use it',
 		])
 	})
 })
@@ -138,13 +138,13 @@ describe("validateTags x-consistency", () => {
 	it("records a staleness that is not whole seconds and a bypass that is not a header", () => {
 		expect(gapsOf({ "x-consistency": { bypass: "x-fresh: 1", staleness: "30s" } })).toEqual([])
 		expect(gapsOf({ "x-consistency": { staleness: "30" } })).toEqual([
-			'x-consistency: x-consistency "staleness" must be whole seconds like "30s"; oat cannot use it',
+			'x-consistency: x-consistency "staleness" must be whole seconds like "30s"; the API tester cannot use it',
 		])
 		expect(gapsOf({ "x-consistency": { bypass: "x-fresh" } })).toEqual([
-			'x-consistency: x-consistency "bypass" must be a header like "x-fresh: 1"; oat cannot use it',
+			'x-consistency: x-consistency "bypass" must be a header like "x-fresh: 1"; the API tester cannot use it',
 		])
 		expect(gapsOf({ "x-consistency": "30s" })).toEqual([
-			"x-consistency: x-consistency must be an object; oat cannot use it",
+			"x-consistency: x-consistency must be an object; the API tester cannot use it",
 		])
 	})
 })

@@ -12,7 +12,7 @@ let dir: string
 
 beforeAll(async () => {
 	server = await createMemoryServer()
-	dir = await mkdtemp(join(tmpdir(), "oat-cli-golden-"))
+	dir = await mkdtemp(join(tmpdir(), "testing-cli-golden-"))
 	const valid = {
 		baseUrl: server.url,
 		principals: PRINCIPALS,
@@ -30,9 +30,9 @@ beforeAll(async () => {
 	}
 	for (const [name, body] of Object.entries(configs)) await writeFile(join(dir, name), JSON.stringify(body))
 	await mkdir(join(dir, "empty-run"))
-	await writeFile(join(dir, "empty-run", "oat-report.json"), JSON.stringify({ outcome: {} }))
+	await writeFile(join(dir, "empty-run", "report.json"), JSON.stringify({ outcome: {} }))
 	await mkdir(join(dir, "good-run"))
-	await writeFile(join(dir, "good-run", "oat-report.json"), JSON.stringify({ findings: [] }))
+	await writeFile(join(dir, "good-run", "report.json"), JSON.stringify({ findings: [] }))
 	await writeFile(join(dir, "existing.json"), "{}")
 })
 afterAll(async () => {

@@ -8,7 +8,7 @@ import { removeStaleRuns } from "../api/support/temp-root.ts"
 
 describe("removeStaleRuns", () => {
 	it("removes run roots older than a day and keeps fresh ones and anything else", () => {
-		const base = mkdtempSync(join(tmpdir(), "oat-roots-"))
+		const base = mkdtempSync(join(tmpdir(), "testing-roots-"))
 		const day = 24 * 60 * 60 * 1000
 		const now = Date.now()
 		for (const name of ["run-old", "run-fresh", "keep-old"]) mkdirSync(join(base, name))

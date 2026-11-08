@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { fieldLines } from "./init-code.ts"
 
-/* Code laid out as oxfmt lays it out, so formatting what `oat init` writes changes nothing. */
+/* Code laid out as oxfmt lays it out, so formatting what `testing api init` writes changes nothing. */
 
 describe("fieldLines", () => {
 	it("keeps a value on one line up to 120 columns, a tab counting two, and breaks it one column later", () => {

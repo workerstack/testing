@@ -649,7 +649,7 @@
             {
               "method": "GET",
               "status": 200,
-              "url": "http://reference.test/v1/projects/proj_alpha/tables/table_ID/rows?limit=5&filter=oat_no_such_field_xyz.eq.1"
+              "url": "http://reference.test/v1/projects/proj_alpha/tables/table_ID/rows?limit=5&filter=testing_no_such_field_xyz.eq.1"
             }
           ],
           "summary": "unknown filter field is silently ignored",
@@ -671,7 +671,7 @@
             {
               "method": "GET",
               "status": 200,
-              "url": "http://reference.test/v1/projects/proj_alpha/jobs?limit=100&filter=oat_no_such_field_xyz.eq.1"
+              "url": "http://reference.test/v1/projects/proj_alpha/jobs?limit=100&filter=testing_no_such_field_xyz.eq.1"
             }
           ],
           "summary": "unknown filter field is silently ignored",
@@ -693,7 +693,7 @@
             {
               "method": "GET",
               "status": 200,
-              "url": "http://reference.test/v1/projects/proj_alpha/tables?limit=100&filter=oat_no_such_field_xyz.eq.1"
+              "url": "http://reference.test/v1/projects/proj_alpha/tables?limit=100&filter=testing_no_such_field_xyz.eq.1"
             }
           ],
           "summary": "unknown filter field is silently ignored",

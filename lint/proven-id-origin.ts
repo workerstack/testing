@@ -3,7 +3,7 @@ import { repoPath } from "./paths.ts"
 
 /*
  * Teardown deletes what was recorded, and only a `ProvenId` can be recorded. Making one by a cast
- * anywhere but `src/api/runtime/proven-id.ts` would let an id oat merely sent (the bug that deleted
+ * anywhere but `src/api/runtime/proven-id.ts` would let an id the API tester merely sent (the bug that deleted
  * other tenants' rows) back into the ledger.
  */
 const HOME = "/src/api/runtime/proven-id.ts"

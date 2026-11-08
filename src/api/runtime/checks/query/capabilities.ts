@@ -30,7 +30,7 @@ export function q(ctx: Listed, roles: QueryRoles): Query {
 	const c = conv(ctx)
 	const out: QueryOut = {}
 	/* Never above the documented maximum: a backend is right to refuse a request that breaks the
-	 * contract, and reading that refusal as anything about the backend would be oat's own fault.
+	 * contract, and reading that refusal as anything about the backend would be the API tester's own fault.
 	 * The one check that probes past the cap on purpose sets the parameter itself. */
 	const size = roles.limit === undefined ? undefined : Math.min(roles.limit, pageSize(ctx))
 	if (size !== undefined && c.limit !== undefined) out[c.limit] = size
@@ -108,7 +108,7 @@ export function filterable(ctx: Listed): boolean {
 	const c = conv(ctx)
 	if (c.filter !== undefined) return true
 	/* Equality-per-field needs a field to attach the predicate to, and the document has to say
-	 * which fields are filterable — otherwise oat would be guessing at parameter names. */
+	 * which fields are filterable — otherwise the API tester would be guessing at parameter names. */
 	return filterSpec(c).param === "field" && (ctx.query?.filterable.length ?? 0) > 0
 }
 

@@ -105,7 +105,7 @@ describe("queryOf and the parameters the list declares", () => {
 	})
 
 	it("cuts the guessed per-field filters to the parameters the list declares", async () => {
-		/* No `x-query`: a free-text `q` makes oat guess every scalar filterable, one parameter each. */
+		/* No `x-query`: a free-text `q` makes the API tester guess every scalar filterable, one parameter each. */
 		const ctx = await contextOf(optionsFor(notesApi(queried(["q", "title"], null))))
 		const { capabilities, withheld } = await queryOf(entityRunOf(ctx), {})
 		expect(capabilities.filterable.map((field) => field.field)).toEqual(["title"])

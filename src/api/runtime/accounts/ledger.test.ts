@@ -17,7 +17,7 @@ afterEach(() => {
 
 describe("AccountLedger", () => {
 	it("writes each sign-up to its file before the answer, then the answer, then teardown's verdict", () => {
-		folder = mkdtempSync(join(tmpdir(), "oat-ledger-"))
+		folder = mkdtempSync(join(tmpdir(), "testing-ledger-"))
 		const file = join(folder, "accounts.json")
 		const ledger = new AccountLedger(file)
 		const entry = ledger.sending("auth.signup", { email: "a@x.test", password: "secret" })

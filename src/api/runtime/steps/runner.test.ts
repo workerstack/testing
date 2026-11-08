@@ -41,14 +41,14 @@ describe("stepRunner", () => {
 	it("labels a failure with the principal it ran for", async () => {
 		const { ctx } = stepStage(() => ({ status: 500 }))
 		await expect(stepRunner(ctx).run([{ operationId: "ping" }], { principal: "bob", scope: {} })).rejects.toThrow(
-			'oat: principal "bob" failed at auth step 1 (GET /ping)',
+			'testing api: principal "bob" failed at auth step 1 (GET /ping)',
 		)
 	})
 
 	it("refuses steps that send no request, since there is no answer to read", async () => {
 		const { ctx } = stepStage(() => ({ status: 200 }))
 		await expect(stepRunner(ctx).run([], { principal: "bob", scope: {} })).rejects.toThrow(
-			'oat: principal "bob" ran its steps without sending a request, so there is no answer to read',
+			'testing api: principal "bob" ran its steps without sending a request, so there is no answer to read',
 		)
 	})
 })

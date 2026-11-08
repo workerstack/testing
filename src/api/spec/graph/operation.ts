@@ -127,7 +127,7 @@ function readSecurity({ op, operationId }: Endpoint, doc: OpenApiDocument, gaps:
 		gaps.record(
 			operationId,
 			"security",
-			`security requirement "${scheme}" gives its scopes as something other than a list; oat reads it as no scopes`,
+			`security requirement "${scheme}" gives its scopes as something other than a list; the API tester reads it as no scopes`,
 		)
 	}
 	return security
@@ -148,7 +148,7 @@ function reportAmbiguousRows(endpoint: Endpoint, { recordPath, schema }: Success
 	gaps.record(
 		endpoint.operationId,
 		"x-entity.recordPath",
-		`the response holds several arrays of objects (${ambiguous.join(", ")}), so oat cannot tell which ` +
+		`the response holds several arrays of objects (${ambiguous.join(", ")}), so the API tester cannot tell which ` +
 			'are the rows; name them with x-entity.recordPath (e.g. "$.' +
 			`${ambiguous[0]}")`,
 	)

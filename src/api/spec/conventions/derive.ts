@@ -68,7 +68,7 @@ function reportUnmatched(unmatched: ResolvedRoles["unmatched"], tell: Convention
 		const named = publicRole(role)
 		tell?.(
 			`params.${named} names "${name}", which the operation does not declare; ` +
-				`oat finds the ${named} parameter by its aliases`,
+				`the API tester finds the ${named} parameter by its aliases`,
 		)
 	}
 }
@@ -79,7 +79,7 @@ function filterConventions(filterParam: ParameterObject | undefined, sources: Co
 	if (stated !== undefined) return stated
 	const inferred = inferGrammar(filterParam)
 	/* A single free-text `filter` parameter almost never means equality-per-field; it means a grammar
-	 * oat could not recognize. Writing `?name=value` anyway would send parameters the document never
+	 * The API tester could not recognize. Writing `?name=value` anyway would send parameters the document never
 	 * declared and read the shrug that comes back as a defect, so no filter term is written at all. */
 	const unrecognized = inferred === "equality" && filterParam?.schema?.type === "string"
 	if (unrecognized && declared === undefined) sources.onGuess?.(unrecognizedMessage(filterParam.name))
@@ -91,7 +91,7 @@ function statedGrammar(declared: unknown): FilterConventions | undefined {
 	if (declared === "postgrest" || declared === "colon" || declared === "equality") {
 		return { grammar: declared, grammarDeclared: true }
 	}
-	/* An object that cannot be read is a gap `x-query`'s validation records; oat infers instead. */
+	/* An object that cannot be read is a gap `x-query`'s validation records; the API tester infers instead. */
 	const template = typeof declared === "object" ? parseFilterGrammar(declared) : null
 	return template?.ok === true
 		? { grammar: "template", filterGrammar: template.spec, grammarDeclared: true }
@@ -101,7 +101,7 @@ function statedGrammar(declared: unknown): FilterConventions | undefined {
 function unrecognizedMessage(name: string): string {
 	return (
 		`parameter "${name}" takes a filter expression whose grammar could not be ` +
-		"recognized from its description or examples, so oat writes no filter terms for it. " +
+		"recognized from its description or examples, so the API tester writes no filter terms for it. " +
 		'Declare it with x-query: { grammar: "postgrest" | "colon" | "equality" }, or describe it as a ' +
 		'template: { grammar: { term: "{conj}_{field}_{op}_{value}", ops: { eq: "eq" }, … } }'
 	)
@@ -112,7 +112,7 @@ function declaredSort(declared: unknown, order: ParameterObject | undefined): So
 	if (typeof declared === "string" && Object.hasOwn(SORT_PRESETS, declared)) {
 		return { sortDeclared: true, sortGrammar: declared as keyof typeof SORT_PRESETS }
 	}
-	/* An object that cannot be read is a gap `x-query`'s validation records; oat infers instead. */
+	/* An object that cannot be read is a gap `x-query`'s validation records; the API tester infers instead. */
 	const parsed = typeof declared === "object" ? parseSortGrammar(declared) : null
 	if (parsed?.ok === true) return { sortDeclared: true, sortGrammar: "template", sortSpec: parsed.spec }
 	return { sortGrammar: inferSortGrammar(order) }
@@ -160,7 +160,7 @@ function namedEnvelope(collection: CollectionShape | null, sources: ConventionSo
 		else {
 			sources.onUnmatched?.(
 				`envelope.${role} names "${name}", which the response envelope does not declare; ` +
-					`oat finds the ${role} field by its aliases`,
+					`the API tester finds the ${role} field by its aliases`,
 			)
 		}
 	}

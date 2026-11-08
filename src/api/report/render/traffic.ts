@@ -33,7 +33,7 @@ export function utf8Total(transcript: readonly Exchange[], side: "request" | "re
  *
  * A run is a few hundred requests against every read path an API has, which makes it a usable
  * sample of where time actually goes — and the slowest exchange is very often a route with a
- * missing index rather than a slow network. Reported, not asserted: oat has no baseline to judge
+ * missing index rather than a slow network. Reported, not asserted: the API tester has no baseline to judge
  * "too slow" against, and inventing a threshold would produce a finding nobody can act on.
  */
 export function latency(transcript: readonly Exchange[]): Latency | null {

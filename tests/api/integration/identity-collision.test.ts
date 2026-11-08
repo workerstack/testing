@@ -6,7 +6,7 @@ import type { OpenApiDocument } from "../../../src/api/spec/types.ts"
 
 /*
  * A create that takes the record's id from the client and silently overwrites a record that
- * already has it (a config store keyed by id). Nothing declares the id unique, so only oat's own
+ * already has it (a config store keyed by id). Nothing declares the id unique, so only the API tester's own
  * care keeps it from choosing an id a record already holds — and destroying that record.
  */
 

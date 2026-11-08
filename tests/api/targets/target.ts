@@ -1,13 +1,13 @@
 import { spawnSync } from "node:child_process"
 import { readFile } from "node:fs/promises"
 import { join } from "node:path"
-import { latestReport, oat, type ReportFinding, type SavedRunReport } from "../support/cli-run.ts"
+import { latestReport, tester, type ReportFinding, type SavedRunReport } from "../support/cli-run.ts"
 import type { Vendored } from "../support/vendored.ts"
 
 /*
- * A real API oat is pointed at: its own compose stack, the setup a fresh install needs before a
+ * A real API the API tester is pointed at: its own compose stack, the setup a fresh install needs before a
  * run (an admin, users, keys), and the findings it is known to deserve. Each target lives in
- * tests/api/targets/<name>/ with `compose.yml`, `oat.config.ts`, `expected.json` and a `target.ts`
+ * tests/api/targets/<name>/ with `compose.yml`, `testing.api.config.ts`, `expected.json` and a `target.ts`
  * whose default export is a `Target`.
  */
 
@@ -16,7 +16,7 @@ export interface Target {
 	baseUrl: string
 	/**
 	 * Readies a freshly started stack (waits for it, signs up, mints keys) and returns the env
-	 * vars its oat.config.ts reads through env().
+	 * vars its testing.api.config.ts reads through env().
 	 */
 	prepare(baseUrl: string): Promise<Record<string, string>>
 	/** How long the stack may take to come up and be prepared, in ms. */
@@ -45,7 +45,7 @@ export interface ExpectedFinding {
 export const TARGETS_DIR: string = import.meta.dirname
 
 /**
- * The targets `OAT_TARGETS` names, or `undefined` for every target: unset, or a list that names none,
+ * The targets `TESTING_API_TARGETS` names, or `undefined` for every target: unset, or a list that names none,
  * as a workflow dispatch with its input left empty sends.
  */
 export function targetsAsked(value: string | undefined): string[] | undefined {
@@ -59,7 +59,9 @@ export function targetsAsked(value: string | undefined): string[] | undefined {
 /** `docker compose` on one target's stack, as its own project; throws with the output on a failure. */
 export function compose(name: string, args: readonly string[]): string {
 	const file = join(TARGETS_DIR, name, "compose.yml")
-	const ran = spawnSync("docker", ["compose", "-p", `oat-target-${name}`, "-f", file, ...args], { encoding: "utf8" })
+	const ran = spawnSync("docker", ["compose", "-p", `testing-target-${name}`, "-f", file, ...args], {
+		encoding: "utf8",
+	})
 	if (ran.status !== 0)
 		throw new Error(`docker compose ${args.join(" ")} (${name}) exited ${ran.status}: ${ran.stderr}`)
 	return ran.stdout
@@ -82,7 +84,7 @@ export async function answers(url: string, withinMs: number, ok = (status: numbe
 	throw new Error(`${url} did not come up within ${withinMs} ms: ${last}`)
 }
 
-/** A target's run: oat's exit code and output, and the report it wrote. */
+/** A target's run: the API tester's exit code and output, and the report it wrote. */
 export interface TargetRun {
 	code: number
 	out: string
@@ -90,13 +92,13 @@ export interface TargetRun {
 	expected: ExpectedFinding[]
 }
 
-/** Runs oat against a prepared target with its config, its env set for the run only. */
+/** Runs the API tester against a prepared target with its config, its env set for the run only. */
 export async function runTarget(name: string, env: Record<string, string>, out: string): Promise<TargetRun> {
 	const saved = { ...process.env }
 	Object.assign(process.env, env)
 	try {
-		const config = join(TARGETS_DIR, name, "oat.config.ts")
-		const { code, out: printed } = await oat(["run", "--config", config, "--out", out, "--quiet"])
+		const config = join(TARGETS_DIR, name, "testing.api.config.ts")
+		const { code, out: printed } = await tester(["run", "--config", config, "--out", out, "--quiet"])
 		const expected = JSON.parse(await readFile(join(TARGETS_DIR, name, "expected.json"), "utf8")) as ExpectedFinding[]
 		return { code, expected, out: printed, report: await latestReport(out) }
 	} finally {

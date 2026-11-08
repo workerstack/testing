@@ -35,14 +35,14 @@ export interface SchemeFact {
 	kind: SecurityScheme["kind"]
 	bearerFormat?: string
 	deprecated: boolean
-	/** `template` is the recipe's `format` when it has one. Null for a scheme oat cannot send. */
+	/** `template` is the recipe's `format` when it has one. Null for a scheme the API tester cannot send. */
 	placement: { in: string; name: string; template: string } | null
 	extraPlacements: number
 	/** The base recipe's kind, else the first principal override's; null when none names the scheme. */
 	recipe: RecipeKind | null
 	/** The recipe's `format`, when it sets one. */
 	format?: string
-	/** Why oat cannot send it. */
+	/** Why the API tester cannot send it. */
 	why?: string
 }
 

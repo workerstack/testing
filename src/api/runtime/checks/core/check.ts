@@ -45,7 +45,7 @@ export interface CheckBase<T, X extends CheckContext = CheckContext> {
 	/**
 	 * Operations whose contract this check judges, decided from the entity graph alone.
 	 *
-	 * Static so `oat plan --ops` can show a scope without a network, and so a targeted run can
+	 * Static so `testing api plan --ops` can show a scope without a network, and so a targeted run can
 	 * queue only the entities whose checks grade a target. Every other operation a check calls is
 	 * support: needed to reach or observe a subject, never graded itself. Required, so a new check
 	 * cannot run invisibly under `--ops`.

@@ -25,10 +25,10 @@ describe("outsideEnum", () => {
 
 	it("goes one past the largest number, or picks text the enum lacks", () => {
 		expect(outsideEnum({ enum: [1, 5, 3] })).toEqual({ ok: true, value: 6 })
-		expect(outsideEnum({ enum: ["a"] })).toEqual({ ok: true, value: "oat-not-in-enum" })
-		expect(outsideEnum({ enum: ["oat-not-in-enum", "oat-not-in-enum-x"] })).toEqual({
+		expect(outsideEnum({ enum: ["a"] })).toEqual({ ok: true, value: "testing-not-in-enum" })
+		expect(outsideEnum({ enum: ["testing-not-in-enum", "testing-not-in-enum-x"] })).toEqual({
 			ok: true,
-			value: "oat-not-in-enum-x-x",
+			value: "testing-not-in-enum-x-x",
 		})
 	})
 })

@@ -1,5 +1,5 @@
 /**
- * Rate-limit pacing: keeps oat's own traffic under a per-category budget so a documented limit is
+ * Rate-limit pacing: keeps the API tester's own traffic under a per-category budget so a documented limit is
  * respected rather than tripped and reported as a backend defect.
  *
  * Two sources compile down to the same shape. `config.rateLimits` is checked first — it is the

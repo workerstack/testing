@@ -4,7 +4,7 @@
 	"plugins": ["typescript", "unicorn", "oxc", "vitest"],
 	"jsPlugins": [
 		{
-			"name": "oat",
+			"name": "testing",
 			"specifier": "./lint/index.ts"
 		}
 	],
@@ -14,8 +14,8 @@
 	"ignorePatterns": [
 		"dist/**",
 		"coverage/**",
-		"oat-out/**",
-		".oat/**",
+		"testing-out/**",
+		".testing/api/**",
 		"labs/api/node_modules/**",
 		"labs/api/schema/**",
 		".agents/**",
@@ -31,11 +31,11 @@
 	},
 	"rules": {
 		"no-unused-vars": "warn",
-		"oat/exit-only-in-cli": "error",
-		"oat/grammar-through-renderer": "error",
-		"oat/id-through-reader": "error",
-		"oat/network-through-client": "error",
-		"oat/proven-id-origin": "error",
+		"testing/exit-only-in-cli": "error",
+		"testing/grammar-through-renderer": "error",
+		"testing/id-through-reader": "error",
+		"testing/network-through-client": "error",
+		"testing/proven-id-origin": "error",
 		"unicorn/no-array-sort": "off",
 		"unicorn/prefer-string-starts-ends-with": "warn",
 		"complexity": ["error", 15],
@@ -47,14 +47,14 @@
 		"vitest/no-conditional-expect": "error",
 		"vitest/no-disabled-tests": "error",
 		"vitest/no-focused-tests": "error",
-		"oat/boundaries": "error",
-		"oat/index-purity": "error",
-		"oat/no-console": "error",
-		"oat/no-header-branching": "error",
-		"oat/no-module-side-effects": "error",
-		"oat/no-module-state": "error",
-		"oat/no-v8-ignore": "error",
-		"oat/max-params": "error"
+		"testing/boundaries": "error",
+		"testing/index-purity": "error",
+		"testing/no-console": "error",
+		"testing/no-header-branching": "error",
+		"testing/no-module-side-effects": "error",
+		"testing/no-module-state": "error",
+		"testing/no-v8-ignore": "error",
+		"testing/max-params": "error"
 	},
 	"overrides": [
 		{

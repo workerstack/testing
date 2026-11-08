@@ -36,20 +36,26 @@ const SUITES = [
 describe("commandConformance refusals", () => {
 	it("refuses a selector it does not know before running anything", async () => {
 		const refusals: Array<[Flags, string]> = [
-			[{ backend: "nope" }, 'oat: unknown --backend "nope" — expected memory, sqlite, postgres, d1\n'],
-			[{ dialect: "nope" }, 'oat: unknown --dialect "nope" — expected classic, postgrest\n'],
-			[{ legs: "," }, "oat: --legs needs a comma-separated list of suites, passes, shapes, recall, scope, fuzz\n"],
+			[{ backend: "nope" }, 'testing api: unknown --backend "nope" — expected memory, sqlite, postgres, d1\n'],
+			[{ dialect: "nope" }, 'testing api: unknown --dialect "nope" — expected classic, postgrest\n'],
+			[
+				{ legs: "," },
+				"testing api: --legs needs a comma-separated list of suites, passes, shapes, recall, scope, fuzz\n",
+			],
 			[
 				{ legs: "passes,tea" },
-				"oat: --legs names no leg: tea — expected suites, passes, shapes, recall, scope, fuzz\n",
+				"testing api: --legs names no leg: tea — expected suites, passes, shapes, recall, scope, fuzz\n",
 			],
-			[{ only: "," }, "oat: --only needs a comma-separated list of defect names\n"],
-			[{ only: "A,Z,Y" }, "oat: --only names no defect: Z, Y\n"],
-			[{ shapes: "prefix,nope" }, "oat: --shapes names no shape: nope\n"],
-			[{ backend: "d1", fuzz: true }, "oat: --fuzz runs on a local engine — expected memory, sqlite, postgres\n"],
+			[{ only: "," }, "testing api: --only needs a comma-separated list of defect names\n"],
+			[{ only: "A,Z,Y" }, "testing api: --only names no defect: Z, Y\n"],
+			[{ shapes: "prefix,nope" }, "testing api: --shapes names no shape: nope\n"],
+			[
+				{ backend: "d1", fuzz: true },
+				"testing api: --fuzz runs on a local engine — expected memory, sqlite, postgres\n",
+			],
 			[
 				{ backend: "d1", precision: "5" },
-				"oat: --precision runs on a local engine — expected memory, sqlite, postgres\n",
+				"testing api: --precision runs on a local engine — expected memory, sqlite, postgres\n",
 			],
 		]
 		for (const [flags, said] of refusals) {
@@ -147,7 +153,9 @@ describe("commandConformance without the Postgres driver", () => {
 		expect(full.text).toContain("note: postgres backend skipped as asked — driver not installed")
 		const asked = await conformance({ backend: "postgres" }, { postgres: "no-driver" })
 		expect(asked.code).toBe(2)
-		expect(asked.text).toContain("oat: --backend postgres needs the postgres package (^3.4): npm install postgres\n")
+		expect(asked.text).toContain(
+			"testing api: --backend postgres needs the postgres package (^3.4): npm install postgres\n",
+		)
 		expect(asked.log.some((entry) => entry.startsWith("task"))).toBe(false)
 	})
 })

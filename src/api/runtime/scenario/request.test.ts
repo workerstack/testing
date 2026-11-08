@@ -109,7 +109,7 @@ describe("requestStep: failures", () => {
 	it("refuses a placeholder nothing fills before anything is sent", async () => {
 		const run = runOf(notes())
 		await expect(requestStep(run, { operationId: "notes.get" }, 0)).rejects.toThrow(
-			"oat: step 1's placeholder {id} has no value: no bind, saveAs or earlier step fills it",
+			"testing api: step 1's placeholder {id} has no value: no bind, saveAs or earlier step fills it",
 		)
 		expect(run.sent).toEqual([])
 	})

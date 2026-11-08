@@ -14,7 +14,7 @@ import { commandRun, type RunDeps, runPipeline } from "./run.ts"
 import type { SignalSource } from "./run-signals.ts"
 
 /*
- * `oat run`: a config read and checked, the run set up around it, the backend tested, the folder
+ * `testing api run`: a config read and checked, the run set up around it, the backend tested, the folder
  * written, and an exit code for what it found. The real pipeline runs here against an in-memory
  * API through a scripted transport.
  */
@@ -74,17 +74,17 @@ describe("commandRun", () => {
 		const run = deps()
 		const code = await commandRun(writer, { config: notesConfig(), out, quiet: true }, run)
 		expect({ code, output: writer.text() }).toEqual({ code: 0, output: expect.any(String) })
-		expect(existsSync(join(out, "latest", "oat-report.json"))).toBe(true)
+		expect(existsSync(join(out, "latest", "report.json"))).toBe(true)
 		expect(writer.text()).toContain(`  latest: ${join(out, "latest")}\n\n`)
 		expect(readFileSync(join(out, "latest", "progress.log"), "utf8").length).toBeGreaterThan(0)
 		run.asked[0]?.warn?.("an upload path matched no file")
-		expect(writer.text()).toContain("oat: an upload path matched no file\n")
+		expect(writer.text()).toContain("testing api: an upload path matched no file\n")
 	})
 
-	it("writes the run folder where the config says, else under ./.oat/runs", async () => {
+	it("writes the run folder where the config says, else under ./.testing/api/runs", async () => {
 		const configured = folder()
 		await commandRun(bufferWriter(), { config: notesConfig(folder(), { outDir: configured }), quiet: true }, deps())
-		expect(existsSync(join(configured, "latest", "oat-report.json"))).toBe(true)
+		expect(existsSync(join(configured, "latest", "report.json"))).toBe(true)
 		const cwd = process.cwd()
 		const here = folder()
 		process.chdir(here)
@@ -93,7 +93,7 @@ describe("commandRun", () => {
 		} finally {
 			process.chdir(cwd)
 		}
-		expect(existsSync(join(here, ".oat", "runs", "latest", "oat-report.json"))).toBe(true)
+		expect(existsSync(join(here, ".testing", "api", "runs", "latest", "report.json"))).toBe(true)
 	})
 
 	it("writes a relative configured outDir under the config's folder, from any working directory", async () => {
@@ -103,7 +103,7 @@ describe("commandRun", () => {
 			{ config: notesConfig(dir, { outDir: "runs", spec: "openapi.json" }), quiet: true },
 			deps(),
 		)
-		expect(existsSync(join(dir, "runs", "latest", "oat-report.json"))).toBe(true)
+		expect(existsSync(join(dir, "runs", "latest", "report.json"))).toBe(true)
 	})
 
 	it("keeps the credentials beside the runs root, outside every run folder, when asked", async () => {
@@ -117,7 +117,7 @@ describe("commandRun", () => {
 		} finally {
 			process.chdir(cwd)
 		}
-		const kept = join(realpathSync(here), ".oat", "credentials.json")
+		const kept = join(realpathSync(here), ".testing", "api", "credentials.json")
 		expect(JSON.parse(readFileSync(kept, "utf8"))).toHaveProperty("credentials")
 		expect((statSync(kept).mode & 0o777).toString(8)).toBe("600")
 		expect(writer.text()).toContain(`  credentials: ${kept}\n`)
@@ -157,7 +157,7 @@ describe("commandRun journaling", () => {
 		const run = { ...deps(() => emitter.emit("SIGINT", "SIGINT")), signals: source }
 		const writer = bufferWriter()
 		expect(await commandRun(writer, { config: notesConfig(), out: folder(), quiet: true }, run)).toBe(130)
-		expect(writer.text()).toContain("oat: SIGINT — stopping")
+		expect(writer.text()).toContain("testing api: SIGINT — stopping")
 	})
 })
 
@@ -166,7 +166,7 @@ describe("commandRun reports", () => {
 		const out = folder()
 		const writer = bufferWriter()
 		expect(await commandRun(writer, { config: notesConfig(), out, quiet: true, report: "junit" }, deps())).toBe(0)
-		expect(readFileSync(join(out, "latest", "junit.xml"), "utf8")).toContain('<testsuites name="oat"')
+		expect(readFileSync(join(out, "latest", "junit.xml"), "utf8")).toContain('<testsuites name="testing api"')
 		expect(writer.text()).toMatch(/ {2}junit: .*junit\.xml\n/)
 	})
 
@@ -174,7 +174,7 @@ describe("commandRun reports", () => {
 		const out = folder()
 		const writer = bufferWriter()
 		expect(await commandRun(writer, { config: notesConfig(), out, report: "junit,xml" }, deps())).toBe(EXIT.usage)
-		expect(writer.text()).toBe('oat: --report takes junit, got "xml"\n')
+		expect(writer.text()).toBe('testing api: --report takes junit, got "xml"\n')
 		expect(readdirSync(out)).toEqual([])
 	})
 
@@ -184,15 +184,15 @@ describe("commandRun reports", () => {
 		const out = folder()
 		expect(await commandRun(bufferWriter(), { config: notesConfig(), out, quiet: true }, deps())).toBe(0)
 		const text = readFileSync(summary, "utf8")
-		expect(text.startsWith("## oat: clean (exit 0)\n")).toBe(true)
-		expect(text).toContain(`${realpathSync(join(out, "latest"))}/oat-report.md`)
+		expect(text.startsWith("## testing api: clean (exit 0)\n")).toBe(true)
+		expect(text).toContain(`${realpathSync(join(out, "latest"))}/report.md`)
 	})
 
 	it("a step summary that cannot be written warns and keeps the exit code", async () => {
 		vi.stubEnv("GITHUB_STEP_SUMMARY", join(folder(), "gone", "step-summary.md"))
 		const writer = bufferWriter()
 		expect(await commandRun(writer, { config: notesConfig(), out: folder(), quiet: true }, deps())).toBe(0)
-		expect(writer.text()).toContain("oat: could not write the step summary: ENOENT")
+		expect(writer.text()).toContain("testing api: could not write the step summary: ENOENT")
 	})
 })
 
@@ -200,10 +200,10 @@ describe("commandRun refusals", () => {
 	it("refuses without a config, a config it cannot use, and one with no principals", async () => {
 		const none = bufferWriter()
 		expect(await commandRun(none, {})).toBe(EXIT.usage)
-		expect(none.text()).toMatch(/^oat: run requires --config\n\noat — OpenAPI Tester/)
+		expect(none.text()).toMatch(/^testing api: run requires --config\n\ntesting api — test a live HTTP API/)
 		const missing = bufferWriter()
 		expect(await commandRun(missing, { config: "nowhere.config.ts" }, deps())).toBe(EXIT.usage)
-		expect(missing.text()).toBe("oat: config not found: nowhere.config.ts\n")
+		expect(missing.text()).toBe("testing api: config not found: nowhere.config.ts\n")
 		const nobody = bufferWriter()
 		expect(await commandRun(nobody, { config: notesConfig(folder(), { principals: {} }) }, deps())).toBe(EXIT.usage)
 		expect(nobody.text()).toContain("config.principals declares no principal")
@@ -213,11 +213,11 @@ describe("commandRun refusals", () => {
 		const dir = folder()
 		const missing = bufferWriter()
 		expect(await commandRun(missing, { config: notesConfig(dir, { baseline: "gone.json" }) }, deps())).toBe(EXIT.usage)
-		expect(missing.text()).toMatch(/^oat: cannot read baseline .*gone\.json: /)
+		expect(missing.text()).toMatch(/^testing api: cannot read baseline .*gone\.json: /)
 		json(dir, "bad.json", { version: 9 })
 		const invalid = bufferWriter()
 		expect(await commandRun(invalid, { config: notesConfig(dir, { baseline: "bad.json" }) }, deps())).toBe(EXIT.usage)
-		expect(invalid.text()).toMatch(/^oat: .*bad\.json/)
+		expect(invalid.text()).toMatch(/^testing api: .*bad\.json/)
 	})
 
 	it("leaves no folder and keeps latest when the run refuses its targets", async () => {
@@ -240,12 +240,16 @@ describe("commandRun refusals", () => {
 		const fenced = bufferWriter()
 		const refusal = new FencedError({ method: "GET", phase: "load", reason: "no", url: "u" })
 		expect(await commandRun(fenced, { config, out: folder(), quiet: true }, failing(refusal))).toBe(EXIT.failed)
-		expect(fenced.text()).toContain("oat: fenced: no")
+		expect(fenced.text()).toContain("testing api: fenced: no")
 		const usage = bufferWriter()
 		expect(
-			await commandRun(usage, { config, out: folder(), quiet: true }, failing(new UsageError("oat: bad target"))),
+			await commandRun(
+				usage,
+				{ config, out: folder(), quiet: true },
+				failing(new UsageError("testing api: bad target")),
+			),
 		).toBe(EXIT.usage)
-		expect(usage.text()).toContain("oat: bad target\n")
+		expect(usage.text()).toContain("testing api: bad target\n")
 		await expect(
 			commandRun(bufferWriter(), { config, out: folder(), quiet: true }, failing(new Error("bug"))),
 		).rejects.toThrow("bug")

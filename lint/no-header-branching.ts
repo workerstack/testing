@@ -31,7 +31,7 @@ const names = (text: string): boolean => HEADERS.has(text.toLowerCase()) || PREF
 export const rule: Rule = {
 	create(context: Context) {
 		const file = repoPath(context.filename)
-		if (!file.includes("/src/api/") || isTestCode(file) || HOMES.some((home) => file.includes(home))) return {}
+		if (!file.includes("/src/") || isTestCode(file) || HOMES.some((home) => file.includes(home))) return {}
 		return {
 			Literal(node: Literal) {
 				if (typeof node.value === "string" && names(node.value)) context.report({ message: MESSAGE, node })

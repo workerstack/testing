@@ -37,5 +37,5 @@ export function undeliverable(value: unknown, schema: unknown, nonce: string): u
 function addressed(value: string, schema: JsonSchema, nonce: string): string {
 	const format = typeof schema.format === "string" ? schema.format : ""
 	if (EMAIL.has(format)) return nonexistentIdentity({ name: "email", schema }, nonce)
-	return URL_FORMATS.has(format) ? `https://oat-nonexistent-${nonce}.invalid/` : value
+	return URL_FORMATS.has(format) ? `https://testing-nonexistent-${nonce}.invalid/` : value
 }

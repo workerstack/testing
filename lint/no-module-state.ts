@@ -54,7 +54,7 @@ function allowed(context: Context, statement: Node): boolean {
 export const rule: Rule = {
 	create(context: Context) {
 		const file = repoPath(context.filename)
-		if (!file.includes("/src/api/") || isTestCode(file)) return {}
+		if (!file.includes("/src/") || isTestCode(file)) return {}
 		return {
 			VariableDeclaration(node: Declaration) {
 				const statement = node.parent?.type === "ExportNamedDeclaration" ? node.parent : node

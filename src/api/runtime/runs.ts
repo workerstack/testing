@@ -1,15 +1,15 @@
 /**
- * Each `oat run` writes into a fresh timestamped folder so a later run does not
+ * Each `testing api run` writes into a fresh timestamped folder so a later run does not
  * overwrite the last report.
  *
- * Default root is `.oat/runs`. `--out` / `outDir` replace that root; the leaf is
+ * Default root is `.testing/api/runs`. `--out` / `outDir` replace that root; the leaf is
  * always `<root>/<datetime>/`. `latest` is a relative symlink at the root.
  */
 
 import { mkdir, readlink, rm, symlink } from "node:fs/promises"
 import { join, resolve } from "node:path"
 
-export const DEFAULT_RUNS_ROOT = ".oat/runs"
+export const DEFAULT_RUNS_ROOT = ".testing/api/runs"
 export const LATEST_LINK = "latest"
 
 /** UTC, filesystem-safe. `2026-08-18T14:30:05.123Z` → `2026-08-18T14-30-05Z`. */

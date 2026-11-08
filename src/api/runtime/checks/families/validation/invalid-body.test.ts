@@ -13,7 +13,11 @@ describe("invalidChoice", () => {
 
 	it("never removes a property from a PATCH, which merges and need not resend it: it sends the wrong type", () => {
 		const schema = { properties: { size: { type: "integer" } }, required: ["size"], type: "object" }
-		expect(invalidChoice(schema, { merge: true })).toEqual({ field: "size", kind: "wrong-type", value: "oat-invalid" })
+		expect(invalidChoice(schema, { merge: true })).toEqual({
+			field: "size",
+			kind: "wrong-type",
+			value: "testing-invalid",
+		})
 		expect(invalidChoice(schema, { merge: false })).toEqual({ field: "size", kind: "missing" })
 	})
 })
@@ -55,7 +59,7 @@ describe("invalidChoice: what it never breaks", () => {
 			properties: { anything: {}, count: { type: "integer" }, name: { type: "string" } },
 			type: "object",
 		}
-		expect(invalidChoice(schema)).toEqual({ field: "count", kind: "wrong-type", value: "oat-invalid" })
+		expect(invalidChoice(schema)).toEqual({ field: "count", kind: "wrong-type", value: "testing-invalid" })
 	})
 
 	it("chooses the same body every time: the choice reads the schema alone", () => {
@@ -75,7 +79,7 @@ describe("wrongTyped", () => {
 	it("is a value no listed type admits, null never among them", () => {
 		expect(wrongTyped("string")).toBe(7)
 		expect(wrongTyped(["string", "null"])).toBe(7)
-		expect(wrongTyped("number")).toBe("oat-invalid")
+		expect(wrongTyped("number")).toBe("testing-invalid")
 		expect(wrongTyped(["string", "integer"])).toBe(true)
 		expect(wrongTyped(["string", "number", "boolean"])).toEqual([])
 		expect(wrongTyped(["string", "number", "boolean", "array"])).toEqual({})

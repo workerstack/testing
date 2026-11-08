@@ -6,7 +6,7 @@ import { propertySchemaOf, requestSchemaOf, withheldProperties } from "../../pay
 import type { JsonSchema } from "../../../../spec/types.ts"
 import { admits, stringConstraints } from "../../../generate/string-constraints.ts"
 
-export const ASCII_PAYLOAD_PROBE = "oat-payload-probe"
+export const ASCII_PAYLOAD_PROBE = "testing-payload-probe"
 
 export interface PayloadField {
 	name: string

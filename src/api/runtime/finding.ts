@@ -27,7 +27,7 @@ export interface Finding {
 }
 
 /**
- * Whether a finding is a root cause — what fails a run. Coverage gaps and blocks are what oat
+ * Whether a finding is a root cause — what fails a run. Coverage gaps and blocks are what the API tester
  * could not look at, not what it found. The console, the reports, the matrix and the exit code
  * all ask this one question.
  */
@@ -93,7 +93,7 @@ export interface Claim {
 	fixture?: string | undefined
 }
 
-/** A gap proves nothing by exchange: it is what oat could not look at. */
+/** A gap proves nothing by exchange: it is what the API tester could not look at. */
 export type GapClaim = Omit<Claim, "evidence">
 
 /** A check that could not run because `cause` failed first. */
@@ -118,8 +118,8 @@ const USER_PATH =
 const DIRECTORIES = /^.*[\\/](?=[^\\/])/
 
 /**
- * `path` as a whole path, never inside a longer one: under cwd "/x/oat", "/x/oat2" and "/x/oat.bak"
- * stay, while "/x/oat/a.ts" and a sentence ending "/x/oat." match.
+ * `path` as a whole path, never inside a longer one: under cwd "/x/testing", "/x/testing2" and "/x/testing.bak"
+ * stay, while "/x/testing/a.ts" and a sentence ending "/x/testing." match.
  */
 function wholePath(path: string): RegExp {
 	return new RegExp(
@@ -130,7 +130,7 @@ function wholePath(path: string): RegExp {
 
 /**
  * Text a report may carry. A report is shared beyond the machine that ran it, so no finding names
- * where oat or its user lives:
+ * where the API tester or its user lives:
  * - every stack frame line ("\n    at ...") is dropped;
  * - a path under the working directory is written relative to it, the directory itself as ".";
  * - any other path in a user's directory (see `USER_PATH`) is cut to its last segment, so

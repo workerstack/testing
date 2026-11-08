@@ -11,7 +11,7 @@ describe("renderMatrixHtml", () => {
 	it("draws one entity: its name in the title, every chip, its read surface, and no cards", () => {
 		const html = posterOf({ entities: [{ name: "table", readSurface: ["GET /table", "GET /t<x>"] }] })
 		expect(html.startsWith('<!DOCTYPE html>\n<html lang="en">\n<head>')).toBe(true)
-		expect(html).toContain("<title>oat matrix — table</title>")
+		expect(html).toContain("<title>testing api matrix — table</title>")
 		expect(html).toContain("<style>\n  :root {")
 		expect(html).toContain('<div class="kicker">same fact · many checks</div>')
 		expect(html).toContain("<h1>table was asked<br>through independent projections</h1>")
@@ -34,7 +34,7 @@ describe("renderMatrixHtml", () => {
 			entities: ["table", { name: "row", readSurface: [] }],
 			invalidates: [{ routes: ["GET /table"], writer: "row" }],
 		})
-		expect(html).toContain("<title>oat matrix — table, row</title>")
+		expect(html).toContain("<title>testing api matrix — table, row</title>")
 		expect(html).toContain('<div class="kicker">many entities · invalidate is an edge</div>')
 		expect(html).toContain("<h1>2 entities, 1 cross-entity claim</h1>")
 		expect(html).toContain('<div class="skipped"><b>1</b><span>out of scope</span></div>')
@@ -53,7 +53,7 @@ describe("renderMatrixHtml", () => {
 				{ routes: ["GET /e0"], writer: "e2" },
 			],
 		})
-		expect(html).toContain("<title>oat matrix — 25 entities</title>")
+		expect(html).toContain("<title>testing api matrix — 25 entities</title>")
 		expect(html).toContain("<h1>25 entities, 2 cross-entity claims</h1>")
 		expect(html).toContain('<div class="crowd-note">')
 		expect(html).toContain('<div class="forest">')

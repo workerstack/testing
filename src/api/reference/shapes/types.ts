@@ -1,14 +1,14 @@
 /**
  * Correct API shapes the reference backend can be served in.
  *
- * Every dialect in `dialect/presets.ts` is an API oat was written against. A shape is the opposite: a
- * choice a correct backend is entitled to make that oat was *not* written against — pages without
+ * Every dialect in `dialect/presets.ts` is an API the API tester was written against. A shape is the opposite: a
+ * choice a correct backend is entitled to make that the API tester was *not* written against — pages without
  * a more-pages flag, UUID identifiers, a mount under a path prefix, PUT instead of PATCH. Each is
  * a server option rather than a proxy, so the backend stays correct by construction and the only
- * thing that can produce a finding is an assumption oat made.
+ * thing that can produce a finding is an assumption the API tester made.
  *
  * The conformance suite runs the clean baseline behind each shape and requires zero findings.
- * Shapes oat does not handle yet are listed in `conformance/expected-failures.ts`, which may only shrink.
+ * Shapes the API tester does not handle yet are listed in `conformance/expected-failures.ts`, which may only shrink.
  */
 
 import type { QueryConventions } from "../query/conventions.ts"
@@ -18,7 +18,7 @@ export interface ReferenceShape {
 	pagination?: "page-total" | "cursor-only" | "offset-total"
 	/** A page-size ceiling the server applies without documenting it. */
 	clampLimit?: number
-	/** Records already in the collection before oat arrives, per tenant. */
+	/** Records already in the collection before the API tester arrives, per tenant. */
 	prepopulate?: number
 	/** Identifier format, with malformed path identifiers rejected as 400. */
 	ids?: "uuid" | "integer"
@@ -44,7 +44,7 @@ export interface ReferenceShape {
 	totpSetup?: boolean
 	/**
 	 * Item and list reads go through a cache that keeps each answer 400 ms and declares
-	 * `x-consistency: { staleness: "1s", bypass: "x-oat-fresh: 1" }`, answering `Cache-Status` and `Age`.
+	 * `x-consistency: { staleness: "1s", bypass: "x-testing-fresh: 1" }`, answering `Cache-Status` and `Age`.
 	 */
 	cachedReads?: boolean
 	/** Each record carries a large generated field, so one page exceeds 256 KiB. */

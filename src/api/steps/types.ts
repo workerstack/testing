@@ -1,7 +1,7 @@
 /*
  * What a caller tells the step builders about its API, so a scenario that names an operation, a
  * body field, a path parameter or an error key the API lacks fails to compile. Nothing here exists
- * at run time: the builders emit oat's plain step objects.
+ * at run time: the builders emit the API tester's plain step objects.
  */
 
 import type { ScenarioStep } from "../config/types/steps.ts"

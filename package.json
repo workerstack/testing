@@ -1,29 +1,30 @@
 {
-	"name": "@lovrozagar/oat",
+	"name": "@workerstack/testing",
 	"version": "0.31.0",
-	"description": "OpenAPI Tester — matrix-test a live API against its OpenAPI spec",
+	"description": "Testing for APIs, web apps and Workers: /api tests a live HTTP API against its OpenAPI document",
 	"keywords": [
 		"api",
 		"contract-testing",
 		"openapi",
 		"swagger",
-		"testing"
+		"testing",
+		"workerstack"
 	],
-	"homepage": "https://github.com/lovrozagar/oat#readme",
+	"homepage": "https://github.com/workerstack/testing#readme",
 	"bugs": {
-		"url": "https://github.com/lovrozagar/oat/issues"
+		"url": "https://github.com/workerstack/testing/issues"
 	},
 	"license": "MIT",
 	"author": "lovrozagar",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/lovrozagar/oat.git"
+		"url": "https://github.com/workerstack/testing.git"
 	},
 	"bin": {
-		"oat": "./bin/oat.js"
+		"testing": "./bin/testing.js"
 	},
 	"files": [
-		"bin/oat.js",
+		"bin/testing.js",
 		"dist",
 		"!dist/**/*.map",
 		"README.md",
@@ -37,14 +38,12 @@
 		"labs/api/README.md"
 	],
 	"type": "module",
-	"main": "./dist/api/index.js",
-	"types": "./dist/api/index.d.ts",
 	"exports": {
-		".": {
+		"./api": {
 			"types": "./dist/api/index.d.ts",
 			"default": "./dist/api/index.js"
 		},
-		"./steps": {
+		"./api/steps": {
 			"types": "./dist/api/steps/index.d.ts",
 			"default": "./dist/api/steps/index.js"
 		}

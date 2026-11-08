@@ -41,7 +41,7 @@ export function isDelete(op: OperationModel): boolean {
 /**
  * The throwaway `op`'s next probe sends to: the one it holds, else a new one. Untested, with the
  * reason, when the run created no record `op` names to model it on, its entity has no create, or the
- * create made nothing oat could ledger.
+ * create made nothing the API tester could ledger.
  */
 export async function throwawayTarget(
 	ctx: RunContext,

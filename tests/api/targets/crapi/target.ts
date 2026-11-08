@@ -2,15 +2,15 @@ import { answers, type Target } from "../target.ts"
 
 /*
  * crAPI signs a user up, then emails them a vehicle VIN and pincode they must claim. The run needs
- * two accounts in two tenants, each with a placed order — but the order lifecycle oat drives needs
+ * two accounts in two tenants, each with a placed order — but the order lifecycle the API tester drives needs
  * no vehicle, so prepare only creates and logs the accounts in. Each account funds a cohort of
  * orders from its starting $100 of credit.
  */
 const ACCOUNTS = {
-	ALPHA: { email: "oat-alpha@example.com", name: "Oat Alpha", number: "4169990001" },
-	BETA: { email: "oat-beta@example.com", name: "Oat Beta", number: "4169990002" },
+	ALPHA: { email: "testing-alpha@example.com", name: "the API tester Alpha", number: "4169990001" },
+	BETA: { email: "testing-beta@example.com", name: "the API tester Beta", number: "4169990002" },
 } as const
-const PASSWORD = "Oat!pass123"
+const PASSWORD = "Tst!pass123"
 
 async function post(url: string, body: unknown): Promise<{ status: number; body: Record<string, unknown> }> {
 	const response = await fetch(url, {

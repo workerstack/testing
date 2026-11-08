@@ -11,7 +11,7 @@ const contextOf = (
 	params: readonly string[] = PARAMS,
 ) => stage(queryAxesCompose, { doc: queryDoc(xQuery, params), rows }).ctx
 
-/* A grammar oat cannot read: a bare string `filter` parameter, nothing declared. */
+/* A grammar the API tester cannot read: a bare string `filter` parameter, nothing declared. */
 const UNREADABLE = { grammar: undefined }
 
 /* Groups of one, of all, of no searchable overlap, and finally one that overlaps: status "s2". */

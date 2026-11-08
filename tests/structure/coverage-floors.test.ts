@@ -20,10 +20,10 @@ function git(cwd: string, ...args: string[]): void {
 
 /* A repository holding `files`, committed once per entry of `commits` in order. */
 function repo(commits: ReadonlyArray<Record<string, string>>): string {
-	const dir = mkdtempSync(join(tmpdir(), "oat-floors-"))
+	const dir = mkdtempSync(join(tmpdir(), "testing-floors-"))
 	git(dir, "init", "-q")
-	git(dir, "config", "user.email", "test@oat.test")
-	git(dir, "config", "user.name", "oat test")
+	git(dir, "config", "user.email", "test@testing.test")
+	git(dir, "config", "user.name", "the API tester test")
 	for (const files of commits) {
 		for (const [path, text] of Object.entries(files)) {
 			mkdirSync(dirname(join(dir, path)), { recursive: true })
@@ -107,9 +107,24 @@ describe("coverage floors for modules that come and go", () => {
 		expect(floorProblems(dir)).toEqual([])
 	})
 
+	it("judge a dropped floor by the tree of the commit that dropped it, not by a later module on that path", () => {
+		const dir = repo([{ "coverage-floors.json": floors(90), "src/api/a.ts": "export const a = 1\n" }])
+		mkdirSync(join(dir, "src/api/moved"))
+		git(dir, "mv", "src/api/a.ts", "src/api/moved/a.ts")
+		writeFileSync(join(dir, "coverage-floors.json"), `${JSON.stringify({ "src/api/moved/a.ts": { lines: 90 } })}\n`)
+		git(dir, "commit", "-q", "-am", "move")
+		writeFileSync(join(dir, "src/api/a.ts"), "export const fresh = 1\n")
+		const both = { "src/api/a.ts": { lines: 100 }, "src/api/moved/a.ts": { lines: 90 } }
+		writeFileSync(join(dir, "coverage-floors.json"), `${JSON.stringify(both)}\n`)
+		expect(floorProblems(dir)).toEqual([])
+		git(dir, "add", "-A")
+		git(dir, "commit", "-q", "-m", "a new module where the old one was")
+		expect(floorProblems(dir)).toEqual([])
+	})
+
 	it("refuse a shallow clone, which cannot show the bar", () => {
 		const source = repo([{ "coverage-floors.json": floors(90), "src/api/a.ts": "" }, { "src/api/a.ts": "x" }])
-		const shallow = mkdtempSync(join(tmpdir(), "oat-floors-shallow-"))
+		const shallow = mkdtempSync(join(tmpdir(), "testing-floors-shallow-"))
 		git(shallow, "clone", "-q", "--depth", "1", `file://${source}`, ".")
 		expect(() => floorProblems(shallow)).toThrow(/fetch-depth: 0/)
 		expect(readFileSync(join(shallow, "coverage-floors.json"), "utf8")).toBe(floors(90))

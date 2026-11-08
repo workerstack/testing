@@ -30,7 +30,7 @@ export interface LoginRecipe {
 	/**
 	 * The operation that revokes a session this recipe opened, sent with that session: a logout, or a
 	 * token revoke with a `body` in which `{credential}` is the session's value, e.g.
-	 * `{ operationId: "auth.revoke", body: { token: "{credential}" } }`. oat calls it for the dedicated
+	 * `{ operationId: "auth.revoke", body: { token: "{credential}" } }`. The API tester calls it for the dedicated
 	 * sessions its security probes open, never for a principal's own.
 	 */
 	revoke?: string | { operationId: string; body?: unknown }
@@ -52,7 +52,7 @@ export interface MintRecipe {
 /** A value fixed in config: a token, or a basic pair. */
 export type StaticRecipe = string | { username: string; password: string }
 
-/** An OAuth 2 grant oat performs itself, at the token URL the document declares. */
+/** An OAuth 2 grant the API tester performs itself, at the token URL the document declares. */
 export interface OAuth2Recipe {
 	flow: "clientCredentials" | "password"
 	clientId: string

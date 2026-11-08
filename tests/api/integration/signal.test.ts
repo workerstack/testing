@@ -99,9 +99,9 @@ async function interrupted(signal: NodeJS.Signals, phase: string, twice = false)
 	const proxy = twice ? await holdingProxy(server.url) : undefined
 	if (proxy !== undefined) proxies.push(proxy)
 	const base = proxy?.url ?? server.url
-	const dir = await mkdtemp(join(tmpdir(), "oat-signal-"))
+	const dir = await mkdtemp(join(tmpdir(), "testing-signal-"))
 	dirs.push(dir)
-	const config = join(dir, "oat.config.json")
+	const config = join(dir, "testing.api.config.json")
 	await writeFile(
 		config,
 		JSON.stringify({
@@ -139,7 +139,7 @@ async function reportOf(dir: string): Promise<{ interrupted?: boolean }> {
 	const stamped = (await readdir(dir)).filter((name) => /^\d/.test(name))
 	const [only] = stamped
 	if (only === undefined) throw new Error(`no run directory in ${dir}`)
-	return JSON.parse(await readFile(join(dir, only, "oat-report.json"), "utf8")) as { interrupted?: boolean }
+	return JSON.parse(await readFile(join(dir, only, "report.json"), "utf8")) as { interrupted?: boolean }
 }
 
 describe("a first signal", () => {

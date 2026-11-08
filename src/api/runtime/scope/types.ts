@@ -2,9 +2,9 @@
  * Operation scope: which operations a run grades.
  *
  * A full run grades every operation some check judges. A targeted run (`--ops`, `--only`) grades
- * only the named operations. Everything else oat calls — principal sign-up, parent creates, the
+ * only the named operations. Everything else the API tester calls — principal sign-up, parent creates, the
  * cohort create behind a list, teardown deletes — is support: called to reach or observe a
- * target, never graded. Resolution is static over the entity graph so `oat plan --ops` can show
+ * target, never graded. Resolution is static over the entity graph so `testing api plan --ops` can show
  * the scope with no network, and so a typo fails before the first request.
  */
 

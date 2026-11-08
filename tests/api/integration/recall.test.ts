@@ -11,7 +11,7 @@ import type { DefectName } from "../../../src/api/reference/defects/table.ts"
 import { CHECKS } from "../../../src/api/runtime/checks/registry.ts"
 
 /*
- * Recall over the whole registry, the claim `oat conformance` ends on: every registered check fires
+ * Recall over the whole registry, the claim `testing api conformance` ends on: every registered check fires
  * on a defect built for it. The full matrix proves that with every defect on every leg; this runs
  * the fewest of the same tasks that still name every check, one defect each, on the in-memory
  * engine, and judges them with the command's own proof: `renderSuite` for a pass, `recalledChecks`

@@ -4,7 +4,7 @@ import { documentOf, modelOf, referenceModel } from "./__fixtures__/models.ts"
 import { doctor, unsetEnvLines } from "./doctor.ts"
 
 describe("doctor as text", () => {
-	it("reports what oat can and cannot test in the reference, section by section, and blocks on its roots", async () => {
+	it("reports what the API tester can and cannot test in the reference, section by section, and blocks on its roots", async () => {
 		const { model, externalRefs } = await referenceModel()
 		const { text, blocking } = doctor(model, { externalRefs })
 		expect(blocking).toBe(1)
@@ -22,7 +22,7 @@ describe("doctor as text", () => {
 		expect(text).not.toContain("no gaps")
 	})
 
-	it("lists the refs that point at nothing beside the ones oat did not fetch", () => {
+	it("lists the refs that point at nothing beside the ones the API tester did not fetch", () => {
 		const { text } = doctor(modelOf(documentOf({})).model, { danglingRefs: ["#/missing"], externalRefs: ["x.yaml"] })
 		expect(text).toContain(
 			"    x.yaml\n\n  dangling $refs (nothing in the document is at these pointers; see the $ref gaps)\n    #/missing\n",
@@ -96,16 +96,16 @@ describe("doctor as JSON", () => {
 	})
 })
 
-describe("doctor on what oat does not exercise", () => {
+describe("doctor on what the API tester does not exercise", () => {
 	it("names a webhook in text and JSON, without blocking or claiming full coverage", () => {
 		const { model } = modelOf(documentOf({}, { webhooks: { newPet: { post: {} } } }))
 		const { text, blocking } = doctor(model)
 		expect(blocking).toBe(0)
-		expect(text).toContain("    webhooks (1) — not tested: oat makes no inbound or follow-up calls")
+		expect(text).toContain("    webhooks (1) — not tested: the API tester makes no inbound or follow-up calls")
 		expect(text).not.toContain("no gaps")
 		expect(JSON.parse(doctor(model, { asJson: true }).text).gaps).toEqual([
 			{
-				detail: "is a call the API sends to a subscriber's URL; oat receives no inbound call",
+				detail: "is a call the API sends to a subscriber's URL; the API tester receives no inbound call",
 				operationId: "webhook newPet",
 				tag: "webhooks",
 			},
@@ -143,10 +143,12 @@ describe("doctor and credentials", () => {
 
 	it("notes unset variables in text and JSON, never blocking", () => {
 		const { model } = modelOf(anyrow)
-		const unsetEnv = ["OAT_JWT_TOKEN", "OAT_API_KEY_KEY"]
+		const unsetEnv = ["TESTING_API_JWT_TOKEN", "TESTING_API_API_KEY_KEY"]
 		const { text, blocking } = doctor(model, { unsetEnv })
 		expect(blocking).toBe(0)
-		expect(text).toContain("\n  env        OAT_JWT_TOKEN, OAT_API_KEY_KEY not set — a run stops until they are\n")
+		expect(text).toContain(
+			"\n  env        TESTING_API_JWT_TOKEN, TESTING_API_API_KEY_KEY not set — a run stops until they are\n",
+		)
 		const json = JSON.parse(doctor(model, { asJson: true, unsetEnv }).text)
 		expect(json.unsetEnv).toEqual(unsetEnv)
 		expect(Object.keys(json.security)).toEqual(["schemes", "operations", "unsupported", "undeclared"])

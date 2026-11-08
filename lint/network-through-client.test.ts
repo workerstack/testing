@@ -25,7 +25,7 @@ const SOURCE = [
 
 const lines = (file: string): number[] => reportsOf(rule, { [file]: SOURCE }).map((report) => report.line)
 
-describe("oat/network-through-client", () => {
+describe("testing/network-through-client", () => {
 	it("reports every way out of the process that is not the client", () => {
 		expect(lines("src/api/runtime/checks.ts")).toEqual([2, 3, 4, 5, 6, 15, 16])
 	})
@@ -38,7 +38,7 @@ describe("oat/network-through-client", () => {
 		expect(lines("tests/api/integration/some.test.ts")).toEqual([])
 	})
 
-	it("fails oxlint through the oat plugin entry", () => {
+	it("fails oxlint through the testing plugin entry", () => {
 		const reports = oxlintReports("network-through-client", { "src/api/runtime/checks.ts": SOURCE })
 		expect(reports.map((report) => report.line)).toEqual([2, 3, 4, 5, 6, 15, 16])
 	})

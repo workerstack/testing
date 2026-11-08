@@ -8,11 +8,11 @@
  * as written, so the config is refused, naming the scenario, the step and the name.
  */
 
-import type { OatConfig } from "../../config/types/config.ts"
+import type { ApiConfig } from "../../config/types/config.ts"
 import { placeholderNames } from "../../config/types/placeholder.ts"
 import { isRecord, type RawOf } from "../../config/types/raw.ts"
 
-type Config = RawOf<OatConfig>
+type Config = RawOf<ApiConfig>
 type Raw = Record<string, unknown>
 
 const SCOPED = "scope."

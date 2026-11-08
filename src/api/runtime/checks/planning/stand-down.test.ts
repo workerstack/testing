@@ -57,7 +57,7 @@ describe("standDownForRateLimit", () => {
 		])
 	})
 
-	it("names the wait a 429 asked for past the limit, which oat did not wait out", () => {
+	it("names the wait a 429 asked for past the limit, which the API tester did not wait out", () => {
 		const { ctx, findings } = notesContext()
 		const limited = {
 			...exchange("GET", "/notes", { status: 429 }),
@@ -69,7 +69,7 @@ describe("standDownForRateLimit", () => {
 				check: "c",
 				entity: "note",
 				reason:
-					"the request was rate-limited (429) and asked oat to wait 24h, longer than " +
+					"the request was rate-limited (429) and asked the API tester to wait 24h, longer than " +
 					"network.maxRetryAfterMs (1m), so this check could not complete",
 			},
 		])
@@ -77,7 +77,7 @@ describe("standDownForRateLimit", () => {
 })
 
 describe("storedFieldsUnknown", () => {
-	it("stands down on records oat sent and never read back, and on nothing else", () => {
+	it("stands down on records the API tester sent and never read back, and on nothing else", () => {
 		const { ctx } = notesContext()
 		expect(storedFieldsUnknown(ctx)).toBeUndefined()
 		expect(storedFieldsUnknown({ ...ctx, recordsUnverified: true })).toEqual({

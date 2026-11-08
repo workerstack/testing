@@ -106,7 +106,7 @@ function resultOf({ state, findings, client, model, profile, fence, options, jou
 	}
 }
 
-/* Creates oat could not identify belong in the teardown report even when nothing else was ledgered. */
+/* Creates the API tester could not identify belong in the teardown report even when nothing else was ledgered. */
 function withUnidentified(
 	teardown: TeardownReport | null,
 	unidentified: TeardownReport["unidentified"],

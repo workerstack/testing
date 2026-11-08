@@ -2,7 +2,7 @@
  * The identity of a finding across runs.
  *
  * Two runs that hit the same defect word its detail the same way except for what is particular to
- * the run: the ids the backend issued, the nonce oat salted its values with, timestamps, the port
+ * the run: the ids the backend issued, the nonce the API tester salted its values with, timestamps, the port
  * the backend listened on. Those are replaced with placeholders, and the summary is left out — it
  * is prose that may be reworded — so a baseline matches the defect and a diff calls it persisting.
  */

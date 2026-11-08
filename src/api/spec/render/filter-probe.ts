@@ -14,7 +14,7 @@ export interface ProbeTerm {
 	value: string
 }
 
-/** The pieces a term template fills. A template oat writes holds no placeholder beyond these. */
+/** The pieces a term template fills. A template the API tester writes holds no placeholder beyond these. */
 function filled(template: string, pieces: Record<string, string>, spec: FilterGrammarSpec): string {
 	const conj = spec.conj?.and
 	return fill(template, { ...pieces, ...(conj === undefined ? {} : { conj }) }) as string

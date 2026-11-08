@@ -50,7 +50,7 @@ function startOperation(ctx: SpecContext, job: EntityDef): Json {
 	}
 }
 
-/* A write whose effect arrives elsewhere, later. x-wait tells oat where to look and how long. */
+/* A write whose effect arrives elsewhere, later. x-wait tells the API tester where to look and how long. */
 function notifyOperation(ctx: SpecContext, job: EntityDef): Json {
 	return {
 		operationId: "job.notify",

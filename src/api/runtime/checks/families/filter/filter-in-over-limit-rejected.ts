@@ -22,7 +22,7 @@ export const filterInOverLimitRejected: Check<{
 		const max = resolvedCaps(ctx).maxInValues
 		const picked = pickFieldForOp(ctx, "in", 1)
 		if (max === undefined || picked === null) return cannot()
-		const members = Array.from({ length: max + 1 }, (_, i) => `oat-over-limit-${i}`)
+		const members = Array.from({ length: max + 1 }, (_, i) => `testing-over-limit-${i}`)
 		const term = filterTerm(conv(ctx), { field: picked.field.field, op: "in", value: members })
 		return term === null
 			? cannot("a filter grammar that can express in()")

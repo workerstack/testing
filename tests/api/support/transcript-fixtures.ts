@@ -28,7 +28,7 @@ export async function listen(handler: (req: IncomingMessage, res: ServerResponse
 }
 
 export async function scratch(): Promise<string> {
-	return mkdtemp(join(tmpdir(), "oat-tr-"))
+	return mkdtemp(join(tmpdir(), "testing-tr-"))
 }
 
 /* Drains the request, then answers 201 with the body `created()` returns; a read error is a 500. */

@@ -7,7 +7,7 @@ import type { RunOptions } from "../types.ts"
 import { seedWorld } from "./seed.ts"
 
 /*
- * How an entity's records come to exist: a create oat may send seeds them; a create a scenario
+ * How an entity's records come to exist: a create the API tester may send seeds them; a create a scenario
  * owns, a profile excludes, or that sign-up already ran leaves the entity read as listed; a list
  * under a parent gets the parent made first.
  */
@@ -23,7 +23,7 @@ const board = {
 const json = (schema: unknown) => ({ content: { "application/json": { schema } } })
 const boardId = { in: "path", name: "board_id", required: true, schema: { type: "string" } }
 
-/** Boards oat can make (or not), and cards listed under a board, with no create of their own. */
+/** Boards the API tester can make (or not), and cards listed under a board, with no create of their own. */
 function boardsDoc(boardsCreate: boolean): OpenApiDocument {
 	return secured({
 		info: { title: "boards", version: "1" },
@@ -157,13 +157,13 @@ describe("seedWorld for an entity read as listed", () => {
 		expect(options.seen.some((request) => request.method === "POST")).toBe(false)
 	})
 
-	it("passes on an error that is not a parent oat could not make", async () => {
+	it("passes on an error that is not a parent the API tester could not make", async () => {
 		const { run } = await runFor(brokenBoards, "card")
 		await expect(seedWorld(run, SEEDS)).rejects.toThrow("transport broke")
 	})
 })
 
-describe("seedWorld with a create oat may send", () => {
+describe("seedWorld with a create the API tester may send", () => {
 	it("seeds a cohort through it", async () => {
 		const rows: Record_[] = []
 		const { run } = await runFor(notesApi(notesDoc(), rows), "note")

@@ -17,7 +17,7 @@ export interface AcquireCtx {
 /** A credential a recipe issued. */
 export interface Issued {
 	value: string
-	/** Epoch ms it lapses, or null when it never does as far as oat can tell. */
+	/** Epoch ms it lapses, or null when it never does as far as the API tester can tell. */
 	expiresAt: number | null
 	/** Renews it. Absent: the store acquires a fresh one by the same recipe. */
 	refresh?: (hop?: Hop) => Promise<Issued>

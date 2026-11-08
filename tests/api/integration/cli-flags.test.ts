@@ -14,15 +14,15 @@ describe("CLI flags", () => {
 	it("does not advertise --concurrency in help", () => {
 		expect(USAGE).not.toContain("--concurrency")
 		expect(USAGE).toContain("--max-in-flight")
-		expect(USAGE).toContain("./.oat/runs")
+		expect(USAGE).toContain("./.testing/api/runs")
 	})
 
 	it("treats --concurrency as unknown (exit 2)", async () => {
-		const { error } = parseArgs(["run", "--config", "oat.config.ts", "--concurrency", "1"])
+		const { error } = parseArgs(["run", "--config", "testing.api.config.ts", "--concurrency", "1"])
 		expect(error).toBe('unknown flag "--concurrency"')
 		expect(isKnownFlag("concurrency")).toBe(false)
 		const argv = process.argv
-		process.argv = ["node", "oat", "run", "--concurrency", "1"]
+		process.argv = ["node", "testing", "run", "--concurrency", "1"]
 		try {
 			expect(await main()).toBe(2)
 		} finally {
@@ -31,7 +31,7 @@ describe("CLI flags", () => {
 	})
 
 	it("still accepts --max-in-flight", () => {
-		const { error, flags } = parseArgs(["run", "--config", "oat.config.ts", "--max-in-flight", "8"])
+		const { error, flags } = parseArgs(["run", "--config", "testing.api.config.ts", "--max-in-flight", "8"])
 		expect(error).toBeUndefined()
 		expect(flags["max-in-flight"]).toBe("8")
 	})
@@ -39,10 +39,10 @@ describe("CLI flags", () => {
 	it("accepts --save-exchanges and --no-save-exchanges", () => {
 		expect(USAGE).toContain("--save-exchanges")
 		expect(USAGE).toContain("--no-save-exchanges")
-		const on = parseArgs(["run", "--config", "oat.config.ts", "--save-exchanges"])
+		const on = parseArgs(["run", "--config", "testing.api.config.ts", "--save-exchanges"])
 		expect(on.error).toBeUndefined()
 		expect(on.flags["save-exchanges"]).toBe(true)
-		const off = parseArgs(["run", "--config", "oat.config.ts", "--no-save-exchanges"])
+		const off = parseArgs(["run", "--config", "testing.api.config.ts", "--no-save-exchanges"])
 		expect(off.error).toBeUndefined()
 		expect(off.flags["no-save-exchanges"]).toBe(true)
 	})
@@ -59,7 +59,7 @@ async function cli(argv: string[]): Promise<{ code: number; out: string }> {
 		chunks.push(String(chunk))
 		return true
 	})
-	process.argv = ["node", "oat", ...argv]
+	process.argv = ["node", "testing", ...argv]
 	try {
 		return { code: await main(), out: chunks.join("") }
 	} finally {
@@ -91,7 +91,7 @@ async function writeConfig(dir: string, serverUrl: string, extra: Record<string,
 	return path
 }
 
-/* One read keyed by an id nothing in the document produces: oat can call nothing for it. */
+/* One read keyed by an id nothing in the document produces: the API tester can call nothing for it. */
 async function serveUnreachable(): Promise<{ close: () => Promise<void>; url: string }> {
 	const document = {
 		info: { title: "unreachable", version: "1" },
@@ -119,13 +119,13 @@ async function serveUnreachable(): Promise<{ close: () => Promise<void>; url: st
 
 type OpsWorld = { dir: string; server: ReferenceServer }
 
-/* `oat run --ops <ops>` against the memory server. */
+/* `testing api run --ops <ops>` against the memory server. */
 async function runOps({ dir, server }: OpsWorld, ops: string): Promise<{ code: number; out: string }> {
 	const config = await writeConfig(dir, server.url, {})
 	return cli(["run", "--config", config, "--ops", ops, "--out", dir, "--quiet"])
 }
 
-/* `oat plan --ops <ops>` against the memory server's document. */
+/* `testing api plan --ops <ops>` against the memory server's document. */
 function planOps({ server }: OpsWorld, ops: string, ...extra: string[]): Promise<{ code: number; out: string }> {
 	return cli(["plan", "--spec", `${server.url}/v1/openapi/spec`, "--ops", ops, ...extra])
 }
@@ -153,7 +153,7 @@ describe("--ops on the CLI", () => {
 	let world: OpsWorld
 
 	beforeAll(async () => {
-		world = { dir: await mkdtemp(join(tmpdir(), "oat-ops-")), server: await createMemoryServer() }
+		world = { dir: await mkdtemp(join(tmpdir(), "testing-ops-")), server: await createMemoryServer() }
 	})
 	afterAll(async () => {
 		await world.server.close()
@@ -205,8 +205,8 @@ describe("--ops on the CLI", () => {
 
 describe("one flag table", () => {
 	it("takes --flag=value as well as --flag value", () => {
-		expect(parseArgs(["run", "--config=oat.config.ts", "--seed=7"]).flags).toEqual({
-			config: "oat.config.ts",
+		expect(parseArgs(["run", "--config=testing.api.config.ts", "--seed=7"]).flags).toEqual({
+			config: "testing.api.config.ts",
 			seed: "7",
 		})
 	})
@@ -223,7 +223,7 @@ describe("one flag table", () => {
 		expect(parseArgs(["run", "--seed", "-3"]).error).toBeUndefined()
 	})
 
-	it("lets a switch stand alone, and reads `oat --help` as help", () => {
+	it("lets a switch stand alone, and reads `testing api --help` as help", () => {
 		expect(parseArgs(["conformance", "--fuzz"]).flags.fuzz).toBe(true)
 		expect(parseArgs(["run", "--quiet=yes"]).error).toBe("--quiet takes no value")
 		expect(parseArgs(["--help"])).toEqual({ command: "help", flags: { help: true } })

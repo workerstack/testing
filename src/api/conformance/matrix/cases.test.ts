@@ -56,9 +56,9 @@ describe("runSuite", () => {
 		const [tagged, untagged, defect] = results
 		expect(tagged).toMatchObject({ bystanders: [], leaked: 0, strayLedger: [], unreported: [] })
 		expect(untagged?.leaked).toBeUndefined()
-		/* Its register is untagged: the account oat made there is a leftover it names, never one it keeps quiet. */
+		/* Its register is untagged: the account the API tester made there is a leftover it names, never one it keeps quiet. */
 		expect(untagged).toMatchObject({
-			reported: expect.arrayContaining([expect.stringMatching(/^account oat-\S+@example\.test$/)]),
+			reported: expect.arrayContaining([expect.stringMatching(/^account testing-\S+@example\.test$/)]),
 			unreported: [],
 		})
 		expect(defect).toMatchObject({
@@ -74,7 +74,7 @@ describe("judgeDefect", () => {
 		expect(result).toMatchObject({ bystanders: [], detected: true, label: "patch" })
 	}, 120_000)
 
-	it("switches on what a defect needs to show: the reference's throttle, and oat's opt-in check", async () => {
+	it("switches on what a defect needs to show: the reference's throttle, and the API tester's opt-in check", async () => {
 		const result = await judgeDefect("LOGIN_NOT_THROTTLED", MEMORY, { checkRepros: async () => [] })
 		expect(result).toMatchObject({ detected: true, expected: "auth.login-throttled", spurious: [] })
 	}, 120_000)
@@ -141,7 +141,8 @@ describe("judgeDefect's judging", () => {
 describe("runBaselines", () => {
 	it("names each check a create without an id left undecided", async () => {
 		const [tagged, untagged] = await runBaselines(ANONYMOUS)
-		const reason = "a record for this check could not be made: the create answered 201 without an id oat could read"
+		const reason =
+			"a record for this check could not be made: the create answered 201 without an id the API tester could read"
 		expect(tagged?.inconclusive).toContain(`patch.minimality@table: ${reason}`)
 		expect(untagged?.inconclusive).toContain(`patch.minimality@table: ${reason}`)
 	}, 180_000)
@@ -171,9 +172,9 @@ describe("runBaselines", () => {
 })
 
 describe("missingValuesOf", () => {
-	it("names each check that would have sent a value oat did not have, and nothing else", () => {
+	it("names each check that would have sent a value the API tester did not have, and nothing else", () => {
 		const inconclusive = [
-			{ check: "patch.minimality", entity: "table", reason: "oat had no value for PATCH /table/undefined" },
+			{ check: "patch.minimality", entity: "table", reason: "the API tester had no value for PATCH /table/undefined" },
 			{ check: "sort.order-is-applied", entity: "table", reason: "the listing has one row" },
 		]
 		expect(missingValuesOf(inconclusive)).toEqual(["patch.minimality@table"])

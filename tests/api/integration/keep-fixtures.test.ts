@@ -4,7 +4,7 @@ import { leftBehind } from "../../../src/api/conformance/leaks.ts"
 import { createMemoryServer } from "../../../src/api/reference/http/engines.ts"
 import type { ReferenceServer } from "../../../src/api/reference/http/server.ts"
 import { EXIT } from "../../../src/api/runtime/exit.ts"
-import { latestJournal, latestReport, oat, referenceConfig, tempDirs } from "../support/cli-run.ts"
+import { latestJournal, latestReport, tester, referenceConfig, tempDirs } from "../support/cli-run.ts"
 
 /*
  * `--keep-fixtures` leaves what a run created in place, so a failing exchange can be replayed
@@ -12,19 +12,19 @@ import { latestJournal, latestReport, oat, referenceConfig, tempDirs } from "../
  * and removes only what it made itself, never the rows the earlier run kept.
  */
 
-const dirs = tempDirs("oat-keep-fixtures-")
+const dirs = tempDirs("testing-keep-fixtures-")
 const servers: ReferenceServer[] = []
 afterAll(async () => {
 	await Promise.all(servers.map((server) => server.close()))
 	await dirs.removeAll()
 })
 
-/* `oat run --only table <flags>` against `server`; `runs` is its --out. */
+/* `testing api run --only table <flags>` against `server`; `runs` is its --out. */
 async function runOn(server: ReferenceServer, flags: string[] = []) {
 	const dir = await dirs.make()
 	const config = await referenceConfig(dir, server.url)
 	const runs = join(dir, "runs")
-	const { code, out } = await oat(["run", "--config", config, "--out", runs, "--only", "table", "--quiet", ...flags])
+	const { code, out } = await tester(["run", "--config", config, "--out", runs, "--only", "table", "--quiet", ...flags])
 	return { code, runs, text: out }
 }
 

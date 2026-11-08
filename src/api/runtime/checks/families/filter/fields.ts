@@ -27,7 +27,7 @@ function distinctValues(records: Record_[], field: string): unknown[] {
 	return out
 }
 
-/** List identities that oat seeded. Extra rows outside this set are not scored as defects. */
+/** List identities that the API tester seeded. Extra rows outside this set are not scored as defects. */
 export function knownHits(items: Record_[], ctx: CheckContext): Set<string> {
 	const known = setOf(ctx.records, ctx.identity)
 	return new Set(ids(items, ctx.identity).filter((id) => known.has(id)))

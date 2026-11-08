@@ -60,7 +60,7 @@ describe("dummyFile", () => {
 	it("writes text for an unknown text type and seeded bytes for anything else", () => {
 		const text = file("text/plain")
 		expect(text.filename).toBe("doc-a-2.txt")
-		expect(new TextDecoder().decode(text.bytes)).toBe("oat dummy 7 2\n")
+		expect(new TextDecoder().decode(text.bytes)).toBe("the API tester dummy 7 2\n")
 		const octet = file()
 		expect(octet).toMatchObject({ filename: "doc-a-2.bin", mediaType: "application/octet-stream" })
 		expect(octet.bytes).toHaveLength(16)

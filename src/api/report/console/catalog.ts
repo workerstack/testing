@@ -1,4 +1,4 @@
-import type { EntityConfig, OatConfig } from "../../config/types/config.ts"
+import type { EntityConfig, ApiConfig } from "../../config/types/config.ts"
 import type { QueryCapabilities } from "../../config/types/query.ts"
 import type { OperationModel, SpecModel } from "../../spec/graph/types.ts"
 import { describeFilterGrammar } from "../../spec/render/filter-describe.ts"
@@ -15,7 +15,7 @@ type Caps = EffectiveQueryCapabilities
 export interface CatalogConfig {
 	query?: QueryCapabilities
 	entities?: Record<string, EntityConfig>
-	hooks?: Pick<NonNullable<OatConfig["hooks"]>, "resolveQueryCapabilities">
+	hooks?: Pick<NonNullable<ApiConfig["hooks"]>, "resolveQueryCapabilities">
 }
 
 /** One listable entity's query capabilities, where they came from, and the checks they let run. */

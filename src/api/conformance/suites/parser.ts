@@ -7,7 +7,7 @@ import { messageOf } from "../../errors/message.ts"
 
 /**
  * Parser robustness. These fixtures are shapes real published documents contain; the bar is that
- * oat never throws and never hangs on them, not that it models them well.
+ * The API tester never throws and never hangs on them, not that it models them well.
  */
 
 type Model = ReturnType<typeof buildModel>

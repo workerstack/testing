@@ -19,7 +19,7 @@ afterAll(() => {
 
 /* A fresh folder holding `files` (path → JSON body, or text); returns the folder. */
 function tree(files: Record<string, unknown>): string {
-	const root = mkdtempSync(join(tmpdir(), "oat-bundle-"))
+	const root = mkdtempSync(join(tmpdir(), "testing-bundle-"))
 	made.push(root)
 	for (const [path, body] of Object.entries(files)) {
 		mkdirSync(dirname(join(root, path)), { recursive: true })
@@ -73,7 +73,7 @@ describe("bundleLocalRefs", () => {
 		const pet = out["paths"]["/pets/{id}"].get.responses["200"].content["application/json"].schema
 		expect(pet.properties.tag).toEqual({ enum: ["cat", "dog"], type: "string" })
 		expect(pet.properties.id).toEqual({ format: "uuid", type: "string" })
-		expect(pet.properties.owner.properties.pets.items).toEqual({ $ref: "oat-defs#/$defs/Pet" })
+		expect(pet.properties.owner.properties.pets.items).toEqual({ $ref: "testing-defs#/$defs/Pet" })
 		expect(Object.keys(out[DEFS_KEY])).toEqual(["Pet"])
 		expect(out["paths"]["/pets/{id}"].get.parameters[0].schema).toEqual({ format: "uuid", type: "string" })
 	})
@@ -99,8 +99,8 @@ describe("bundleLocalRefs and a ref outside the document's folder", () => {
 		const path = join(root, "spec", "openapi.json")
 		await expect(bundled(path)).rejects.toThrow(
 			new UsageError(
-				`oat: ${path} refers to ../outside.json, which resolves outside ${join(root, "spec")}; ` +
-					"oat reads only files in the document's folder",
+				`testing api: ${path} refers to ../outside.json, which resolves outside ${join(root, "spec")}; ` +
+					"the API tester reads only files in the document's folder",
 			),
 		)
 	})
@@ -111,7 +111,7 @@ describe("bundleLocalRefs and a ref outside the document's folder", () => {
 			const path = join(tree({ "openapi.json": referring(ref) }), "openapi.json")
 			await expect(bundled(path)).rejects.toThrow(
 				new UsageError(
-					`oat: ${path} refers to ${ref}, an absolute path; oat reads only paths relative to the document`,
+					`testing api: ${path} refers to ${ref}, an absolute path; the API tester reads only paths relative to the document`,
 				),
 			)
 		}
@@ -162,7 +162,9 @@ describe("bundleLocalRefs and a file it cannot use", () => {
 	it("names the missing file and the file that refers to it", async () => {
 		const root = tree({ "openapi.json": referring("s.json#/S"), "s.json": { S: { $ref: "gone.yaml" } } })
 		await expect(bundled(join(root, "openapi.json"))).rejects.toThrow(
-			new UsageError(`oat: ${join(root, "s.json")} refers to gone.yaml, but ${join(root, "gone.yaml")} does not exist`),
+			new UsageError(
+				`testing api: ${join(root, "s.json")} refers to gone.yaml, but ${join(root, "gone.yaml")} does not exist`,
+			),
 		)
 	})
 
@@ -170,7 +172,9 @@ describe("bundleLocalRefs and a file it cannot use", () => {
 		const root = tree({ "openapi.json": referring("s.json/inner.json"), "s.json": { type: "string" } })
 		await expect(bundled(join(root, "openapi.json"))).rejects.toMatchObject({ code: "ENOTDIR" })
 		const bad = tree({ "bad.json": "{", "openapi.json": referring("bad.json") })
-		await expect(bundled(join(bad, "openapi.json"))).rejects.toThrow(`oat: ${join(bad, "bad.json")} starts as JSON`)
+		await expect(bundled(join(bad, "openapi.json"))).rejects.toThrow(
+			`testing api: ${join(bad, "bad.json")} starts as JSON`,
+		)
 	})
 
 	it("rewrites a node a YAML alias shares once, in an external file too", async () => {

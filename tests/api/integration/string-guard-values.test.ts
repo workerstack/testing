@@ -8,7 +8,7 @@ import type { JsonSchema } from "../../../src/api/spec/types.ts"
 
 /*
  * Behind the string-guard shape every written string carries a guard pattern, and the table's
- * phone carries its own beside it in an `allOf`. The values oat makes for a create stay what a
+ * phone carries its own beside it in an `allOf`. The values the API tester makes for a create stay what a
  * person would type: a guard on every string once turned every name into "\0", "\1" and so on.
  */
 

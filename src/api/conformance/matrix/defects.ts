@@ -111,7 +111,7 @@ export const EXPRESSION_ONLY: ReadonlySet<DefectName> = /* @__PURE__ */ new Set<
 /**
  * Defects that need a postgrest-shaped filter writer (`in` / `ilike` / `is`). Colon and
  * equality cannot emit those operators, so injecting the lie there is a miss that names the
- * grammar rather than oat.
+ * grammar rather than the API tester.
  */
 export const POSTGREST_OP_ONLY: ReadonlySet<DefectName> = /* @__PURE__ */ new Set<DefectName>([
 	"FILTER_IN_FIRST_ONLY",
@@ -129,8 +129,8 @@ export const POSTGREST_OP_ONLY: ReadonlySet<DefectName> = /* @__PURE__ */ new Se
 ])
 
 /**
- * Defects oat only probes on a declared sort grammar: a direction token is unknown on purpose only
- * when oat knows the grammar's own. The reference declares its sort grammar where it is a template.
+ * Defects the API tester only probes on a declared sort grammar: a direction token is unknown on purpose only
+ * when the API tester knows the grammar's own. The reference declares its sort grammar where it is a template.
  */
 export const DECLARED_SORT_ONLY: ReadonlySet<DefectName> = /* @__PURE__ */ new Set<DefectName>([
 	"IGNORES_BAD_SORT_DIRECTION",

@@ -67,8 +67,8 @@ describe("counting", () => {
 	})
 })
 
-/* oat's run against the reference `reached` launched, as every conformance leg runs it. */
-async function oatAgainst(reached: Via, onProgress?: () => void) {
+/* The API tester's run against the reference `reached` launched, as every conformance leg runs it. */
+async function testerAgainst(reached: Via, onProgress?: () => void) {
 	const reference = await reached.launch("memory", { dialect: "postgrest" })
 	try {
 		return await run({
@@ -90,7 +90,7 @@ describe("run, counted by source", () => {
 	it("splits every request a run sent by who sent it, and the document's load is no exchange", async () => {
 		const counted = counting(inProcess)
 		let moves = 0
-		const result = await oatAgainst(counted.via, () => void (moves += 1))
+		const result = await testerAgainst(counted.via, () => void (moves += 1))
 		const { sources, total } = counted.requests()
 		const sent = Object.values(sources).reduce((sum, count) => sum + count, 0)
 		expect(sent).toBe(total)
@@ -107,7 +107,7 @@ describe("run, counted by source", () => {
 	}, 120_000)
 
 	it("leaves a run on a transport no counter wraps as it is", async () => {
-		const result = await oatAgainst(inProcess)
+		const result = await testerAgainst(inProcess)
 		expect(result.client.transcript.length).toBeGreaterThan(0)
 	}, 120_000)
 })

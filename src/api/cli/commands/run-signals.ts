@@ -17,7 +17,7 @@ export interface SignalSource {
 }
 
 /**
- * Ctrl-C stops testing, not the run: what oat created is still removed and the partial report is
+ * Ctrl-C stops testing, not the run: what the API tester created is still removed and the partial report is
  * still written. A second signal means "now", and exits without either.
  */
 export function stopOnSignal(writer: Writer, source: SignalSource = process): RunStop {
@@ -25,10 +25,10 @@ export function stopOnSignal(writer: Writer, source: SignalSource = process): Ru
 	let first: NodeJS.Signals | undefined
 	const onSignal = (signal: NodeJS.Signals): void => {
 		if (stop.signal.aborted) {
-			writer.err(`\noat: ${signal} again — exiting without teardown\n`)
+			writer.err(`\ntesting api: ${signal} again — exiting without teardown\n`)
 			source.exit(130)
 		}
-		writer.err(`\noat: ${signal} — stopping, removing what this run created (again to exit now)\n`)
+		writer.err(`\ntesting api: ${signal} — stopping, removing what this run created (again to exit now)\n`)
 		first = signal
 		stop.abort()
 	}

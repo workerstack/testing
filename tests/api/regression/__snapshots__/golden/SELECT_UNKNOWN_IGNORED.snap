@@ -225,7 +225,7 @@
             {
               "method": "GET",
               "status": 200,
-              "url": "http://reference.test/v1/projects/proj_alpha/tables?limit=5&select=id%2Coat_no_such_select_xyz"
+              "url": "http://reference.test/v1/projects/proj_alpha/tables?limit=5&select=id%2Ctesting_no_such_select_xyz"
             }
           ],
           "summary": "unknown select field was not rejected",

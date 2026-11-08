@@ -14,7 +14,7 @@ export type {
 	HeaderRequest,
 	Hooks,
 	InputRequest,
-	OatConfig,
+	ApiConfig,
 	OperationStep,
 	OriginSpec,
 	OutOfBandConfig,

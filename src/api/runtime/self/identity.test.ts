@@ -53,14 +53,14 @@ describe("runSelfIdentity", () => {
 		)
 		expect(await result).toBe(ASSERTED)
 		expect(sent.map((request) => `${request.method} ${request.path}`)).toEqual(["PATCH /me", "PATCH /me"])
-		expect(sent[1]?.options.body).toEqual({ note: "Oat" })
+		expect(sent[1]?.options.body).toEqual({ note: "Tst" })
 	})
 
 	it("writes a field, reads it back, and puts the old value back", async () => {
 		const { result, sent } = check(stored({ display_name: "Ada", id: "u1" }))
 		expect(await result).toBe(ASSERTED)
 		expect(sent.slice(1).map((request) => `${request.method} ${JSON.stringify(request.options.body ?? null)}`)).toEqual(
-			["GET null", 'PATCH {"display_name":"Oat"}', "GET null", 'PATCH {"display_name":"Ada"}'],
+			["GET null", 'PATCH {"display_name":"Tst"}', "GET null", 'PATCH {"display_name":"Ada"}'],
 		)
 	})
 
@@ -182,7 +182,7 @@ describe("runSelfIdentity and what the caller signs in with", () => {
 		const { result, sent } = guarded(stored({ bio: "Ada", password: "p" }), { update: ACCOUNT })
 		expect(await result).toBe(ASSERTED)
 		const writes = sent.filter((request) => request.method === "PATCH")
-		expect(writes.map((request) => request.options.body)).toEqual([{ bio: "Oat" }, { bio: "Ada" }])
+		expect(writes.map((request) => request.options.body)).toEqual([{ bio: "Tst" }, { bio: "Ada" }])
 		expect(writes.map((request) => request.options.as)).toEqual([{ principal: "alpha" }, { principal: "alpha" }])
 	})
 
@@ -193,7 +193,7 @@ describe("runSelfIdentity and what the caller signs in with", () => {
 		expect(new Set(signed.map((request) => JSON.stringify(request.options.as)))).toEqual(
 			new Set([JSON.stringify({ principal: "disposable-own-record" })]),
 		)
-		expect(signed.find((request) => request.method === "PATCH")?.options.body).toEqual({ password: "Oat" })
+		expect(signed.find((request) => request.method === "PATCH")?.options.body).toEqual({ password: "Tst" })
 	})
 
 	it("stands down, naming the field, with no disposable principal", async () => {
@@ -201,7 +201,7 @@ describe("runSelfIdentity and what the caller signs in with", () => {
 		expect(await update.result).toEqual({
 			kind: "unresolved",
 			reason:
-				"me.update would change password on alpha's own record, which alpha signs in with: oat never sends that, and no disposable principal could send it: the document marks no x-fresh-principal operation",
+				"me.update would change password on alpha's own record, which alpha signs in with: the API tester never sends that, and no disposable principal could send it: the document marks no x-fresh-principal operation",
 		})
 		expect(update.sent.filter((request) => request.method !== "GET")).toEqual([])
 		const create = guarded(stored({}), { create: SIGNS_UP })

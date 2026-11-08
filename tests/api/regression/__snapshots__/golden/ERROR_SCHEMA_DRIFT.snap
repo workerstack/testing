@@ -475,7 +475,7 @@
             {
               "method": "GET",
               "status": 404,
-              "url": "http://reference.test/v1/api-keys/oat-absent-NONCE"
+              "url": "http://reference.test/v1/api-keys/testing-absent-NONCE"
             }
           ],
           "summary": "404 error body does not match its documented schema",
@@ -492,7 +492,7 @@
             {
               "method": "GET",
               "status": 404,
-              "url": "http://reference.test/v1/projects/proj_alpha/jobs/oat-absent-NONCE"
+              "url": "http://reference.test/v1/projects/proj_alpha/jobs/testing-absent-NONCE"
             }
           ],
           "summary": "404 error body does not match its documented schema",
@@ -509,7 +509,7 @@
             {
               "method": "GET",
               "status": 404,
-              "url": "http://reference.test/v1/notices/oat-absent-NONCE"
+              "url": "http://reference.test/v1/notices/testing-absent-NONCE"
             }
           ],
           "summary": "404 error body does not match its documented schema",
@@ -526,7 +526,7 @@
             {
               "method": "GET",
               "status": 404,
-              "url": "http://reference.test/v1/projects/proj_alpha/tables/table_ID/rows/oat-absent-NONCE"
+              "url": "http://reference.test/v1/projects/proj_alpha/tables/table_ID/rows/testing-absent-NONCE"
             }
           ],
           "summary": "404 error body does not match its documented schema",
@@ -560,7 +560,7 @@
             {
               "method": "GET",
               "status": 404,
-              "url": "http://reference.test/v1/projects/proj_alpha/tables/oat-absent-NONCE"
+              "url": "http://reference.test/v1/projects/proj_alpha/tables/testing-absent-NONCE"
             }
           ],
           "summary": "404 error body does not match its documented schema",
@@ -577,7 +577,7 @@
             {
               "method": "GET",
               "status": 404,
-              "url": "http://reference.test/v1/projects/proj_alpha/webhooks/oat-absent-NONCE"
+              "url": "http://reference.test/v1/projects/proj_alpha/webhooks/testing-absent-NONCE"
             }
           ],
           "summary": "404 error body does not match its documented schema",

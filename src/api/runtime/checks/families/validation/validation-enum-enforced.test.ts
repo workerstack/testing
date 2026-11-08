@@ -39,7 +39,7 @@ describe("validation.enum-enforced run", () => {
 		expect(outcome).toEqual({ kind: "asserted" })
 		expect(findings.findings).toEqual([])
 		expect(sent.map((s) => `${s.method} ${s.path}`)).toEqual(["POST /items"])
-		expect(sent[0]?.options.body).toMatchObject({ name: expect.any(String), status: "oat-not-in-enum" })
+		expect(sent[0]?.options.body).toMatchObject({ name: expect.any(String), status: "testing-not-in-enum" })
 	})
 
 	it("reports a backend bug when the value outside the enum is accepted", async () => {
@@ -48,7 +48,7 @@ describe("validation.enum-enforced run", () => {
 		const [finding] = findings.findings
 		expect(finding?.summary).toBe("a value outside the declared enum was accepted")
 		expect(finding?.detail).toContain(
-			`"status" declares ["open", "closed"] but the backend accepted "oat-not-in-enum" with 201`,
+			`"status" declares ["open", "closed"] but the backend accepted "testing-not-in-enum" with 201`,
 		)
 		expect(cited(finding?.evidence ?? [])).toEqual(["POST /items 201"])
 	})

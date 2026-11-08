@@ -1,13 +1,13 @@
 /**
  * The correct-backend shape matrix.
  *
- * The defect matrix asks whether oat notices a broken backend. This asks the opposite question,
- * which the defect matrix cannot: whether oat stays quiet on a *correct* backend shaped unlike the
+ * The defect matrix asks whether the API tester notices a broken backend. This asks the opposite question,
+ * which the defect matrix cannot: whether the API tester stays quiet on a *correct* backend shaped unlike the
  * one it was written against. Each case serves the clean reference behind one shape and requires
- * nothing from oat at all — no finding, no inconclusive verdict, no record left behind, and no
+ * nothing from the API tester at all — no finding, no inconclusive verdict, no record left behind, and no
  * check that quietly stopped applying.
  *
- * Cases oat still gets wrong are listed in `expected-failures.ts`, which may only shrink.
+ * Cases the API tester still gets wrong are listed in `expected-failures.ts`, which may only shrink.
  */
 
 import { messageOf } from "../errors/message.ts"
@@ -26,7 +26,7 @@ import { run } from "./harness/counting.ts"
 export interface ShapeCase {
 	label: string
 	why: string
-	/** Everything that makes this case fail; empty when oat handled the shape. */
+	/** Everything that makes this case fail; empty when the API tester handled the shape. */
 	problems: string[]
 	/** Why the case is known to fail, when it is listed in `expected-failures.ts`. */
 	expected: string | undefined
@@ -185,9 +185,9 @@ export function renderShapeSuite(cases: ShapeCase[], quiet = false): { text: str
 }
 
 /**
- * Every defect again, behind each shape oat already handles.
+ * Every defect again, behind each shape the API tester already handles.
  *
- * A clean baseline behind a shape says oat is quiet there; it does not say oat still *sees*
+ * A clean baseline behind a shape says the API tester is quiet there; it does not say the API tester still *sees*
  * anything. Mounting the API under a prefix once cost five detections while the clean run stayed
  * spotless. Behind a shape whose clean baseline still fails, recall cannot mean anything yet, so
  * that shape reports one case that waits on the shape itself (`waitingRecall`).

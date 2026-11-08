@@ -23,7 +23,7 @@ const updateFrom = (current: unknown): UpdateProbe => {
 		field: { kind: "string", maxLength: 40, name: "display_name" },
 		op: run.updateOp as NonNullable<SelfRun["updateOp"]>,
 		path: "/me",
-		value: "Oat",
+		value: "Tst",
 	}
 }
 
@@ -86,7 +86,7 @@ describe("the answers on the caller's routes", () => {
 describe("the update the check sends", () => {
 	it("picks the field and the value to set it to", () => {
 		const { run, model } = selfRun()
-		expect(updateProbe(run, model, { avoid: new Set(), read: answer(200, { display_name: "Oat" }) })).toMatchObject({
+		expect(updateProbe(run, model, { avoid: new Set(), read: answer(200, { display_name: "Tst" }) })).toMatchObject({
 			field: { name: "display_name" },
 			path: "/me",
 			value: "Xot",
@@ -125,9 +125,9 @@ describe("how the update went", () => {
 	it("passes an update the next read shows, and reports one it does not", () => {
 		const { run, findings } = selfRun()
 		const wrote = answer(200)
-		expect(notStuck(run, updateFrom("a"), wrote, answer(200, { display_name: "Oat" }))).toBeNull()
+		expect(notStuck(run, updateFrom("a"), wrote, answer(200, { display_name: "Tst" }))).toBeNull()
 		expect(notStuck(run, updateFrom("a"), wrote, answer(429))).toMatchObject({ kind: "unresolved" })
-		expect(notStuck(run, updateFrom("a"), wrote, answer(500, { display_name: "Oat" }))).toEqual({
+		expect(notStuck(run, updateFrom("a"), wrote, answer(500, { display_name: "Tst" }))).toEqual({
 			kind: "finding",
 			verdict: "BACKEND_BUG",
 		})
@@ -135,8 +135,8 @@ describe("how the update went", () => {
 			kind: "finding",
 		})
 		expect(findings.findings.map((finding) => finding.detail)).toEqual([
-			'me.update set display_name to "Oat", and the next me.get returned 500 with "Oat".',
-			'me.update set display_name to "Oat", and the next me.get returned 200 with ["a"].',
+			'me.update set display_name to "Tst", and the next me.get returned 500 with "Tst".',
+			'me.update set display_name to "Tst", and the next me.get returned 200 with ["a"].',
 		])
 	})
 

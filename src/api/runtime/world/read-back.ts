@@ -5,7 +5,7 @@
  * that for the record seeds the cohort with the acknowledgment's own fields: every check that
  * reads a field off a seeded record then works from what the server never said it stored. Such an
  * answer is read back through the entity's item read, by the id it gave, and the cohort holds what
- * the read returns. With nothing to read it back by, the record is what oat sent under that id,
+ * the read returns. With nothing to read it back by, the record is what the API tester sent under that id,
  * marked unverified, and checks that would judge stored fields against it stand down.
  */
 
@@ -35,7 +35,7 @@ export interface CreatedRecord {
 	/** The answer named no id at all, and the client's own was confirmed by a read. */
 	acknowledged: boolean
 	/**
-	 * The fields are the body oat sent under the id the answer gave, and why no read showed them
+	 * The fields are the body the API tester sent under the id the answer gave, and why no read showed them
 	 * stored: `no item read`, `read back answered 404`.
 	 */
 	unverified?: string
@@ -95,7 +95,7 @@ export function expectedFields(model: SpecModel, createOp: OperationModel, sent:
 /**
  * The created record as the item read shows it under `id`, over what the create answered; or,
  * unverified, what the create answered over what was sent: the answer is the server's, the body only
- * what oat asked for.
+ * what the API tester asked for.
  */
 export async function readBackCreated(input: {
 	client: Pick<Client, "get">

@@ -1,11 +1,11 @@
-/* The functions a config passes oat, and what each receives and returns. */
+/* The functions a config passes the API tester, and what each receives and returns. */
 
 import type { FilterableField, QueryCapabilities } from "./query.ts"
 
 export interface OutOfBandRequest {
 	address: string
 	kind: string
-	/** 1-based; oat retries with backoff until a value arrives or the attempts run out. */
+	/** 1-based; the API tester retries with backoff until a value arrives or the attempts run out. */
 	attempt: number
 	/** Flow scope at this step (interpolated binds + prior `saveAs`). */
 	scope: Record<string, string>
@@ -52,7 +52,7 @@ export type CredentialAnswer = string | { value: string; expiresIn?: number }
  * Defaults match 0.6.2: 6 attempts, 200 ms first sleep, doubling, cap 3000 ms.
  * Worst-case wait is the sum of every sleep, including after the last miss:
  * `200+400+800+1600+3000+3000 = 9000` ms. `{ attempts: 20, initialMs: 1000, maxMs: 8000 }`
- * is `1000+2000+4000+8000×17 = 143000` ms. The hook must not sleep; oat owns the backoff.
+ * is `1000+2000+4000+8000×17 = 143000` ms. The hook must not sleep; the API tester owns the backoff.
  */
 export interface OutOfBandConfig {
 	attempts?: number
@@ -126,7 +126,7 @@ export type UploadResolution = UploadFile | { fields: Record<string, string | Up
 
 export interface Uploads {
 	/**
-	 * Files oat may pick from. Globs and directories, relative to the config file.
+	 * Files the API tester may pick from. Globs and directories, relative to the config file.
 	 * Matched by extension / sniffed type against the part's contentMediaType.
 	 * Same seed → same pick. Empty match → dummy (do not fail the run).
 	 */
@@ -148,7 +148,7 @@ export interface FenceRequest {
 	headers: Record<string, string>
 	body: unknown
 	operationId?: string
-	/** Why oat is sending it: `load`, `auth`, `seed`, `assertion`, `probe`, `teardown`, or `request`. */
+	/** Why the API tester is sending it: `load`, `auth`, `seed`, `assertion`, `probe`, `teardown`, or `request`. */
 	phase: string
 	/** The principal whose credential it carries; absent when it carries none, or a forged one. */
 	principal?: string
@@ -186,7 +186,7 @@ export interface Hooks {
 	 * the value the next step needs. `null` fails the step.
 	 */
 	external?: (name: string, input: Record<string, unknown>) => Promise<string | null>
-	/** Return `null` to ask oat to retry — the value may simply not have arrived yet. */
+	/** Return `null` to ask the API tester to retry — the value may simply not have arrived yet. */
 	resolveOutOfBand?: (request: OutOfBandRequest) => Promise<string | null>
 	/**
 	 * Removes a principal the run provisioned, and everything that principal created with it.
@@ -213,7 +213,7 @@ export interface Hooks {
 	/**
 	 * Per-request headers, merged after `globalHeaders` and before the principal's credential.
 	 * Called on every dispatch (including 401 retries) so a one-shot captcha token can be fresh.
-	 * Return `null` or `{}` to add nothing. oat does not speak Turnstile.
+	 * Return `null` or `{}` to add nothing. The API tester does not speak Turnstile.
 	 */
 	resolveHeaders?: (request: HeaderRequest) => Promise<Record<string, string> | null>
 	/**
@@ -229,7 +229,7 @@ export interface Hooks {
 	 */
 	resolveCredential?: (scheme: string, principal: CredentialPrincipal) => Promise<CredentialAnswer | null>
 	/**
-	 * A path parameter the document does not let oat create (an account provider with no row yet).
+	 * A path parameter the document does not let the API tester create (an account provider with no row yet).
 	 * Return the value to send, or `null` to leave the operation unresolved. Product doors stay
 	 * in the hook. The request names the principal, and the credential and placement the operation
 	 * would carry as it, so the hook can decode a token or call the API as that principal.

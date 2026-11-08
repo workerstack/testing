@@ -138,7 +138,7 @@ async function cli(argv: string[]): Promise<{ code: number; out: string }> {
 	}
 	const write = vi.spyOn(process.stdout, "write").mockImplementation(capture)
 	const err = vi.spyOn(process.stderr, "write").mockImplementation(capture)
-	process.argv = ["node", "oat", ...argv]
+	process.argv = ["node", "testing", ...argv]
 	try {
 		return { code: await main(), out: chunks.join("") }
 	} finally {
@@ -148,10 +148,10 @@ async function cli(argv: string[]): Promise<{ code: number; out: string }> {
 	}
 }
 
-describe("oat doctor with an overlay", () => {
+describe("testing api doctor with an overlay", () => {
 	it("reads the document as the overlay leaves it, and names a patch that matches nothing", async () => {
 		const server = await createMemoryServer({})
-		const dir = await mkdtemp(join(tmpdir(), "oat-overlay-"))
+		const dir = await mkdtemp(join(tmpdir(), "testing-overlay-"))
 		const config = async (overlay: Record<string, unknown>): Promise<string> => {
 			const path = join(dir, `config-${Math.random().toString(36).slice(2)}.json`)
 			await writeFile(path, JSON.stringify({ baseUrl: server.url, overlay, spec: `${server.url}/v1/openapi/spec` }))

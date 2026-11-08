@@ -75,7 +75,7 @@ export function ancestorsOf(id: string, seen: Set<string> = new Set<string>()): 
 	return seen
 }
 
-/* Coverage gaps describe what oat could not test, not what the backend got wrong. */
+/* Coverage gaps describe what the API tester could not test, not what the backend got wrong. */
 function real(finding: Finding): boolean {
 	return finding.verdict !== "COVERAGE_GAP"
 }
@@ -100,7 +100,7 @@ export function diagnose(injected: readonly DefectName[], reported: Reported): D
 		stoodDown: stoodDownEverywhere(reported),
 	})
 	/* Anything the injected set can justify — the primaries plus their documented
-	 * consequences. A finding outside this union is oat inventing a defect. */
+	 * consequences. A finding outside this union is the API tester inventing a defect. */
 	const justified = new Set(injected.flatMap((defect) => acceptableOf(EXPECTED[defect])))
 	const spurious = findings
 		.filter((finding) => !justified.has(finding.check))
@@ -151,7 +151,7 @@ function recallOf(
 		/* Not fired. Acceptable in three cases: something `want` depends on is itself broken —
 		 * cascade suppression working —, the check ran and reported *why* it could not conclude
 		 * (inconclusive, or BLOCKED by a credential another defect took away), or it stood down
-		 * everywhere it ran, saying why. Anything else is oat going quiet, which is the real failure. */
+		 * everywhere it ran, saying why. Anything else is the API tester going quiet, which is the real failure. */
 		const broken = [...ancestorsOf(want)].find((ancestor) => fired.has(ancestor))
 		const reason = stated.inconclusive.get(want) ?? stated.blocked.get(want)
 		const stood = stated.stoodDown.get(want)

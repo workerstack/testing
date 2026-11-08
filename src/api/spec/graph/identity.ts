@@ -1,4 +1,4 @@
-/** Which property identifies an operation's records, and how sure oat is of it. */
+/** Which property identifies an operation's records, and how sure the API tester is of it. */
 
 import { deriveIdentity } from "../collection/identity.ts"
 import type { JsonSchema } from "../types.ts"

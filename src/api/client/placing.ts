@@ -163,7 +163,7 @@ function refuseDeferredEnv(sentValues: Readonly<Record<string, string>>): void {
 		const literal = value.split(":").find((part) => DEFERRED_ENV.test(part))
 		if (literal !== undefined) {
 			throw new Error(
-				`oat: the ${scheme} credential is the unset variable ${literal}; a run never defers env, so this is a bug`,
+				`testing api: the ${scheme} credential is the unset variable ${literal}; a run never defers env, so this is a bug`,
 			)
 		}
 	}

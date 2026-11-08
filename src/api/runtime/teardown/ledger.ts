@@ -28,8 +28,8 @@ export interface LedgerUnwind {
  * Entries carry their creator. Removing a record with somebody else's credential is at best a
  * 403 and at worst a 404 that reads as success while the record sits on in the creator's tenant —
  * so the creator deletes first, and a 404 counts as removal only when the creator sees it.
- * Entities are recorded in creation order so the unwind can reverse it. A record oat adopted
- * rather than created must never be recorded here: it was not oat's to remove.
+ * Entities are recorded in creation order so the unwind can reverse it. A record the API tester adopted
+ * rather than created must never be recorded here: it was not the API tester's to remove.
  */
 export class Ledger {
 	private readonly items: Disposable[] = []
@@ -60,7 +60,7 @@ export class Ledger {
 		return this.held.has(`${entity}\u0000${id}`)
 	}
 
-	/** A create that answered 2xx without an id oat could read: nothing can remove its record. */
+	/** A create that answered 2xx without an id the API tester could read: nothing can remove its record. */
 	unidentified(entity: string, operationId: string, exchange: Exchange): void {
 		if (this.unknown.has(exchange.seq)) return
 		this.unknown.set(exchange.seq, {
@@ -91,7 +91,7 @@ export class Ledger {
 
 	/**
 	 * A principal's read under the record's id answered that it is not there. Only the latest read
-	 * counts: once its creator lost sight of a record oat never deleted, a later 404 shows nothing.
+	 * counts: once its creator lost sight of a record the API tester never deleted, a later 404 shows nothing.
 	 * After a delete the backend accepted for it, the 404 is that delete, and the sighting stands.
 	 */
 	unsighted(entity: string, id: string, principal: string): void {
@@ -108,7 +108,7 @@ export class Ledger {
 		return this.sightings.has(keyOf(item))
 	}
 
-	/** Every create reported unidentified so far, in the order oat sent them. */
+	/** Every create reported unidentified so far, in the order the API tester sent them. */
 	get unidentifiedCreates(): UnidentifiedCreate[] {
 		return [...this.unknown.values()].sort((a, b) => a.seq - b.seq)
 	}

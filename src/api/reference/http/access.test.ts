@@ -214,7 +214,7 @@ describe("findItem through a grant", () => {
 
 	it("hides a row holding the probe value from its creator", async () => {
 		const { state, rowScope, tableId, call } = await rowWorld({ defects: ["HIDDEN_FROM_CREATOR"] })
-		const probe = (await call("POST", rowsOf(tableId), { body: { label: "oat-payload-probe" } })).body
+		const probe = (await call("POST", rowsOf(tableId), { body: { label: "testing-payload-probe" } })).body
 		await expect(
 			findItem(state, { entity: ROW, itemId: String(probe["id"]), principal: OWNER, scope: rowScope }),
 		).rejects.toMatchObject({

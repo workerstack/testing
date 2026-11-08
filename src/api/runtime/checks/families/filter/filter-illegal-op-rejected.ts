@@ -43,7 +43,7 @@ export const filterIllegalOpRejected: Check<{ probes: IllegalOpProbe[] }> = defi
 			const op = firstIllegalOp(ctx, field)
 			if (op === undefined) continue
 			const sample = ctx.records.find((row) => row[field.field] != null)
-			const value = sample === undefined ? "oat-probe" : asTermValue(sample[field.field])
+			const value = sample === undefined ? "testing-probe" : asTermValue(sample[field.field])
 			const legal = opsForField(field, resolvedCaps(ctx)).find((allowed) => canWriteFilterOp(conv(ctx), allowed))
 			const term = filterTerm(conv(ctx), { field: field.field, op, value })
 			const control =
@@ -53,12 +53,12 @@ export const filterIllegalOpRejected: Check<{ probes: IllegalOpProbe[] }> = defi
 			if (term !== null && control !== null) probes.push({ control, field, kind: "closed", op, term })
 		}
 		/* An operator token the grammar does not have at all — asked only of a declared grammar, where
-		 * the token is unknown on purpose rather than because oat guessed the spelling. */
+		 * the token is unknown on purpose rather than because the API tester guessed the spelling. */
 		const conventions = conv(ctx)
 		if (conventions.grammarDeclared === true) {
 			for (const field of resolvedCaps(ctx).filterable) {
 				const sample = ctx.records.find((row) => row[field.field] != null)
-				const value = sample === undefined ? "oat-probe" : String(asTermValue(sample[field.field]))
+				const value = sample === undefined ? "testing-probe" : String(asTermValue(sample[field.field]))
 				const term = renderUnknownOp(
 					{ field: field.field, filterParam: conventions.filter, spec: filterSpec(conventions), value },
 					UNKNOWN_OP,

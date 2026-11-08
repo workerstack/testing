@@ -1,4 +1,4 @@
-/** The `doctor` sections for what oat could not read or test: unfollowed and dangling refs, and the gaps by tag. */
+/** The `doctor` sections for what the API tester could not read or test: unfollowed and dangling refs, and the gaps by tag. */
 
 import type { DoctorFacts } from "./doctor-facts.ts"
 import { block } from "./doctor-text.ts"
@@ -7,7 +7,7 @@ import { TAG_REMEDY } from "./tags.ts"
 /** Gaps listed per tag before the rest are counted. */
 const GAPS_SHOWN = 4
 
-/** The external refs the document named, which oat did not fetch. */
+/** The external refs the document named, which the API tester did not fetch. */
 export function externalRefLines(externalRefs: string[]): string[] {
 	return block(
 		"  unresolved external $refs (not fetched — a test tool should not follow arbitrary URLs)",

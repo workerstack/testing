@@ -68,7 +68,7 @@ function broken(file: string, code: string): string[] {
 
 describe("script imports", () => {
 	it("checks the bin and the labs scripts", () => {
-		expect(scripts()).toEqual(expect.arrayContaining(["bin/oat.js", "labs/api/bisect.mjs", "labs/api/demo.mjs"]))
+		expect(scripts()).toEqual(expect.arrayContaining(["bin/testing.js", "labs/api/bisect.mjs", "labs/api/demo.mjs"]))
 	})
 
 	it("resolves every relative import in bin/* and labs/api/*.mjs", () => {

@@ -9,7 +9,7 @@ import { createMemoryServer } from "../../../src/api/reference/http/engines.ts"
 import { EXIT } from "../../../src/api/runtime/exit.ts"
 
 /*
- * What a run leaves for people and CI: `oat run --report junit` writes the matrix page, the JSON
+ * What a run leaves for people and CI: `testing api run --report junit` writes the matrix page, the JSON
  * report and JUnit XML into the run folder, and appends the job summary where GITHUB_STEP_SUMMARY
  * points. A clean reference passes all of them; one injected defect fails each the same way.
  */
@@ -27,13 +27,13 @@ interface Ran {
 	summary: string
 }
 
-/* `oat run --report junit` against the memory reference with `defects` injected, as a user calls it. */
+/* `testing api run --report junit` against the memory reference with `defects` injected, as a user calls it. */
 async function runWith(defects: string[]): Promise<Ran> {
-	const dir = await mkdtemp(join(tmpdir(), "oat-reports-"))
+	const dir = await mkdtemp(join(tmpdir(), "reports-"))
 	dirs.push(dir)
 	const server = await createMemoryServer({ defects })
 	try {
-		const config = join(dir, "oat.config.json")
+		const config = join(dir, "testing.api.config.json")
 		const spec = `${server.url}/v1/openapi/spec`
 		await writeFile(config, JSON.stringify({ baseUrl: server.url, principals: PRINCIPALS, security: SECURITY, spec }))
 		const summary = join(dir, "summary.md")
@@ -84,18 +84,18 @@ function junitCounts(xml: string) {
 
 async function artifacts(runDir: string): Promise<{ html: string; report: Report; xml: string }> {
 	const [html, json, xml] = await Promise.all(
-		["matrix.html", "oat-report.json", "junit.xml"].map((name) => readFile(join(runDir, name), "utf8")),
+		["matrix.html", "report.json", "junit.xml"].map((name) => readFile(join(runDir, name), "utf8")),
 	)
 	return { html: html as string, report: JSON.parse(json as string) as Report, xml: xml as string }
 }
 
 describe("the run folder's reports", () => {
-	it("writes matrix.html, oat-report.json, junit.xml and the step summary for a clean run", async () => {
+	it("writes matrix.html, report.json, junit.xml and the step summary for a clean run", async () => {
 		const ran = await runWith([])
 		expect(ran.code).toBe(EXIT.clean)
 		const { html, report, xml } = await artifacts(ran.runDir)
 		expect(html).toMatch(/^<!DOCTYPE html>/)
-		expect(html).toMatch(/<title>oat matrix — [^<]*\btable\b[^<]*<\/title>/)
+		expect(html).toMatch(/<title>testing api matrix — [^<]*\btable\b[^<]*<\/title>/)
 		expect(report.schemaVersion).toBe(1)
 		expect(report.outcome).toMatchObject({ exitCode: EXIT.clean, result: "clean" })
 		expect(report.findings.filter((finding) => finding.verdict === "BACKEND_BUG")).toEqual([])
@@ -109,7 +109,7 @@ describe("the run folder's reports", () => {
 			0,
 			[],
 		])
-		expect(ran.summary).toMatch(/^## oat: clean \(exit 0\)\n/)
+		expect(ran.summary).toMatch(/^## testing api: clean \(exit 0\)\n/)
 	}, 60_000)
 
 	it("fails the injected defect's check in every report, with the exit code to match", async () => {
@@ -125,7 +125,7 @@ describe("the run folder's reports", () => {
 		expect(counts.failures).toBe(bugs.length)
 		const expected = bugs.flatMap((finding) => (finding.operations ?? []).map((op) => `${op} ${finding.check}`))
 		expect(counts.failed).toEqual(expected.toSorted())
-		expect(ran.summary).toMatch(/^## oat: defects \(exit 1\)\n/)
+		expect(ran.summary).toMatch(/^## testing api: defects \(exit 1\)\n/)
 		expect(ran.summary).toContain("| BACKEND_BUG | table | `filter.unknown-field-rejected` |")
 	}, 60_000)
 })

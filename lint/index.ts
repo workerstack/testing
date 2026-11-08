@@ -1,4 +1,4 @@
-// Oxlint registers one plugin name; this entry publishes every oat rule.
+// Oxlint registers one plugin name; this entry publishes every the API tester rule.
 import { rule as boundaries } from "./boundaries.ts"
 import { rule as exitOnlyInCli } from "./exit-only-in-cli.ts"
 import { rule as grammarThroughRenderer } from "./grammar-through-renderer.ts"
@@ -14,7 +14,7 @@ import { rule as noV8Ignore } from "./no-v8-ignore.ts"
 import { rule as provenIdOrigin } from "./proven-id-origin.ts"
 
 export default {
-	meta: { name: "oat" },
+	meta: { name: "testing" },
 	rules: {
 		boundaries,
 		"exit-only-in-cli": exitOnlyInCli,

@@ -38,7 +38,7 @@ describe("entityQueryCatalogs from the document", () => {
 
 describe("entityQueryCatalogs and the parameters a list declares", () => {
 	it("lists only what a declared parameter can carry, as the run sends it", () => {
-		/* No `x-query`: a free-text `q` makes oat guess every scalar, one filter parameter each. */
+		/* No `x-query`: a free-text `q` makes the API tester guess every scalar, one filter parameter each. */
 		const item = { properties: { id: { type: "string" }, name: { type: "string" } }, type: "object" }
 		const doc = documentOf({
 			"/things": {

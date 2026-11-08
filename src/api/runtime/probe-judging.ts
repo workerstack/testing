@@ -2,7 +2,7 @@
  * A probe is deliberately abnormal: sent with no credential, a forged one, or one made to be
  * refused. What it is answered is the security checks' to judge. Judges whose verdict is "the answer
  * differs from the document" leave it alone: a correct 401 to an anonymous probe, on an API that
- * documents no 401, is noise of oat's own making. Every other judge still reads it, so a 5xx a probe
+ * documents no 401, is noise of the API tester's own making. Every other judge still reads it, so a 5xx a probe
  * provokes is reported: a judge not named here judges probes by default.
  */
 

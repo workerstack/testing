@@ -205,7 +205,7 @@ function writersOf(ctx: OperationContext, target: WriteTarget): Plan<{ writers: 
 }
 
 /*
- * Each marked property with the value the probe sets it to, changed from the record's own; any one oat
+ * Each marked property with the value the probe sets it to, changed from the record's own; any one the API tester
  * cannot change, or whose parent the body (which never carries a marked property) lacks, stands it down.
  */
 function changesOf(
@@ -215,7 +215,8 @@ function changesOf(
 	const changes: Array<[string, unknown]> = []
 	for (const path of ctx.operation.privileged) {
 		const value = changed(valueAt(record, path), typeOf(ctx, path))
-		if (value === undefined || !isFields(parentOf(body, path))) return cannot(`a value of ${path} oat can change`)
+		if (value === undefined || !isFields(parentOf(body, path)))
+			return cannot(`a value of ${path} the API tester can change`)
 		changes.push([path, value])
 	}
 	return ready(changes)
@@ -225,7 +226,7 @@ function changesOf(
 function changed(current: unknown, type: unknown): unknown {
 	if (typeof current === "boolean") return !current
 	if (typeof current === "number") return current + 1
-	if (typeof current === "string") return `${current}-oat`
+	if (typeof current === "string") return `${current}-testing`
 	return current === undefined && type === "boolean" ? true : undefined
 }
 

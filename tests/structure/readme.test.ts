@@ -3,7 +3,7 @@ import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 
 /*
- * The README is the front page: what oat is, how to start, how auth is declared, what a run's
+ * The README is the front page: what the API tester is, how to start, how auth is declared, what a run's
  * verdicts and exit codes mean, a CI sketch, the limits that matter most, and where every other doc
  * is. It stays about 120 lines; the full limits live in docs/api/limits.md and the run walkthrough in
  * docs/api/model.md, so nothing the README drops is lost.
@@ -28,9 +28,9 @@ describe("the README", () => {
 		expect(lines).toBeLessThanOrEqual(135)
 	})
 
-	it("starts a user with doctor, then init, then run, on the OpenAPI versions oat reads", () => {
+	it("starts a user with doctor, then init, then run, on the OpenAPI versions the API tester reads", () => {
 		const start = section("Quick start")
-		const at = (command: string) => start.indexOf(`oat ${command}`)
+		const at = (command: string) => start.indexOf(`testing api ${command}`)
 		expect(at("doctor")).toBeGreaterThan(-1)
 		expect(at("doctor")).toBeLessThan(at("init"))
 		expect(at("init")).toBeLessThan(at("run"))
@@ -49,7 +49,7 @@ describe("the README", () => {
 			expect(verdicts).toContain(`\`${verdict}\``)
 		for (const code of [0, 1, 2, 3, 4]) expect(verdicts).toMatch(new RegExp(`\\| \`${code}\` +\\|`))
 		expect(verdicts).toMatch(/any non-zero exit fails/i)
-		expect(section("CI")).toContain("oat run --config")
+		expect(section("CI")).toContain("testing api run --config")
 	})
 
 	it("links every top-level doc from its index", () => {

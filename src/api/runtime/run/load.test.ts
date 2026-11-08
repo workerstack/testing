@@ -33,7 +33,7 @@ describe("load", () => {
 	})
 
 	it("reads a document on disk without asking the fence, and runs with no hooks", async () => {
-		const dir = mkdtempSync(join(tmpdir(), "oat-load-"))
+		const dir = mkdtempSync(join(tmpdir(), "testing-load-"))
 		const spec = join(dir, "openapi.json")
 		writeFileSync(spec, JSON.stringify(notesDoc()))
 		/* No network options at all: a document on disk needs none. */
@@ -124,7 +124,7 @@ describe("load, the secondary origins and the credentials config", () => {
 
 describe("load and the config's folder", () => {
 	it("reads a relative document, and each origin's, from configDir", async () => {
-		const dir = mkdtempSync(join(tmpdir(), "oat-load-"))
+		const dir = mkdtempSync(join(tmpdir(), "testing-load-"))
 		writeFileSync(join(dir, "openapi.json"), JSON.stringify(notesDoc()))
 		const origins = [{ baseUrl: "http://cdn.test", id: "cdn", security: { bearer: "bearer" }, spec: "openapi.json" }]
 		const options = optionsFor(() => undefined, { configDir: dir, origins, spec: "openapi.json" })
@@ -145,7 +145,7 @@ const searchable = (): OpenApiDocument =>
 		},
 	})
 const onDisk = (doc: OpenApiDocument) => {
-	const spec = join(mkdtempSync(join(tmpdir(), "oat-load-")), "openapi.json")
+	const spec = join(mkdtempSync(join(tmpdir(), "testing-load-")), "openapi.json")
 	writeFileSync(spec, JSON.stringify(doc))
 	return spec
 }

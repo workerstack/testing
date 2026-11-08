@@ -18,14 +18,14 @@ export interface Secrets {
 	values: string[]
 }
 
-/** A scheme the document declares that oat has no way to send. */
+/** A scheme the document declares that the API tester has no way to send. */
 export class UnsupportedSchemeError extends Error {
 	override name = "UnsupportedSchemeError"
 	constructor(
 		readonly scheme: string,
 		readonly reason: string,
 	) {
-		super(`oat cannot send the "${scheme}" scheme: ${reason}`)
+		super(`the API tester cannot send the "${scheme}" scheme: ${reason}`)
 	}
 }
 

@@ -67,10 +67,10 @@ function readGroup(value: unknown, key: string): TermGroup | string {
 
 export const readOps: Step = (draft) => {
 	const { raw, names } = draft
-	if (!isRecord(raw.ops)) return "ops must map oat operators to the grammar's tokens"
+	if (!isRecord(raw.ops)) return "ops must map the API tester operators to the grammar's tokens"
 	for (const [op, token] of Object.entries(raw.ops)) {
 		if (!(FILTER_OPS as readonly string[]).includes(op) || op === "is") {
-			return `ops.${op} is not an operator oat writes (null tests go under null)`
+			return `ops.${op} is not an operator the API tester writes (null tests go under null)`
 		}
 		if (!nonEmpty(token)) return `ops.${op} must be a non-empty token`
 		draft.ops[op as FilterOp] = token
@@ -158,7 +158,7 @@ export const readOr: Step = (draft) => {
 
 export const readMixed: Step = (draft) =>
 	draft.raw.mixed !== undefined && draft.raw.mixed !== false
-		? "mixed must be false: oat never assumes how and and or nest in a declared grammar"
+		? "mixed must be false: the API tester never assumes how and and or nest in a declared grammar"
 		: undefined
 
 export const readEscape: Step = (draft) => {

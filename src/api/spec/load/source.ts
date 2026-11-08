@@ -42,10 +42,11 @@ interface SpecText {
 	path?: string
 }
 
-/* A URL with nothing to fetch it is a caller's mistake: oat's network policy lives in the runtime. */
+/* A URL with nothing to fetch it is a caller's mistake: the API tester's network policy lives in the runtime. */
 function fetcher(options: SpecSourceOptions): (url: string) => Promise<string> {
 	return (
-		options.fetchText ?? ((url) => Promise.reject(new Error(`oat: ${url} is a URL, and this caller reads only files`)))
+		options.fetchText ??
+		((url) => Promise.reject(new Error(`testing api: ${url} is a URL, and this caller reads only files`)))
 	)
 }
 
@@ -68,7 +69,7 @@ async function readSpecSource(source: string, options: SpecSourceOptions): Promi
 	}
 
 	throw new Error(
-		`oat: could not find a specification at "${source}". Tried:\n  ${asPath}` +
+		`testing api: could not find a specification at "${source}". Tried:\n  ${asPath}` +
 			(baseUrl === undefined ? "\nPass --base-url (or set baseUrl in the config) to resolve it as a route." : ""),
 	)
 }

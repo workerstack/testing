@@ -39,7 +39,7 @@ function attributes(attrText: string): Record<string, string> {
 	return attrs
 }
 
-/** A strict reader for the XML oat writes: one declaration, elements, attributes, escaped text. */
+/** A strict reader for the XML the API tester writes: one declaration, elements, attributes, escaped text. */
 function parseXml(xml: string): Element {
 	wellFormed(xml.startsWith('<?xml version="1.0" encoding="UTF-8"?>\n') && xml.endsWith("\n"), "declaration")
 	const root: Element = { attrs: {}, children: [], name: "#document", text: "" }
@@ -110,7 +110,7 @@ describe("renderJunit", () => {
 	it("a clean run is one passing case per (operation, check)", () => {
 		const xml = renderJunit(clean())
 		const root = parseXml(xml)
-		expect(root.attrs).toEqual({ errors: "0", failures: "0", name: "oat", tests: "3", time: "1.500" })
+		expect(root.attrs).toEqual({ errors: "0", failures: "0", name: "testing api", tests: "3", time: "1.500" })
 		expect(root.children.map((s) => s.attrs["name"])).toEqual(["row", "tag"])
 		expect(cases(suite(xml, "row"))).toEqual(["row.list a.check: passed", "row.list b.check: passed"])
 		expect(suite(xml, "row").attrs).toEqual({
@@ -121,7 +121,7 @@ describe("renderJunit", () => {
 			tests: "2",
 			timestamp: "1970-01-01T00:00:00Z",
 		})
-		expect(xml).not.toContain("oat.run")
+		expect(xml).not.toContain("testing.api.run")
 	})
 
 	it("a failing root cause is a failure with its verdict, summary and evidence", () => {
@@ -151,13 +151,13 @@ describe("renderJunit", () => {
 			[
 				"first detail",
 				...[0, 1, 2, 3, 4].map((i) => `PATCH ${BASE}/v1/rows/${i} → ${500 + i}`),
-				"… 2 more exchanges in oat-report.json",
+				"… 2 more exchanges in report.json",
 				"",
 				"second",
 			].join("\n"),
 		)
 		expect(suite(xml, "row").attrs["failures"]).toBe("1")
-		expect(suite(xml, "oat.run")).toBeUndefined()
+		expect(suite(xml, "testing.api.run")).toBeUndefined()
 	})
 })
 
@@ -251,14 +251,14 @@ describe("renderJunit, cases outside an operation", () => {
 		expect(cases(suite(xml, "row"))).toEqual(["row.blocked graded: skipped blocked"])
 	})
 
-	it("a failed run outcome is an error in oat.run", () => {
+	it("a failed run outcome is an error in testing.api.run", () => {
 		const xml = renderJunit(
 			reportOf({
 				network: { attempts: 3, incomplete: true, kind: "dns", url: BASE, waitedMs: 0 },
 				scope: scopeOf({ operations: [operation({ checks: { ...operation().checks, passed: ["a"] } })] }),
 			}),
 		)
-		const outcome = suite(xml, "oat.run")
+		const outcome = suite(xml, "testing.api.run")
 		expect(cases(outcome)).toEqual(["run outcome: error the network went away before the run finished"])
 		expect((outcome.children[0] as Element).children[0]?.attrs["type"]).toBe("failed")
 		expect(parseXml(xml).attrs).toMatchObject({ errors: "1", tests: "2" })
@@ -266,8 +266,8 @@ describe("renderJunit, cases outside an operation", () => {
 	})
 })
 
-describe("renderJunit, the oat.run suite", () => {
-	it("puts run-level findings, and root causes no case holds, in oat.run by check", () => {
+describe("renderJunit, the testing.api.run suite", () => {
+	it("puts run-level findings, and root causes no case holds, in testing.api.run by check", () => {
 		const xml = renderJunit(
 			reportOf({
 				findings: [
@@ -282,7 +282,7 @@ describe("renderJunit, the oat.run suite", () => {
 				scope: scopeOf({ operations: [] }),
 			}),
 		)
-		expect(cases(suite(xml, "oat.run"))).toEqual([
+		expect(cases(suite(xml, "testing.api.run"))).toEqual([
 			"run network: skipped blocked: stalled",
 			"run old: skipped known (baseline): #4",
 			"run outcome: error no operation was graded, so nothing was proved",
@@ -290,7 +290,7 @@ describe("renderJunit, the oat.run suite", () => {
 			"run support.create: failure 500 on create",
 			"run teardown.removes: failure left a row",
 		])
-		expect(suite(xml, "oat.run").attrs).toMatchObject({ errors: "1", failures: "2", skipped: "3", tests: "6" })
+		expect(suite(xml, "testing.api.run").attrs).toMatchObject({ errors: "1", failures: "2", skipped: "3", tests: "6" })
 	})
 })
 
@@ -416,14 +416,14 @@ describe("renderJunit, secondary origins", () => {
 				}),
 			}),
 		)
-		expect(suites(xml).map((s) => s.attrs["name"])).toEqual(["billing:invoice", "oat.run"])
+		expect(suites(xml).map((s) => s.attrs["name"])).toEqual(["billing:invoice", "testing.api.run"])
 		expect(cases(suite(xml, "billing:invoice"))).toEqual([
 			"billing:invoice x: skipped stood down: n",
 			"billing:invoice.get c: failure theirs",
 			"billing:invoice.get i: skipped inconclusive: billing's",
 			"billing:invoice.get s: skipped blocked: waiting on b.cause",
 		])
-		expect(cases(suite(xml, "oat.run"))).toEqual(["run c: failure primary"])
+		expect(cases(suite(xml, "testing.api.run"))).toEqual(["run c: failure primary"])
 	})
 
 	it("writes an empty suite list for a run with nothing to report", () => {
