@@ -16,8 +16,8 @@
 		"coverage/**",
 		"oat-out/**",
 		".oat/**",
-		"labs/node_modules/**",
-		"labs/schema/**",
+		"labs/api/node_modules/**",
+		"labs/api/schema/**",
 		".agents/**",
 		".claude/**",
 		".codex/**",
@@ -58,7 +58,7 @@
 	},
 	"overrides": [
 		{
-			"files": ["labs/**/*.{ts,mjs,js}"],
+			"files": ["labs/api/**/*.{ts,mjs,js}"],
 			"rules": {
 				"typescript/no-explicit-any": "off"
 			}

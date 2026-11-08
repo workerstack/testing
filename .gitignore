@@ -23,10 +23,10 @@ oat-out/
 .env.*
 
 # labs local scratch
-labs/.data/
-labs/.d1.json
-labs/.deploy/
-labs/.wrangler/
+labs/api/.data/
+labs/api/.d1.json
+labs/api/.deploy/
+labs/api/.wrangler/
 
 # editors
 .vscode/
@@ -47,7 +47,7 @@ pnpm-debug.log*
 .oatlogs/
 .tmp/
 
-# Third-party files the real-API targets fetch by pinned commit and sha256 (tests/targets/*/target.ts).
-tests/targets/crapi/keys/
-tests/targets/vampi/openapi3.yml
+# Third-party files the real-API targets fetch by pinned commit and sha256 (tests/api/targets/*/target.ts).
+tests/api/targets/crapi/keys/
+tests/api/targets/vampi/openapi3.yml
 .worktrees/

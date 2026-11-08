@@ -12,7 +12,7 @@ import { describe, expect, it } from "vitest"
 
 const ROOT = join(import.meta.dirname, "..", "..")
 const BUILD = join(ROOT, "dist")
-const LABS = join(ROOT, "labs") + sep
+const LABS = join(ROOT, "labs", "api") + sep
 
 function config(): ts.ParsedCommandLine {
 	const read = ts.readConfigFile(join(ROOT, "tsconfig.test.json"), ts.sys.readFile)
@@ -57,7 +57,7 @@ describe("the labs TypeScript", () => {
 			const parsed = config()
 			const { rootDirs: _mapped, ...unmapped } = parsed.options
 			expect(labsErrors(parsed, unmapped)).toEqual(
-				expect.arrayContaining(["labs/local.config.ts(11): TS2307", "labs/oat.config.ts(7): TS2307"]),
+				expect.arrayContaining(["labs/api/local.config.ts(11): TS2307", "labs/api/oat.config.ts(7): TS2307"]),
 			)
 		},
 	)

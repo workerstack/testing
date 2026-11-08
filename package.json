@@ -29,36 +29,36 @@
 		"README.md",
 		"docs",
 		"LICENSE",
-		"labs/annotated-openapi.yaml",
-		"labs/local.config.ts",
-		"labs/minimal.config.ts",
-		"labs/oob-auth.config.ts",
-		"labs/demo.mjs",
-		"labs/README.md"
+		"labs/api/annotated-openapi.yaml",
+		"labs/api/local.config.ts",
+		"labs/api/minimal.config.ts",
+		"labs/api/oob-auth.config.ts",
+		"labs/api/demo.mjs",
+		"labs/api/README.md"
 	],
 	"type": "module",
-	"main": "./dist/index.js",
-	"types": "./dist/index.d.ts",
+	"main": "./dist/api/index.js",
+	"types": "./dist/api/index.d.ts",
 	"exports": {
 		".": {
-			"types": "./dist/index.d.ts",
-			"default": "./dist/index.js"
+			"types": "./dist/api/index.d.ts",
+			"default": "./dist/api/index.js"
 		},
 		"./steps": {
-			"types": "./dist/steps/index.d.ts",
-			"default": "./dist/steps/index.js"
+			"types": "./dist/api/steps/index.d.ts",
+			"default": "./dist/api/steps/index.js"
 		}
 	},
 	"publishConfig": {
 		"access": "public"
 	},
 	"scripts": {
-		"bisect": "node labs/bisect.mjs",
+		"bisect": "node labs/api/bisect.mjs",
 		"build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc -p tsconfig.json",
 		"check": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
-		"conformance": "node dist/cli.js conformance",
+		"conformance": "node dist/api/cli.js conformance",
 		"conformance:sharded": "bun scripts/conformance-sharded.ts",
-		"demo": "bun run build && node labs/demo.mjs",
+		"demo": "bun run build && node labs/api/demo.mjs",
 		"dev": "tsc -p tsconfig.json --watch",
 		"fmt": "oxfmt",
 		"fmt:check": "oxfmt --check",
@@ -81,13 +81,13 @@
 		"grunt:sync:globals": "node .rulesync/scripts/sync-global-settings.mjs",
 		"grunt:sync:globals:apply": "node .rulesync/scripts/sync-global-settings.mjs --apply",
 		"grunt:sync:globals:check": "node .rulesync/scripts/check-globals.mjs",
-		"labs": "node labs/serve.ts",
-		"labs:sweep": "bash labs/sweep.sh",
+		"labs": "node labs/api/serve.ts",
+		"labs:sweep": "bash labs/api/sweep.sh",
 		"lint": "oxlint --deny-warnings",
 		"lint:fix": "oxlint --fix",
 		"prepare": "lefthook install --reset-hooks-path",
 		"prepublishOnly": "bun run build",
-		"test": "bun run build && bun run test:unit && bun run test:integration && node dist/cli.js conformance",
+		"test": "bun run build && bun run test:unit && bun run test:integration && node dist/api/cli.js conformance",
 		"test:e2e": "bun run build && vitest run -c vitest.e2e.config.ts",
 		"test:integration": "vitest run --project integration",
 		"test:targets": "vitest run -c vitest.targets.config.ts",

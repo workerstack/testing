@@ -144,9 +144,9 @@ interface Importing extends Node {
 export const rule: Rule = {
 	create(context: Context) {
 		const file = repoPath(context.filename)
-		const at = file.lastIndexOf("/src/")
+		const at = file.lastIndexOf("/src/api/")
 		if (at === -1 || isTestCode(file)) return {}
-		const fromRel = file.slice(at + "/src/".length)
+		const fromRel = file.slice(at + "/src/api/".length)
 		let packages: Set<string> | undefined
 		const declared = (): Set<string> => (packages ??= declaredPackages())
 		const check = (node: Importing): void => {

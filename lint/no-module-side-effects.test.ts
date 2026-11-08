@@ -4,10 +4,18 @@ import { oxlintReports, reportsOf } from "./rule-harness.ts"
 
 const MESSAGE = "module scope runs no code: mark a pure call /* @__PURE__ */ or move it into a function"
 
+const OUTSIDE_SRC = {
+	"src/api/runtime/a.test.ts": "run()\n",
+	"scripts/a.ts": "run()\n",
+	"tests/api/support/a.ts": "run()\n",
+}
+
+const ENTRY_POINTS = { "src/api/cli.ts": "await start()\n", "src/api/conformance/worker.ts": "serve()\n" }
+
 describe("oat/no-module-side-effects", () => {
 	it("flags code that runs at import", () => {
 		const fixture = {
-			"src/runtime/a.ts": [
+			"src/api/runtime/a.ts": [
 				"validateRegistry(CHECKS)",
 				"export const x = compute()",
 				"const y = new Thing()",
@@ -25,7 +33,7 @@ describe("oat/no-module-side-effects", () => {
 
 	it("allows declarations, deferred code and pure-marked calls", () => {
 		const fixture = {
-			"src/runtime/a.ts": [
+			"src/api/runtime/a.ts": [
 				'"use strict"',
 				'import { a } from "./a.ts"',
 				'export { b } from "./b.ts"',
@@ -51,24 +59,23 @@ describe("oat/no-module-side-effects", () => {
 	})
 
 	it("leaves tests and code outside src alone", () => {
-		const fixture = { "src/runtime/a.test.ts": "run()\n", "scripts/a.ts": "run()\n", "tests/support/a.ts": "run()\n" }
-		expect(reportsOf(rule, fixture)).toEqual([])
+		expect(reportsOf(rule, OUTSIDE_SRC)).toEqual([])
 	})
 
 	it("lets a process entry point run its one call, and nothing else that is named like one", () => {
-		expect(reportsOf(rule, { "src/cli.ts": "await start()\n", "src/conformance/worker.ts": "serve()\n" })).toEqual([])
-		expect(reportsOf(rule, { "src/cli/cli.ts": "await start()\n" })).toHaveLength(1)
+		expect(reportsOf(rule, ENTRY_POINTS)).toEqual([])
+		expect(reportsOf(rule, { "src/api/cli/cli.ts": "await start()\n" })).toHaveLength(1)
 	})
 
 	it("fails oxlint through the oat plugin entry", () => {
-		expect(oxlintReports("no-module-side-effects", { "src/runtime/a.ts": "run()\n" }).length).toBe(1)
+		expect(oxlintReports("no-module-side-effects", { "src/api/runtime/a.ts": "run()\n" }).length).toBe(1)
 	})
 })
 
 describe("oat/no-module-side-effects definers", () => {
 	it("treats a check definition as pure, and still checks what it is given", () => {
 		const fixture = {
-			"src/runtime/checks/families/a.ts": [
+			"src/api/runtime/checks/families/a.ts": [
 				'export const a = defineCheck({ id: "a", run: () => run() })',
 				"export const b = defineCheck({ id: compute() })",
 				"export const c = other.defineCheck({})",

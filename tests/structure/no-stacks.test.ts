@@ -2,11 +2,11 @@ import { mkdtempSync, readdirSync, readFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
-import { type Finished, reportInput, writeReports } from "../../src/cli/commands/run-report.ts"
-import type { PrincipalsConfig, SecurityConfig } from "../../src/config/types/security.ts"
-import { type Hosted, inProcess, launch } from "../../src/conformance/harness/launch.ts"
-import { run } from "../../src/runtime/run/index.ts"
-import { REDACTED } from "../../src/security/redact.ts"
+import { type Finished, reportInput, writeReports } from "../../src/api/cli/commands/run-report.ts"
+import type { PrincipalsConfig, SecurityConfig } from "../../src/api/config/types/security.ts"
+import { type Hosted, inProcess, launch } from "../../src/api/conformance/harness/launch.ts"
+import { run } from "../../src/api/runtime/run/index.ts"
+import { REDACTED } from "../../src/api/security/redact.ts"
 
 /*
  * A report is shared beyond the machine that ran it: it holds no stack frame, no absolute path and
@@ -25,7 +25,7 @@ function snapshots(dir: string): string[] {
 
 describe("reports", () => {
 	it("hold no stack frame and no absolute path", () => {
-		const files = snapshots("tests/regression/__snapshots__")
+		const files = snapshots("tests/api/regression/__snapshots__")
 		expect(files.length).toBeGreaterThan(100)
 		const leaking = files.filter((file) => LEAK.test(readFileSync(file, "utf8")))
 		expect(leaking.map((file) => file.slice(ROOT.length + 1))).toEqual([])

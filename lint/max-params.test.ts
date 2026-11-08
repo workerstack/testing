@@ -7,7 +7,7 @@ const MESSAGE = "a function takes at most 3 parameters, plus a first `ctx`: pass
 describe("oat/max-params", () => {
 	it("flags a fourth parameter in every kind of function", () => {
 		const fixture = {
-			"src/runtime/a.ts": [
+			"src/api/runtime/a.ts": [
 				"export function f(a, b, c, d) {}",
 				"export const g = (a, b, c, d) => a",
 				"export const h = function (a, b = 1, ...c) {}",
@@ -22,7 +22,7 @@ describe("oat/max-params", () => {
 
 	it("does not count a first `ctx`, nor a TypeScript `this`", () => {
 		const fixture = {
-			"src/runtime/a.ts": [
+			"src/api/runtime/a.ts": [
 				"export function f(ctx: C, a: number, b: number, c: number) {}",
 				"export function g(this: Window, a: number, b: number, c: number) {}",
 				"export function h(this: Window, ctx: C, a: number, b: number, c: number) {}",
@@ -34,7 +34,7 @@ describe("oat/max-params", () => {
 
 	it("counts a `ctx` anywhere but first, and every parameter past a first one", () => {
 		const fixture = {
-			"src/runtime/a.ts": [
+			"src/api/runtime/a.ts": [
 				"export const f = (a: number, b: number, c: number, ctx?: C) => a",
 				"export function g(ctx: C, a: number, b: number, c: number, d: number) {}",
 				"export function h(ctx: C, ctx2: C, a: number, b: number, c: number) {}",
@@ -46,7 +46,7 @@ describe("oat/max-params", () => {
 
 	it("holds overloads and abstract signatures to it", () => {
 		const fixture = {
-			"src/runtime/a.ts": [
+			"src/api/runtime/a.ts": [
 				"export function f(a: A, b: B, c: C, d: D): void",
 				"export function f(a: A): void",
 				"export function f(...args: unknown[]): void {}",
@@ -60,15 +60,15 @@ describe("oat/max-params", () => {
 describe("oat/max-params reach", () => {
 	it("holds tests, scripts and labs to it too", () => {
 		const fixture = {
-			"src/runtime/a.test.ts": "const f = (a, b, c, d) => a\n",
+			"src/api/runtime/a.test.ts": "const f = (a, b, c, d) => a\n",
 			"scripts/x.ts": "function f(a, b, c, d) {}\n",
-			"labs/kit/y.ts": "function f(a, b, c, d) {}\n",
+			"labs/api/kit/y.ts": "function f(a, b, c, d) {}\n",
 		}
 		expect(reportsOf(rule, fixture)).toHaveLength(3)
 	})
 
 	it("fails oxlint through the oat plugin entry", () => {
-		const fixture = { "src/runtime/a.ts": "export function f(a, b, c, d) {}\nexport function g(ctx, a, b, c) {}\n" }
+		const fixture = { "src/api/runtime/a.ts": "export function f(a, b, c, d) {}\nexport function g(ctx, a, b, c) {}\n" }
 		expect(oxlintReports("max-params", fixture).map(({ line }) => line)).toEqual([1])
 	})
 })

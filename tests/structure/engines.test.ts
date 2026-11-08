@@ -1,9 +1,9 @@
 import { readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
-import { judgeSkipped } from "../../src/cli/commands/conformance-tail.ts"
-import { bufferWriter } from "../../src/cli/writer.ts"
-import { NODE_FLOOR } from "../../src/errors/node-floor.ts"
+import { judgeSkipped } from "../../src/api/cli/commands/conformance-tail.ts"
+import { bufferWriter } from "../../src/api/cli/writer.ts"
+import { NODE_FLOOR } from "../../src/api/errors/node-floor.ts"
 
 /*
  * oat runs as shipped: plain `node`, no flag. The floor is the first Node where `node:sqlite`, a
@@ -40,6 +40,6 @@ describe("the Node floor", () => {
 		const pinned = jobs.filter((job) => job.includes(`node-version: "${NODE_FLOOR}.0"`))
 		expect(pinned).toHaveLength(1)
 		expect(pinned[0]).toContain("bun run test:unit")
-		expect(pinned[0]).toContain("node dist/cli.js conformance --backend sqlite --legs passes")
+		expect(pinned[0]).toContain("node dist/api/cli.js conformance --backend sqlite --legs passes")
 	})
 })

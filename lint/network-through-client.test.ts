@@ -27,19 +27,19 @@ const lines = (file: string): number[] => reportsOf(rule, { [file]: SOURCE }).ma
 
 describe("oat/network-through-client", () => {
 	it("reports every way out of the process that is not the client", () => {
-		expect(lines("src/runtime/checks.ts")).toEqual([2, 3, 4, 5, 6, 15, 16])
+		expect(lines("src/api/runtime/checks.ts")).toEqual([2, 3, 4, 5, 6, 15, 16])
 	})
 
 	it("allows the client itself, the reference backend, labs and tests", () => {
-		expect(lines("src/client/request.ts")).toEqual([])
-		expect(lines("src/reference/stores/sqlite-driver.ts")).toEqual([])
-		expect(lines("labs/demo.ts")).toEqual([])
-		expect(lines("src/runtime/checks.test.ts")).toEqual([])
-		expect(lines("tests/integration/some.test.ts")).toEqual([])
+		expect(lines("src/api/client/request.ts")).toEqual([])
+		expect(lines("src/api/reference/stores/sqlite-driver.ts")).toEqual([])
+		expect(lines("labs/api/demo.ts")).toEqual([])
+		expect(lines("src/api/runtime/checks.test.ts")).toEqual([])
+		expect(lines("tests/api/integration/some.test.ts")).toEqual([])
 	})
 
 	it("fails oxlint through the oat plugin entry", () => {
-		const reports = oxlintReports("network-through-client", { "src/runtime/checks.ts": SOURCE })
+		const reports = oxlintReports("network-through-client", { "src/api/runtime/checks.ts": SOURCE })
 		expect(reports.map((report) => report.line)).toEqual([2, 3, 4, 5, 6, 15, 16])
 	})
 })

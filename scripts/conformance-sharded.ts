@@ -16,8 +16,8 @@ import { mkdtempSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { parseArgs } from "node:util"
-import { postgresStatus, sqliteAvailable } from "../src/conformance/matrix/engines.ts"
-import { conformanceShards, type Shard } from "../src/conformance/shards.ts"
+import { postgresStatus, sqliteAvailable } from "../src/api/conformance/matrix/engines.ts"
+import { conformanceShards, type Shard } from "../src/api/conformance/shards.ts"
 
 const { values, positionals } = parseArgs({
 	allowPositionals: true,

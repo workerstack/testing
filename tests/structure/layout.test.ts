@@ -1,8 +1,8 @@
 import { spawnSync } from "node:child_process"
-import { importGraph } from "../support/import-graph.ts"
-import { packedManifests } from "../support/npm-pack.ts"
-import { ENTRY_POINTS } from "../support/coverage-scope.ts"
-import { unshipped } from "../support/shipped.ts"
+import { importGraph } from "../api/support/import-graph.ts"
+import { packedManifests } from "../api/support/npm-pack.ts"
+import { ENTRY_POINTS } from "../api/support/coverage-scope.ts"
+import { unshipped } from "../api/support/shipped.ts"
 import { existsSync, readdirSync, readFileSync } from "node:fs"
 import { join, relative } from "node:path"
 import { parseSync } from "oxc-parser"
@@ -72,19 +72,19 @@ describe("layout", () => {
 		/* The list phases 3 to 7.1 shipped with: the check names what it left out. */
 		const narrow = [
 			"bin/oat.js",
-			"dist/cli.js",
-			"dist/index.js",
-			"dist/index.d.ts",
-			"dist/config",
-			"dist/conformance",
-			"dist/reference",
-			"dist/report",
-			"dist/runtime",
-			"dist/spec",
+			"dist/api/cli.js",
+			"dist/api/index.js",
+			"dist/api/index.d.ts",
+			"dist/api/config",
+			"dist/api/conformance",
+			"dist/api/reference",
+			"dist/api/report",
+			"dist/api/runtime",
+			"dist/api/spec",
 		]
 		const missing = unshipped(ROOT, { ...manifest, files: narrow }, graph)
 		expect(missing).toEqual(
-			expect.arrayContaining(["dist/cli/main.js", "dist/errors/message.js", "dist/security/redact.js"]),
+			expect.arrayContaining(["dist/api/cli/main.js", "dist/api/errors/message.js", "dist/api/security/redact.js"]),
 		)
 	})
 })
@@ -111,7 +111,7 @@ describe("the package", () => {
 				.map((path) => path.replace(/^dist\//, "src/").replace(/\.js$/, ".ts"))
 				.filter((source) => !existsSync(join(ROOT, source)))
 			expect(orphans).toEqual([])
-			/* A source map points at src/, which the package does not ship: it would only add size. */
+			/* A source map points at src/api/, which the package does not ship: it would only add size. */
 			expect(shipped.filter((path) => path.endsWith(".map"))).toEqual([])
 		},
 		PACK_TIMEOUT_MS,

@@ -6,8 +6,8 @@ import { defineConfig } from "vitest/config"
  */
 export default defineConfig({
 	test: {
-		globalSetup: ["tests/support/temp-root.ts"],
-		include: ["tests/targets/run.test.ts"],
+		globalSetup: ["tests/api/support/temp-root.ts"],
+		include: ["tests/api/targets/run.test.ts"],
 		testTimeout: 60_000,
 		hookTimeout: 900_000,
 		fileParallelism: false,

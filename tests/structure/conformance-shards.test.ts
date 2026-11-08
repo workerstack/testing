@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
-import { BACKENDS, LEGS } from "../../src/cli/commands/conformance-matrix.ts"
-import { conformanceShards } from "../../src/conformance/shards.ts"
+import { BACKENDS, LEGS } from "../../src/api/cli/commands/conformance-matrix.ts"
+import { conformanceShards } from "../../src/api/conformance/shards.ts"
 
 /*
  * CI runs the self-test as shards: nothing drops out of it unnoticed. Every leg and every local

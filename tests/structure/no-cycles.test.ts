@@ -1,6 +1,6 @@
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
-import { cycles, importGraph } from "../support/import-graph.ts"
+import { cycles, importGraph } from "../api/support/import-graph.ts"
 
 /* An import cycle makes load order matter and splits nothing: every module in it is one module. */
 

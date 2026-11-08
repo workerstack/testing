@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs"
 import { dirname, join, normalize } from "node:path"
 import { parseSync } from "oxc-parser"
 import { describe, expect, it } from "vitest"
-import { POSTGRES_RANGE } from "../../src/reference/stores/postgres-driver.ts"
+import { POSTGRES_RANGE } from "../../src/api/reference/stores/postgres-driver.ts"
 
 /*
  * `postgres` is an optional peer: a published install without it must start every command, so no
@@ -47,7 +47,7 @@ function loadedWith(entry: string): Map<string, string[]> {
 }
 
 describe("the postgres driver", () => {
-	it.each(["src/cli.ts", "src/index.ts", "src/conformance/worker.ts"])("is not loaded with %s", (entry) => {
+	it.each(["src/api/cli.ts", "src/api/index.ts", "src/api/conformance/worker.ts"])("is not loaded with %s", (entry) => {
 		const importers = [...loadedWith(entry)].filter(([, packages]) => packages.includes("postgres"))
 		expect(importers.map(([file]) => file)).toEqual([])
 	})

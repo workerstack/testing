@@ -16,18 +16,18 @@ const lines = (file: string): number[] => reportsOf(rule, { [file]: SOURCE }).ma
 
 describe("oat/exit-only-in-cli", () => {
 	it("flags an exit outside the CLI, which would skip teardown and the report", () => {
-		expect(lines("src/runtime/probe.ts")).toEqual([2, 7])
+		expect(lines("src/api/runtime/probe.ts")).toEqual([2, 7])
 	})
 
 	it("leaves the CLI, scripts and tests alone", () => {
-		expect(lines("src/cli.ts")).toEqual([])
-		expect(lines("src/cli/main.ts")).toEqual([])
+		expect(lines("src/api/cli.ts")).toEqual([])
+		expect(lines("src/api/cli/main.ts")).toEqual([])
 		expect(lines("scripts/probe.ts")).toEqual([])
-		expect(lines("src/runtime/probe.test.ts")).toEqual([])
+		expect(lines("src/api/runtime/probe.test.ts")).toEqual([])
 	})
 
 	it("fails oxlint through the oat plugin entry", () => {
-		const reports = oxlintReports("exit-only-in-cli", { "src/runtime/probe.ts": SOURCE })
+		const reports = oxlintReports("exit-only-in-cli", { "src/api/runtime/probe.ts": SOURCE })
 		expect(reports.map((report) => report.line)).toEqual([2, 7])
 	})
 })

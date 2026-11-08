@@ -72,20 +72,20 @@ jobs:
       - run: bun run build && bun run test:unit
       - name: CLI smoke
         run: |
-          node dist/cli.js help
+          node dist/api/cli.js help
           # annotated spec has roots and missing tags — doctor exit 1 is advisory/blocking, not a crash
           set +e
-          node dist/cli.js doctor --spec labs/annotated-openapi.yaml
+          node dist/api/cli.js doctor --spec labs/api/annotated-openapi.yaml
           code=$?
           set -e
           if [ "$code" -ne 0 ] && [ "$code" -ne 1 ]; then
             echo "doctor exited $code"
             exit "$code"
           fi
-          node dist/cli.js plan --spec labs/annotated-openapi.yaml --json > /tmp/oat-plan.json
+          node dist/api/cli.js plan --spec labs/api/annotated-openapi.yaml --json > /tmp/oat-plan.json
 
   # The lowest Node that package.json's engines claims, pinned: "22" in the other jobs resolves to the
-  # newest 22.x, so only this job proves the floor itself. It moves with src/errors/node-floor.ts.
+  # newest 22.x, so only this job proves the floor itself. It moves with src/api/errors/node-floor.ts.
   floor:
     name: node floor
     runs-on: ubuntu-latest
@@ -101,7 +101,7 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run build && bun run test:unit
       - name: sqlite conformance
-        run: node dist/cli.js conformance --backend sqlite --legs passes
+        run: node dist/api/cli.js conformance --backend sqlite --legs passes
 
   # Servers, the CLI end to end, the goldens and the structure tests. Full history: the coverage
   # floors guard compares against the last committed floors that differ from the tree's.
@@ -158,7 +158,7 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run test:e2e
 
-  # The self-test as shards (src/conformance/shards.ts), each its own job with a timeout of about twice
+  # The self-test as shards (src/api/conformance/shards.ts), each its own job with a timeout of about twice
   # its time, so no single job runs for an hour. Each writes the checks its defects proved; the
   # `conformance` job judges their union, the same verdict one full run gives. The matrix is the
   # script's own list, so a shard added there runs here without an edit.
@@ -274,7 +274,7 @@ jobs:
           merge-multiple: true
           path: proven
       - name: Every check proved by some shard
-        run: node dist/cli.js conformance --aggregate proven
+        run: node dist/api/cli.js conformance --aggregate proven
 
   precision:
     name: precision
@@ -292,4 +292,4 @@ jobs:
       - run: bun run build
       # Varies the data against a correct backend (memory): any finding is a false positive.
       - name: Precision
-        run: node dist/cli.js conformance --precision 20 --seed ${{ github.run_id }}
+        run: node dist/api/cli.js conformance --precision 20 --seed ${{ github.run_id }}
