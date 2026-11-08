@@ -5,8 +5,8 @@
 // it names the failed jobs and saves their logs under .tmp/grunt/ci/, so the loop is read the log, fix, commit, push,
 // wait again. Only `push` runs on the branch count, as the release gate counts them.
 //
-// Exit 0: passed. 1: failed, cancelled, or no run within the grace (the commit was never pushed). 2: a newer push
-// cancelled this run; wait on that commit instead.
+// Exit 0: passed. 1: failed, canceled, or no run within the grace (the commit was never pushed). 2: a newer push
+// canceled this run; wait on that commit instead.
 import { spawnSync } from "node:child_process"
 import { mkdirSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
@@ -185,12 +185,12 @@ export function report(outcome: Outcome, opts: CiWaitOptions): { code: number; l
 		case "cancelled":
 			return {
 				code: 1,
-				line: `ci-wait: ${at} was cancelled, and no newer push replaced it: ${outcome.url}. Re-run it with gh run rerun ${outcome.id}`,
+				line: `ci-wait: ${at} was canceled, and no newer push replaced it: ${outcome.url}. Re-run it with gh run rerun ${outcome.id}`,
 			}
 		case "superseded":
 			return {
 				code: 2,
-				line: `ci-wait: ${at} was cancelled by a newer push (${outcome.newer}): wait on that one with bun scripts/ci-wait.ts ${outcome.newerSha}`,
+				line: `ci-wait: ${at} was canceled by a newer push (${outcome.newer}): wait on that one with bun scripts/ci-wait.ts ${outcome.newerSha}`,
 			}
 		case "absent":
 			return {

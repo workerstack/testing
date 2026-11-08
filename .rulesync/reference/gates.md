@@ -29,8 +29,8 @@ No full suite runs locally. Each commit runs the tests its change reaches: the t
 
 - passed, with the run's URL: done
 - failed, naming the failed jobs and the path under `.tmp/grunt/ci/` that holds their logs: read the log, fix, commit, push, and run ci-wait again
-- superseded, when a newer push cancelled the run: wait on that commit, as the line says
-- cancelled with no newer push, or no run within the grace (the commit was never pushed): the line names the next command
+- superseded, when a newer push canceled the run: wait on that commit, as the line says
+- canceled with no newer push, or no run within the grace (the commit was never pushed): the line names the next command
 
 Exit 0 is passed, 2 superseded, 1 everything else. A push cancels the run before it, so batch the commits and push once.
 
