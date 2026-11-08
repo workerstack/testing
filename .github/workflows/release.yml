@@ -163,8 +163,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: ${{ env.BUN_VERSION }}
-      # Before setup-node scopes @lovrozagar to GitHub Packages: bun reads that .npmrc too, and this
-      # job's token cannot read the dev dependencies published there.
+      # setup-node runs after install: it points the @workerstack scope at GitHub Packages for the publish only.
       - run: bun install --frozen-lockfile
       - run: bun run build
       - uses: actions/setup-node@v6
