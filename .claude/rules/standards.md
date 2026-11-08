@@ -12,7 +12,7 @@ Every change starts with a test: a bug, a reported issue, a review finding, a fe
 
 Locally, a commit runs the tests its change reaches: the touched test files and the tests of the code it changed. Never the full suites; those are CI's.
 
-CI on the pushed tip is the full gate. After a push, `bun scripts/ci-wait.ts` waits for the run and names any failed job and its log. While CI is red, the only work is fixing it. For oat, CI runs `fmt:check`, `lint`, `typecheck`, `test`, then:
+CI on the pushed tip is the full gate. After a push, `bun scripts/ci-wait.ts` waits for the run and names any failed job and its log. While CI is red, the only work is fixing it. For testing, CI runs `fmt:check`, `lint`, `typecheck`, `test`, then:
 - `test:integration`
 - `test:e2e`
 
@@ -20,4 +20,4 @@ Hooks enforce the fast checks. pre-commit fixes, formats and lints the staged fi
 
 ## Managed files
 
-Files with a "Managed by ~/Development/standards" header, `*.base.*` configs, `.oxfmtrc.jsonc`, and the `scripts`, `devDependencies` and `standards` keys sync sets in `package.json` come from `~/Development/standards`. Edit them there and run `bun sync.ts --only oat`; an edit here fails pre-push. `lefthook.yml`, `.oxlintrc.json` and `lint/` belong to this repo.
+Files with a "Managed by ~/Development/standards" header, `*.base.*` configs, `.oxfmtrc.jsonc`, and the `scripts`, `devDependencies` and `standards` keys sync sets in `package.json` come from `~/Development/standards`. Edit them there and run `bun sync.ts --only testing`; an edit here fails pre-push. `lefthook.yml`, `.oxlintrc.json` and `lint/` belong to this repo.

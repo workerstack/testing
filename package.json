@@ -129,7 +129,7 @@
 	},
 	"packageManager": "bun@1.4.4",
 	"standards": {
-		"repo": "oat",
+		"repo": "testing",
 		"gates": [
 			"test:integration",
 			"test:e2e"
