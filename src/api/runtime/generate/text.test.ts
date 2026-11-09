@@ -6,6 +6,7 @@ const ctx = (fields: Partial<Context> = {}): Context => ({
 	defs: {},
 	depth: 0,
 	distinct: new Set(),
+	examples: true,
 	index: 3,
 	nonce: "n0",
 	optional: "all",

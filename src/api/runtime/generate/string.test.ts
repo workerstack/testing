@@ -9,6 +9,7 @@ const at = (fields: Partial<Context> = {}, distinct = false): At => ({
 		defs: {},
 		depth: 0,
 		distinct: new Set(),
+		examples: true,
 		index: 2,
 		nonce: "n0",
 		optional: "all",
@@ -76,5 +77,41 @@ describe("stringFor", () => {
 
 	it("pads text to the minimum", () => {
 		expect(stringFor({ minLength: 20 }, at())).toBe("Quarterly Report 2xx")
+	})
+})
+
+describe("stringFor and the schema's examples", () => {
+	it("takes a documented example when the pattern refuses plain text, cycling through them by index", () => {
+		const zone = {
+			examples: ["Europe/Zagreb", "Asia/Tokyo"],
+			maxLength: 64,
+			pattern: "^[A-Za-z_]+(?:/[A-Za-z_]+){0,2}$",
+		}
+		expect(stringFor(zone, at({ index: 0 }))).toBe("Europe/Zagreb")
+		expect(stringFor(zone, at({ index: 1 }))).toBe("Asia/Tokyo")
+		expect(stringFor(zone, at({ index: 2, variant: "unicode" }))).toBe("Europe/Zagreb")
+	})
+
+	it("takes only an example that meets every keyword, and searches the pattern when none does", () => {
+		const schema = { examples: ["ab", 3, "toolongvalue", "xy"], maxLength: 4, pattern: "^[a-z]+$" }
+		expect(stringFor(schema, at({ index: 0 }))).toBe("ab")
+		expect(stringFor(schema, at({ index: 1 }))).toBe("xy")
+		expect(stringFor({ examples: ["AB", 1], pattern: "^[a-z]+$" }, at())).toBe("aa")
+		expect(stringFor({ examples: "ab", pattern: "^[a-z]+$" }, at())).toBe("aa")
+	})
+
+	it("takes an example over text a pattern or unknown format would admit, and text where nothing restricts it", () => {
+		expect(stringFor({ examples: ["HR"], format: "iso-3166-alpha-2" }, at())).toBe("HR")
+		expect(stringFor({ examples: ["Europe/Zagreb"], pattern: "^[A-Za-z/]+$" }, at({ variant: "boundary" }))).toBe(
+			"Europe/Zagreb",
+		)
+		expect(stringFor({ examples: ["Acme"] }, at())).toBe("Quarterly Report 2")
+		expect(stringFor({ examples: ["Acme"], format: "date" }, at())).toBe("2024-03-03")
+	})
+
+	it("leaves the examples alone for a value that must be distinct, or when told to", () => {
+		const schema = { examples: ["Europe/Zagreb"], pattern: "^[A-Za-z_]+(?:/[A-Za-z_]+)?$" }
+		expect(stringFor(schema, at({}, true))).not.toBe("Europe/Zagreb")
+		expect(stringFor(schema, at({ examples: false }))).not.toBe("Europe/Zagreb")
 	})
 })

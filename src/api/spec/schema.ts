@@ -95,6 +95,7 @@ function visit(ctx: Normalizing, node: JsonSchema): JsonSchema {
 		if (!OPENAPI_ONLY.has(key)) translate(ctx, out, key, value)
 	}
 	resolveExclusiveBounds(out)
+	readExample(node, out)
 	pinTags(ctx, node, out)
 	/* Properties that do not travel in this direction are neither allowed nor required. */
 	dropProperties(out, ctx.direction === "request" ? "readOnly" : "writeOnly")
@@ -103,6 +104,13 @@ function visit(ctx: Normalizing, node: JsonSchema): JsonSchema {
 	 * generators still emit it, and reading it there costs nothing. */
 	if (node.nullable === true) return nullable(out)
 	return out
+}
+
+/* OpenAPI 3.0's one `example` is JSON Schema's `examples`: listed after any the node already has. */
+function readExample(node: JsonSchema, out: JsonSchema): void {
+	if (node.example === undefined) return
+	if (out.examples === undefined) out.examples = [node.example]
+	else if (Array.isArray(out.examples)) out.examples = [...out.examples, node.example]
 }
 
 /** Writes one keyword of a schema node into `out`, translating any subschemas it holds. */

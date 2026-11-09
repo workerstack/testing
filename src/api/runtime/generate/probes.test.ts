@@ -8,6 +8,18 @@ describe("distinctValue", () => {
 		expect(distinctValue({ const: "only" }, "only")).toMatchObject({ ok: false })
 	})
 
+	it("changes a value its schema documents one example of to one the pattern admits", () => {
+		const schema = { examples: ["Europe/Zagreb"], pattern: "^[A-Za-z_]+(?:/[A-Za-z_]+)?$", type: "string" }
+		expect(distinctValue(schema, "Europe/Zagreb")).toMatchObject({
+			ok: true,
+			value: expect.not.stringMatching(/Zagreb/),
+		})
+		expect(distinctValue({ ...schema, examples: ["Europe/Zagreb", "Asia/Tokyo"] }, "Europe/Zagreb")).toEqual({
+			ok: true,
+			value: "Asia/Tokyo",
+		})
+	})
+
 	it("starts after the given index", () => {
 		expect(distinctValue({ enum: ["a", "b", "c"] }, "a", { index: 1 })).toEqual({ ok: true, value: "c" })
 	})

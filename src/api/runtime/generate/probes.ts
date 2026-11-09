@@ -4,13 +4,18 @@ import { isObject } from "./algebra.ts"
 import { generate } from "./generate.ts"
 import type { GenerateOptions, Generated } from "./types.ts"
 
-/** A valid value that differs from `other` — the value a write probe changes a field to. */
+/**
+ * A valid value that differs from `other` — the value a write probe changes a field to. The schema's
+ * examples come first; when they hold no other value (one example, already `other`), the pattern does.
+ */
 export function distinctValue(schema: unknown, other: unknown, options: GenerateOptions = {}): Generated {
 	const base = options.index ?? 0
-	for (let index = base + 1; index < base + 12; index++) {
-		const result = generate(schema, { ...options, index })
-		if (!result.ok) return result
-		if (JSON.stringify(result.value) !== JSON.stringify(other)) return result
+	for (const examples of [true, false]) {
+		for (let index = base + 1; index < base + 12; index++) {
+			const result = generate(schema, { ...options, examples, index })
+			if (!result.ok) return result
+			if (JSON.stringify(result.value) !== JSON.stringify(other)) return result
+		}
 	}
 	return { ok: false, pointer: "/", reason: "the schema admits no value different from the current one" }
 }

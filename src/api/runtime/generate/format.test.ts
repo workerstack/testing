@@ -6,6 +6,7 @@ const ctx = (variant: Variant, index = 13, nonce: string | null = "n0"): Context
 	defs: {},
 	depth: 0,
 	distinct: new Set(),
+	examples: true,
 	index,
 	nonce: nonce ?? undefined,
 	optional: "all",

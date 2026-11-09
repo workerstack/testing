@@ -22,6 +22,23 @@ function failing(members: CohortMember[], field: string, ok: (value: unknown) =>
 	return members.filter((member) => !ok(member.body[field])).map((member) => member.variant)
 }
 
+describe("buildCohort and a field its document gives examples of", () => {
+	it("seeds every variant with a documented example where the pattern alone admits values the API refuses", () => {
+		const zone = { maxLength: 64, pattern: "^[A-Za-z0-9_+-]+(?:/[A-Za-z0-9_+-]+){0,2}$", type: "string" }
+		const body = (field: Record<string, unknown>) => ({
+			properties: { name: { type: "string" }, zone: { ...zone, ...field } },
+			required: ["name", "zone"],
+			type: "object",
+		})
+		const listed = buildCohort(body({ examples: ["Europe/Zagreb", "America/New_York"] }), 1)
+		expect(failing(listed, "zone", (value) => value === "Europe/Zagreb" || value === "America/New_York")).toEqual([])
+		/* OpenAPI 3.0 writes one `example`; it counts the same. */
+		const single = buildCohort(body({ example: "Europe/Zagreb" }), 1)
+		expect(failing(single, "zone", (value) => value === "Europe/Zagreb")).toEqual([])
+		expect(failing(buildCohort(body({}), 1), "zone", (value) => value === "Europe/Zagreb")).toEqual(COHORT)
+	})
+})
+
 describe("buildCohort on nested and cyclic schemas", () => {
 	it("seeds a column object whose schema has default: {}", () => {
 		const members = buildCohort(

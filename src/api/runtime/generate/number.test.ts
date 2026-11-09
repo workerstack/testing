@@ -17,6 +17,7 @@ const at = (fields: Partial<Context> = {}, distinct = false): At => ({
 		defs: {},
 		depth: 0,
 		distinct: new Set(),
+		examples: true,
 		index: 0,
 		nonce: "n0",
 		optional: "all",

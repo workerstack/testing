@@ -24,6 +24,12 @@ export interface GenerateOptions {
 	distinct?: ReadonlySet<string>
 	/** Optional properties to leave out. A cohort sends them; a probe built on top need not. */
 	optional?: "all" | "none"
+	/**
+	 * Whether a string the pattern or format restricts may be one of the schema's `examples`. Default
+	 * `true`: a pattern is often looser than the set the API takes (a time zone, a country), and a
+	 * documented example is a value it takes.
+	 */
+	examples?: boolean
 }
 
 export type Generated = { ok: true; value: unknown } | { ok: false; reason: string; pointer: string }
@@ -35,6 +41,7 @@ export interface Context {
 	defs: Record<string, JsonSchema>
 	nonce: string | undefined
 	distinct: ReadonlySet<string>
+	examples: boolean
 	optional: "all" | "none"
 	refs: string[]
 	depth: number
