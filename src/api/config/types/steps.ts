@@ -122,6 +122,13 @@ export type ScenarioRequestStep = (OperationStep | RequestStep) & {
 	poll?: { within: string; everyMs?: number }
 	/** Send with no credential at all. */
 	anonymous?: boolean
+	/**
+	 * Keep the account this step's answer descends from for a later run: the one its own sign-up made,
+	 * or the one every account value it sent belongs to. Teardown leaves it in place, `accounts.json`
+	 * and the report list it as kept by this scenario, and it never fails the run. A step whose answer
+	 * descends from no account the run made keeps nothing, and the scenario reports that as a gap.
+	 */
+	keepAccount?: boolean
 	/** Send as this config principal instead of the scenario's — an invitee accepting, a peer reading. */
 	principal?: string
 	/**

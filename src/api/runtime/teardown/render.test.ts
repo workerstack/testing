@@ -80,3 +80,24 @@ describe("renderTeardown", () => {
 		expect(renderTeardown(report({ unidentified: [create(1)] }), 0)).toHaveLength(2)
 	})
 })
+
+describe("renderTeardown: what a scenario kept for a later run", () => {
+	const kept = { entity: "account", id: "k@x.test", kept: "later-run", principal: "(none)", removed: false }
+	const gone = { entity: "account", id: "g@x.test", principal: "account-2", removed: true }
+
+	it("lists each kept account with the scenario that kept it, apart from what was cleaned up", () => {
+		expect(renderTeardown(report({ records: [kept, gone], removed: 1 }), 2)).toEqual([
+			"  cleaned up 1/2 created record(s), 1 kept for a later run",
+			'    account k@x.test kept by scenario "later-run"',
+		])
+	})
+
+	it("lists them beside leftovers too", () => {
+		const failed = [{ entity: "note", id: "n1", principal: "alpha", reason: "403" }]
+		expect(renderTeardown(report({ failed, records: [kept], removed: 0 }), 2)).toEqual([
+			"  cleanup: removed 0/2 created record(s), 1 kept for a later run",
+			"    note n1 (as alpha): 403",
+			'    account k@x.test kept by scenario "later-run"',
+		])
+	})
+})

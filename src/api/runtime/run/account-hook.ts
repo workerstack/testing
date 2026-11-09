@@ -16,7 +16,7 @@ type Verdict = { status: "removed" | "left"; note: string; principal?: string }
 
 /*
  * Why these values `principal` sends are not its own account's, if they are not: one from a static
- * recipe is the configured principals' own, and one another principal holds too is that principal's.
+ * recipe is the configured principals' own, and one another principal holds or last held is that principal's.
  */
 export async function borrowed(
 	ctx: RunContext,
@@ -31,7 +31,7 @@ export async function borrowed(
 		}
 	}
 	const values = new Set(sent.map((one) => one.value))
-	const shared = (await ctx.store.snapshot()).find(
+	const shared = (await ctx.store.lastHeld()).find(
 		(one) => one.principal !== principal && values.has(one.credential.value),
 	)
 	return shared === undefined ? undefined : `its credential is ${shared.principal}'s`
@@ -60,7 +60,8 @@ export async function hookRemoves(
 	const teardown = ctx.hooks.teardownPrincipal
 	if (teardown === undefined) return undefined
 	const address = accountLabel(entry.identity)
-	const held = (await ctx.store.snapshot()).find((one) => principal !== undefined && one.principal === principal)
+	/* The last credential held for it, though a renewal blocked since: the hook is told it is stale. */
+	const held = (await ctx.store.lastHeld()).find((one) => principal !== undefined && one.principal === principal)
 	if (address === undefined || principal === undefined || held === undefined) {
 		tried.push(
 			`hooks.teardownPrincipal needs ${address === undefined ? "an address to name it by" : "a credential the run holds for it"}`,

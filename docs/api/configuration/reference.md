@@ -258,6 +258,27 @@ A `saveAs` that lands on an object, a number or a boolean, or an `external` step
 
 `principal` picks the config principal the steps act as (default: the first), and a step's `principal` sends that one step as another; each must be a principal the config declares, or the config is refused before anything runs. A scenario that sends as a principal BLOCKED at sign-in, itself or in a step, is not run: it is `BLOCKED` by that principal, what it covers stays ungraded, and the run goes on to its report. Each step sends the credentials its operation's security requires; its `scope` parameters are bound from the first step. A record a step creates with a configured principal's credential is ledgered as that principal's and removed at teardown like any other. A step that sends a credential no configured principal holds — an account the scenario signed up itself — creates records the API tester does not track: cleaning those up is the scenario's job. A write's own response never proves that write — its observation has to come from a later read. Each id in `covers` must be called by a step — a scenario that covers what it never calls is refused before the run starts. A `{name}` a step reads must be filled by then: by the scenario principal's `scope`, a login `claims` key written `scope.<name>` (any scheme's, or the principal's own `security` override), or an earlier binding — a `bind` on the same step or before, an earlier step's `saveAs` or `saveClaimsFrom`, or an out-of-band or external `as`. An assert reads before its own step's `saveAs` binds. A scenario that reads a name nothing fills is refused when the config loads, naming the step and the name (`scenarios.reauth.steps[10] reads {orgld}`). A step that fails stops the scenario: the operation it blamed is `failed` with the exchanges as evidence, even when `covers` does not name it (a support step that arms an account fails as loudly as a covered one), and every covered operation it never reached is `blocked` with the step named. A step body field may hold a file as `{ bytes, filename, mediaType }`; on a multipart operation that field is sent as that part under that filename, so a scenario can upload one document under two names. An operation a scenario covers is never graded by the contract floor. A scenario with `origin` belongs to that configured origin: its steps and `covers` name that origin's operations, it runs in that origin's pass with the same principals and their scope, and its grades land on that origin's rows (`--ops files:file.put` targets it). A single step can also set `origin` to reach another origin as support; such a step never covers a main operation.
 
+An account a scenario signs up is the account ledger's, like any other the run makes, and the values its steps save carry which account they came from: what its sign-up answered, a value delivered out of band to an address that names it (`outOfBand.address` equal to its email or username), and whatever a later step saves after sending only such values. A delete-self the backend accepts through such a value, sent `anonymous: true`, settles that account as deleted during the run, so teardown does not count it a leftover. Values from two accounts, or none, tie a step to no account.
+
+`keepAccount: true` on a request step keeps the account its answer descends from for a later run, by those same rules: put it on the sign-up, or on a step that sends only values that sign-up answered. Teardown leaves the account in place, `accounts.json` marks it `"kept": "<scenario id>"` and then `"status": "kept"`, and the report lists it under **Kept accounts** with the scenario that kept it. It is never a leftover and never fails the run. A later run that uses the account removes it itself, for example by its own scenario's delete-self. A `keepAccount` step whose answer descends from no account the run made keeps nothing, and the scenario reports a `COVERAGE_GAP` saying so.
+
+```ts
+scenarios: [
+	{
+		id: "age-account",
+		covers: ["auth.register"],
+		steps: [
+			{
+				anonymous: true,
+				operationId: "auth.register",
+				body: { email: "aging@example.test", password: "correct-horse-1" },
+				keepAccount: true,
+			},
+		],
+	},
+]
+```
+
 ## Environment interpolation
 
 After the module loads, every string in the config is scanned for `${NAME}`:

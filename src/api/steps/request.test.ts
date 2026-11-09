@@ -23,9 +23,11 @@ describe("RequestBuilder", () => {
 			.status(200, 201, 409)
 			.poll("60s", 15_000)
 			.scheme("apiKey")
+			.keepAccount()
 			.toStep()
 		expect(step).toStrictEqual({
 			expect: [200, 201, 409],
+			keepAccount: true,
 			operationId: "auth.reauthenticate",
 			poll: { everyMs: 15_000, within: "60s" },
 			saveAs: { rotated: "$.access_token" },

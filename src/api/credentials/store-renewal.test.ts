@@ -145,3 +145,27 @@ describe("createStore: whether a placed value lapsed", () => {
 		expect(store.lapsed(key, "ann-1")).toBe(false)
 	})
 })
+
+describe("createStore: the last credential a blocked renewal leaves", () => {
+	const key = { principal: "ann", scheme: "jwt" }
+
+	it("keeps the credential the run held before its renewal blocked, out of snapshot but in lastHeld", async () => {
+		const { clock, store } = rotating(true)
+		await store.acquire(key)
+		clock.now += 120_000
+		expect(await store.acquire(key)).toHaveProperty("blocked")
+		expect(await store.snapshot()).toEqual([])
+		expect((await store.lastHeld()).map((held) => [held.principal, held.scheme, held.credential.value])).toEqual([
+			["ann", "jwt", "ann-1"],
+		])
+	})
+
+	it("holds nothing for a key whose first acquire failed, and the current one once a credential is adopted", async () => {
+		const { ports } = fakePorts({ run: () => Promise.reject(new Error("auth step 1 answered 401")) })
+		const store = createStore({ ports, principals: { ann: {} }, schemes: new Map([["jwt", BEARER]]), security: LOGIN })
+		expect(await store.acquire(key)).toHaveProperty("blocked")
+		expect(await store.lastHeld()).toEqual([])
+		await store.adopt({ ...key, value: "adopted" })
+		expect((await store.lastHeld()).map((held) => held.credential.value)).toEqual(["adopted"])
+	})
+})

@@ -19,6 +19,7 @@ import {
 	fixedSection,
 	isKnown,
 	knownSection,
+	keptSection,
 	leftoverSections,
 	observedSection,
 	outcomeSection,
@@ -36,6 +37,7 @@ export function renderMarkdown(input: ReportInput): string {
 	const lines = [
 		...headLines(input, verdict, coverage),
 		...leftoverSections(input, redactor),
+		...keptSection(input),
 		...fencedSection(input, redactor),
 		...observedSection(input),
 		...outcomeSection(input, findings, { defects: findings.filter(isFailingRootCause).length, verdict }),

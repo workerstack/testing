@@ -3,7 +3,7 @@ import type { ScenarioRequestStep } from "../../config/types/steps.ts"
 import type { AccountEntry } from "../accounts/ledger.ts"
 import { exchange } from "../checks/__fixtures__/harness.ts"
 import type { Exchange } from "../exchange.ts"
-import { keep, type Lineage, referenced, type ScenarioAccounts, selfDeleted, tagOf } from "./lineage.ts"
+import { delivered, keep, type Lineage, referenced, type ScenarioAccounts, selfDeleted, tagOf } from "./lineage.ts"
 
 const entry = (n: number): AccountEntry => ({ identity: {}, n, operationId: "auth.register", status: "created" })
 const [one, two] = [entry(1), entry(2)]
@@ -70,6 +70,32 @@ describe("keep", () => {
 	})
 })
 
+/* A ledger port whose every address names `addressed`. */
+const addressing = (addressed: AccountEntry | undefined): ScenarioAccounts => ({
+	addressedTo: () => addressed,
+	deletedItself: () => undefined,
+	keepAccount: () => undefined,
+	madeBy: () => undefined,
+})
+
+describe("delivered", () => {
+	it("tags the delivered name with the account its address names", () => {
+		const lineage: Lineage = new Map()
+		delivered(lineage, { accounts: addressing(one), address: "u1@b.test", as: "code" })
+		expect(Object.fromEntries(lineage)).toEqual({ code: one })
+	})
+
+	it("untags a name rebound by a delivery no account is addressed by, or with no ledger at all", () => {
+		const lineage: Lineage = new Map([
+			["code", one],
+			["link", two],
+		])
+		delivered(lineage, { accounts: addressing(undefined), address: "x@b.test", as: "code" })
+		delivered(lineage, { accounts: undefined, address: "u2@b.test", as: "link" })
+		expect(lineage.size).toBe(0)
+	})
+})
+
 describe("selfDeleted", () => {
 	const lineage: Lineage = new Map([["session", one]])
 	const deleting: ScenarioRequestStep = {
@@ -77,11 +103,13 @@ describe("selfDeleted", () => {
 		headers: { authorization: "Bearer {session}" },
 		operationId: "auth.deleteAccount",
 	}
-	const settled = (step: ScenarioRequestStep, sent: Exchange) => {
+	const settled = (step: ScenarioRequestStep, sent: Exchange, deleteSelf: string | null = "auth.deleteAccount") => {
 		const deleted: AccountEntry[] = []
 		const port: ScenarioAccounts = {
-			deleteSelf: "auth.deleteAccount",
+			...(deleteSelf === null ? {} : { deleteSelf }),
+			addressedTo: () => undefined,
 			deletedItself: (gone) => deleted.push(gone),
+			keepAccount: () => undefined,
 			madeBy: () => undefined,
 		}
 		selfDeleted(lineage, { accounts: port, exchange: sent, step })
@@ -97,6 +125,10 @@ describe("selfDeleted", () => {
 		expect(settled(deleting, answered(302))).toEqual([])
 		expect(settled({ ...deleting, operationId: "notes.delete" }, answered(204, "notes.delete"))).toEqual([])
 		expect(settled({ ...deleting, anonymous: false }, answered(204))).toEqual([])
+	})
+
+	it("settles nothing when the document has no delete-self", () => {
+		expect(settled(deleting, answered(204), null)).toEqual([])
 	})
 
 	it("settles nothing when the run has no account ledger to settle", () => {

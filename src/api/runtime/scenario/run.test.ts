@@ -181,7 +181,9 @@ function selfDelete(steps: ScenarioStep[], answers: Parameters<typeof accountsAp
 	const accounts = accountsPort()
 	const { input } = stage(accountsApi(answers), {
 		accounts: accounts.port,
+		hooks: { resolveOutOfBand: async ({ address }) => `mailed-to-${address}` },
 		model: accountsModel,
+		outOfBand: { attempts: 1 },
 		scenarios: [scenario(steps, { covers: ["auth.deleteAccount"] })],
 	})
 	return { ...accounts, input }
@@ -260,5 +262,74 @@ describe("runScenarios: which sign-up a session descends from", () => {
 		await runScenarios(input)
 		expect(answers).toBe(2)
 		expect(deleted.map(({ entry }) => entry.n)).toEqual([2])
+	})
+})
+
+/* A verify that sends only the mailed token, and saves the session it answers. */
+const verify: ScenarioStep = {
+	anonymous: true,
+	body: { refresh: "{verifyToken}" },
+	operationId: "auth.refresh",
+	saveAs: { rotated: "$.token" },
+}
+const mailed = (address: string): ScenarioStep => ({ outOfBand: { address, as: "verifyToken", kind: "verify" } })
+
+describe("runScenarios: lineage through a value delivered outside HTTP", () => {
+	it("settles the account the mailed value was addressed to, when a session made from it deletes it", async () => {
+		const { deleted, input } = selfDelete([signUp, mailed("u1@b.test"), verify, deleteThroughSession])
+		await runScenarios(input)
+		expect(input.findings.findings).toEqual([])
+		expect(deleted.map(({ entry }) => entry.n)).toEqual([1])
+	})
+
+	it("settles nothing when the mailed value went to an address no account it made is named by", async () => {
+		const { deleted, input } = selfDelete([signUp, mailed("stranger@b.test"), verify, deleteThroughSession])
+		await runScenarios(input)
+		expect(deleted).toEqual([])
+	})
+
+	it("settles nothing once a name an account's value was saved under is rebound by an unaddressed delivery", async () => {
+		const resaved: ScenarioStep = { outOfBand: { address: "stranger@b.test", as: "refreshToken", kind: "verify" } }
+		const { deleted, input } = selfDelete([signUp, resaved, refresh, deleteThroughSession])
+		await runScenarios(input)
+		expect(deleted).toEqual([])
+	})
+})
+
+/* Each kept account's entry number, and the scenario that kept it. */
+const keptBy = (kept: ReturnType<typeof accountsPort>["kept"]) => kept.map((one) => [one.entry.n, one.scenario])
+
+describe("runScenarios: an account a scenario keeps for a later run", () => {
+	it("keeps the account its sign-up made, by the scenario's id", async () => {
+		const { input, kept } = selfDelete([{ ...signUp, keepAccount: true }])
+		await runScenarios(input)
+		expect(input.findings.findings).toEqual([])
+		expect(keptBy(kept)).toEqual([[1, "flow"]])
+	})
+
+	it("keeps the account a later step's answer descends from", async () => {
+		const { input, kept } = selfDelete([signUp, { ...refresh, keepAccount: true }])
+		await runScenarios(input)
+		expect(keptBy(kept)).toEqual([[1, "flow"]])
+	})
+
+	it("fails the step whose answer descends from no account the run made, keeping none", async () => {
+		const { input, kept } = selfDelete([{ ...refresh, body: { refresh: "{org}" }, keepAccount: true }])
+		await runScenarios(input)
+		expect(kept).toEqual([])
+		expect(input.findings.findings.map(({ detail }) => detail)).toEqual([
+			expect.stringContaining(
+				"keepAccount: the answer descends from no account the run made, so there is none to keep",
+			),
+		])
+	})
+
+	it("fails it when the run has no account ledger to keep the account in", async () => {
+		const { input } = selfDelete([{ ...signUp, keepAccount: true }])
+		const { accounts: _accounts, ...without } = input
+		await runScenarios(without)
+		expect(without.findings.findings.map(({ detail }) => detail)).toEqual([
+			expect.stringContaining("keepAccount: the answer descends from no account the run made"),
+		])
 	})
 })

@@ -7,6 +7,7 @@ import type { ExternalStep, OutOfBandStep, ScenarioStep } from "../../config/typ
 import { interpolate } from "../steps/interpolate.ts"
 import { resolveOutOfBandValue, triggerSentAt } from "../steps/out-of-band.ts"
 import { StepFailure } from "./failure.ts"
+import { delivered } from "./lineage.ts"
 import { requestStep } from "./request.ts"
 import type { ScenarioRun } from "./types.ts"
 import { isExternal, isOutOfBand } from "./validate.ts"
@@ -23,14 +24,16 @@ export async function runStep(run: ScenarioRun, step: ScenarioStep, index: numbe
 async function outOfBandStep(run: ScenarioRun, step: OutOfBandStep): Promise<void> {
 	const { input, scope } = run
 	const address = String(interpolate(step.outOfBand.address, scope))
+	const { as } = step.outOfBand
 	const since = step.outOfBand.sentEarlier === true ? undefined : triggerSentAt(run.sent, address)
-	scope[step.outOfBand.as] = await resolveOutOfBandValue(input.hooks.resolveOutOfBand, address, {
+	scope[as] = await resolveOutOfBandValue(input.hooks.resolveOutOfBand, address, {
 		kind: step.outOfBand.kind,
 		label: `scenario "${run.scenario.id}"`,
 		scope: { ...scope },
 		...(since === undefined ? {} : { since }),
 		...(input.outOfBand === undefined ? {} : { outOfBand: input.outOfBand }),
 	})
+	delivered(run.lineage, { accounts: input.accounts, address, as })
 }
 
 async function externalStep(run: ScenarioRun, step: ExternalStep, index: number): Promise<void> {

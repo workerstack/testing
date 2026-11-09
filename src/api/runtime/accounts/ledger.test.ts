@@ -74,3 +74,18 @@ describe("names", () => {
 		expect(names({ ...entry, identity: {} }, {})).toBe(false)
 	})
 })
+
+describe("AccountLedger: an account a scenario keeps", () => {
+	it("writes the scenario that keeps an account, which it still owes until teardown settles it kept", () => {
+		folder = mkdtempSync(join(tmpdir(), "testing-ledger-"))
+		const file = join(folder, "accounts.json")
+		const ledger = new AccountLedger(file)
+		const entry = ledger.sending("auth.signup", { email: "k@x.test" })
+		ledger.answered(entry, answer(201))
+		ledger.keep(entry, "later-run")
+		expect(JSON.parse(readFileSync(file, "utf8")).accounts[0]).toMatchObject({ kept: "later-run", status: "created" })
+		expect(ledger.owed()).toEqual([entry])
+		ledger.settle(entry, { note: "kept", status: "kept" })
+		expect(ledger.owed()).toEqual([])
+	})
+})

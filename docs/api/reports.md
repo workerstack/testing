@@ -13,23 +13,23 @@ Written under `--out` (default `./.testing/api/runs`). Each invocation creates a
 
 `--out` / `outDir` replace the root, not the leaf — `--out .testing/api/runs/prod` writes `.testing/api/runs/prod/<datetime>/`.
 
-| file                         |                                                                                                                                                                           |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `report.html`                | **start here**: every operation in one group (Failed, Blocked, Effects unproven, Verified, Complete by contract), why, and links to the requests behind it                |
-| `report.md`                  | human report: scope, confidence counts, per-operation status, summary, findings with request/response excerpts, coverage, latency p50/p95/max                             |
-| `report.json`                | same data for CI. Summary only — full exchanges are not inlined here                                                                                                      |
-| `junit.xml`                  | only under `--report junit`: a suite per entity and a case per operation and check, for CI test-result views. See [JUnit and the job summary](#junit-and-the-job-summary) |
-| `matrix.html`                | visual matrix of entities × checks                                                                                                                                        |
-| `matrix.json`                | the same graph (AI-friendly), including a mermaid string                                                                                                                  |
-| `issue-repro/*.sh`           | one executable `curl` script per finding that has evidence. Directory is omitted when the run is clean                                                                    |
-| `progress.log`               | logfmt, one event per line, never truncated                                                                                                                               |
-| `progress.jsonl`             | same events as JSON                                                                                                                                                       |
-| `progress.tsv`               | same columns, tab-separated. `req_id` is the join key to the exchange journal                                                                                             |
-| `progress.json`              | latest snapshot only (overwritten ~1s)                                                                                                                                    |
-| `accounts.json`              | every account the run asked a backend to make, written before each sign-up was sent: its names (never its password), and whether teardown removed it                      |
-| `exchanges.jsonl`            | one line per request (`seq`, `requestId`, method, url, status, bytes, …). Greppable                                                                                       |
-| `exchanges/<requestId>.json` | full exchange: status, headers, described bodies. Missing id → `seq-<n>.json`. Duplicate id → `-<seq>`                                                                    |
-| `blobs/<sha256>`             | content-addressed file parts and oversized / binary bodies                                                                                                                |
+| file                         |                                                                                                                                                                                 |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `report.html`                | **start here**: every operation in one group (Failed, Blocked, Effects unproven, Verified, Complete by contract), why, and links to the requests behind it                      |
+| `report.md`                  | human report: scope, confidence counts, per-operation status, summary, findings with request/response excerpts, coverage, latency p50/p95/max                                   |
+| `report.json`                | same data for CI. Summary only — full exchanges are not inlined here                                                                                                            |
+| `junit.xml`                  | only under `--report junit`: a suite per entity and a case per operation and check, for CI test-result views. See [JUnit and the job summary](#junit-and-the-job-summary)       |
+| `matrix.html`                | visual matrix of entities × checks                                                                                                                                              |
+| `matrix.json`                | the same graph (AI-friendly), including a mermaid string                                                                                                                        |
+| `issue-repro/*.sh`           | one executable `curl` script per finding that has evidence. Directory is omitted when the run is clean                                                                          |
+| `progress.log`               | logfmt, one event per line, never truncated                                                                                                                                     |
+| `progress.jsonl`             | same events as JSON                                                                                                                                                             |
+| `progress.tsv`               | same columns, tab-separated. `req_id` is the join key to the exchange journal                                                                                                   |
+| `progress.json`              | latest snapshot only (overwritten ~1s)                                                                                                                                          |
+| `accounts.json`              | every account the run asked a backend to make, written before each sign-up was sent: its names (never its password), whether teardown removed it, and the scenario that kept it |
+| `exchanges.jsonl`            | one line per request (`seq`, `requestId`, method, url, status, bytes, …). Greppable                                                                                             |
+| `exchanges/<requestId>.json` | full exchange: status, headers, described bodies. Missing id → `seq-<n>.json`. Duplicate id → `-<seq>`                                                                          |
+| `blobs/<sha256>`             | content-addressed file parts and oversized / binary bodies                                                                                                                      |
 
 The journal is the API tester `Exchange` JSON, not HAR (HAR export is out of scope). Default **on** unless `--profile cheap`. `--no-save-exchanges` skips `exchanges/` entirely. `--quiet` does not. **`--no-save-exchanges` does not reduce transcript RAM** — it only skips the disk journal. The in-memory transcript always drops live `FormData` / `Blob` / `ArrayBuffer` / multi-MiB strings after each hop, keeping citeable metadata and content-addressed body descriptors. Reconstruct bytes from `blobs/<sha256>` when a check genuinely needs them.
 
@@ -65,6 +65,8 @@ A create that answered 2xx but named no id the API tester could read or confirm,
 A record the API tester identified but could not show gone — its delete was refused, or it is still listed after a 2xx delete — is listed under **Leftovers** too, and the run exits `4`. It reads ``- table `t9` · as beta · DELETE … returned beta: 403``. Every record names the principal that created it, since that principal's tenant is where it remains: the console prints `table t9 (as beta): …`, and `report.json` carries `principal` on each `teardown.failed` and `teardown.records` entry.
 
 Two reasons are teardown's own verdict rather than an answer it got. `its creator could never read it back, so teardown cannot tell whether it is gone` names a record no read or listing by its creator served, not even teardown's read before the delete, so a 2xx delete and an empty list prove nothing. Only the latest read counts: a creator's read that answers 404 or 410 takes back an earlier sighting, unless a delete the backend accepted had already removed the record. `hooks.verifyRemoved says it is still present` names a record the hook found after teardown counted it removed. A hook that threw is one `teardown.verify-hook` gap, and those records keep teardown's verdict.
+
+An account a scenario kept for a later run (`keepAccount: true`) is no leftover and does not change the exit code. `report.md` lists it under **Kept accounts** (``- account `k@x.test` · kept by scenario "age-account"``), the console prints `account k@x.test kept by scenario "age-account"` under the cleanup line, and `report.json` carries `"kept": "<scenario id>"` on its `teardown.records` entry.
 
 ### Unverified seeds
 

@@ -45,8 +45,11 @@ export interface TeardownReport {
 	/** Records still in place, each with the principal that created it. */
 	failed: Array<{ entity: string; id: string; principal: string; reason: string }>
 	unsupported: string[]
-	/** Every record the unwind was given, in creation order, its creator, and whether it is gone now. */
-	records: Array<{ entity: string; id: string; principal: string; removed: boolean; inferred?: true }>
+	/**
+	 * Every record the unwind was given, in creation order, its creator, and whether it is gone now. An
+	 * account a scenario keeps for a later run names that scenario in `kept`: in place, and no leftover.
+	 */
+	records: Array<{ entity: string; id: string; principal: string; removed: boolean; inferred?: true; kept?: string }>
 	/** Creates whose record the API tester could not identify, so could not remove. Each fails the run. */
 	unidentified: UnidentifiedCreate[]
 	/** What `hooks.verifyRemoved` threw, once per call that did; those records keep teardown's verdict. */

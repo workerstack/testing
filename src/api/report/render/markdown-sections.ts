@@ -37,6 +37,20 @@ export function leftoverSections(input: ReportInput, redactor: Redactor): string
 	return lines
 }
 
+/** Accounts a scenario kept for a later run: in place on purpose, so a person knows not to remove them. */
+export function keptSection(input: ReportInput): string[] {
+	const kept = (input.teardown?.records ?? []).filter((record) => record.kept !== undefined)
+	if (kept.length === 0) return []
+	const lines = [
+		"## Kept accounts",
+		"",
+		"Accounts a scenario declared `keepAccount` on, left in place for a later run:",
+		"",
+	]
+	for (const record of kept) lines.push(`- ${record.entity} \`${record.id}\` · kept by scenario "${record.kept}"`)
+	return [...lines, ""]
+}
+
 /** Requests the fence refused: never sent, so never judged — unknown, not passed. */
 export function fencedSection(input: ReportInput, redactor: Redactor): string[] {
 	const fenced = input.fenced?.requests ?? []
