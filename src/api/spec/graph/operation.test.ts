@@ -200,9 +200,23 @@ describe("modelOperation collections", () => {
 			"/b": { get: { operationId: "b", responses: ok(twoArrays), "x-entity": { recordPath: "$.a" } } },
 			"/c/{id}": { get: { operationId: "c", responses: ok(twoArrays) } },
 			"/d": { post: { operationId: "d", responses: ok(twoArrays) } },
+			/* A declared action outranks the path's shape: a singleton read is a record, an item-shaped list has rows. */
+			"/me": {
+				get: {
+					operationId: "me",
+					responses: ok(twoArrays),
+					"x-entity": { action: "read", identity: "self", name: "me" },
+				},
+			},
+			"/e/{id}/feed": { get: { operationId: "feed", responses: ok(twoArrays) } },
+			"/f/{id}": { get: { operationId: "f", responses: ok(twoArrays), "x-entity": { action: "list", name: "f" } } },
 			"/": { get: { operationId: "root", responses: ok({ type: "object" }) } },
 		})
-		expect(gaps.gaps.filter((gap) => gap.tag === "x-entity.recordPath").map((gap) => gap.operationId)).toEqual(["a"])
+		expect(gaps.gaps.filter((gap) => gap.tag === "x-entity.recordPath").map((gap) => gap.operationId)).toEqual([
+			"a",
+			"feed",
+			"f",
+		])
 		expect(details(gaps, "x-entity.recordPath")[0]).toBe(
 			'the response holds several arrays of objects (a, b), so the API tester cannot tell which are the rows; name them with x-entity.recordPath (e.g. "$.a")',
 		)

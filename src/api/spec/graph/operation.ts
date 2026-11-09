@@ -20,7 +20,7 @@ import {
 	readRateLimit,
 	readSoftDelete,
 } from "../extensions/flags.ts"
-import { readCreatedIdFrom, readEntity, readRecordPath } from "../extensions/entity.ts"
+import { type EntityTag, isEntityAction, readCreatedIdFrom, readEntity, readRecordPath } from "../extensions/entity.ts"
 import { readEffects } from "../extensions/effects.ts"
 import { readInvite } from "../extensions/invite.ts"
 import { readPrivileged, requiredPrivileged } from "../extensions/privileged.ts"
@@ -139,10 +139,17 @@ interface SuccessBody {
 	recordPath: string | null
 }
 
+/* A declared `x-entity.action` says whether the operation lists; without one, a GET off an item path does. */
+function isListing(endpoint: Endpoint): boolean {
+	const declared = extObject<EntityTag>(endpoint.op, "x-entity")?.action
+	if (isEntityAction(declared)) return declared === "list"
+	const lastSegment = segmentsOf(endpoint.path).at(-1) ?? ""
+	return endpoint.method.toUpperCase() === "GET" && !isParamSegment(lastSegment)
+}
+
 /** Only a listing has rows to name: a record that holds several arrays is just a record. */
 function reportAmbiguousRows(endpoint: Endpoint, { recordPath, schema }: SuccessBody, gaps: GapCollector): void {
-	const lastSegment = segmentsOf(endpoint.path).at(-1) ?? ""
-	const listing = endpoint.method.toUpperCase() === "GET" && !isParamSegment(lastSegment)
+	const listing = isListing(endpoint)
 	const ambiguous = recordPath === null && listing ? ambiguousRows(schema) : []
 	if (ambiguous.length === 0) return
 	gaps.record(

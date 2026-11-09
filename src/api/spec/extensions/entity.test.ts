@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { Endpoint, HttpMethod, OperationObject } from "../types.ts"
-import { readCreatedIdFrom, readEntity, readRecordPath, singularize } from "./entity.ts"
+import { isEntityAction, readCreatedIdFrom, readEntity, readRecordPath, singularize } from "./entity.ts"
 import { GapCollector } from "./gaps.ts"
 
 const at = (method: HttpMethod, path: string, op: Partial<OperationObject> = {}): Endpoint => ({
@@ -8,6 +8,14 @@ const at = (method: HttpMethod, path: string, op: Partial<OperationObject> = {})
 	op: { responses: {}, ...op } as OperationObject,
 	operationId: `${method} ${path}`,
 	path,
+})
+
+describe("isEntityAction", () => {
+	it("is each action x-entity may declare, and nothing else", () => {
+		for (const action of ["create", "list", "read", "update", "delete", "action"])
+			expect(isEntityAction(action)).toBe(true)
+		for (const value of ["get", "LIST", "", null, 1]) expect(isEntityAction(value)).toBe(false)
+	})
 })
 
 describe("singularize", () => {
