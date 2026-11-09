@@ -94,9 +94,10 @@ x-invite:
   acceptFrom: token # token (default) | link; `link` GETs the OOB URL instead of POSTing accept JSON
   credentialFrom: $.access_token # default. invitee adopts this field from a 2xx accept body
   grants: org.get # optional. the read the accepted grant opens; default the entity's item read
+  revokeStaleness: 300 # optional. whole seconds a revoked grant may keep working; default 0 (refused at once)
 ```
 
-Put this on the invite operation. Config must give the invitee `inviteAs`. Defaults if omitted: `granteeField: key`, `tokenPointer: $.token`, `grantPointer: $.grant_id`, `tokenFrom: response`, `acceptFrom: token`. All three of `invite` / `accept` / `revoke` (operationIds) are required or the tag is ignored. `testing api doctor` / `testing api plan` print the accept mode.
+Put this on the invite operation. Config must give the invitee `inviteAs`. Defaults if omitted: `granteeField: key`, `tokenPointer: $.token`, `grantPointer: $.grant_id`, `tokenFrom: response`, `acceptFrom: token`. All three of `invite` / `accept` / `revoke` (operationIds) are required or the tag is ignored. `testing api doctor` / `testing api plan` print the accept mode and the revoke bound, and doctor's JSON names the bound per invite as `revokeStaleness` (`null` when undeclared).
 
 `tokenFrom: response` (default) reads the accept token from the invite HTTP body at `tokenPointer`. Keep this for backends that still put the token in JSON.
 
@@ -107,6 +108,8 @@ Put this on the invite operation. Config must give the invitee `inviteAs`. Defau
 An invite operation is **not** the entity's fixture create, even when it is `POST` on the collection. The API tester will not seed it with a generated email. The invite check (and only that check) creates the grant, using `inviteAs` as `granteeField`. The check still runs when there is no non-invite create, as long as an item or list route exists.
 
 Timeline asserted: cannot read → invite → still cannot → accept → can → revoke → cannot.
+
+`revokeStaleness` is for an API that authorizes from self-contained, short-lived tokens (a signed JWT carrying the tenant and permissions) and does not invalidate the ones it issued: a revoke takes effect when the invitee's token lapses, and the bound is that token's lifetime. It is a positive integer of seconds, as `x-consistency.staleness` bounds a stale read; anything else is a gap `doctor` names, and the tag is read without it. Undeclared, the first read after the revoke must be refused, and nothing waits. Declared, the invitee reads on the same backoff as `consistency.staleness-within-bound` (at once, then gaps from 250 ms doubling up to a quarter of the bound, the last read at the bound) until a read is refused. Each read sends the credential the invitee holds then: an adopted credential that renews by the declared refresh during the wait sends the renewed value, so a refresh that drops the grant, or is refused, ends the window. Refused within the bound passes, with the measured window as the check's note. Still readable at the bound is the revoke finding, naming the bound and the window. The wait stops at 10 minutes whatever is declared; a bound past that is noted, not judged.
 
 "Read" is the entity's item read on the first listed record, unless `grants` names another operation. Name it when the grant opens a parent rather than the record the invite creates: an organization invite opens the organization, and a plain member may rightly be refused other members' records. The API tester fills it from the inviter's scope. Revoke always addresses the grant: its last path parameter that is not a scope root gets the id at `grantPointer`.
 

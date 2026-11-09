@@ -35,6 +35,17 @@ export function inviteAcceptMode(spec: NonNullable<EntityModel["invite"]>): stri
 	return `JSON token → ${spec.accept}`
 }
 
+/** How soon a revoke must take: at once, or within the declared `x-invite.revokeStaleness`. */
+export function inviteRevokeBound(spec: NonNullable<EntityModel["invite"]>): string {
+	if (spec.revokeStaleness === undefined) return "revoke refused at once"
+	return `revoke refused within ${spec.revokeStaleness}s (x-invite.revokeStaleness)`
+}
+
+/** One invite as `plan` and `doctor` print it: its entity, how it is accepted, and how soon a revoke takes. */
+export function inviteLine(entity: InvitingEntity): string {
+	return `${entity.name.padEnd(28)} ${inviteAcceptMode(entity.invite)}; ${inviteRevokeBound(entity.invite)}`
+}
+
 /** A create whose answer hands its creator a credential for the record it made (`x-entity.credentialFrom`). */
 export type AdoptingCreate = OperationModel & { credentialFrom: string }
 

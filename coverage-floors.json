@@ -831,6 +831,12 @@
 		"functions": 100,
 		"lines": 100
 	},
+	"src/api/runtime/checks/families/isolation/revoke-window.ts": {
+		"statements": 100,
+		"branches": 100,
+		"functions": 100,
+		"lines": 100
+	},
 	"src/api/runtime/checks/families/isolation/tenant-denial-does-not-reveal-existence.ts": {
 		"statements": 100,
 		"branches": 100,

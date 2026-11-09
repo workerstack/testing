@@ -10,7 +10,7 @@ import {
 	hasInvite,
 	adoptingCreates,
 	adoptionLine,
-	inviteAcceptMode,
+	inviteLine,
 	lifecycleGlyphs,
 	modeledEntities,
 	sortedEntities,
@@ -137,10 +137,7 @@ function declarations(
 			"  unique constraints — a 409 on a duplicate of these columns is a pass:",
 			uniqued.map((entity) => `${entity.name.padEnd(28)} x-unique: ${formatUniqueSets(entity.unique)}`),
 		),
-		...block(
-			"  invite — accept mode:",
-			invited.map((entity) => `${entity.name.padEnd(28)} ${inviteAcceptMode(entity.invite)}`),
-		),
+		...block("  invite — accept mode and revoke bound:", invited.map(inviteLine)),
 		...block(
 			"  creates that adopt a credential — their creator sends it under what they make:",
 			adoptingCreates(model).map(adoptionLine),

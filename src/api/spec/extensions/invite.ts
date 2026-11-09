@@ -31,9 +31,18 @@ export interface InviteSpec {
 	 * rather than the record the invite creates.
 	 */
 	grants?: string
+	/**
+	 * Whole seconds a revoked grant may keep working, as `x-consistency.staleness` bounds a stale
+	 * read: an API that authorizes from short-lived self-contained tokens and does not invalidate
+	 * them names their lifetime. Absent means the first read after the revoke must be refused.
+	 */
+	revokeStaleness?: number
 }
 
 const stringOr = (value: unknown, fallback: string): string => (typeof value === "string" ? value : fallback)
+
+const wholeSeconds = (value: unknown): value is number =>
+	typeof value === "number" && Number.isInteger(value) && value > 0
 
 const nonEmpty = (value: unknown): value is string => typeof value === "string" && value !== ""
 
@@ -55,5 +64,6 @@ export function readInvite(op: OperationObject): InviteSpec | null {
 	if (nonEmpty(tag.tokenKind)) spec.tokenKind = tag.tokenKind
 	if (nonEmpty(tag.grants)) spec.grants = tag.grants
 	if (tag.acceptFrom === "link") spec.acceptFrom = "link"
+	if (wholeSeconds(tag.revokeStaleness)) spec.revokeStaleness = tag.revokeStaleness
 	return spec
 }

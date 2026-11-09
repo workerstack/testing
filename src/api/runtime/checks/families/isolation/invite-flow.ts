@@ -75,13 +75,17 @@ export function inviteFlow(ctx: WriteContext, check: string, plan: InvitePlan): 
 }
 
 /** Whether the delegate can read what the grant opens; `null` when there is no read to try. */
-export async function canRead({ ctx, grantRead, plan, resource }: Flow): Promise<boolean | null> {
-	if (grantRead === undefined) return null
-	const exchange = await ctx.client.get(fillPath(grantRead.path, { ...plan.delegate.scope, ...resource }), {
+export async function canRead(flow: Flow): Promise<boolean | null> {
+	if (flow.grantRead === undefined) return null
+	return (await readGrant(flow, flow.grantRead)).status < 300
+}
+
+/** The delegate's read of what the grant opens, sent with whatever credential it holds now. */
+export function readGrant({ ctx, plan, resource }: Flow, grantRead: NonNullable<Flow["grantRead"]>): Promise<Exchange> {
+	return ctx.client.get(fillPath(grantRead.path, { ...plan.delegate.scope, ...resource }), {
 		as: { principal: plan.delegate.id },
 		operationId: grantRead.operationId,
 	})
-	return exchange.status < 300
 }
 
 /**

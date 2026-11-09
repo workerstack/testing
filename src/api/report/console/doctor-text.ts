@@ -1,7 +1,7 @@
 import { formatUniqueSets } from "../../spec/extensions/unique.ts"
 import type { SpecModel } from "../../spec/graph/types.ts"
 import { bypassRows } from "./bypass.ts"
-import { adoptionLine, bar, inviteAcceptMode } from "./describe.ts"
+import { adoptionLine, bar, inviteLine } from "./describe.ts"
 import type { DoctorConfig, DoctorFacts } from "./doctor-facts.ts"
 import { declaredTags, TAG_SHARPENS, TAG_UNLOCKS } from "./tags.ts"
 
@@ -103,8 +103,8 @@ export function declarationLines(facts: DoctorFacts): string[] {
 			facts.uniqueConstraints.map((row) => `    ${row.entity.padEnd(28)} x-unique: ${formatUniqueSets(row.unique)}`),
 		),
 		...block(
-			"  invite — accept mode",
-			facts.inviting.map((entity) => `    ${entity.name.padEnd(28)} ${inviteAcceptMode(entity.invite)}`),
+			"  invite — accept mode and revoke bound",
+			facts.inviting.map((entity) => `    ${inviteLine(entity)}`),
 		),
 		...block(
 			"  creates that adopt a credential — their creator sends it under what they make",
