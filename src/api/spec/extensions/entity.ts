@@ -8,7 +8,8 @@ export const ENTITY_ACTIONS = ["create", "list", "read", "update", "delete", "ac
 
 export type EntityAction = (typeof ENTITY_ACTIONS)[number]
 
-const isEntityAction = (value: unknown): value is EntityAction => ENTITY_ACTIONS.some((action) => action === value)
+export const isEntityAction = (value: unknown): value is EntityAction =>
+	ENTITY_ACTIONS.some((action) => action === value)
 
 /** The fields `x-entity` documents. */
 export interface EntityTag {
