@@ -1,4 +1,7 @@
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
 import { describe, expect, it } from "vitest"
+import { parse } from "yaml"
 import { GapCollector } from "../extensions/gaps.ts"
 import type { OperationObject } from "../types.ts"
 import { validateTags } from "./validate.ts"
@@ -89,7 +92,7 @@ describe("validateTags malformed tags", () => {
 		])
 		expect(
 			gapsOf({ "x-invite": { accept: "POST /a", acceptFrom: "email", invite: "POST /i", revoke: "DELETE /i" } }),
-		).toEqual(['x-invite: x-invite "acceptFrom" must be one of "link"; the API tester cannot use it'])
+		).toEqual(['x-invite: x-invite "acceptFrom" must be one of "token", "link"; the API tester cannot use it'])
 		expect(gapsOf({ "x-invalidate": "GET /a" })).toEqual([
 			'x-invalidate: x-invalidate must be an array of routes like "GET /path"; the API tester cannot use it',
 		])
@@ -146,5 +149,42 @@ describe("validateTags x-consistency", () => {
 		expect(gapsOf({ "x-consistency": "30s" })).toEqual([
 			"x-consistency: x-consistency must be an object; the API tester cannot use it",
 		])
+	})
+})
+
+/* Every tag block docs/api/tags.md shows, and every value its comments list (`a | b | c`), is one the
+ * validator accepts: a documented value that `doctor` reports as malformed fails here, not in a user's CI. */
+const TAGS_DOC = readFileSync(join(import.meta.dirname, "..", "..", "..", "..", "docs", "api", "tags.md"), "utf8")
+const DOC_BLOCKS = [...TAGS_DOC.matchAll(/^```yaml\n([\s\S]*?)^```/gm)]
+	.map((match) => match[1] ?? "")
+	.filter((block) => /^x-[a-z-]+:/m.test(block))
+
+/* The bare values a comment lists as `a | b (default) | c`, up to its first `;`, each line a variant of the block. */
+function variants(block: string): string[] {
+	const lines = block.split("\n")
+	return lines.flatMap((line, index) => {
+		const match = /^(\s*[\w-]+:\s*)\S+(\s*)#\s*([^;]*)/.exec(line)
+		const listed = match?.[3]?.split("|") ?? []
+		if (match === null || listed.length < 2) return []
+		return listed
+			.map((value) => value.replace(/\(.*?\)/g, "").trim())
+			.filter((value) => /^[a-z][\w-]*$/i.test(value))
+			.map((value) => lines.with(index, `${match[1]}${value}`).join("\n"))
+	})
+}
+
+describe("validateTags and docs/api/tags.md", () => {
+	it("finds the tag blocks and the listed values to check", () => {
+		expect(DOC_BLOCKS.length).toBeGreaterThan(10)
+		expect(DOC_BLOCKS.flatMap(variants).length).toBeGreaterThan(20)
+	})
+
+	it("accepts every tag block as the doc writes it, and every value its comments list", () => {
+		for (const block of [...DOC_BLOCKS, ...DOC_BLOCKS.flatMap(variants)]) {
+			expect({ block, gaps: gapsOf(parse(block, { uniqueKeys: false }) as Record<string, unknown>) }).toEqual({
+				block,
+				gaps: [],
+			})
+		}
 	})
 })
