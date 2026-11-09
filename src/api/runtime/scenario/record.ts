@@ -8,12 +8,14 @@ import { interpolate } from "../steps/interpolate.ts"
 import { jwtClaims } from "../../credentials/jwt.ts"
 import { cookiesFromRecordedHeaders } from "../cookies/set-cookie.ts"
 import { readSaveAs } from "../cookies/save-as.ts"
+import type { AccountEntry } from "../accounts/ledger.ts"
 import type { Exchange } from "../exchange.ts"
 import type { PassEvidence } from "../grades.ts"
 import { readPath } from "../../client/read-path.ts"
 import { blamed, StepFailure } from "./failure.ts"
 import { keep, tagOf } from "./lineage.ts"
 import type { ScenarioRun } from "./types.ts"
+import { scenarioCheckId } from "./validate.ts"
 import { shownValue, type Want } from "./want.ts"
 
 /** A request step that passed, and what it asserted. */
@@ -30,9 +32,26 @@ export function record(run: ScenarioRun, passed: Passed): void {
 	if (stepOp !== undefined && !run.observations.has(stepOp)) run.calls.set(stepOp, passed.exchange)
 	saveValues(run, passed)
 	saveClaims(run, passed)
-	keep(run.lineage, passed.step, tagOf(run.lineage, passed.step, run.input.accounts?.madeBy(passed.exchange)))
+	const tag = tagOf(run.lineage, passed.step, run.input.accounts?.madeBy(passed.exchange))
+	keep(run.lineage, passed.step, tag)
+	if (passed.step.keepAccount === true) keepAccountOf(run, passed, tag)
 	if (passed.wants.length === 0) return
 	observe(run, passed)
+}
+
+/**
+ * `keepAccount`: the account the answer descends from, kept by the scenario for a later run. One that
+ * descends from none is a gap: teardown would remove what the scenario meant to keep, so it says so.
+ */
+function keepAccountOf(run: ScenarioRun, passed: Passed, tag: AccountEntry | undefined): void {
+	const { accounts, findings } = run.input
+	if (tag !== undefined && accounts !== undefined) return accounts.keepAccount(tag, run.scenario.id)
+	findings.gap(scenarioCheckId(run.scenario), run.scenario.id, {
+		summary: `scenario "${run.scenario.id}" kept no account at exchange #${passed.exchange.seq}`,
+		detail:
+			"keepAccount: the answer descends from no account the run made, so there is none to keep. Mark the " +
+			"step that signs the account up, or one that sends only values that account's sign-up answered.",
+	})
 }
 
 /** `saveAs`: each value into scope, an object, number or boolean also kept whole. */

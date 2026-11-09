@@ -1,7 +1,8 @@
 /**
- * Which account each scope name descends from: a value a ledgered sign-up answered, or one a step
- * saved after sending such a value. A self delete sent through a session carries no principal, so
- * the names it sends are what tie it to the account it removed.
+ * Which account each scope name descends from: a value a ledgered sign-up answered, one delivered
+ * outside HTTP to a ledgered account's address, or one a step saved after sending such a value. A
+ * self delete sent through a session carries no principal, so the names it sends are what tie it to
+ * the account it removed, and `keepAccount` keeps the account a step's answer descends from.
  *
  * A tag is the ledger's entry, held here only: it never enters the scope, an exchange or a report.
  */
@@ -18,10 +19,14 @@ export type Lineage = Map<string, AccountEntry>
 export interface ScenarioAccounts {
 	/** The entry whose sign-up `exchange` answered. */
 	madeBy: (exchange: Exchange) => AccountEntry | undefined
-	/** The operation that deletes the caller's own account. */
-	deleteSelf: string
+	/** The one owed entry `address` is a name of, its email say; none when no entry, or two, are. */
+	addressedTo: (address: string) => AccountEntry | undefined
+	/** The operation that deletes the caller's own account, when the document has one. */
+	deleteSelf?: string
 	/** `entry` deleted itself by `exchange`: settled, while the run still owes it. */
 	deletedItself: (entry: AccountEntry, exchange: Exchange) => void
+	/** `scenario` keeps `entry` for a later run: teardown leaves it in place. */
+	keepAccount: (entry: AccountEntry, scenario: string) => void
 }
 
 /** Every `{name}` the step's request sends. */
@@ -58,6 +63,19 @@ export function keep(lineage: Lineage, step: ScenarioRequestStep, tag: AccountEn
 }
 
 /**
+ * A value delivered outside HTTP, saved as `as`: it descends from the account it was addressed to,
+ * when the ledger names one by that address. One addressed to no account the run made descends from none.
+ */
+export function delivered(
+	lineage: Lineage,
+	{ accounts, address, as }: { accounts: ScenarioAccounts | undefined; address: string; as: string },
+): void {
+	const entry = accounts?.addressedTo(address)
+	if (entry === undefined) lineage.delete(as)
+	else lineage.set(as, entry)
+}
+
+/**
  * A self delete the backend accepted, sent with no principal (through a session, say), settles the
  * account its names descend from. One sent as a principal is the watch's to settle by that principal.
  */
@@ -66,7 +84,7 @@ export function selfDeleted(
 	sent: { accounts: ScenarioAccounts | undefined; step: ScenarioRequestStep; exchange: Exchange },
 ): void {
 	const { accounts, step, exchange } = sent
-	if (accounts === undefined || step.anonymous !== true) return
+	if (accounts?.deleteSelf === undefined || step.anonymous !== true) return
 	if (exchange.operationId !== accounts.deleteSelf) return
 	if (exchange.status < 200 || exchange.status >= 300) return
 	const entry = tagOf(lineage, step, undefined)

@@ -133,6 +133,12 @@ export interface CredentialStore {
 	identityOf(principal: string): Readonly<Record<string, unknown>>
 	/** Every credential held now, in the order first acquired; blocked ones are left out. */
 	snapshot(): Promise<HeldCredential[]>
+	/**
+	 * Every key's latest credential, in the order first acquired: what `snapshot` holds, plus the last
+	 * one held for a key whose renewal then blocked. Only ever the key's own: a key that never held one
+	 * is left out.
+	 */
+	lastHeld(): Promise<HeldCredential[]>
 	/** Revokes every credential that recorded a revoke; returns the ones that failed. */
 	revokeAll(): Promise<RevokeFailure[]>
 	/**

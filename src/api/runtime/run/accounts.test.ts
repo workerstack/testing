@@ -448,6 +448,9 @@ describe("teardownAccounts on an account it cannot sign in as", () => {
 	})
 })
 
+/* A store that can no longer answer. */
+const storeGone = () => Promise.reject(new Error("store gone"))
+
 describe("teardownAccounts, what it leaves alone", () => {
 	it("leaves the accounts to the primary run, and has nothing to do when the run made none", async () => {
 		const secondary = await freshRun(undefined, { skipPrincipalTeardown: true })
@@ -460,7 +463,7 @@ describe("teardownAccounts, what it leaves alone", () => {
 
 	it("names the account a leftover, and the run blocked, when removing it threw", async () => {
 		const ctx = await freshRun(undefined, { hooks: { teardownPrincipal: async () => undefined } })
-		const broken = { ...ctx, store: { ...ctx.store, snapshot: () => Promise.reject(new Error("store gone")) } }
+		const broken = { ...ctx, store: { ...ctx.store, lastHeld: storeGone, snapshot: storeGone } }
 		await teardownAccounts(broken)
 		expect(ctx.accounts.entries()[0]?.note).toBe("teardown stopped on an unexpected error: store gone")
 		expect(ctx.findings.findings.map((finding) => [finding.check, finding.verdict])).toEqual([

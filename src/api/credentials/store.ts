@@ -85,6 +85,7 @@ export function createStore(options: StoreOptions): CredentialStore {
 		revokeAll: () => revokeAll(ctx),
 		revokeSessions: (of) => revokeSessions(ctx, of),
 		snapshot: () => snapshot(ctx),
+		lastHeld: async () => (await ctx.entries.lastHeld()).map((entry) => entry.key),
 	}
 }
 

@@ -60,12 +60,16 @@ const entryOf = (n: number): AccountEntry => ({
 export function accountsPort(): {
 	port: ScenarioAccounts
 	deleted: Array<{ entry: AccountEntry; exchange: Exchange }>
+	kept: Array<{ entry: AccountEntry; scenario: string }>
 } {
 	const entries = new Map<string, AccountEntry>()
 	const deleted: Array<{ entry: AccountEntry; exchange: Exchange }> = []
+	const kept: Array<{ entry: AccountEntry; scenario: string }> = []
 	const port: ScenarioAccounts = {
+		addressedTo: (address) => [...entries.values()].find((entry) => entry.identity["email"] === address),
 		deleteSelf: "auth.deleteAccount",
 		deletedItself: (entry, exchange) => deleted.push({ entry, exchange }),
+		keepAccount: (entry, scenario) => kept.push({ entry, scenario }),
 		madeBy: (exchange) => {
 			if (exchange.operationId !== "auth.register") return undefined
 			const token = String((exchange.responseBody as { token: string }).token)
@@ -73,7 +77,7 @@ export function accountsPort(): {
 			return entries.get(token)
 		},
 	}
-	return { deleted, port }
+	return { deleted, kept, port }
 }
 
 /** The tester's reauth flow: sign up, refresh with the saved refresh token, delete through the rotated session. */

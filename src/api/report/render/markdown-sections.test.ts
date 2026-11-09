@@ -7,6 +7,7 @@ import {
 	fencedSection,
 	fixedSection,
 	isKnown,
+	keptSection,
 	knownSection,
 	leftoverSections,
 	observedSection,
@@ -50,6 +51,23 @@ describe("leftoverSections", () => {
 			new Redactor(),
 		)
 		expect(unidentified.join("\n")).not.toContain("Records teardown could not show gone")
+	})
+})
+
+describe("keptSection", () => {
+	it("lists each account a scenario kept for a later run, and says nothing when none was", () => {
+		const kept = { entity: "account", id: "k@x.test", kept: "later-run", principal: "(none)", removed: false }
+		const gone = { entity: "account", id: "g@x.test", principal: "alpha", removed: true }
+		expect(keptSection(reportOf({ teardown: { ...teardown, records: [kept, gone] } }))).toEqual([
+			"## Kept accounts",
+			"",
+			"Accounts a scenario declared `keepAccount` on, left in place for a later run:",
+			"",
+			'- account `k@x.test` · kept by scenario "later-run"',
+			"",
+		])
+		expect(keptSection(reportOf({ teardown: { ...teardown, records: [gone] } }))).toEqual([])
+		expect(keptSection(reportOf({ teardown: null }))).toEqual([])
 	})
 })
 

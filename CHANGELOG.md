@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.35.0
+
+### Added
+
+- `keepAccount: true` on a scenario request step (`.keepAccount()` on a step builder) keeps the
+  account its answer descends from for a later run: the one its own sign-up made, or the one every
+  account value it sent belongs to. Teardown leaves it in place and settles it `kept`,
+  `accounts.json` names the scenario that kept it, and the report lists it under **Kept accounts**
+  (the console under its cleanup line, `report.json` as `kept` on its `teardown.records` entry). A
+  kept account is no leftover and does not fail the run. A `keepAccount` step whose answer descends
+  from no account the run made keeps nothing, and the scenario reports a gap saying so.
+
+### Fixed
+
+- A value an out-of-band step delivers to an address that names one account the run made (its
+  email, its username) now descends from that account, so a step that sends only that value (a
+  mailed verify token, say) ties what it saves to the account too. A delete-self sent through a
+  session made that way settles the account as deleted during the run instead of leaving it a
+  leftover. A delivery to an address no account names ties nothing, and unties a name it rebinds.
+- A renewal that is refused no longer leaves `hooks.teardownPrincipal` without a credential: the
+  hook gets the last credential the run held for that principal and scheme, with `stale` saying
+  why, even when teardown's delete-self attempt is what found the renewal blocked. It is never
+  another principal's credential.
+
 ## 0.34.0
 
 ### Added

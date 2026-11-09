@@ -12,7 +12,7 @@ import type { OperationModel } from "../../spec/graph/types.ts"
 import type { RunFindingId } from "../check-ids.ts"
 import type { Exchange } from "../exchange.ts"
 import { accountLabel } from "../accounts/identity.ts"
-import { type AccountEntry, names } from "../accounts/ledger.ts"
+import { type AccountEntry, type AccountVerdict, names } from "../accounts/ledger.ts"
 import { type AccountOps, accountOps } from "../accounts/ops.ts"
 import { fillPath } from "../fill-path.ts"
 import type { TeardownReport } from "../teardown/types.ts"
@@ -24,8 +24,6 @@ import { borrowed, hookRemoves } from "./account-hook.ts"
 import { bindSignUp } from "./fresh.ts"
 import { createdByRun, logIn } from "./principals.ts"
 import { merged } from "./teardown.ts"
-
-type Verdict = { status: "removed" | "left"; note: string; principal?: string }
 
 /* A delete that answered this left no account: removed now, or gone already. */
 function gone(exchange: Exchange): boolean {
@@ -40,9 +38,9 @@ export async function teardownAccounts(ctx: RunContext): Promise<void> {
 	if (owed.length === 0) return
 	const ops = accountOps(ctx.model)
 	for (const entry of owed) {
-		let verdict: Verdict
+		let verdict: AccountVerdict
 		try {
-			verdict = await removeAccount(ctx, ops, entry)
+			verdict = entry.kept === undefined ? await removeAccount(ctx, ops, entry) : keptFor(entry.kept)
 		} catch (error) {
 			verdict = { note: `teardown stopped on an unexpected error: ${messageOf(error)}`, status: "left" }
 			findings.blocked("world.teardown" satisfies RunFindingId, "account", {
@@ -57,12 +55,17 @@ export async function teardownAccounts(ctx: RunContext): Promise<void> {
 	ctx.state.teardown = merged(ctx.state.teardown, accountReport(made))
 }
 
+/* An account a scenario keeps for a later run: left in place on purpose, never a leftover. */
+function keptFor(scenario: string): AccountVerdict {
+	return { note: `kept for a later run by scenario "${scenario}"`, status: "kept" }
+}
+
 /* How a person finds the account: by its email, else by how it was made. */
 export function labelOf(entry: AccountEntry): string {
 	return accountLabel(entry.identity) ?? `#${entry.n} by ${entry.operationId}`
 }
 
-/** Each account the run made as its report lists it: removed, or a leftover named so a person can find it. */
+/** Each account the run made as its report lists it: removed, kept by a scenario, or a leftover named so a person can find it. */
 export function accountReport(entries: readonly AccountEntry[]): TeardownReport {
 	const named = entries.map((entry) => ({
 		entry,
@@ -71,7 +74,7 @@ export function accountReport(entries: readonly AccountEntry[]): TeardownReport 
 	}))
 	return {
 		failed: named
-			.filter(({ entry }) => entry.status !== "removed")
+			.filter(({ entry }) => entry.status !== "removed" && entry.status !== "kept")
 			.map(({ entry, id, principal }) => ({
 				entity: "account",
 				id,
@@ -83,6 +86,7 @@ export function accountReport(entries: readonly AccountEntry[]): TeardownReport 
 			id,
 			principal,
 			removed: entry.status === "removed",
+			...(entry.status === "kept" ? { kept: entry.kept as string } : {}),
 		})),
 		removed: named.filter(({ entry }) => entry.status === "removed").length,
 		unidentified: [],
@@ -100,7 +104,7 @@ function declareMade(ctx: RunContext): void {
 	}
 }
 
-async function removeAccount(ctx: RunContext, ops: AccountOps, entry: AccountEntry): Promise<Verdict> {
+async function removeAccount(ctx: RunContext, ops: AccountOps, entry: AccountEntry): Promise<AccountVerdict> {
 	const held = holder(ctx, entry)
 	if (held !== undefined && configuredNotMade(ctx, held)) {
 		return {
@@ -185,7 +189,7 @@ async function adminDelete(
 	ops: AccountOps,
 	entry: AccountEntry,
 	tried: string[],
-): Promise<Verdict | undefined> {
+): Promise<AccountVerdict | undefined> {
 	const admin = ops.adminDelete(entry.operationId)
 	if (admin === undefined || entry.id === undefined) return undefined
 	const { op } = admin

@@ -1,5 +1,6 @@
 /**
- * Teardown's lines in the console report: what was cleaned up, and every record left behind.
+ * Teardown's lines in the console report: what was cleaned up, every record left behind, and every
+ * account a scenario kept for a later run.
  */
 
 import type { TeardownReport, UnidentifiedCreate } from "./types.ts"
@@ -11,12 +12,14 @@ export function renderTeardown(report: TeardownReport | null, created: number): 
 	const lines = renderUnidentified(report.unidentified)
 	if (created === 0) return lines
 
+	const kept = report.records.filter((record) => record.kept !== undefined)
+	const keptNote = kept.length === 0 ? "" : `, ${kept.length} kept for a later run`
 	if (report.failed.length === 0 && report.unsupported.length === 0) {
-		lines.push(`  cleaned up ${report.removed}/${created} created record(s)`)
-		return [...lines, ...renderInferred(report.records)]
+		lines.push(`  cleaned up ${report.removed}/${created} created record(s)${keptNote}`)
+		return [...lines, ...renderKept(kept), ...renderInferred(report.records)]
 	}
 
-	lines.push(`  cleanup: removed ${report.removed}/${created} created record(s)`)
+	lines.push(`  cleanup: removed ${report.removed}/${created} created record(s)${keptNote}`)
 	if (report.unsupported.length > 0) {
 		lines.push(
 			`    ${report.unsupported.join(", ")} — no delete operation in the document, so records ` +
@@ -27,7 +30,12 @@ export function renderTeardown(report: TeardownReport | null, created: number): 
 		lines.push(`    ${failure.entity} ${failure.id} (as ${failure.principal}): ${failure.reason}`)
 	}
 	if (report.failed.length > 5) lines.push(`    … and ${report.failed.length - 5} more`)
-	return [...lines, ...renderInferred(report.records)]
+	return [...lines, ...renderKept(kept), ...renderInferred(report.records)]
+}
+
+/* Each account a scenario kept, with the scenario: in place on purpose, so never cut short. */
+function renderKept(kept: TeardownReport["records"]): string[] {
+	return kept.map((record) => `    ${record.entity} ${record.id} kept by scenario "${record.kept}"`)
 }
 
 /* Each record ledgered from an answer rather than a declared create, so a reader can check it. */

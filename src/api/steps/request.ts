@@ -38,6 +38,11 @@ export class RequestBuilder<Observed extends string> implements BuiltStep {
 		return this.#with({ poll: everyMs === undefined ? { within } : { everyMs, within } })
 	}
 
+	/** Keeps the account this step's answer descends from for a later run (`keepAccount`). */
+	keepAccount(): RequestBuilder<Observed> {
+		return this.#with({ keepAccount: true })
+	}
+
 	/** Sends only this security scheme's credential. */
 	scheme(name: string): RequestBuilder<Observed> {
 		return this.#with({ scheme: name })

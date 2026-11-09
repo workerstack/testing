@@ -47,6 +47,8 @@ export interface Revoking {
 export class Entries {
 	private readonly pending = new Map<string, Promise<Settled>>()
 	private readonly done = new Map<string, Settled>()
+	/* By id, the latest issue that settled to a credential: a renewal that blocked after it leaves it here. */
+	private readonly held = new Map<string, Entry>()
 
 	get(id: string): Promise<Settled> | undefined {
 		return this.pending.get(id)
@@ -57,7 +59,9 @@ export class Entries {
 		this.done.delete(id)
 		issue.then(
 			(settled) => {
-				if (this.pending.get(id) === issue) this.done.set(id, settled)
+				if (this.pending.get(id) !== issue) return
+				this.done.set(id, settled)
+				if (!("blocked" in settled)) this.held.set(id, settled)
 			},
 			() => undefined,
 		)
@@ -65,6 +69,15 @@ export class Entries {
 
 	values(): IterableIterator<Promise<Settled>> {
 		return this.pending.values()
+	}
+
+	/** Each entry's latest credential, in the order first issued, once every pending issue has settled. */
+	async lastHeld(): Promise<Entry[]> {
+		await Promise.all(this.pending.values())
+		return [...this.pending.keys()].flatMap((id) => {
+			const entry = this.held.get(id)
+			return entry === undefined ? [] : [entry]
+		})
 	}
 
 	/** What the entry's latest issue settled to; undefined while it is still pending, or when there is none. */

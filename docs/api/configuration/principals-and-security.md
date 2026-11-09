@@ -47,6 +47,10 @@ At the end of a run, each account is removed in this order, each tried only when
 2. The delete of the entity the sign-up creates, by the account's id, as each configured principal the run did not make, strongest first.
 3. `hooks.teardownPrincipal`, with the account's address and the last credential the run holds for it.
 
+The hook gets the account's credential renewed first. When renewal is refused (the account deleted itself during the run, so its refresh answers 401, say), the hook still gets the last credential the run held for that account and scheme, with `stale` saying why, even when an earlier delete-self attempt is what found the renewal blocked. It is never handed another principal's credential.
+
+An account a scenario keeps with `keepAccount: true` is not removed: teardown settles it `kept`, and the report lists it with the scenario that kept it (see [scenarios](reference.md)).
+
 A sign-up the document leaves untagged counts too. That is an open POST (its security is `[]`, or every alternative is empty) whose operationId or last path segment ends with the words register, registration, signup or sign up, as `/auth/admin-sign-up` does. It is also an open collection create whose body takes a `password`, a `passphrase` or a `format: password` property and that is named for no login, token or session, nor for a password reset, forgotten, recovered or changed. The API tester ledgers what it sends there like any sign-up. With no tag, it has no delete-self to send and cannot sign in as the account, so such an account is usually reported as a leftover: tag the operation `x-fresh-principal` to let the API tester sign in and remove it.
 
 An account none of these removes is a leftover and fails the run with exit 4, named by its email or username so a person can remove it. An account whose name a configured principal holds, which the run did not make, is never removed, whatever answered its sign-up, so a long-lived test account survives every run. Teardown never sends a sign-up again to get a credential. Generated values for the fields that name an account carry the run's nonce, so two runs never send the same email.

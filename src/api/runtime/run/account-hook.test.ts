@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { SecurityConfig } from "../../config/types/security.ts"
-import { contextOf, EMAIL_LOGIN, optionsFor, withSignup } from "./__fixtures__/api.ts"
+import type { OpenApiDocument } from "../../spec/types.ts"
+import { accountsDoc } from "./__fixtures__/accounts.ts"
+import { contextOf, EMAIL_LOGIN, optionsFor, signupDoc, withSignup } from "./__fixtures__/api.ts"
 import { teardownAccounts } from "./accounts.ts"
 
 /*
@@ -13,9 +15,9 @@ type Login = (email: string, lapsed: boolean) => { body: Record<string, unknown>
 type Hook = (credential: string) => Promise<void>
 
 /** Signs `fresh` up and in on a bearer that lapses in 300 s, uses it once, then tears down 600 s later. */
-async function lapsedTeardown(login: Login, hook: Hook = async () => undefined) {
+async function lapsedTeardown(login: Login, hook: Hook = async () => undefined, doc: OpenApiDocument = signupDoc) {
 	let lapsed = false
-	const answer = withSignup(() => ({ status: 201 }))
+	const answer = withSignup(() => ({ status: 201 }), doc)
 	const handed: string[] = []
 	const stale: Array<string | undefined> = []
 	const ctx = await contextOf(
@@ -66,6 +68,17 @@ describe("teardownAccounts, by the hook, once the account's credential has lapse
 		expect(failed).toEqual([])
 		expect(handed).toEqual([`held-${email}`])
 		/* told the credential is stale, and why, so it can take another way in instead of sending it */
+		expect(stale).toEqual([expect.stringMatching(/^refresh for fresh\/bearer: /)])
+	})
+
+	it("hands the hook the credential it held when its delete-self was what found renewing it blocked", async () => {
+		const { email, entry, handed, stale } = await lapsedTeardown(
+			(who, lapsed) => (lapsed ? { body: {}, status: 500 } : { body: { access_token: `held-${who}` }, status: 200 }),
+			async () => undefined,
+			accountsDoc(),
+		)
+		expect(entry).toMatchObject({ note: "removed by hooks.teardownPrincipal", status: "removed" })
+		expect(handed).toEqual([`held-${email}`])
 		expect(stale).toEqual([expect.stringMatching(/^refresh for fresh\/bearer: /)])
 	})
 

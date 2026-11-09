@@ -34,7 +34,7 @@ export interface ScenarioInput {
 	skipped?: (scenario: Scenario) => string | null
 	outOfBand?: Partial<BackoffConfig>
 	originClients?: ReadonlyMap<string, OriginClient>
-	/** The run's account ledger, which a self delete sent through a session settles, when the document has one. */
+	/** The run's account ledger: a self delete sent through a session settles it, and `keepAccount` keeps an account in it. */
 	accounts?: ScenarioAccounts
 	sleep?: (ms: number) => Promise<void>
 }

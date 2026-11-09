@@ -13,9 +13,16 @@ import { accountIdentity } from "./identity.ts"
 
 /**
  * `sending` until the answer: a run that stops there may have made it. `created` and `refused` by
- * the answer; `removed` or `left` by teardown.
+ * the answer; `removed`, `left` or, for one a scenario keeps, `kept` by teardown.
  */
-export type AccountStatus = "sending" | "created" | "refused" | "removed" | "left"
+export type AccountStatus = "sending" | "created" | "refused" | "removed" | "left" | "kept"
+
+/** Teardown's verdict on an account. */
+export interface AccountVerdict {
+	status: "removed" | "left" | "kept"
+	note: string
+	principal?: string
+}
 
 export interface AccountEntry {
 	/** In the order the run sent them, from 1. */
@@ -30,6 +37,8 @@ export interface AccountEntry {
 	principal?: string
 	/** How teardown removed it, or why it could not. */
 	note?: string
+	/** The scenario that keeps it for a later run: teardown leaves it in place. */
+	kept?: string
 }
 
 /** What a sign-up sent and answered, kept in memory only: teardown may need to sign in as it. */
@@ -95,8 +104,14 @@ export class AccountLedger {
 		return this.answers.get(exchange)
 	}
 
+	/** A scenario keeps it for a later run: still owed, until teardown settles it kept. */
+	keep(entry: AccountEntry, scenario: string): void {
+		entry.kept = scenario
+		this.persist()
+	}
+
 	/** Teardown's verdict on it. */
-	settle(entry: AccountEntry, verdict: { status: "removed" | "left"; note: string; principal?: string }): void {
+	settle(entry: AccountEntry, verdict: AccountVerdict): void {
 		entry.status = verdict.status
 		entry.note = verdict.note
 		if (verdict.principal !== undefined) entry.principal = verdict.principal

@@ -101,6 +101,7 @@ chains stays as it was:
 | `.observes(...ops)`                                          | `observes` on the assert just before it; with no ops, `observes: []` |
 | `.poll(within, everyMs?)`                                    | `poll`                                                               |
 | `.scheme(name)`                                              | `scheme`                                                             |
+| `.keepAccount()`                                             | `keepAccount: true`                                                  |
 
 One assert is written as an object and several as an array, as in a hand-written step. No
 emitted object holds an own `undefined` key.
