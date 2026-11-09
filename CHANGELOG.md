@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.32.2
+
+### Fixed
+
+- A string field with a `pattern`, or a `format` the API tester cannot make, is seeded from its
+  documented `examples` before anything the pattern merely admits. A pattern is often looser than
+  the set the API takes: `AA` matches a time zone's pattern and names no zone, so an API that checks
+  the registry refused every seed. Only examples that meet every keyword count, records take them
+  in turn, and OpenAPI 3.0's `example` counts too. A value that must be distinct across runs, or an
+  update's second value when the examples hold no other, still comes from the pattern.
+- `doctor` asks which arrays are the rows only of an operation that lists. A declared
+  `x-entity.action` decides: a `read` of `GET /me` whose record holds several arrays is a record, and
+  an item-shaped path declared `action: list` is asked. Without an action, the path still decides.
+
 ## 0.32.1
 
 ### Fixed
