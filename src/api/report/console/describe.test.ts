@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest"
-import { documentOf, FILTER_TEMPLATE, listOp, modelOf, referenceModel, SORT_TEMPLATE } from "./__fixtures__/models.ts"
 import {
+	adoptingDocument,
+	documentOf,
+	FILTER_TEMPLATE,
+	listOp,
+	modelOf,
+	referenceModel,
+	SORT_TEMPLATE,
+} from "./__fixtures__/models.ts"
+import {
+	adoptingCreates,
+	adoptionLine,
 	bar,
 	declaredGrammars,
 	hasInvite,
@@ -36,6 +46,19 @@ describe("invites", () => {
 		expect(invite === undefined ? "" : inviteAcceptMode(invite)).toBe("JSON token → invite.accept")
 		expect(inviteAcceptMode({ ...(invite as NonNullable<typeof invite>), acceptFrom: "link" })).toBe(
 			"GET-link (x-invite.acceptFrom: link)",
+		)
+	})
+})
+
+describe("adopting creates", () => {
+	it("are the creates that declare credentialFrom by operation id, each with its entity and pointer", () => {
+		const adopting = adoptingCreates(modelOf(adoptingDocument()).model)
+		expect(adopting.map(adoptionLine)).toEqual([
+			`${"org.create".padEnd(28)} ${"organization".padEnd(20)} credential from $.access_token`,
+			`${"workspace.create".padEnd(28)} ${"workspace".padEnd(20)} credential from $.token`,
+		])
+		expect(adoptionLine({ ...(adopting[0] as (typeof adopting)[number]), entity: null })).toBe(
+			`${"org.create".padEnd(28)} ${"—".padEnd(20)} credential from $.access_token`,
 		)
 	})
 })

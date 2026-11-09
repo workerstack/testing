@@ -3,6 +3,7 @@ import { planScope } from "../../runtime/scope/plan.ts"
 import { resolveTargetScope } from "../../runtime/scope/target.ts"
 import { type ScopePlan } from "../../runtime/scope/types.ts"
 import {
+	adoptingDocument,
 	documentOf,
 	FILTER_TEMPLATE,
 	listOp,
@@ -103,6 +104,18 @@ describe("plan as text", () => {
 				"",
 			].join("\n"),
 		)
+	})
+})
+
+describe("plan as text, for creates that adopt a credential", () => {
+	it("names each create that adopts a credential", () => {
+		const lines = plan(modelOf(adoptingDocument()).model, false).split("\n")
+		const at = lines.indexOf("  creates that adopt a credential — their creator sends it under what they make:")
+		expect(lines.slice(at, at + 3)).toEqual([
+			"  creates that adopt a credential — their creator sends it under what they make:",
+			`    ${"org.create".padEnd(28)} ${"organization".padEnd(20)} credential from $.access_token`,
+			`    ${"workspace.create".padEnd(28)} ${"workspace".padEnd(20)} credential from $.token`,
+		])
 	})
 })
 

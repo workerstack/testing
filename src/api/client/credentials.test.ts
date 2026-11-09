@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import type { PrincipalsConfig, SecurityConfig } from "../config/types/security.ts"
 import { sendsFor } from "../credentials/placement.ts"
+import { createRecordScopes } from "../credentials/record-scoped.ts"
 import type { CredentialKey, Held } from "../credentials/store.ts"
 import { buildModel } from "../spec/graph/build.ts"
 import { anyrow, cloudflare } from "../spec/security/__fixtures__/documents.ts"
@@ -225,6 +226,43 @@ describe("createCredentialSource: refresh", () => {
 		const { source } = sourceOf()
 		const key = sending(await source.resolve({ route: ROUTE, actor: { principal: "alpha", scheme: "apiKey" } }))
 		expect(await key.refresh()).toEqual({ kind: "blocked", reason: "could not acquire apiKey" })
+	})
+})
+
+/* A source whose alpha was handed a jwt for /rows/r1. */
+function recordSource() {
+	const model = buildModel(anyrow)
+	const { calls, store } = fakeStore(model, security)
+	const records = createRecordScopes()
+	records.add({ holder: "alpha#record-1", path: "/rows/r1", principal: "alpha", scheme: "jwt" })
+	const source = createCredentialSource({ model, principals, records, security, store })
+	return { calls, source }
+}
+const asAlpha = (route: string) => ({ actor: { principal: "alpha" }, operationId: "row.list", route })
+
+describe("createCredentialSource: a credential a create handed its creator", () => {
+	it("sends the record's under it and the actor's own elsewhere, the actor named as the sender either way", async () => {
+		const { calls, source } = recordSource()
+		const under = sending(await source.resolve(asAlpha("GET /rows/r1/cells")))
+		const outside = sending(await source.resolve(asAlpha("GET /rows")))
+		expect([under.principal, under.sentValues, outside.principal, outside.sentValues]).toEqual([
+			"alpha",
+			{ jwt: "alpha#record-1-jwt-1" },
+			"alpha",
+			{ jwt: "alpha-jwt-1" },
+		])
+		expect(calls).toEqual(["acquire alpha#record-1 jwt []", "acquire alpha jwt []"])
+	})
+
+	it("renews and blocks the record's, never the actor's own", async () => {
+		const { calls, source } = recordSource()
+		const under = sending(await source.resolve(asAlpha("DELETE /rows/r1")))
+		expect(sending(await under.refresh()).sentValues).toEqual({ jwt: "alpha#record-1-jwt-2" })
+		under.block("refused")
+		expect(calls.slice(1)).toEqual([
+			"refresh alpha#record-1 jwt alpha#record-1-jwt-1",
+			"block alpha#record-1 jwt: refused",
+		])
 	})
 })
 

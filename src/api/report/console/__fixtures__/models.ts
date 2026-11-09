@@ -74,3 +74,27 @@ export const FILTER_TEMPLATE = {
 	term: "{conj}_{field}_{op}_{value}",
 }
 export const SORT_TEMPLATE = { asc: "ascending", desc: "descending", join: ",", term: "{field}_{direction}" }
+
+/** A document whose workspace and org creates hand their creator a credential for what they made (`x-entity.credentialFrom`), and a plain create beside them. */
+export function adoptingDocument(): unknown {
+	const made = { properties: { access_token: { type: "string" }, id: { type: "string" } }, type: "object" }
+	return documentOf({
+		"/workspaces": {
+			post: {
+				operationId: "workspace.create",
+				responses: ok(made),
+				"x-entity": { action: "create", credentialFrom: "$.token", name: "workspace" },
+			},
+		},
+		"/notes": {
+			post: { operationId: "note.create", responses: ok(made), "x-entity": { action: "create", name: "note" } },
+		},
+		"/orgs": {
+			post: {
+				operationId: "org.create",
+				responses: ok(made),
+				"x-entity": { action: "create", credentialFrom: "$.access_token", name: "organization" },
+			},
+		},
+	})
+}

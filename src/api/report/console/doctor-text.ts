@@ -1,7 +1,7 @@
 import { formatUniqueSets } from "../../spec/extensions/unique.ts"
 import type { SpecModel } from "../../spec/graph/types.ts"
 import { bypassRows } from "./bypass.ts"
-import { bar, inviteAcceptMode } from "./describe.ts"
+import { adoptionLine, bar, inviteAcceptMode } from "./describe.ts"
 import type { DoctorConfig, DoctorFacts } from "./doctor-facts.ts"
 import { declaredTags, TAG_SHARPENS, TAG_UNLOCKS } from "./tags.ts"
 
@@ -91,7 +91,7 @@ export function entityLines(facts: DoctorFacts): string[] {
 	]
 }
 
-/** Feature gates, unique constraints, invites, and config entities the document does not have. */
+/** Feature gates, unique constraints, invites, adopting creates, and config entities the document does not have. */
 export function declarationLines(facts: DoctorFacts): string[] {
 	return [
 		...block(
@@ -105,6 +105,10 @@ export function declarationLines(facts: DoctorFacts): string[] {
 		...block(
 			"  invite — accept mode",
 			facts.inviting.map((entity) => `    ${entity.name.padEnd(28)} ${inviteAcceptMode(entity.invite)}`),
+		),
+		...block(
+			"  creates that adopt a credential — their creator sends it under what they make",
+			facts.adopting.map((op) => `    ${adoptionLine(op)}`),
 		),
 		...block("  cache bypass the API tester sends on reads", bypassRows(facts.bypass)),
 		...block(

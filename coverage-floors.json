@@ -188,6 +188,7 @@
 	"src/api/credentials/ports.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
 	"src/api/credentials/probe-principal.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
 	"src/api/credentials/read.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
+	"src/api/credentials/record-scoped.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
 	"src/api/credentials/recipes/acquire.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
 	"src/api/credentials/recipes/answer.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
 	"src/api/credentials/recipes/hook.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
@@ -1390,6 +1391,7 @@
 		"lines": 100
 	},
 	"src/api/runtime/created-id.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
+	"src/api/runtime/record-credential.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
 	"src/api/runtime/disposable/after.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
 	"src/api/runtime/disposable/check.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
 	"src/api/runtime/disposable/lists.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },

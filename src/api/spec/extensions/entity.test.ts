@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest"
 import type { Endpoint, HttpMethod, OperationObject } from "../types.ts"
-import { isEntityAction, readCreatedIdFrom, readEntity, readRecordPath, singularize } from "./entity.ts"
+import {
+	isEntityAction,
+	readCreatedIdFrom,
+	readCredentialFrom,
+	readEntity,
+	readRecordPath,
+	singularize,
+} from "./entity.ts"
 import { GapCollector } from "./gaps.ts"
 
 const at = (method: HttpMethod, path: string, op: Partial<OperationObject> = {}): Endpoint => ({
@@ -106,5 +113,27 @@ describe("x-entity: no entity", () => {
 		expect(readCreatedIdFrom(blank)).toBeNull()
 		expect(readRecordPath(at("get", "/x"))).toBeNull()
 		expect(readCreatedIdFrom(at("get", "/x"))).toBeNull()
+	})
+
+	it("reads a create's credentialFrom, and names the gap on any other operation", () => {
+		const gaps = new GapCollector()
+		const declared = { "x-entity": { credentialFrom: "$.access_token" } }
+		expect(readCredentialFrom(at("post", "/orgs", declared), "create", gaps)).toBe("$.access_token")
+		expect(readCredentialFrom(at("get", "/orgs/{id}", declared), "read", gaps)).toBeNull()
+		expect(readCredentialFrom(at("post", "/", declared), null, gaps)).toBeNull()
+		expect(readCredentialFrom(at("post", "/orgs", { "x-entity": { credentialFrom: "" } }), "create", gaps)).toBeNull()
+		expect(readCredentialFrom(at("post", "/orgs"), "create")).toBeNull()
+		expect(gaps.gaps.map((gap) => [gap.operationId, gap.tag, gap.detail])).toEqual([
+			[
+				"get /orgs/{id}",
+				"x-entity",
+				"x-entity.credentialFrom applies to a create, and this operation is read; it is ignored",
+			],
+			[
+				"post /",
+				"x-entity",
+				"x-entity.credentialFrom applies to a create, and this operation is no entity action; it is ignored",
+			],
+		])
 	})
 })

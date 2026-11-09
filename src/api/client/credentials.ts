@@ -15,6 +15,7 @@ import { probeOwner } from "../credentials/probe-principal.ts"
 import { sendsFor } from "../credentials/placement.ts"
 import type { PrincipalsConfig, Recipe, SecurityConfig } from "../config/types/security.ts"
 import type { Sends } from "../credentials/ports.ts"
+import type { RecordScopes } from "../credentials/record-scoped.ts"
 import { satisfy } from "../credentials/satisfy.ts"
 import type { Credential, CredentialKey, Held } from "../credentials/store.ts"
 import { messageOf } from "../errors/message.ts"
@@ -47,6 +48,11 @@ export interface CredentialSourceOptions {
 	mapping?: Readonly<Record<string, string>>
 	/** The recipes no primary scheme declares: an origin's scheme is theirs, so their format and placements apply there. */
 	originOnly?: ReadonlySet<string>
+	/**
+	 * Credentials creates handed their creators (`x-entity.credentialFrom`): a scheme a request under
+	 * such a record sends is acquired under its holder, every other scheme under the actor.
+	 */
+	records?: Pick<RecordScopes, "holderFor">
 }
 
 const ANONYMOUS: Resolution = { kind: "anonymous" }
@@ -67,7 +73,7 @@ async function resolve(ctx: CredentialSourceOptions, request: CredentialRequest)
 	const chosen = satisfy(offered, recipesFor)
 	if ("unsatisfied" in chosen) return { kind: "unsatisfied", reason: chosen.unsatisfied }
 	if (chosen.alternative.length === 0) return ANONYMOUS
-	return settle(ctx, { alternative: chosen.alternative, principal: actor.principal })
+	return settle(ctx, { alternative: chosen.alternative, principal: actor.principal, route: request.route })
 }
 
 /* A principal acting through its own credentials. */
@@ -111,18 +117,20 @@ function continued(ctx: CredentialSourceOptions, via: Exchange): Requirement[] {
 interface Settling {
 	principal: string
 	alternative: Requirement[]
+	/** What the request is: a scheme a record's credential covers there is acquired under its holder. */
+	route: string
 	/** The values a refused request carried, by scheme: set to renew them rather than acquire. */
 	renew?: Readonly<Record<string, string>>
 }
 
 /* Acquires, or renews, every scheme of the alternative, and places what the store holds. */
 async function settle(ctx: CredentialSourceOptions, settling: Settling): Promise<Resolution> {
-	const { alternative, principal, renew } = settling
-	const keys = alternative.map((requirement) => ({
-		principal,
-		scheme: primaryOf(ctx, requirement.scheme) as string,
-		scopes: requirement.scopes,
-	}))
+	const { alternative, principal, renew, route } = settling
+	const keys = alternative.map((requirement) => {
+		const scheme = primaryOf(ctx, requirement.scheme) as string
+		const holder = ctx.records?.holderFor(principal, scheme, route)
+		return { principal: holder ?? principal, scheme, scopes: requirement.scopes }
+	})
 	const held = await Promise.all(
 		alternative.map((requirement, index) => {
 			const key = keys[index] as (typeof keys)[number]
@@ -132,15 +140,13 @@ async function settle(ctx: CredentialSourceOptions, settling: Settling): Promise
 	)
 	const sending: Sending = {
 		block: (reason) => {
-			for (const requirement of alternative) {
-				ctx.store.block({ principal, scheme: primaryOf(ctx, requirement.scheme) as string }, reason)
-			}
+			for (const key of keys) ctx.store.block({ principal: key.principal, scheme: key.scheme }, reason)
 		},
 		kind: "sends",
 		lapsed: () => keys.some((key, index) => ctx.store.lapsed(key, (held[index] as Credential).value)),
 		/* A dedicated credential is the owner's own account: the exchange names the owner, never the probe. */
 		principal: probeOwner(principal),
-		refresh: () => settle(ctx, { alternative, principal, renew: sending.sentValues }),
+		refresh: () => settle(ctx, { alternative, principal, renew: sending.sentValues, route }),
 		schemes: alternative.map((requirement) => requirement.scheme),
 		secrets: { cookies: [], headers: [], query: [], values: [] },
 		sends: {},

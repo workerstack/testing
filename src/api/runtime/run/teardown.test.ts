@@ -59,6 +59,37 @@ describe("trackCreates", () => {
 	})
 })
 
+/* Notes whose create hands its creator a token for the note it made. */
+async function adoptingNotes() {
+	const rows: Record_[] = []
+	const doc = notesDoc()
+	const paths = doc.paths as Record<string, Record<string, Record<string, unknown>>>
+	const create = paths["/notes"]?.["post"] as Record<string, unknown>
+	create["x-entity"] = { action: "create", credentialFrom: "$.access_token", name: "note" }
+	const respond = overriding(notesApi(doc, rows), (method, path) => {
+		if (method !== "POST" || path !== "/notes") return undefined
+		rows.push({ id: "n1", title: "x" })
+		return { body: { access_token: "note-token", id: "n1", title: "x" }, status: 201 }
+	})
+	const options = optionsFor(respond)
+	return { ctx: await contextOf(options), seen: options.seen }
+}
+
+describe("trackCreates and a create that hands its creator a credential", () => {
+	it("sends it on what the creator sends under the note, and the creator's own elsewhere", async () => {
+		const { ctx, seen } = await adoptingNotes()
+		trackCreates(ctx)
+		await ctx.client.request("POST", "/notes", { ...AS_ALPHA, body: { title: "x" } })
+		await ctx.client.request("GET", "/notes/n1", AS_ALPHA)
+		await ctx.client.request("GET", "/notes", AS_ALPHA)
+		const sentWith = (path: string) =>
+			seen.filter((request) => request.path === path).map((r) => r.headers["authorization"])
+		expect(sentWith("/notes/n1").every((value) => value === "Bearer note-token")).toBe(true)
+		expect(sentWith("/notes")).not.toContain("Bearer note-token")
+		expect(ctx.ledger.entries()).toMatchObject([{ entity: "note", id: "n1", owner: { id: "alpha" } }])
+	})
+})
+
 /* An open register that ignores its body, as a broken API does, and answers `answer` having made note r1. */
 async function openRegister(answer: Record<string, unknown>) {
 	const rows: Record_[] = []
@@ -363,5 +394,23 @@ describe("revokeSessions", () => {
 		await revokeSessions(ctx)
 		const revoke = options.seen.filter((request) => request.method === "GET" && request.path === "/notes")
 		expect(revoke.map((request) => request.headers["authorization"])).toEqual(["Bearer login-alpha@x.test"])
+	})
+})
+
+describe("revokeSessions and a credential a create handed its creator", () => {
+	it("ends a record's renewed credential too, a refusal of it no leftover since its record is gone", async () => {
+		const options = revocable({}, 500)
+		const ctx = await contextOf(options)
+		const holder = ctx.records.nextHolder("alpha")
+		ctx.store.enroll(holder, ctx.store.principals["alpha"] ?? {})
+		await ctx.store.adopt({ principal: holder, scheme: "bearer", value: "record-token" })
+		/* With no refresh declared, renewing it signs in again: a session its login can end. */
+		await ctx.store.refresh({ principal: holder, scheme: "bearer", sentValue: "record-token" })
+		await revokeSessions(ctx)
+		const revoke = options.seen.filter((request) => request.path === "/notes")
+		expect(revoke.map((request) => request.headers["authorization"])).toEqual(["Bearer token-1", "Bearer token-2"])
+		expect(ctx.state.teardown?.failed).toEqual([
+			{ entity: "credential", id: "alpha/bearer", principal: "alpha", reason: "revoke notes.list answered 500" },
+		])
 	})
 })

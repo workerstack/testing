@@ -56,6 +56,11 @@ function doctorJson({ config, danglingRefs, externalRefs, facts, unsetEnv }: Dia
 				entity: entity.name,
 				tokenFrom: entity.invite.tokenFrom,
 			})),
+			adoptingCreates: facts.adopting.map((op) => ({
+				credentialFrom: op.credentialFrom,
+				entity: op.entity,
+				operationId: op.operationId,
+			})),
 			uniqueConstraints: facts.uniqueConstraints,
 			gaps: facts.gaps,
 			listableEntities: facts.listable.length,

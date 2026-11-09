@@ -141,8 +141,11 @@ export function locatedId(
 	return segments[at + offset]
 }
 
-/* The route one record of the entity lives at: its read's, else its delete's or its update's. */
-function itemPathOf(model: Pick<SpecModel, "byOperationId" | "entities">, entity: string | null): string | undefined {
+/** The route one record of the entity lives at: its read's, else its delete's or its update's. */
+export function itemPathOf(
+	model: Pick<SpecModel, "byOperationId" | "entities">,
+	entity: string | null,
+): string | undefined {
 	const routes = entity === null ? undefined : model.entities.get(entity)
 	const itemOp = [routes?.read, routes?.delete, routes?.update]
 		.map((operationId) => (operationId === undefined ? undefined : model.byOperationId.get(operationId)))

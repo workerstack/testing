@@ -4,7 +4,7 @@ import { untestableEntityReason } from "../../runtime/scope/entities.ts"
 import type { EntityModel, SpecModel } from "../../spec/graph/types.ts"
 import { type BypassGroup, bypassGroups } from "./bypass.ts"
 import { type CatalogConfig, entityQueryCatalogs, type QueryCatalog } from "./catalog.ts"
-import { hasInvite, type InvitingEntity, sortedEntities } from "./describe.ts"
+import { type AdoptingCreate, adoptingCreates, hasInvite, type InvitingEntity, sortedEntities } from "./describe.ts"
 import { type Roots, rootsOf } from "./roots.ts"
 import { type SecurityCredentials, type SecurityFacts, securityFacts } from "./security.ts"
 
@@ -42,6 +42,8 @@ export interface DoctorFacts {
 	featureGates: Array<{ operationId: string; featureGate: string | null }>
 	uniqueConstraints: Array<{ entity: string; unique: EntityModel["unique"] }>
 	inviting: InvitingEntity[]
+	/** Creates whose answer hands the creator a credential for what they made. */
+	adopting: AdoptingCreate[]
 	catalogs: QueryCatalog[]
 	unknownEntities: string[]
 	security: SecurityFacts
@@ -74,6 +76,7 @@ export function doctorFacts(model: SpecModel, config?: DoctorConfig): DoctorFact
 	const security = securityFacts(model, config?.credentials)
 	const roots = rootsOf(model, config ?? {})
 	return {
+		adopting: adoptingCreates(model).filter((op) => !authCreates.has(op.operationId)),
 		bypass: bypassGroups(model, config?.cacheBypass ?? true),
 		blocking: untestable.length + (roots.required.length > 0 ? 1 : 0) + security.blocking,
 		entities,
