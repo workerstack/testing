@@ -79,6 +79,11 @@ export interface OperationModel {
 	collection: CollectionShape | null
 	/** `x-entity.createdIdFrom`: where a create's answer puts the made record's id. */
 	createdIdFrom: string | null
+	/**
+	 * `x-entity.credentialFrom`, a create's only: where its 2xx answer puts a credential for the
+	 * record it made, which its creator then sends on requests under that record.
+	 */
+	credentialFrom: string | null
 	/** `x-entity.recordPath`: where this operation's answer keeps the record, or a list's rows. */
 	recordPath: string | null
 	identity: string | null

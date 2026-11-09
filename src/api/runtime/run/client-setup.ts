@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto"
 import type { CredentialSource } from "../../client/credential-source.ts"
 import { createCredentialSource } from "../../client/credentials.ts"
+import { createRecordScopes, type RecordScopes } from "../../credentials/record-scoped.ts"
 import type { CredentialStore } from "../../credentials/store.ts"
 import { operationResolver } from "../../spec/graph/resolver.ts"
 import { Redactor } from "../../security/redact.ts"
@@ -28,11 +29,16 @@ import { runStore } from "./store.ts"
  * the secondary origins, each resolving its actors over that store against its own document.
  */
 /* What the primary client's requests send: over the run's store, mapped as an origin's when this run is one. */
-function primaryCredentials({ model, options }: Loaded, store: CredentialStore): CredentialSource {
+function primaryCredentials(
+	{ model, options }: Loaded,
+	held: { store: CredentialStore; records: RecordScopes },
+): CredentialSource {
+	const { records, store } = held
 	const shared = options.sharedCredentials
 	return createCredentialSource({
 		model,
 		principals: store.principals,
+		records,
 		security: options.security ?? {},
 		store,
 		...(shared === undefined ? {} : { mapping: shared.mapping, originOnly: shared.originOnly }),
@@ -48,10 +54,11 @@ export function connect(loaded: Loaded): Connected {
 	const network = createRunNetwork(loaded)
 	/* The ports reach the clients only when they send, by which time both exist. */
 	const store = runStore(loaded, { clients: () => ({ client, origins: originClients }), network, redactor })
+	const records = createRecordScopes()
 	const validator = new SchemaValidator(model.defs)
 	const client = new Client({
 		baseUrl: options.baseUrl,
-		credentials: primaryCredentials(loaded, store),
+		credentials: primaryCredentials(loaded, { records, store }),
 		fence,
 		cacheBypass: options.cache?.bypass ?? true,
 		headers: options.globalHeaders ?? {},
@@ -89,6 +96,7 @@ export function connect(loaded: Loaded): Connected {
 		nonce: options.nonce ?? randomBytes(4).toString("hex"),
 		originClients,
 		outOfBand: resolveBackoff(options.outOfBand),
+		records,
 		seed: options.seed ?? 1,
 		store,
 		validator,

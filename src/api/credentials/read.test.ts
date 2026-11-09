@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { readAnswer } from "./read.ts"
+import { readAnswer, stringsOf } from "./read.ts"
 
 describe("readAnswer", () => {
 	const answer = { body: { token: "b" }, cookies: { sid: "c" }, headers: { "x-token": "h" }, status: 200 }
@@ -50,5 +50,15 @@ describe("readAnswer", () => {
 	it("reads no form out of an answer that does not say it is one", () => {
 		const plain = { ...answer, body: "access_token=a1", headers: { "content-type": "text/plain" } }
 		expect(readAnswer(plain, "access_token")).toBeUndefined()
+	})
+})
+
+describe("stringsOf", () => {
+	it("keeps an object body's top-level strings, and nothing of any other body", () => {
+		expect(stringsOf({ access_token: "t", expires_in: 3600, nested: { a: "b" }, refresh_token: "r" })).toEqual({
+			access_token: "t",
+			refresh_token: "r",
+		})
+		expect([stringsOf(null), stringsOf("t"), stringsOf(["t"])]).toEqual([{}, {}, {}])
 	})
 })

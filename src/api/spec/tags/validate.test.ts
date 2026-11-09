@@ -103,6 +103,11 @@ describe("validateTags x-entity and x-root", () => {
 	it("needs both a name and an action to name an entity, unless the tag only locates the record", () => {
 		expect(gapsOf({ "x-entity": { recordPath: "$.data" } })).toEqual([])
 		expect(gapsOf({ "x-entity": { createdIdFrom: "$.id" } })).toEqual([])
+		expect(gapsOf({ "x-entity": { credentialFrom: "$.access_token" } })).toEqual([])
+		expect(gapsOf({ "x-entity": { action: "create", credentialFrom: "$.access_token", name: "org" } })).toEqual([])
+		expect(gapsOf({ "x-entity": { credentialFrom: 1 } })).toEqual([
+			'x-entity: x-entity "credentialFrom" must be a non-empty string; the API tester cannot use it',
+		])
 		expect(gapsOf({ "x-entity": { action: "read", recordPath: "$.data" } })).toEqual([
 			'x-entity: x-entity needs "name"; the API tester cannot use it',
 		])

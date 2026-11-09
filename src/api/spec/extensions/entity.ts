@@ -20,6 +20,8 @@ export interface EntityTag {
 	recordPath: string
 	/** Where a create's answer puts the made record's id. */
 	createdIdFrom: string
+	/** Where a create's answer puts a credential for the record it made, which its creator then sends under it. */
+	credentialFrom: string
 }
 
 export interface EntityRef {
@@ -96,6 +98,26 @@ export function readRecordPath(endpoint: Endpoint): string | null {
 export function readCreatedIdFrom(endpoint: Endpoint): string | null {
 	const from = extObject<EntityTag>(endpoint.op, "x-entity")?.createdIdFrom
 	return typeof from === "string" && from !== "" ? from : null
+}
+
+/**
+ * `x-entity.credentialFrom`: the JSON path where a create's 2xx answer puts a credential for the
+ * record it made. Only a create adopts one; any other operation declaring it is a gap `doctor` names.
+ */
+export function readCredentialFrom(
+	endpoint: Endpoint,
+	action: EntityAction | null,
+	gaps?: GapCollector,
+): string | null {
+	const from = extObject<EntityTag>(endpoint.op, "x-entity")?.credentialFrom
+	if (typeof from !== "string" || from === "") return null
+	if (action === "create") return from
+	gaps?.record(
+		endpoint.operationId,
+		"x-entity",
+		`x-entity.credentialFrom applies to a create, and this operation is ${action ?? "no entity action"}; it is ignored`,
+	)
+	return null
 }
 
 /** The CRUD action a method takes at collection or item scope; `null` for a method that has none. */

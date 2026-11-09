@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.33.0
+
+### Added
+
+- `x-entity.credentialFrom` on a create names where its 2xx answer puts a credential for the record
+  it made, for an API that gives each account one token scoped to one tenant and answers a tenant's
+  create with a token for it. The creator then sends that credential, for the scheme the create was
+  sent with, on every request at the record's path or below it: a child's create, a check, and
+  teardown's deletes of the record and its children. Requests elsewhere keep the creator's own
+  credential, and the innermost record wins when records nest. It renews like a credential an invite
+  accept issues, by the declared refresh from what the create answered beside it (a
+  `refresh_token`). A create that declares nothing keeps today's behavior. `testing api doctor` and
+  `testing api plan` list every create that adopts a credential, and doctor's JSON names them under
+  `adoptingCreates`.
+
 ## 0.32.2
 
 ### Fixed

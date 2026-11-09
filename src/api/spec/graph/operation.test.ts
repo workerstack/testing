@@ -10,6 +10,7 @@ const FIELDS = [
 	"cleanup",
 	"collection",
 	"createdIdFrom",
+	"credentialFrom",
 	"recordPath",
 	"cost",
 	"featureGate",

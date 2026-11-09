@@ -20,7 +20,14 @@ import {
 	readRateLimit,
 	readSoftDelete,
 } from "../extensions/flags.ts"
-import { type EntityTag, isEntityAction, readCreatedIdFrom, readEntity, readRecordPath } from "../extensions/entity.ts"
+import {
+	type EntityTag,
+	isEntityAction,
+	readCreatedIdFrom,
+	readCredentialFrom,
+	readEntity,
+	readRecordPath,
+} from "../extensions/entity.ts"
 import { readEffects } from "../extensions/effects.ts"
 import { readInvite } from "../extensions/invite.ts"
 import { readPrivileged, requiredPrivileged } from "../extensions/privileged.ts"
@@ -70,6 +77,7 @@ type ContractFacts =
 	| "cleanup"
 	| "collection"
 	| "createdIdFrom"
+	| "credentialFrom"
 	| "recordPath"
 	| "cost"
 	| "featureGate"
@@ -171,6 +179,7 @@ function contractFacts(reading: Reading): Pick<OperationModel, ContractFacts> {
 		cleanup: readCleanup(op),
 		collection: reading.collection,
 		createdIdFrom: readCreatedIdFrom(endpoint),
+		credentialFrom: readCredentialFrom(endpoint, reading.entity?.action ?? null, gaps),
 		recordPath: reading.recordPath,
 		cost: readCost(op),
 		featureGate: readFeatureGate(op),

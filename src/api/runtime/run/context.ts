@@ -20,6 +20,7 @@ import type { Created, Owner } from "../teardown/types.ts"
 import type { UploadContext } from "../upload.ts"
 import type { SchemaValidator } from "../validate.ts"
 import type { CredentialStore } from "../../credentials/store.ts"
+import type { RecordScopes } from "../../credentials/record-scoped.ts"
 import type { RunNetwork } from "./network.ts"
 import type { RunProgress } from "./progress.ts"
 import type { RunState } from "./state.ts"
@@ -61,6 +62,8 @@ export interface Connected extends Loaded {
 	 * their actors over it, each against its own document.
 	 */
 	store: CredentialStore
+	/** The credentials creates handed their creators, held under each record (`x-entity.credentialFrom`). */
+	records: RecordScopes
 	journal: ExchangeJournal | null
 	network: RunNetwork
 	originClients: Map<string, OriginClient>

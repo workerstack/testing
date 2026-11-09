@@ -15,3 +15,11 @@ export function readAnswer(answer: StepAnswer, address: string): string | undefi
 	if (typeof value === "number") return String(value)
 	return typeof value === "string" && value !== "" ? value : undefined
 }
+
+/** The top-level strings of an answer's body: what came with a credential it carried, a refresh token say. */
+export function stringsOf(body: unknown): Record<string, string> {
+	if (body === null || typeof body !== "object" || Array.isArray(body)) return {}
+	return Object.fromEntries(
+		Object.entries(body).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
+	)
+}

@@ -55,6 +55,7 @@ const recordPath: Check = (value) => {
 const ENTITY = {
 	action: (value) => oneOf(value, ENTITY_ACTIONS),
 	createdIdFrom: text,
+	credentialFrom: text,
 	identity: text,
 	name: text,
 	recordPath,
@@ -88,10 +89,10 @@ const WAIT = {
 function entity(value: unknown): string | null {
 	const problem = checkShape(value, ENTITY)
 	if (problem !== null) return problem
-	/* Where the answer keeps the record or its id may be declared alone; naming the entity
+	/* Where the answer keeps the record, its id or a credential may be declared alone; naming the entity
 	 * still takes both its name and the operation's action. */
 	const tag = value as RawOf<EntityTag>
-	const located = tag.createdIdFrom !== undefined || tag.recordPath !== undefined
+	const located = tag.createdIdFrom !== undefined || tag.recordPath !== undefined || tag.credentialFrom !== undefined
 	if (tag.name === undefined && (tag.action !== undefined || !located)) return 'needs "name"'
 	if (tag.action === undefined && (tag.name !== undefined || !located)) return 'needs "action"'
 	return null

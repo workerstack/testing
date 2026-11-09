@@ -35,6 +35,21 @@ export function inviteAcceptMode(spec: NonNullable<EntityModel["invite"]>): stri
 	return `JSON token → ${spec.accept}`
 }
 
+/** A create whose answer hands its creator a credential for the record it made (`x-entity.credentialFrom`). */
+export type AdoptingCreate = OperationModel & { credentialFrom: string }
+
+/** Every create that adopts a credential, by operation id. */
+export function adoptingCreates(model: SpecModel): AdoptingCreate[] {
+	return model.operations
+		.filter((op): op is AdoptingCreate => op.credentialFrom !== null)
+		.sort((a, b) => a.operationId.localeCompare(b.operationId))
+}
+
+/** One adopting create: its operation, its entity, and where its answer carries the credential. */
+export function adoptionLine(op: AdoptingCreate): string {
+	return `${op.operationId.padEnd(28)} ${(op.entity ?? "—").padEnd(20)} credential from ${op.credentialFrom}`
+}
+
 /** An entity that declares an invite. */
 export type InvitingEntity = EntityModel & { invite: NonNullable<EntityModel["invite"]> }
 

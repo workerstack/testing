@@ -10,7 +10,7 @@
 
 import type { PrincipalEntry } from "../../config/types/security.ts"
 import { effectiveRecipe } from "../../credentials/effective.ts"
-import { readAnswer } from "../../credentials/read.ts"
+import { readAnswer, stringsOf } from "../../credentials/read.ts"
 import { requestSchema } from "../../spec/collection/request.ts"
 import type { OperationModel } from "../../spec/graph/types.ts"
 import type { OperationObject } from "../../spec/types.ts"
@@ -102,12 +102,4 @@ async function signupBody(ctx: Connected, register: OperationModel, label: strin
 		variants: ["baseline"],
 	}) as [CohortMember]
 	return applyResolveInput(member.body, ctx.hooks.resolveInput, { operationId: register.operationId, schema })
-}
-
-/* The top-level strings of an answer's body. */
-function stringsOf(body: unknown): Record<string, string> {
-	if (body === null || typeof body !== "object" || Array.isArray(body)) return {}
-	return Object.fromEntries(
-		Object.entries(body).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
-	)
 }

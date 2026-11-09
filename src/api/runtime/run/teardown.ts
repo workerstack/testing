@@ -1,4 +1,6 @@
 import { createTracker } from "../create-tracker.ts"
+import { isRecordHolder } from "../../credentials/probe-principal.ts"
+import { createRecordAdopter } from "../record-credential.ts"
 import type { Disposable, TeardownReport } from "../teardown/types.ts"
 import type { RunContext } from "./context.ts"
 import { errorText } from "./errors.ts"
@@ -8,10 +10,18 @@ import { createdByRun } from "./principals.ts"
 
 /**
  * Every create a configured principal sends is ledgered as it, whichever view sent it; a probe's POST
- * that carried no principal's credential and was let through, as the first principal's.
+ * that carried no principal's credential and was let through, as the first principal's. A credential
+ * a create hands its creator is held first, so the tracker's read-back of the record already sends it.
  */
 export function trackCreates(ctx: RunContext): void {
-	const { client, ledger, model, principals, state, exclusion } = ctx
+	const { client, ledger, model, principals, records, state, store, exclusion } = ctx
+	const adopter = createRecordAdopter({
+		mapping: ctx.options.sharedCredentials?.mapping,
+		model,
+		records,
+		relativePath: (url) => client.relativePath(url),
+		store,
+	})
 	const tracker = createTracker({
 		client,
 		ledger,
@@ -28,7 +38,10 @@ export function trackCreates(ctx: RunContext): void {
 		 * principal reads it back and removes it, or teardown reports it as a record that may remain. */
 		stranger: { owner: principals.ownerOf(principals.alpha), roots: { ...principals.alpha.scope } },
 	})
-	client.setAfterExchange(tracker.observe)
+	client.setAfterExchange(async (exchange) => {
+		await adopter.observe(exchange)
+		await tracker.observe(exchange)
+	})
 }
 
 /**
@@ -136,7 +149,13 @@ export async function revokeCredentials({ options, store, state }: RunContext): 
 export async function revokeSessions(ctx: RunContext): Promise<void> {
 	const { options, store, state } = ctx
 	if (options.keepCredentials === true || options.sharedCredentials !== undefined) return
-	recordUnrevoked(state, await store.revokeSessions((principal) => !createdByRun(ctx, principal)))
+	const failures = await store.revokeSessions((principal) => !createdByRun(ctx, principal))
+	/* A record's credential is ended too once renewal made it a session, but its record is gone by now, so a
+	 * refusal says nothing is left behind. */
+	recordUnrevoked(
+		state,
+		failures.filter((failure) => !isRecordHolder(failure.principal)),
+	)
 }
 
 /* Each revoke that failed is a credential the run could not remove. */

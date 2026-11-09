@@ -8,6 +8,8 @@ import {
 	type DeclaredGrammar,
 	declaredGrammars,
 	hasInvite,
+	adoptingCreates,
+	adoptionLine,
 	inviteAcceptMode,
 	lifecycleGlyphs,
 	modeledEntities,
@@ -107,7 +109,7 @@ function block(title: string, rows: string[]): string[] {
 	return rows.length === 0 ? [] : ["", title, ...rows.map((row) => `    ${row}`)]
 }
 
-/** What a run needs supplied, and what the document declares about gates, uniqueness, invites and grammars. */
+/** What a run needs supplied, and what the document declares about gates, uniqueness, invites, adopting creates and grammars. */
 function declarations(
 	model: SpecModel,
 	entities: EntityModel[],
@@ -138,6 +140,10 @@ function declarations(
 		...block(
 			"  invite — accept mode:",
 			invited.map((entity) => `${entity.name.padEnd(28)} ${inviteAcceptMode(entity.invite)}`),
+		),
+		...block(
+			"  creates that adopt a credential — their creator sends it under what they make:",
+			adoptingCreates(model).map(adoptionLine),
 		),
 		...block(
 			"  declared grammars — how the API tester writes this entity's filter and sort terms:",

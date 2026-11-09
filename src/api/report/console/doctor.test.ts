@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { anyrow } from "../../spec/security/__fixtures__/documents.ts"
-import { documentOf, modelOf, referenceModel } from "./__fixtures__/models.ts"
+import { adoptingDocument, documentOf, modelOf, referenceModel } from "./__fixtures__/models.ts"
 import { doctor, unsetEnvLines } from "./doctor.ts"
 
 describe("doctor as text", () => {
@@ -55,6 +55,7 @@ describe("doctor as JSON", () => {
 			"danglingRefs",
 			"featureGates",
 			"invites",
+			"adoptingCreates",
 			"uniqueConstraints",
 			"gaps",
 			"listableEntities",
@@ -93,6 +94,25 @@ describe("doctor as JSON", () => {
 		const json = JSON.parse(doctor(model, { asJson: true }).text)
 		expect(json.invites[0].acceptFrom).toBe("link")
 		expect(json.allowRemoved).toBeUndefined()
+	})
+})
+
+describe("doctor on creates that adopt a credential", () => {
+	it("names each create that adopts a credential, in text and JSON", () => {
+		const { model } = modelOf(adoptingDocument())
+		const json = JSON.parse(doctor(model, { asJson: true }).text)
+		expect(json.adoptingCreates).toEqual([
+			{ credentialFrom: "$.access_token", entity: "organization", operationId: "org.create" },
+			{ credentialFrom: "$.token", entity: "workspace", operationId: "workspace.create" },
+		])
+		expect(doctor(model).text).toContain(
+			"  creates that adopt a credential — their creator sends it under what they make\n" +
+				`    ${"org.create".padEnd(28)} ${"organization".padEnd(20)} credential from $.access_token\n`,
+		)
+		expect(
+			JSON.parse(doctor(model, { asJson: true, config: { authCreates: new Set(["org.create"]) } }).text)
+				.adoptingCreates,
+		).toEqual([{ credentialFrom: "$.token", entity: "workspace", operationId: "workspace.create" }])
 	})
 })
 
