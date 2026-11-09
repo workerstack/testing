@@ -17,6 +17,8 @@ export interface StringConstraints {
 	patterns: string[]
 	format?: string
 	enum?: unknown[]
+	/** The schema's documented `examples`, as listed: not yet checked against the rest. */
+	examples?: unknown[]
 }
 
 /* A union whose one branch is not `null` is that branch, with what sits beside the union. */
@@ -46,6 +48,7 @@ export function stringConstraints(schema: JsonSchema): StringConstraints {
 	}
 	if (typeof flat.format === "string") out.format = flat.format
 	if (Array.isArray(flat.enum)) out.enum = flat.enum
+	if (Array.isArray(flat.examples)) out.examples = flat.examples
 	return out
 }
 

@@ -43,6 +43,20 @@ function searched(constraints: StringConstraints, at: At): string | undefined {
 	return undefined
 }
 
+/*
+ * The document's own examples that meet every keyword, taken in turn by index: a pattern is often
+ * looser than the set the API takes (`AA` matches a time zone's pattern and names no zone), and an
+ * example is a value the API is documented to take. A value that must be distinct across runs cannot
+ * repeat one, so it is searched as before.
+ */
+function documented(constraints: StringConstraints, at: At): string | undefined {
+	if (!at.ctx.examples || at.distinct) return undefined
+	const valid = (constraints.examples ?? []).filter(
+		(value): value is string => typeof value === "string" && admits(constraints, value),
+	)
+	return valid.length === 0 ? undefined : valid[at.ctx.index % valid.length]
+}
+
 /** The variant's text, cut to `max` or padded to `min`. */
 function plain(min: number, max: number, at: At): string {
 	const { ctx, distinct } = at
@@ -67,7 +81,11 @@ export function stringFor(schema: JsonSchema, at: At): string {
 
 	const known = format === undefined ? undefined : inFormat(format, constraints, at)
 	if (known !== undefined) return known
-	/* Realistic text first: a pattern that admits it, such as a guard on every string, changes nothing. */
+	/* A pattern, or a format it cannot make, restricts the value: an example meets it where text that
+	 * merely matches may not. Otherwise realistic text: a guard on every string changes nothing. */
+	const restricted = format !== undefined || patterns.length > 0
+	const example = restricted ? documented(constraints, at) : undefined
+	if (example !== undefined) return example
 	const realistic = plain(min, max, at)
 	if (admits(constraints, realistic)) return realistic
 	const candidate = searched(constraints, at)

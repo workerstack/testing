@@ -16,6 +16,7 @@ const ctx = (fields: Partial<Context> = {}): Context => ({
 	},
 	depth: 0,
 	distinct: new Set(),
+	examples: true,
 	index: 0,
 	nonce: "n0",
 	optional: "all",

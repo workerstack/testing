@@ -24,6 +24,7 @@ export function generate(schema: unknown, options: GenerateOptions = {}): Genera
 		defs: options.defs ?? {},
 		depth: 0,
 		distinct: options.distinct ?? new Set(),
+		examples: options.examples ?? true,
 		index: options.index ?? 0,
 		nonce: options.nonce,
 		optional: options.optional ?? "all",

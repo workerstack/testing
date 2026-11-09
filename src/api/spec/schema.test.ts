@@ -15,9 +15,16 @@ describe("normalizeSchema", () => {
 			type: "object",
 		}
 		expect(normalizeSchema(schema, response)).toEqual({
+			examples: [{ id: 1 }],
 			properties: { example: { type: "string" } },
 			type: "object",
 		})
+	})
+
+	it("reads OpenAPI 3.0's one example as JSON Schema's examples, after any the node lists", () => {
+		expect(normalizeSchema({ example: "a", type: "string" }, request)).toEqual({ examples: ["a"], type: "string" })
+		expect(normalizeSchema({ example: "b", examples: ["a"] }, request)).toEqual({ examples: ["a", "b"] })
+		expect(normalizeSchema({ example: "b", examples: "a" }, request)).toEqual({ examples: "a" })
 	})
 
 	it("reads a schema whose ref pointed at nothing as unconstrained", () => {
@@ -29,9 +36,9 @@ describe("normalizeSchema", () => {
 		const schema = {
 			additionalProperties: false,
 			allOf: [{ nullable: true, type: "string" }, true],
-			items: { example: 1, type: "integer" },
-			not: { example: "x" },
-			patternProperties: { "^x-": { example: 1 }, "^y-": true },
+			items: { type: "integer", xml: {} },
+			not: { xml: {} },
+			patternProperties: { "^x-": { xml: {} }, "^y-": true },
 			properties: "not a map",
 		}
 		expect(normalizeSchema(schema, response)).toEqual({
@@ -47,7 +54,7 @@ describe("normalizeSchema", () => {
 
 describe("normalizeSchema bounds and tuples", () => {
 	it("reads draft-04 tuple items as prefixItems", () => {
-		expect(normalizeSchema({ items: [{ example: 1, type: "integer" }, false] }, response)).toEqual({
+		expect(normalizeSchema({ items: [{ type: "integer", xml: {} }, false] }, response)).toEqual({
 			prefixItems: [{ type: "integer" }, false],
 		})
 	})
