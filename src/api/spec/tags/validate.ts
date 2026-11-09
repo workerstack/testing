@@ -62,7 +62,7 @@ const ENTITY = {
 
 const INVITE = {
 	accept: text,
-	acceptFrom: (value) => oneOf(value, ["link"]),
+	acceptFrom: (value) => oneOf(value, ["token", "link"]),
 	credentialFrom: text,
 	grantPointer: text,
 	granteeField: text,

@@ -86,9 +86,9 @@ x-invite:
   granteeField: key
   tokenPointer: $.token
   grantPointer: $.grant_id
-  tokenFrom: response # or outOfBand
+  tokenFrom: response # response (default) | outOfBand
   tokenKind: org-invite # only when tokenFrom is outOfBand; default `${entity}-invite`
-  acceptFrom: token # default. `link` = GET the OOB URL instead of POSTing accept JSON
+  acceptFrom: token # token (default) | link; `link` GETs the OOB URL instead of POSTing accept JSON
   credentialFrom: $.access_token # default. invitee adopts this field from a 2xx accept body
   grants: org.get # optional. the read the accepted grant opens; default the entity's item read
 ```
@@ -142,32 +142,38 @@ x-query:
 
   operators: [eq, ne, neq, gt, gte, lt, lte, in, nin, like, ilike, is, contains]
   operatorsByType:
-    string:  [eq, ne, neq, like, ilike, in, nin, is]
-    number:  [eq, ne, neq, gt, gte, lt, lte, in, nin, is]
-    date:    [eq, ne, neq, gt, gte, lt, lte, is]
-    enum:    [eq, ne, neq, in, nin, is]
+    string: [eq, ne, neq, like, ilike, in, nin, is]
+    number: [eq, ne, neq, gt, gte, lt, lte, in, nin, is]
+    date: [eq, ne, neq, gt, gte, lt, lte, is]
+    enum: [eq, ne, neq, in, nin, is]
     boolean: [eq, ne, neq, is]
-    array:   [contains, eq, is]
+    array: [contains, eq, is]
   aliases: { ne: neq }
-  identityFilter: _id          # filter field when it differs from the JSON identity
-  emptyIn: match-none          # reject | match-none; undeclared → empty-in check skips
-  limitOutOfRange: reject      # reject | clamp; reject → a page size of 0 or past maxLimit must be 4xx
+  identityFilter: _id # filter field when it differs from the JSON identity
+  emptyIn: match-none # reject | match-none; undeclared → empty-in check skips
+  limitOutOfRange: reject # reject | clamp; reject → a page size of 0 or past maxLimit must be 4xx
   maxInValues: 100
   maxFilterConditions: 20
-  searchModes: [keyword]       # free-form; undeclared → mode checks skip
-  searchEmpty: match-all       # ignore | match-all | reject
+  searchModes: [keyword] # free-form; undeclared → mode checks skip
+  searchEmpty: match-all # ignore | match-all | reject
   sortNulls: [first, last]
   maxSortKeys: 3
   sortCollation: case-insensitive # binary | case-insensitive | locale; undeclared → any, consistently
-  sortDefaultNulls: last       # first | last, with no modifier; undeclared → either end, consistently
-  selectNested: true           # `rel(col)` grammar; undeclared → nested check skips
-  selectUnknown: reject        # reject | ignore; undeclared → unknown-select check skips
+  sortDefaultNulls: last # first | last, with no modifier; undeclared → either end, consistently
+  selectNested: true # `rel(col)` grammar; undeclared → nested check skips
+  selectUnknown: reject # reject | ignore; undeclared → unknown-select check skips
 
   # harvest any axis from another GET — no baked path
-  filterableFrom: { operationId: table.get, path: $.columns[*].name, typePath: $.columns[*].type, typeMap: { text: string, int: number } }
-  sortableFrom:   { operationId: table.get, path: $.columns[*].name }
-  searchableFrom: { operationId: table.get, path: $.columns[?(@.searchable==true)].name }
-  selectableFrom: { operationId: table.get, path: $.columns[*].name }
+  filterableFrom:
+    {
+      operationId: table.get,
+      path: "$.columns[*].name",
+      typePath: "$.columns[*].type",
+      typeMap: { text: string, int: number },
+    }
+  sortableFrom: { operationId: table.get, path: "$.columns[*].name" }
+  searchableFrom: { operationId: table.get, path: "$.columns[?(@.searchable==true)].name" }
+  selectableFrom: { operationId: table.get, path: "$.columns[*].name" }
 ```
 
 #### Parameter names
@@ -297,8 +303,8 @@ An extract-shaped write (create table + append ≥1 row) fails when the new tabl
 ```yaml
 x-before: table.delete
 x-bind:
-  path: { template_id: before:$.id, col_id: $.columns_json[0].id }
-  body: { order: $.columns_json[*].id }
+  path: { template_id: before:$.id, col_id: "$.columns_json[0].id" }
+  body: { order: "$.columns_json[*].id" }
   query: { aggs: aa0.count }
 ```
 

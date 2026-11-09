@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.32.1
+
+### Fixed
+
+- `x-invite` `acceptFrom: token`, the documented default, is accepted. `testing api doctor` reported
+  it as a malformed tag and exited 1, though the run already treated it as token mode.
+- Every tag block in [docs/api/tags.md](docs/api/tags.md) is valid YAML: JSON paths with `[` inside
+  a `{ … }` map are quoted, so a copied `x-query` `…From` or `x-bind` block parses.
+
 ## 0.32.0
 
 ### Changed (breaking)
