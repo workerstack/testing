@@ -93,6 +93,14 @@ describe("validateTags malformed tags", () => {
 		expect(
 			gapsOf({ "x-invite": { accept: "POST /a", acceptFrom: "email", invite: "POST /i", revoke: "DELETE /i" } }),
 		).toEqual(['x-invite: x-invite "acceptFrom" must be one of "token", "link"; the API tester cannot use it'])
+		for (const revokeStaleness of [0, 1.5, "300s"]) {
+			expect(
+				gapsOf({ "x-invite": { accept: "POST /a", invite: "POST /i", revoke: "DELETE /i", revokeStaleness } }),
+			).toEqual(['x-invite: x-invite "revokeStaleness" must be a positive integer; the API tester cannot use it'])
+		}
+		expect(
+			gapsOf({ "x-invite": { accept: "POST /a", invite: "POST /i", revoke: "DELETE /i", revokeStaleness: 300 } }),
+		).toEqual([])
 		expect(gapsOf({ "x-invalidate": "GET /a" })).toEqual([
 			'x-invalidate: x-invalidate must be an array of routes like "GET /path"; the API tester cannot use it',
 		])

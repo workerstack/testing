@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.34.0
+
+### Added
+
+- `x-invite.revokeStaleness` declares, as a positive integer of seconds, how long a revoked grant
+  may keep working: the lifetime of the short-lived self-contained tokens an API authorizes from and
+  does not invalidate. Declared, `auth.invite-grants-then-revokes` reads as the invitee after the
+  revoke on the backoff `consistency.staleness-within-bound` uses (at once, then doubling gaps up to
+  a quarter of the bound, the last read at the bound) until a read is refused. Each read sends the
+  credential the invitee holds then, so a renewal that drops the grant, or is refused, ends the
+  window. Refused within the bound passes with the measured window as the note; still readable at
+  the bound is the revoke finding, naming the bound and the window. The wait stops at 10 minutes; a
+  larger bound is noted, not judged. Undeclared, the first read after the revoke must be refused and
+  nothing waits, as before. `testing api doctor` and `testing api plan` print the revoke bound per
+  invite, doctor's JSON names it as `revokeStaleness` (`null` when undeclared), and a value that is
+  not a positive integer is a gap doctor names.
+
 ## 0.33.0
 
 ### Added

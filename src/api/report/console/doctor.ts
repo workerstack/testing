@@ -54,6 +54,7 @@ function doctorJson({ config, danglingRefs, externalRefs, facts, unsetEnv }: Dia
 				accept: entity.invite.accept,
 				acceptFrom: entity.invite.acceptFrom === "link" ? "link" : "token",
 				entity: entity.name,
+				revokeStaleness: entity.invite.revokeStaleness ?? null,
 				tokenFrom: entity.invite.tokenFrom,
 			})),
 			adoptingCreates: facts.adopting.map((op) => ({

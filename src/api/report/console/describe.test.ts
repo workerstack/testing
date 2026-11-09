@@ -15,6 +15,8 @@ import {
 	declaredGrammars,
 	hasInvite,
 	inviteAcceptMode,
+	inviteLine,
+	inviteRevokeBound,
 	lifecycleGlyphs,
 	listOperation,
 	sortedEntities,
@@ -46,6 +48,16 @@ describe("invites", () => {
 		expect(invite === undefined ? "" : inviteAcceptMode(invite)).toBe("JSON token → invite.accept")
 		expect(inviteAcceptMode({ ...(invite as NonNullable<typeof invite>), acceptFrom: "link" })).toBe(
 			"GET-link (x-invite.acceptFrom: link)",
+		)
+	})
+
+	it("must be revoked at once unless they declare how long a revoked grant may keep working", async () => {
+		const { model } = await referenceModel()
+		const entity = sortedEntities(model).filter(hasInvite)[0] as Parameters<typeof inviteLine>[0]
+		expect(inviteRevokeBound(entity.invite)).toBe("revoke refused at once")
+		const bounded = { ...entity, invite: { ...entity.invite, revokeStaleness: 300 } }
+		expect(inviteLine(bounded)).toBe(
+			`${"table".padEnd(28)} JSON token → invite.accept; revoke refused within 300s (x-invite.revokeStaleness)`,
 		)
 	})
 })

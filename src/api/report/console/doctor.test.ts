@@ -13,7 +13,7 @@ describe("doctor as text", () => {
 			"  2 check(s) cannot run",
 			"  roots required in config",
 			"  unique constraints",
-			"  invite — accept mode",
+			"  invite — accept mode and revoke bound",
 			"  query catalog",
 			"  gaps by tag",
 		].map((heading) => text.indexOf(heading))
@@ -76,7 +76,7 @@ describe("doctor as JSON", () => {
 			danglingRefs: ["#/missing"],
 			entities: 8,
 			externalRefs: ["x.yaml"],
-			invites: [{ accept: "invite.accept", acceptFrom: "token", entity: "table" }],
+			invites: [{ accept: "invite.accept", acceptFrom: "token", entity: "table", revokeStaleness: null }],
 			listableEntities: 4,
 			testableEntities: 8,
 			trackableEntities: 8,
@@ -86,13 +86,14 @@ describe("doctor as JSON", () => {
 		expect(text.endsWith("}\n")).toBe(true)
 	})
 
-	it("says how a link invite is accepted, and leaves out an allow list config did not give", async () => {
+	it("says how a link invite is accepted and its revoke bound, and leaves out an allow list config did not give", async () => {
 		const { model } = await referenceModel()
 		for (const entity of model.entities.values()) {
-			if (entity.invite !== null) entity.invite = { ...entity.invite, acceptFrom: "link" }
+			if (entity.invite !== null) entity.invite = { ...entity.invite, acceptFrom: "link", revokeStaleness: 300 }
 		}
 		const json = JSON.parse(doctor(model, { asJson: true }).text)
 		expect(json.invites[0].acceptFrom).toBe("link")
+		expect(json.invites[0].revokeStaleness).toBe(300)
 		expect(json.allowRemoved).toBeUndefined()
 	})
 })

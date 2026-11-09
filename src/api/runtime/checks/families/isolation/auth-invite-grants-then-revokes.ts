@@ -17,6 +17,7 @@ import {
 	revoke,
 	sendAccept,
 } from "./invite-flow.ts"
+import { judgeRevoke, watchRevoke } from "./revoke-window.ts"
 
 /**
  * Delegated access is a flow, not a request: B cannot read A's record, A invites B, B accepts,
@@ -132,7 +133,10 @@ async function acceptInvite(flow: Flow, invited: Exchange): Promise<{ exchange: 
 	return accepted
 }
 
-/** The owner revokes the accepted grant; access that survives it is the finding. */
+/**
+ * The owner revokes the accepted grant; access that survives it is the finding. Under a declared
+ * `x-invite.revokeStaleness` access may survive it that long, and the window is measured.
+ */
 async function revokeGrant(flow: Flow, evidence: [Exchange, Exchange], grantId: string | undefined): Promise<Outcome> {
 	const { check, ctx, plan } = flow
 	const { spec } = plan
@@ -147,6 +151,11 @@ async function revokeGrant(flow: Flow, evidence: [Exchange, Exchange], grantId: 
 	if (standDownForFeatureGate(ctx, plan.revokeOp, revoked, check))
 		return standDown("a documented feature gate refused the request")
 	if (revoked.status >= 300) return ctx.findings.unresolved(check, ctx.entityName, `revoke returned ${revoked.status}`)
+	const boundS = spec.revokeStaleness
+	if (boundS !== undefined && flow.grantRead !== undefined) {
+		const watched = await watchRevoke(flow, { boundS, grantRead: flow.grantRead })
+		return judgeRevoke(flow, { boundS, evidence: [...evidence, revoked], watched })
+	}
 	if ((await canRead(flow)) === true) {
 		ctx.findings.backend(check, ctx.entityName, {
 			summary: "revoking an invite does not remove access",

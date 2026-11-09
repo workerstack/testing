@@ -61,7 +61,7 @@ describe("plan as text", () => {
 		expect(lines.find((line) => line.startsWith("  table "))).toMatch(/ CLRUD {2}id +\d+ {2}2 route\(s\) \(declared\)$/)
 		expect(lines).toContain("  roots — no create operation, must be supplied before a run:")
 		expect(lines).toContain("    table                        x-unique: [name]")
-		expect(lines).toContain("    table                        JSON token → invite.accept")
+		expect(lines).toContain("    table                        JSON token → invite.accept; revoke refused at once")
 		expect(lines).toContain("  declared grammars — how the API tester writes this entity's filter and sort terms:")
 		expect(lines.some((line) => line.startsWith("    table                        filter  template"))).toBe(true)
 		expect(lines.some((line) => line.startsWith("    table                        sort    template"))).toBe(true)
