@@ -3,3 +3,5 @@
 # Lessons
 
 - `harness-mocks-need-bun-test` (hits 1): A harness's module mocks only hold under bun test
+- `solid-entry-needs-solid-condition` (hits 1): A Solid entry needs a `solid` condition, or node tests get two Solids
+- `vitest-mockrestore-clears-calls` (hits 1): vitest's mockRestore clears a spy's recorded calls
