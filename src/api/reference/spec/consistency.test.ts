@@ -1,11 +1,12 @@
-import { describe, expect, it } from "vitest"
-import { cacheDeclaration } from "./consistency.ts"
+import { describe, expect, it } from "vitest";
+
+import { cacheDeclaration } from "./consistency.ts";
 
 describe("cacheDeclaration", () => {
-	it("declares a 1 s staleness and the x-testing-fresh bypass under the cached-reads shape only", () => {
-		expect(cacheDeclaration({ entities: [], shape: { cachedReads: true } })).toEqual({
-			"x-consistency": { bypass: "x-testing-fresh: 1", staleness: "1s" },
-		})
-		expect(cacheDeclaration({ entities: [], shape: {} })).toEqual({})
-	})
-})
+  it("declares a 1 s staleness and the x-testing-fresh bypass under the cached-reads shape only", () => {
+    expect(cacheDeclaration({ entities: [], shape: { cachedReads: true } })).toEqual({
+      "x-consistency": { bypass: "x-testing-fresh: 1", staleness: "1s" },
+    });
+    expect(cacheDeclaration({ entities: [], shape: {} })).toEqual({});
+  });
+});

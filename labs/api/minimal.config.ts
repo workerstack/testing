@@ -12,20 +12,20 @@
  * in your own project it is `from "@workerstack/testing/api"`.
  */
 
-import { defineConfig, env } from "../../dist/api/index.js"
+import { defineConfig, env } from "../../dist/api/index.js";
 
 export default defineConfig({
-	baseUrl: "https://api.example.com",
-	principals: {
-		alpha: {
-			/* Path parameters the API tester cannot create for itself. */
-			scope: { project_id: env("PROJECT_A") },
-			tenant: env("PROJECT_A"),
-			token: env("API_TOKEN"),
-		},
-		beta: { scope: { project_id: env("PROJECT_B") }, tenant: env("PROJECT_B"), token: env("API_TOKEN_B") },
-	},
-	/* The document's bearer scheme; each principal's own token fills it. */
-	security: { bearer: { static: "{principal.token}" } },
-	spec: "https://api.example.com/openapi.json",
-})
+  baseUrl: "https://api.example.com",
+  principals: {
+    alpha: {
+      /* Path parameters the API tester cannot create for itself. */
+      scope: { project_id: env("PROJECT_A") },
+      tenant: env("PROJECT_A"),
+      token: env("API_TOKEN"),
+    },
+    beta: { scope: { project_id: env("PROJECT_B") }, tenant: env("PROJECT_B"), token: env("API_TOKEN_B") },
+  },
+  /* The document's bearer scheme; each principal's own token fills it. */
+  security: { bearer: { static: "{principal.token}" } },
+  spec: "https://api.example.com/openapi.json",
+});

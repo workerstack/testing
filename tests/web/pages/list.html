@@ -1,71 +1,71 @@
 <!doctype html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<title>List</title>
-		<style>
-			ul {
-				list-style: none;
-				margin: 0;
-				padding: 0;
-				width: 240px;
-			}
-			li {
-				display: flex;
-				gap: 8px;
-				align-items: center;
-				height: 40px;
-				background: #fff;
-				border: 1px solid #555;
-				touch-action: none;
-			}
-			.grip {
-				width: 16px;
-				height: 16px;
-				background: #555;
-			}
-		</style>
-	</head>
-	<body>
-		<main>
-			<ul>
-				<li data-item="a"><span class="grip"></span>a</li>
-				<li data-item="b"><span class="grip"></span>b</li>
-				<li data-item="c"><span class="grip"></span>c</li>
-			</ul>
-		</main>
-		<script>
-			/*
-			 * A drag engine in a few lines: a pressed item captures the pointer and follows it past a 5px
-			 * threshold; on release it moves before the first item whose center is at or below its own.
-			 */
-			const list = document.querySelector("ul")
-			const centerY = (element) => {
-				const box = element.getBoundingClientRect()
-				return box.y + box.height / 2
-			}
-			for (const item of list.children) {
-				let start = null
-				let lifted = false
-				item.addEventListener("pointerdown", (event) => {
-					item.setPointerCapture(event.pointerId)
-					start = { x: event.clientX, y: event.clientY }
-				})
-				item.addEventListener("pointermove", (event) => {
-					if (start === null) return
-					lifted ||= Math.hypot(event.clientX - start.x, event.clientY - start.y) > 5
-					if (lifted) item.style.transform = `translateY(${event.clientY - start.y}px)`
-				})
-				item.addEventListener("pointerup", () => {
-					if (start === null) return
-					const own = centerY(item)
-					const next = [...list.children].find((other) => other !== item && centerY(other) >= own) ?? null
-					item.style.transform = ""
-					list.insertBefore(item, next)
-					start = null
-					lifted = false
-				})
-			}
-		</script>
-	</body>
+  <head>
+    <meta charset="utf-8" />
+    <title>List</title>
+    <style>
+      ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        width: 240px;
+      }
+      li {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        height: 40px;
+        background: #fff;
+        border: 1px solid #555;
+        touch-action: none;
+      }
+      .grip {
+        width: 16px;
+        height: 16px;
+        background: #555;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <ul>
+        <li data-item="a"><span class="grip"></span>a</li>
+        <li data-item="b"><span class="grip"></span>b</li>
+        <li data-item="c"><span class="grip"></span>c</li>
+      </ul>
+    </main>
+    <script>
+      /*
+       * A drag engine in a few lines: a pressed item captures the pointer and follows it past a 5px
+       * threshold; on release it moves before the first item whose center is at or below its own.
+       */
+      const list = document.querySelector("ul");
+      const centerY = (element) => {
+        const box = element.getBoundingClientRect();
+        return box.y + box.height / 2;
+      };
+      for (const item of list.children) {
+        let start = null;
+        let lifted = false;
+        item.addEventListener("pointerdown", (event) => {
+          item.setPointerCapture(event.pointerId);
+          start = { x: event.clientX, y: event.clientY };
+        });
+        item.addEventListener("pointermove", (event) => {
+          if (start === null) return;
+          lifted ||= Math.hypot(event.clientX - start.x, event.clientY - start.y) > 5;
+          if (lifted) item.style.transform = `translateY(${event.clientY - start.y}px)`;
+        });
+        item.addEventListener("pointerup", () => {
+          if (start === null) return;
+          const own = centerY(item);
+          const next = [...list.children].find((other) => other !== item && centerY(other) >= own) ?? null;
+          item.style.transform = "";
+          list.insertBefore(item, next);
+          start = null;
+          lifted = false;
+        });
+      }
+    </script>
+  </body>
 </html>

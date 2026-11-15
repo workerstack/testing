@@ -1,25 +1,25 @@
-import { NODE_FLOOR } from "../../errors/node-floor.ts"
-import { type Args, str } from "../flags.ts"
-import { POSTGRES_RANGE } from "../../reference/stores/postgres-driver.ts"
-import type { Writer } from "../writer.ts"
-import type { BackendName } from "./conformance-matrix.ts"
-import type { Toolkit } from "./conformance-toolkit.ts"
+import { NODE_FLOOR } from "../../errors/node-floor.ts";
+import { POSTGRES_RANGE } from "../../reference/stores/postgres-driver.ts";
+import { type Args, str } from "../flags.ts";
+import type { Writer } from "../writer.ts";
+import type { BackendName } from "./conformance-matrix.ts";
+import type { Toolkit } from "./conformance-toolkit.ts";
 
 /** A local engine a full run went without; `noDriver` when it was Postgres and this install lacks its driver. */
 export interface SkippedBackend {
-	backend: BackendName
-	noDriver?: boolean
+  backend: BackendName;
+  noDriver?: boolean;
 }
 
 /* Why the engine is missing, and what makes it present. */
 function absence({ backend, noDriver }: SkippedBackend): { why: string; fix: string } {
-	if (backend === "sqlite")
-		return {
-			fix: "Start it",
-			why: `node:sqlite unavailable on Node ${process.version}; the API tester needs ${NODE_FLOOR} or later`,
-		}
-	if (noDriver === true) return { fix: `Run npm install postgres (${POSTGRES_RANGE})`, why: "driver not installed" }
-	return { fix: "Start it", why: "no Postgres server reachable on the default connection" }
+  if (backend === "sqlite")
+    return {
+      fix: "Start it",
+      why: `node:sqlite unavailable on Node ${process.version}; the API tester needs ${NODE_FLOOR} or later`,
+    };
+  if (noDriver === true) return { fix: `Run npm install postgres (${POSTGRES_RANGE})`, why: "driver not installed" };
+  return { fix: "Start it", why: "no Postgres server reachable on the default connection" };
 }
 
 /**
@@ -27,21 +27,21 @@ function absence({ backend, noDriver }: SkippedBackend): { why: string; fix: str
  * untested. Leaving one out has to be asked for by name. Returns the failures.
  */
 export function judgeSkipped(writer: Writer, flags: Args["flags"], skipped: readonly SkippedBackend[]): number {
-	if (skipped.length === 0) return 0
-	const allowed = new Set(str(flags, "skip-backend")?.split(",") ?? [])
-	let failures = 0
-	for (const entry of skipped) {
-		const { backend } = entry
-		const { why, fix } = absence(entry)
-		if (allowed.has(backend)) {
-			writer.out(`  note: ${backend} backend skipped as asked — ${why}\n`)
-			continue
-		}
-		failures += 1
-		writer.out(`  ✗ ${backend} backend unavailable — ${why}. ${fix}, or pass --skip-backend ${backend}\n`)
-	}
-	writer.out("\n")
-	return failures
+  if (skipped.length === 0) return 0;
+  const allowed = new Set(str(flags, "skip-backend")?.split(",") ?? []);
+  let failures = 0;
+  for (const entry of skipped) {
+    const { backend } = entry;
+    const { why, fix } = absence(entry);
+    if (allowed.has(backend)) {
+      writer.out(`  note: ${backend} backend skipped as asked — ${why}\n`);
+      continue;
+    }
+    failures += 1;
+    writer.out(`  ✗ ${backend} backend unavailable — ${why}. ${fix}, or pass --skip-backend ${backend}\n`);
+  }
+  writer.out("\n");
+  return failures;
 }
 
 /**
@@ -54,22 +54,22 @@ export function judgeSkipped(writer: Writer, flags: Args["flags"], skipped: read
  * its combinations sent, by source. Returns the failures.
  */
 export async function runCombinations(writer: Writer, flags: Args["flags"], toolkit: Toolkit): Promise<number> {
-	writer.out(`\n  ── combinations ${"─".repeat(46)}\n`)
-	const seed = Number.parseInt(str(flags, "fuzz-seed") ?? "1", 10)
-	writer.out(`  fuzz seed ${seed} — replay with --fuzz 40 --max-defects 6 --seed ${seed}\n`)
-	const counted = toolkit.suite.counting(toolkit.suite.listening)
-	const smoke = toolkit.fuzz.renderFuzz(
-		await toolkit.fuzz.runFuzz({ backend: "memory", cases: 40, maxDefects: 6, seed, via: counted.via }),
-	)
-	writer.out(`${smoke.text}${toolkit.suite.requestLines(counted.requests())}`)
-	return smoke.failures
+  writer.out(`\n  ── combinations ${"─".repeat(46)}\n`);
+  const seed = Number.parseInt(str(flags, "fuzz-seed") ?? "1", 10);
+  writer.out(`  fuzz seed ${seed} — replay with --fuzz 40 --max-defects 6 --seed ${seed}\n`);
+  const counted = toolkit.suite.counting(toolkit.suite.listening);
+  const smoke = toolkit.fuzzRender.renderFuzz(
+    await toolkit.fuzz.runFuzz({ backend: "memory", cases: 40, maxDefects: 6, seed, via: counted.via }),
+  );
+  writer.out(`${smoke.text}${toolkit.suite.requestLines(counted.requests())}`);
+  return smoke.failures;
 }
 
 /** Present but never default: D1 is remote, so a pass costs minutes and someone's quota. */
 export function noteD1(writer: Writer, toolkit: Toolkit): void {
-	writer.out(
-		toolkit.suite.d1Available()
-			? "  note: d1 backend available — run with --backend d1 (remote, ~2min per defect)\n\n"
-			: "  note: d1 backend needs CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_D1_DATABASE_ID, CLOUDFLARE_API_TOKEN\n\n",
-	)
+  writer.out(
+    toolkit.suite.d1Available()
+      ? "  note: d1 backend available — run with --backend d1 (remote, ~2min per defect)\n\n"
+      : "  note: d1 backend needs CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_D1_DATABASE_ID, CLOUDFLARE_API_TOKEN\n\n",
+  );
 }

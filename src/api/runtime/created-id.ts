@@ -10,25 +10,25 @@
  * its URL, in `Location` (`createdIdOf`).
  */
 
-import { createdIdKeys, findCreatedId } from "./effects/ids.ts"
-import { readPath } from "../client/read-path.ts"
-import type { OperationModel, SpecModel } from "../spec/graph/types.ts"
-import type { Exchange } from "./exchange.ts"
-import { headerValue } from "./headers.ts"
-import { type ProvenId, createdId } from "./proven-id.ts"
+import { readPath } from "../client/read-path.ts";
+import type { OperationModel, SpecModel } from "../spec/graph/types.ts";
+import { createdIdKeys, findCreatedId } from "./effects/ids.ts";
+import type { Exchange } from "./exchange.ts";
+import { headerValue } from "./headers.ts";
+import { type ProvenId, createdId } from "./proven-id.ts";
 
-type Record_ = Record<string, unknown>
+type Record_ = Record<string, unknown>;
 
 function isScalarId(value: unknown): value is string | number {
-	return typeof value === "string" || typeof value === "number"
+  return typeof value === "string" || typeof value === "number";
 }
 
 function isPlainRecord(value: unknown): value is Record_ {
-	return typeof value === "object" && value !== null && !Array.isArray(value)
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 /** Keys a create may wrap the record it made in: `{ success, id, data: { ... } }`. */
-const CREATE_ENVELOPE_KEYS = ["data", "item", "result", "record"] as const
+const CREATE_ENVELOPE_KEYS = ["data", "item", "result", "record"] as const;
 
 /**
  * The record a create answered with. Some creates wrap it — `{ success, id, data: { ID, ... } }` —
@@ -38,76 +38,76 @@ const CREATE_ENVELOPE_KEYS = ["data", "item", "result", "record"] as const
  * lacks its identity, the envelope's identity (or `id`) is the one the create answered.
  */
 export function createdRecordOf(response: unknown, identity: string, sent: unknown): Record_ {
-	if (!isPlainRecord(response)) return {}
-	const submitted = isPlainRecord(sent)
-		? Object.entries(sent).filter(([, value]) => isScalarId(value) || typeof value === "boolean")
-		: []
-	const holds = (candidate: Record_): number => submitted.filter(([key, value]) => candidate[key] === value).length
-	let record = response
-	for (const key of CREATE_ENVELOPE_KEYS) {
-		const inner = response[key]
-		if (isPlainRecord(inner) && holds(inner) > holds(record)) record = inner
-	}
-	if (record === response || isScalarId(record[identity])) return record
-	const answered = isScalarId(response[identity]) ? response[identity] : response["id"]
-	return isScalarId(answered) ? { ...record, [identity]: answered } : record
+  if (!isPlainRecord(response)) return {};
+  const submitted = isPlainRecord(sent)
+    ? Object.entries(sent).filter(([, value]) => isScalarId(value) || typeof value === "boolean")
+    : [];
+  const holds = (candidate: Record_): number => submitted.filter(([key, value]) => candidate[key] === value).length;
+  let record = response;
+  for (const key of CREATE_ENVELOPE_KEYS) {
+    const inner = response[key];
+    if (isPlainRecord(inner) && holds(inner) > holds(record)) record = inner;
+  }
+  if (record === response || isScalarId(record[identity])) return record;
+  const answered = isScalarId(response[identity]) ? response[identity] : response["id"];
+  return isScalarId(answered) ? { ...record, [identity]: answered } : record;
 }
 
 /** Where an operation's answer declares the created id and the record (`x-entity`). */
 export interface CreatedIdSource {
-	createdIdFrom: string | null
-	recordPath: string | null
+  createdIdFrom: string | null;
+  recordPath: string | null;
 }
 
 /** A created id as the answer carried it, and whether the answer names it by contract. */
 export interface CreatedId {
-	id: ProvenId
-	/** The value as answered, number or string, for the record the API tester keeps. */
-	value: string | number
-	trusted: boolean
+  id: ProvenId;
+  /** The value as answered, number or string, for the record the API tester keeps. */
+  value: string | number;
+  trusted: boolean;
 }
 
 function asCreatedId(value: unknown, trusted: boolean): CreatedId | undefined {
-	const id = createdId(value)
-	/* `createdId` proves only a string or a number. */
-	return id === undefined ? undefined : { id, trusted, value: value as string | number }
+  const id = createdId(value);
+  /* `createdId` proves only a string or a number. */
+  return id === undefined ? undefined : { id, trusted, value: value as string | number };
 }
 
 /** The created record's id: declared, then the answer's own identity, then candidates. */
 export function resolveCreatedId(input: {
-	body: unknown
-	entity: string
-	identity: string
-	sent: unknown
-	source: CreatedIdSource
+  body: unknown;
+  entity: string;
+  identity: string;
+  sent: unknown;
+  source: CreatedIdSource;
 }): CreatedId | undefined {
-	const { body, identity, source } = input
-	if (source.createdIdFrom !== null) {
-		const declared = asCreatedId(readPath(body, source.createdIdFrom), true)
-		if (declared !== undefined) return declared
-	}
-	if (isPlainRecord(body)) {
-		const own = asCreatedId(body[identity], true)
-		if (own !== undefined) return own
-	}
-	if (source.recordPath !== null) {
-		const record = readPath(body, source.recordPath)
-		const inRecord = isPlainRecord(record) ? asCreatedId(record[identity], false) : undefined
-		if (inRecord !== undefined) return inRecord
-	}
-	return (
-		asCreatedId(createdRecordOf(body, identity, input.sent)[identity], false) ??
-		asCreatedId(findCreatedId(body, createdIdKeys(input.entity, identity)), false)
-	)
+  const { body, identity, source } = input;
+  if (source.createdIdFrom !== null) {
+    const declared = asCreatedId(readPath(body, source.createdIdFrom), true);
+    if (declared !== undefined) return declared;
+  }
+  if (isPlainRecord(body)) {
+    const own = asCreatedId(body[identity], true);
+    if (own !== undefined) return own;
+  }
+  if (source.recordPath !== null) {
+    const record = readPath(body, source.recordPath);
+    const inRecord = isPlainRecord(record) ? asCreatedId(record[identity], false) : undefined;
+    if (inRecord !== undefined) return inRecord;
+  }
+  return (
+    asCreatedId(createdRecordOf(body, identity, input.sent)[identity], false) ??
+    asCreatedId(findCreatedId(body, createdIdKeys(input.entity, identity)), false)
+  );
 }
 
 /* A path segment as it was meant: percent-decoded, or as sent when it is not valid encoding. */
 function decoded(segment: string): string {
-	try {
-		return decodeURIComponent(segment)
-	} catch {
-		return segment
-	}
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return segment;
+  }
 }
 
 /**
@@ -117,40 +117,40 @@ function decoded(segment: string): string {
  * it is the last segment. A relative Location resolves against `base`, the create's own URL.
  */
 export function locatedId(
-	location: string | undefined,
-	template: string | undefined,
-	base?: string,
+  location: string | undefined,
+  template: string | undefined,
+  base?: string,
 ): string | undefined {
-	if (location === undefined) return undefined
-	let pathname: string
-	try {
-		pathname = new URL(location, base ?? "http://testing.invalid/").pathname
-	} catch {
-		return undefined
-	}
-	const segments = pathname.split("/").filter(Boolean).map(decoded)
-	if (template === undefined) return segments.at(-1)
-	const route = template.split("/").filter(Boolean)
-	const at = route.findLastIndex((segment) => segment.startsWith("{"))
-	const offset = segments.length - route.length
-	if (at + offset < 0) return undefined
-	for (let index = Math.max(0, -offset); index < route.length; index++) {
-		const segment = route[index] as string
-		if (!segment.startsWith("{") && segment !== segments[index + offset]) return undefined
-	}
-	return segments[at + offset]
+  if (location === undefined) return undefined;
+  let pathname: string;
+  try {
+    pathname = new URL(location, base ?? "http://testing.invalid/").pathname;
+  } catch {
+    return undefined;
+  }
+  const segments = pathname.split("/").filter(Boolean).map(decoded);
+  if (template === undefined) return segments.at(-1);
+  const route = template.split("/").filter(Boolean);
+  const at = route.findLastIndex((segment) => segment.startsWith("{"));
+  const offset = segments.length - route.length;
+  if (at + offset < 0) return undefined;
+  for (let index = Math.max(0, -offset); index < route.length; index++) {
+    const segment = route[index] as string;
+    if (!segment.startsWith("{") && segment !== segments[index + offset]) return undefined;
+  }
+  return segments[at + offset];
 }
 
 /** The route one record of the entity lives at: its read's, else its delete's or its update's. */
 export function itemPathOf(
-	model: Pick<SpecModel, "byOperationId" | "entities">,
-	entity: string | null,
+  model: Pick<SpecModel, "byOperationId" | "entities">,
+  entity: string | null,
 ): string | undefined {
-	const routes = entity === null ? undefined : model.entities.get(entity)
-	const itemOp = [routes?.read, routes?.delete, routes?.update]
-		.map((operationId) => (operationId === undefined ? undefined : model.byOperationId.get(operationId)))
-		.find((op) => op !== undefined)
-	return itemOp?.path
+  const routes = entity === null ? undefined : model.entities.get(entity);
+  const itemOp = [routes?.read, routes?.delete, routes?.update]
+    .map((operationId) => (operationId === undefined ? undefined : model.byOperationId.get(operationId)))
+    .find((op) => op !== undefined);
+  return itemOp?.path;
 }
 
 /**
@@ -159,22 +159,22 @@ export function itemPathOf(
  * contract, so its id is trusted as a declared one is. Every reader of a created id goes through here.
  */
 export function createdIdOf(input: {
-	exchange: Pick<Exchange, "responseBody" | "responseHeaders" | "url">
-	createOp: Pick<OperationModel, "createdIdFrom" | "entity" | "recordPath">
-	model: Pick<SpecModel, "byOperationId" | "entities">
-	sent: unknown
+  exchange: Pick<Exchange, "responseBody" | "responseHeaders" | "url">;
+  createOp: Pick<OperationModel, "createdIdFrom" | "entity" | "recordPath">;
+  model: Pick<SpecModel, "byOperationId" | "entities">;
+  sent: unknown;
 }): CreatedId | undefined {
-	const { createOp, exchange, model } = input
-	const entity = createOp.entity
-	const identity = (entity === null ? undefined : model.entities.get(entity))?.identity ?? "id"
-	const answered = resolveCreatedId({
-		body: exchange.responseBody ?? {},
-		entity: entity ?? "",
-		identity,
-		sent: input.sent,
-		source: { createdIdFrom: createOp.createdIdFrom, recordPath: createOp.recordPath },
-	})
-	return answered ?? locatedCreatedId(input)
+  const { createOp, exchange, model } = input;
+  const entity = createOp.entity;
+  const identity = (entity === null ? undefined : model.entities.get(entity))?.identity ?? "id";
+  const answered = resolveCreatedId({
+    body: exchange.responseBody ?? {},
+    entity: entity ?? "",
+    identity,
+    sent: input.sent,
+    source: { createdIdFrom: createOp.createdIdFrom, recordPath: createOp.recordPath },
+  });
+  return answered ?? locatedCreatedId(input);
 }
 
 /**
@@ -182,14 +182,14 @@ export function createdIdOf(input: {
  * the record's URL by contract. A reader that takes the id from the body its own way falls back to
  * this one; every other reader takes both through `createdIdOf`.
  */
-export function locatedCreatedId(input: {
-	exchange: Pick<Exchange, "responseHeaders" | "url">
-	createOp: Pick<OperationModel, "entity">
-	model: Pick<SpecModel, "byOperationId" | "entities">
+function locatedCreatedId(input: {
+  exchange: Pick<Exchange, "responseHeaders" | "url">;
+  createOp: Pick<OperationModel, "entity">;
+  model: Pick<SpecModel, "byOperationId" | "entities">;
 }): CreatedId | undefined {
-	const { exchange } = input
-	const location = headerValue(exchange.responseHeaders, "location")
-	return asCreatedId(locatedId(location, itemPathOf(input.model, input.createOp.entity), exchange.url), true)
+  const { exchange } = input;
+  const location = headerValue(exchange.responseHeaders, "location");
+  return asCreatedId(locatedId(location, itemPathOf(input.model, input.createOp.entity), exchange.url), true);
 }
 
 /**
@@ -198,12 +198,12 @@ export function locatedCreatedId(input: {
  * else the one its `Location` names.
  */
 export function answeredIdOf(input: {
-	exchange: Pick<Exchange, "requestBody" | "responseBody" | "responseHeaders" | "url">
-	identity: string
-	createOp: Pick<OperationModel, "entity">
-	model: Pick<SpecModel, "byOperationId" | "entities">
+  exchange: Pick<Exchange, "requestBody" | "responseBody" | "responseHeaders" | "url">;
+  identity: string;
+  createOp: Pick<OperationModel, "entity">;
+  model: Pick<SpecModel, "byOperationId" | "entities">;
 }): string | number | undefined {
-	const { exchange, identity } = input
-	const echoed = createdRecordOf(exchange.responseBody ?? {}, identity, exchange.requestBody)[identity]
-	return isScalarId(echoed) ? echoed : locatedCreatedId(input)?.value
+  const { exchange, identity } = input;
+  const echoed = createdRecordOf(exchange.responseBody ?? {}, identity, exchange.requestBody)[identity];
+  return isScalarId(echoed) ? echoed : locatedCreatedId(input)?.value;
 }

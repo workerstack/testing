@@ -7,121 +7,123 @@
  * the source over its credential store (`createCredentialSource`).
  */
 
-import type { Sends } from "../credentials/ports.ts"
-import type { Exchange } from "../runtime/exchange.ts"
-import type { PlacedSecrets } from "../security/redact.ts"
+import type { Sends } from "../credentials/ports.ts";
+import type { Exchange } from "../runtime/exchange.ts";
+import type { PlacedSecrets } from "../security/redact.ts";
 
 /** Who a request acts as. */
 export type Actor =
-	/** A principal: the operation's resolved security decides the scheme or schemes. */
-	| { principal: string }
-	/** A principal sending one named scheme: a scenario step's `scheme`, or a raw request. */
-	| { principal: string; scheme: string }
-	/**
-	 * A principal following a URL a response gave it: a next link, a Location, a poll or receipt URL. It
-	 * resolves against the operation the URL matches, else sends the schemes `via` recorded, and sends
-	 * nothing to another origin.
-	 */
-	| { principal: string; via: Exchange }
-	/** Nobody: nothing is sent. */
-	| { anonymous: true }
-	/**
-	 * A value placed exactly like the scheme's credential, though no principal holds it: implicitly a
-	 * probe. A `derived` one is built from a held credential (a real JWT with its signature flipped,
-	 * another principal's real value), so it is a secret and redacted like one; garbage stays visible.
-	 */
-	| { forged: { scheme: string; value: string; derived?: true } }
-	/**
-	 * A principal sending exactly `value` as the scheme's credential, one it holds or held: the session a
-	 * revoke ends. Placed and redacted like its own credential, and never renewed: a 401 is the answer.
-	 */
-	| { principal: string; scheme: string; value: string }
+  /** A principal: the operation's resolved security decides the scheme or schemes. */
+  | { principal: string }
+  /** A principal sending one named scheme: a scenario step's `scheme`, or a raw request. */
+  | { principal: string; scheme: string }
+  /**
+   * A principal following a URL a response gave it: a next link, a Location, a poll or receipt URL. It
+   * resolves against the operation the URL matches, else sends the schemes `via` recorded, and sends
+   * nothing to another origin.
+   */
+  | { principal: string; via: Exchange }
+  /** Nobody: nothing is sent. */
+  | { anonymous: true }
+  /**
+   * A value placed exactly like the scheme's credential, though no principal holds it: implicitly a
+   * probe. A `derived` one is built from a held credential (a real JWT with its signature flipped,
+   * another principal's real value), so it is a secret and redacted like one; garbage stays visible.
+   */
+  | { forged: { scheme: string; value: string; derived?: true } }
+  /**
+   * A principal sending exactly `value` as the scheme's credential, one it holds or held: the session a
+   * revoke ends. Placed and redacted like its own credential, and never renewed: a 401 is the answer.
+   */
+  | { principal: string; scheme: string; value: string };
 
 /** What the client knows about a request when it resolves its credential. */
 export interface CredentialRequest {
-	operationId?: string
-	/** `<METHOD> <path>`, the path below the base, or origin and path for another origin: what a refusal names. */
-	route: string
-	actor: Actor
-	/** The request expects a refusal: it is never refreshed and never retried on a 401. */
-	probe?: boolean
+  operationId?: string;
+  /** `<METHOD> <path>`, the path below the base, or origin and path for another origin: what a refusal names. */
+  route: string;
+  actor: Actor;
+  /** The request expects a refusal: it is never refreshed and never retried on a 401. */
+  probe?: boolean;
 }
 
 /** What a request sends, by scheme, in the order its alternative names them. */
-export type SendsByScheme = Readonly<Record<string, Sends>>
+export type SendsByScheme = Readonly<Record<string, Sends>>;
 
 /** A principal's credentials for the alternative it satisfies, placed and ready to send. */
 export interface Sending {
-	kind: "sends"
-	principal: string
-	schemes: string[]
-	sends: SendsByScheme
-	/** The value each scheme carried, which a refresh names so a newer one is not renewed again. */
-	sentValues: Readonly<Record<string, string>>
-	/** Every name and value placed, for the run's redactor. */
-	secrets: PlacedSecrets
-	/** Renews what this resolution sent, single-flight across every request that sent it. */
-	refresh(): Promise<Resolution>
-	/** Whether what it sent is no longer current in the store (renewed since, or stale); never awaits. */
-	lapsed(): boolean
-	/** BLOCKS every scheme this resolution sent, for the rest of the run, with `reason`. */
-	block(reason: string): void
+  kind: "sends";
+  principal: string;
+  schemes: string[];
+  sends: SendsByScheme;
+  /** The value each scheme carried, which a refresh names so a newer one is not renewed again. */
+  sentValues: Readonly<Record<string, string>>;
+  /** Every name and value placed, for the run's redactor. */
+  secrets: PlacedSecrets;
+  /** Renews what this resolution sent, single-flight across every request that sent it. */
+  refresh(): Promise<Resolution>;
+  /** Whether what it sent is no longer current in the store (renewed since, or stale); never awaits. */
+  lapsed(): boolean;
+  /** BLOCKS every scheme this resolution sent, for the rest of the run, with `reason`. */
+  block(reason: string): void;
 }
 
 /** A forged value, placed like the scheme's credential. Redacted only when derived from a real one. */
-export interface Forged {
-	kind: "forged"
-	schemes: [string]
-	sends: SendsByScheme
-	/** What a derived value places, for the run's redactor: absent for garbage, which is no secret. */
-	secrets?: PlacedSecrets
+interface Forged {
+  kind: "forged";
+  schemes: [string];
+  sends: SendsByScheme;
+  /** What a derived value places, for the run's redactor: absent for garbage, which is no secret. */
+  secrets?: PlacedSecrets;
 }
 
 /** A value a principal holds, sent as given: a real exchange of that principal's, never renewed. */
-export interface HeldValue {
-	kind: "held"
-	principal: string
-	schemes: [string]
-	sends: SendsByScheme
-	secrets: PlacedSecrets
+interface HeldValue {
+  kind: "held";
+  principal: string;
+  schemes: [string];
+  sends: SendsByScheme;
+  secrets: PlacedSecrets;
 }
 
 export type Resolution =
-	/** The operation's security is `[]` or `{}`, or the actor is anonymous: send nothing. */
-	| { kind: "anonymous" }
-	/**
-	 * No alternative the principal can satisfy, e.g. "no credential for jwt", or a principal's request that
-	 * matches no documented operation and names no scheme.
-	 */
-	| { kind: "unsatisfied"; reason: string }
-	/** The principal is BLOCKED for a scheme it needs: its login or refresh failed. */
-	| { kind: "blocked"; reason: string }
-	| Sending
-	| HeldValue
-	| Forged
+  /** The operation's security is `[]` or `{}`, or the actor is anonymous: send nothing. */
+  | { kind: "anonymous" }
+  /**
+   * No alternative the principal can satisfy, e.g. "no credential for jwt", or a principal's request that
+   * matches no documented operation and names no scheme.
+   */
+  | { kind: "unsatisfied"; reason: string }
+  /** The principal is BLOCKED for a scheme it needs: its login or refresh failed. */
+  | { kind: "blocked"; reason: string }
+  | Sending
+  | HeldValue
+  | Forged;
 
 export interface CredentialSource {
-	resolve(request: CredentialRequest): Promise<Resolution>
+  resolve(request: CredentialRequest): Promise<Resolution>;
 }
 
 /** A request whose security cannot be met, raised before anything is sent. Callers report it untested or BLOCKED. */
 export class UnsatisfiedSecurity extends Error {
-	override name = "UnsatisfiedSecurity"
-	constructor(
-		readonly kind: "unsatisfied" | "blocked",
-		readonly reason: string,
-	) {
-		super(reason)
-	}
+  override name = "UnsatisfiedSecurity";
+  readonly kind: "unsatisfied" | "blocked";
+  readonly reason: string;
+  constructor(kind: "unsatisfied" | "blocked", reason: string) {
+    super(reason);
+    this.kind = kind;
+    this.reason = reason;
+  }
 }
 
 /** A caller, hook or global value under a name the request's credential is placed in: it would override the scheme. */
 export class CredentialCollision extends Error {
-	override name = "CredentialCollision"
-	constructor(
-		readonly place: "header" | "query" | "cookie",
-		readonly placed: { name: string; scheme: string },
-	) {
-		super(`${place} "${placed.name}" collides with the ${placed.scheme} credential placement`)
-	}
+  override name = "CredentialCollision";
+  readonly place: "header" | "query" | "cookie";
+  readonly placed: { name: string; scheme: string };
+  constructor(place: "header" | "query" | "cookie", placed: { name: string; scheme: string }) {
+    super(`${place} "${placed.name}" collides with the ${placed.scheme} credential placement`);
+    this.place = place;
+    this.placed = placed;
+  }
 }

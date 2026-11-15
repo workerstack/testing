@@ -4,10 +4,10 @@
  * field it discarded. Any other difference is.
  */
 export function storedAs(stored: unknown, sent: unknown): boolean {
-	if (typeof stored === "string" && typeof sent === "string") return folded(stored) === folded(sent)
-	return JSON.stringify(stored) === JSON.stringify(sent)
+  if (typeof stored === "string" && typeof sent === "string") return folded(stored) === folded(sent);
+  return JSON.stringify(stored) === JSON.stringify(sent);
 }
 
 function folded(text: string): string {
-	return text.trim().toLowerCase()
+  return text.trim().toLowerCase();
 }

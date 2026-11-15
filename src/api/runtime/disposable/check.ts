@@ -10,33 +10,33 @@
  * operation stays untested and a scenario sets the scene.
  */
 
-import type { OperationModel, SpecModel } from "../../spec/graph/types.ts"
-import type { CheckId } from "../check-ids.ts"
-import type { Check } from "../checks/core/check.ts"
-import { ASSERTED, type Outcome } from "../finding.ts"
+import type { OperationModel, SpecModel } from "../../spec/graph/types.ts";
+import type { CheckId } from "../check-ids.ts";
+import type { Check } from "../checks/core/check.ts";
+import { ASSERTED, type Outcome } from "../finding.ts";
 
 export const DISPOSABLE_CHECK_ID: Extract<CheckId, "auth.destructive-spares-the-caller"> =
-	"auth.destructive-spares-the-caller"
+  "auth.destructive-spares-the-caller";
 
 export const disposableCheck: Check = {
-	id: DISPOSABLE_CHECK_ID,
-	mutates: true,
-	needs: "x-destructive, a way to sign up a second user, and a caller read",
-	plan: () => ({ ok: false }),
-	run: (): Promise<Outcome> => Promise.resolve(ASSERTED),
-	/* Destructive routes have no entity. `runDisposableOps` grades them after the entity loop. */
-	subjects: () => [],
-}
+  id: DISPOSABLE_CHECK_ID,
+  mutates: true,
+  needs: "x-destructive, a way to sign up a second user, and a caller read",
+  plan: () => ({ ok: false }),
+  run: (): Promise<Outcome> => Promise.resolve(ASSERTED),
+  /* Destructive routes have no entity. `runDisposableOps` grades them after the entity loop. */
+  subjects: () => [],
+};
 
 export function destructiveOps(model: SpecModel): OperationModel[] {
-	return model.operations.filter((op) => op.destructive && op.unsendable === null)
+  return model.operations.filter((op) => op.destructive && op.unsendable === null);
 }
 
 /** The caller reading itself: an `identity: self` read with nothing to fill in. */
 export function callerRead(model: SpecModel): OperationModel | undefined {
-	return model.operations.find((op) => op.identity === "self" && op.action === "read" && op.pathParams.length === 0)
+  return model.operations.find((op) => op.identity === "self" && op.action === "read" && op.pathParams.length === 0);
 }
 
 export function invalidatesCaller(op: OperationModel, read: OperationModel): boolean {
-	return op.invalidates.some((route) => route === `${read.method.toUpperCase()} ${read.path}` || route === read.route)
+  return op.invalidates.some((route) => route === `${read.method.toUpperCase()} ${read.path}` || route === read.route);
 }

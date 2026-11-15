@@ -1,6 +1,6 @@
 /** `defineConfig`: the typed entry point of a config file. */
 
-import type { ApiConfig } from "../types/config.ts"
+import type { ApiConfig } from "../types/config.ts";
 
 /**
  * Identity function that gives a config file full type checking and editor completion.
@@ -17,5 +17,5 @@ import type { ApiConfig } from "../types/config.ts"
  * ```
  */
 export function defineConfig(config: ApiConfig): ApiConfig {
-	return config
+  return config;
 }

@@ -1,6 +1,6 @@
-import { mkdirSync, mkdtempSync, readdirSync, rmSync, statSync } from "node:fs"
-import { homedir } from "node:os"
-import { join } from "node:path"
+import { mkdirSync, mkdtempSync, readdirSync, rmSync, statSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 /*
  * Every temp folder a test makes lands under one root, removed when the suite ends. Tests reach
@@ -12,27 +12,27 @@ import { join } from "node:path"
  * fixtures there.
  */
 
-const DAY_MS = 24 * 60 * 60 * 1000
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Removes `run-*` roots under `base` last touched a day before `now`: a killed run never cleans up. */
 export function removeStaleRuns(base: string, now: number): void {
-	for (const name of readdirSync(base)) {
-		if (!name.startsWith("run-")) continue
-		const path = join(base, name)
-		if (now - statSync(path).mtimeMs > DAY_MS) rmSync(path, { force: true, recursive: true })
-	}
+  for (const name of readdirSync(base)) {
+    if (!name.startsWith("run-")) continue;
+    const path = join(base, name);
+    if (now - statSync(path).mtimeMs > DAY_MS) rmSync(path, { force: true, recursive: true });
+  }
 }
 
 export default function setup(): () => void {
-	const previous = process.env["TMPDIR"]
-	const base = join(process.env["XDG_CACHE_HOME"] ?? join(homedir(), ".cache"), "testing-tests")
-	mkdirSync(base, { recursive: true })
-	removeStaleRuns(base, Date.now())
-	const root = mkdtempSync(join(base, "run-"))
-	process.env["TMPDIR"] = root
-	return () => {
-		rmSync(root, { force: true, recursive: true })
-		if (previous === undefined) delete process.env["TMPDIR"]
-		else process.env["TMPDIR"] = previous
-	}
+  const previous = process.env["TMPDIR"];
+  const base = join(process.env["XDG_CACHE_HOME"] ?? join(homedir(), ".cache"), "testing-tests");
+  mkdirSync(base, { recursive: true });
+  removeStaleRuns(base, Date.now());
+  const root = mkdtempSync(join(base, "run-"));
+  process.env["TMPDIR"] = root;
+  return () => {
+    rmSync(root, { force: true, recursive: true });
+    if (previous === undefined) delete process.env["TMPDIR"];
+    else process.env["TMPDIR"] = previous;
+  };
 }

@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest"
-import { inProcess } from "../../../src/api/conformance/harness/launch.ts"
-import { judgeDefect } from "../../../src/api/conformance/matrix/cases.ts"
-import type { DefectName } from "../../../src/api/reference/defects/table.ts"
+import { describe, expect, it } from "vitest";
+
+import { inProcess } from "../../../src/api/conformance/harness/launch.ts";
+import { judgeDefect } from "../../../src/api/conformance/matrix/cases.ts";
+import type { DefectName } from "../../../src/api/reference/defects/table.ts";
 
 /*
  * The precondition defects, each judged as the conformance matrix judges it, against the reference in
@@ -11,22 +12,22 @@ import type { DefectName } from "../../../src/api/reference/defects/table.ts"
  */
 
 const CASES: ReadonlyArray<[DefectName, string | undefined]> = [
-	["ETAG_IGNORED", undefined],
-	["PROBLEM_JSON_MALFORMED", undefined],
-	["ETAG_IGNORED", "put-update"],
-	["ETAG_IGNORED", "range-statuses"],
-]
+  ["ETAG_IGNORED", undefined],
+  ["PROBLEM_JSON_MALFORMED", undefined],
+  ["ETAG_IGNORED", "put-update"],
+  ["ETAG_IGNORED", "range-statuses"],
+];
 
 describe("the precondition defects", () => {
-	it.each(CASES)(
-		"%s fires its check in process (shape %s), and nothing else",
-		async (defect, shape) => {
-			const judged = await judgeDefect(defect, { backend: "memory", dialect: "postgrest", shape, via: inProcess })
-			expect(judged.error).toBeUndefined()
-			expect(judged.detected).toBe(true)
-			expect(judged.spurious).toEqual([])
-			expect(judged.checksRun).toContain(judged.expected)
-		},
-		240_000,
-	)
-})
+  it.each(CASES)(
+    "%s fires its check in process (shape %s), and nothing else",
+    async (defect, shape) => {
+      const judged = await judgeDefect(defect, { backend: "memory", dialect: "postgrest", shape, via: inProcess });
+      expect(judged.error).toBeUndefined();
+      expect(judged.detected).toBe(true);
+      expect(judged.spurious).toEqual([]);
+      expect(judged.checksRun).toContain(judged.expected);
+    },
+    240_000,
+  );
+});

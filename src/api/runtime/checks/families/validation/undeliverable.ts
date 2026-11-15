@@ -5,37 +5,38 @@
  * host, which never resolves. Only a string is replaced: a value of another type stays as it is.
  */
 
-import { nonexistentIdentity } from "../../../nonexistent-identity.ts"
-import type { JsonSchema } from "../../../../spec/types.ts"
+import type { JsonSchema } from "../../../../spec/types.ts";
+import { nonexistentIdentity } from "../../../nonexistent-identity.ts";
 
-const EMAIL: ReadonlySet<string> = /* @__PURE__ */ new Set(["email", "idn-email"])
+const EMAIL: ReadonlySet<string> = /* @__PURE__ */ new Set(["email", "idn-email"]);
 const URL_FORMATS: ReadonlySet<string> = /* @__PURE__ */ new Set([
-	"uri",
-	"url",
-	"iri",
-	"uri-reference",
-	"iri-reference",
-])
+  "uri",
+  "url",
+  "iri",
+  "uri-reference",
+  "iri-reference",
+]);
 
 /** `value` with every address its `schema` declares, at any depth, replaced by one that reaches nothing. */
 export function undeliverable(value: unknown, schema: unknown, nonce: string): unknown {
-	if (schema === null || typeof schema !== "object") return value
-	const node = schema as JsonSchema
-	if (typeof value === "string") return addressed(value, node, nonce)
-	if (Array.isArray(value)) return value.map((item) => undeliverable(item, node.items, nonce))
-	const properties = node.properties
-	if (value === null || typeof value !== "object" || properties === null || typeof properties !== "object") return value
-	return Object.fromEntries(
-		Object.entries(value).map(([name, item]) => [
-			name,
-			undeliverable(item, (properties as Record<string, unknown>)[name], nonce),
-		]),
-	)
+  if (schema === null || typeof schema !== "object") return value;
+  const node = schema as JsonSchema;
+  if (typeof value === "string") return addressed(value, node, nonce);
+  if (Array.isArray(value)) return value.map((item) => undeliverable(item, node.items, nonce));
+  const properties = node.properties;
+  if (value === null || typeof value !== "object" || properties === null || typeof properties !== "object")
+    return value;
+  return Object.fromEntries(
+    Object.entries(value).map(([name, item]) => [
+      name,
+      undeliverable(item, (properties as Record<string, unknown>)[name], nonce),
+    ]),
+  );
 }
 
 /* A string as its format would have it delivered to nowhere. */
 function addressed(value: string, schema: JsonSchema, nonce: string): string {
-	const format = typeof schema.format === "string" ? schema.format : ""
-	if (EMAIL.has(format)) return nonexistentIdentity({ name: "email", schema }, nonce)
-	return URL_FORMATS.has(format) ? `https://testing-nonexistent-${nonce}.invalid/` : value
+  const format = typeof schema.format === "string" ? schema.format : "";
+  if (EMAIL.has(format)) return nonexistentIdentity({ name: "email", schema }, nonce);
+  return URL_FORMATS.has(format) ? `https://testing-nonexistent-${nonce}.invalid/` : value;
 }

@@ -1,5 +1,5 @@
-import type { Context, Literal, Node, Rule } from "./ast.ts"
-import { isTestCode, repoPath } from "./paths.ts"
+import type { Context, Literal, Node, Rule } from "./ast.ts";
+import { isTestCode, repoPath } from "./paths.ts";
 
 /*
  * Where a credential goes is the operation's OpenAPI `security` to say: a bearer token, a basic
@@ -9,36 +9,36 @@ import { isTestCode, repoPath } from "./paths.ts"
  * self-test's backends read a bearer through the reference's own reader.
  */
 const HOMES = [
-	"/src/api/security/",
-	"/src/api/spec/security/",
-	"/src/api/credentials/",
-	"/src/api/client/credentials.ts",
-	"/src/api/reference/",
-]
-const HEADERS = new Set(["authorization", "proxy-authorization", "x-api-key"])
+  "/src/api/security/",
+  "/src/api/spec/security/",
+  "/src/api/credentials/",
+  "/src/api/client/credentials.ts",
+  "/src/api/reference/",
+];
+const HEADERS = new Set(["authorization", "proxy-authorization", "x-api-key"]);
 /* A credential template: the scheme, a space, then the credential's slot (`{credential}`, `$TOKEN`,
  * a `${}` slot, or the end of a literal another value is joined onto). Prose such as "Basic usage" is not one. */
-const PREFIX = /^(?:Bearer|Basic) (?:[{$]|$)/
+const PREFIX = /^(?:Bearer|Basic) (?:[{$]|$)/;
 const MESSAGE =
-	"credential placement comes from the operation's OpenAPI security (src/api/spec/security/); do not name an auth header or scheme prefix here"
+  "credential placement comes from the operation's OpenAPI security (src/api/spec/security/); do not name an auth header or scheme prefix here";
 
 interface Quasi extends Node {
-	value: { cooked?: string | null }
+  value: { cooked?: string | null };
 }
 
-const names = (text: string): boolean => HEADERS.has(text.toLowerCase()) || PREFIX.test(text)
+const names = (text: string): boolean => HEADERS.has(text.toLowerCase()) || PREFIX.test(text);
 
 export const rule: Rule = {
-	create(context: Context) {
-		const file = repoPath(context.filename)
-		if (!file.includes("/src/") || isTestCode(file) || HOMES.some((home) => file.includes(home))) return {}
-		return {
-			Literal(node: Literal) {
-				if (typeof node.value === "string" && names(node.value)) context.report({ message: MESSAGE, node })
-			},
-			TemplateElement(node: Quasi) {
-				if (names(node.value.cooked ?? "")) context.report({ message: MESSAGE, node })
-			},
-		}
-	},
-}
+  create(context: Context) {
+    const file = repoPath(context.filename);
+    if (!file.includes("/src/") || isTestCode(file) || HOMES.some((home) => file.includes(home))) return {};
+    return {
+      Literal(node: Literal) {
+        if (typeof node.value === "string" && names(node.value)) context.report({ message: MESSAGE, node });
+      },
+      TemplateElement(node: Quasi) {
+        if (names(node.value.cooked ?? "")) context.report({ message: MESSAGE, node });
+      },
+    };
+  },
+};

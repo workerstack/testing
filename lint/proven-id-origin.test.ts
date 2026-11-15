@@ -1,31 +1,32 @@
-import { describe, expect, it } from "vitest"
-import { rule } from "./proven-id-origin.ts"
-import { oxlintReports, reportsOf } from "./rule-harness.ts"
+import { describe, expect, it } from "vitest";
+
+import { rule } from "./proven-id-origin.ts";
+import { oxlintReports, reportsOf } from "./rule-harness.ts";
 
 const SOURCE = [
-	'import type { ProvenId } from "./proven-id.ts"',
-	"declare const sent: string",
-	"export const a = sent as ProvenId",
-	"export const b = <ProvenId>sent",
-	"export const c = sent as string",
-	"export const d = 1 as number",
-	'export const e = sent as import("./proven-id.ts").ProvenId',
-	"export const f = sent as NotProvenId",
-].join("\n")
+  'import type { ProvenId } from "./proven-id.ts"',
+  "declare const sent: string",
+  "export const a = sent as ProvenId",
+  "export const b = <ProvenId>sent",
+  "export const c = sent as string",
+  "export const d = 1 as number",
+  'export const e = sent as import("./proven-id.ts").ProvenId',
+  "export const f = sent as NotProvenId",
+].join("\n");
 
-const lines = (file: string): number[] => reportsOf(rule, { [file]: SOURCE }).map((report) => report.line)
+const lines = (file: string): number[] => reportsOf(rule, { [file]: SOURCE }).map((report) => report.line);
 
 describe("testing/proven-id-origin", () => {
-	it("reports a cast to ProvenId in both syntaxes and qualified, and nothing else", () => {
-		expect(lines("src/api/runtime/checks.ts")).toEqual([3, 4, 7])
-	})
+  it("reports a cast to ProvenId in both syntaxes and qualified, and nothing else", () => {
+    expect(lines("src/api/runtime/checks.ts")).toEqual([3, 4, 7]);
+  });
 
-	it("allows the casts inside the module that owns the constructors", () => {
-		expect(lines("src/api/runtime/proven-id.ts")).toEqual([])
-	})
+  it("allows the casts inside the module that owns the constructors", () => {
+    expect(lines("src/api/runtime/proven-id.ts")).toEqual([]);
+  });
 
-	it("fails oxlint through the testing plugin entry", () => {
-		const reports = oxlintReports("proven-id-origin", { "src/api/runtime/checks.ts": SOURCE })
-		expect(reports.map((report) => report.line)).toEqual([3, 4, 7])
-	})
-})
+  it("fails oxlint through the testing plugin entry", () => {
+    const reports = oxlintReports("proven-id-origin", { "src/api/runtime/checks.ts": SOURCE });
+    expect(reports.map((report) => report.line)).toEqual([3, 4, 7]);
+  });
+});

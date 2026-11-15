@@ -1,6 +1,6 @@
-import { fieldsWhere } from "../model/fields.ts"
-import type { FilterNode, SearchMode } from "../query-types.ts"
-import type { ParseContext } from "./conventions.ts"
+import { fieldsWhere } from "../model/fields.ts";
+import type { FilterNode, SearchMode } from "../query-types.ts";
+import type { ParseContext } from "./conventions.ts";
 
 /**
  * Search tokens: every token must occur, case-insensitively, in some searchable field — as a
@@ -8,21 +8,21 @@ import type { ParseContext } from "./conventions.ts"
  * everything.
  */
 export function parseSearch(
-	q: string,
-	mode: SearchMode,
-	{ defects, entity }: Pick<ParseContext, "defects" | "entity">,
+  q: string,
+  mode: SearchMode,
+  { defects, entity }: Pick<ParseContext, "defects" | "entity">,
 ): FilterNode | null {
-	const split = q
-		.split(/\s+/)
-		.map((token) => token.trim())
-		.filter((token) => token.length > 0)
-	const fields = fieldsWhere(entity, "searchable")
-	if (split.length === 0) return defects.has("SEARCH_EMPTY_MATCHES_NONE") ? { kind: "const", value: false } : null
-	if (fields.length === 0) return null
-	const tokens = defects.has("SEARCH_ONLY_FIRST_TOKEN") ? split.slice(0, 1) : split
-	const caseSensitive = defects.has("SEARCH_CASE_SENSITIVE")
-	return {
-		children: tokens.map((token) => ({ caseSensitive, fields, kind: "search", mode, token })),
-		kind: "and",
-	}
+  const split = q
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length > 0);
+  const fields = fieldsWhere(entity, "searchable");
+  if (split.length === 0) return defects.has("SEARCH_EMPTY_MATCHES_NONE") ? { kind: "const", value: false } : null;
+  if (fields.length === 0) return null;
+  const tokens = defects.has("SEARCH_ONLY_FIRST_TOKEN") ? split.slice(0, 1) : split;
+  const caseSensitive = defects.has("SEARCH_CASE_SENSITIVE");
+  return {
+    children: tokens.map((token) => ({ caseSensitive, fields, kind: "search", mode, token })),
+    kind: "and",
+  };
 }

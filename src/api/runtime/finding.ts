@@ -4,26 +4,26 @@
  * conformance suite assert "exactly this defect was detected".
  */
 
-import type { Exchange } from "./exchange.ts"
+import type { Exchange } from "./exchange.ts";
 
-export type Verdict = "BACKEND_BUG" | "SPEC_BUG" | "SECURITY" | "AMBIGUITY" | "COVERAGE_GAP" | "BLOCKED"
+export type Verdict = "BACKEND_BUG" | "SPEC_BUG" | "SECURITY" | "AMBIGUITY" | "COVERAGE_GAP" | "BLOCKED";
 
 export interface Finding {
-	/** Stable identifier for the check that produced this — the conformance suite asserts on it. */
-	check: string
-	verdict: Verdict
-	entity: string
-	summary: string
-	detail: string
-	evidence: Exchange[]
-	/** Set when the finding came from a non-primary `origins[]` host. */
-	origin?: string
-	/** Fixture filename when `uploads.each` drove the invocation. */
-	fixture?: string
-	/** Operations this finding judges. Absent on run-level findings (teardown, network, pacing). */
-	operations?: string[]
-	/** A baseline entry names it: still reported, no longer a reason the run fails. */
-	known?: { reason: string }
+  /** Stable identifier for the check that produced this — the conformance suite asserts on it. */
+  check: string;
+  verdict: Verdict;
+  entity: string;
+  summary: string;
+  detail: string;
+  evidence: Exchange[];
+  /** Set when the finding came from a non-primary `origins[]` host. */
+  origin?: string;
+  /** Fixture filename when `uploads.each` drove the invocation. */
+  fixture?: string;
+  /** Operations this finding judges. Absent on run-level findings (teardown, network, pacing). */
+  operations?: string[];
+  /** A baseline entry names it: still reported, no longer a reason the run fails. */
+  known?: { reason: string };
 }
 
 /**
@@ -32,12 +32,12 @@ export interface Finding {
  * all ask this one question.
  */
 export function isRootCause(finding: { verdict: Verdict | string }): boolean {
-	return finding.verdict !== "COVERAGE_GAP" && finding.verdict !== "BLOCKED"
+  return finding.verdict !== "COVERAGE_GAP" && finding.verdict !== "BLOCKED";
 }
 
 /** A root cause no baseline entry names — what the verdict and every defect count count. */
 export function isFailingRootCause(finding: { verdict: Verdict | string; known?: unknown }): boolean {
-	return isRootCause(finding) && finding.known === undefined
+  return isRootCause(finding) && finding.known === undefined;
 }
 
 /**
@@ -46,25 +46,25 @@ export function isFailingRootCause(finding: { verdict: Verdict | string; known?:
  * because what it tests is not there — and the last two say why.
  */
 export type Outcome =
-	| { kind: "asserted"; note?: string }
-	| { kind: "finding"; verdict: Verdict; note?: string }
-	| { kind: "unresolved"; reason: string }
-	| { kind: "stood-down"; reason: string }
+  | { kind: "asserted"; note?: string }
+  | { kind: "finding"; verdict: Verdict; note?: string }
+  | { kind: "unresolved"; reason: string }
+  | { kind: "stood-down"; reason: string };
 
 /** The property was tested and passed — or, if the check reported along the way, did not. */
-export const ASSERTED: Outcome = /* @__PURE__ */ Object.freeze({ kind: "asserted" })
+export const ASSERTED: Outcome = /* @__PURE__ */ Object.freeze({ kind: "asserted" });
 
 /**
  * The property passed, and how the backend behaved is worth saying — a policy the document leaves
  * open, such as whether unknown query parameters are rejected or ignored.
  */
 export function asserted(note: string): Outcome {
-	return { kind: "asserted", note }
+  return { kind: "asserted", note };
 }
 
 /** The check does not apply here after all: what it tests is absent, for `reason`. */
 export function standDown(reason: string): Outcome {
-	return { kind: "stood-down", reason }
+  return { kind: "stood-down", reason };
 }
 
 /**
@@ -77,34 +77,34 @@ export function standDown(reason: string): Outcome {
  * going quiet at once, which is the precise moment a reader most needs to know it happened.
  */
 export interface Inconclusive {
-	check: string
-	entity: string
-	/** Why no verdict was reachable, in the reader's terms. */
-	reason: string
-	operations?: string[]
+  check: string;
+  entity: string;
+  /** Why no verdict was reachable, in the reader's terms. */
+  reason: string;
+  operations?: string[];
 }
 
 /** What a check states about a defect: the line a reader scans, the detail behind it, what proves it. */
 export interface Claim {
-	summary: string
-	detail: string
-	evidence: Exchange[]
-	/** Fixture filename when `uploads.each` drove the invocation. */
-	fixture?: string | undefined
+  summary: string;
+  detail: string;
+  evidence: Exchange[];
+  /** Fixture filename when `uploads.each` drove the invocation. */
+  fixture?: string | undefined;
 }
 
 /** A gap proves nothing by exchange: it is what the API tester could not look at. */
-export type GapClaim = Omit<Claim, "evidence">
+export type GapClaim = Omit<Claim, "evidence">;
 
 /** A check that could not run because `cause` failed first. */
 export interface BlockedClaim {
-	summary: string
-	cause: string
-	evidence?: Exchange[] | undefined
+  summary: string;
+  cause: string;
+  evidence?: Exchange[] | undefined;
 }
 
 /* A stack frame line as V8 prints it: a newline, indentation, then "at ...". */
-const STACK_FRAME = /\n[ \t]*at [^\n]*/g
+const STACK_FRAME = /\n[ \t]*at [^\n]*/g;
 
 /*
  * An absolute path that names a user's directory: under /home/<user>, /Users/<user> or /root, or
@@ -112,20 +112,20 @@ const STACK_FRAME = /\n[ \t]*at [^\n]*/g
  * since an API route such as /rows/{id} reads the same and a report must keep it.
  */
 const USER_PATH =
-	/(?<![\w./\\-])(?:file:\/\/)?(?:\/(?:home|Users)\/[^\s/'"`()<>]+|\/root(?![^\s/'"`()<>])|[A-Za-z]:(?=[\\/]))[^\s'"`()<>]*/g
+  /(?<![\w./\\-])(?:file:\/\/)?(?:\/(?:home|Users)\/[^\s/'"`()<>]+|\/root(?![^\s/'"`()<>])|[A-Za-z]:(?=[\\/]))[^\s'"`()<>]*/g;
 
 /* Everything up to the last path separator that something follows. */
-const DIRECTORIES = /^.*[\\/](?=[^\\/])/
+const DIRECTORIES = /^.*[\\/](?=[^\\/])/;
 
 /**
  * `path` as a whole path, never inside a longer one: under cwd "/x/testing", "/x/testing2" and "/x/testing.bak"
  * stay, while "/x/testing/a.ts" and a sentence ending "/x/testing." match.
  */
 function wholePath(path: string): RegExp {
-	return new RegExp(
-		String.raw`(?<![\w.-])${path.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`)}(?![\w-]|\.\w)`,
-		"g",
-	)
+  return new RegExp(
+    String.raw`(?<![\w.-])${path.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`)}(?![\w-]|\.\w)`,
+    "g",
+  );
 }
 
 /**
@@ -137,118 +137,118 @@ function wholePath(path: string): RegExp {
  *   "/home/ann/x/spec.yaml:3" reads "spec.yaml:3".
  */
 function reportable(text: string): string {
-	return text
-		.replaceAll(STACK_FRAME, "")
-		.replaceAll(wholePath(process.cwd()), ".")
-		.replaceAll(USER_PATH, (path) => path.replace(DIRECTORIES, ""))
+  return text
+    .replaceAll(STACK_FRAME, "")
+    .replaceAll(wholePath(process.cwd()), ".")
+    .replaceAll(USER_PATH, (path) => path.replace(DIRECTORIES, ""));
 }
 
 /** What a view of the findings stamps on and enforces for what it records. */
 interface CollectorView {
-	/** The operations every finding it records is attributed to. */
-	operations?: readonly string[] | undefined
-	/** The one check it accepts findings from. */
-	owner?: string | undefined
+  /** The operations every finding it records is attributed to. */
+  operations?: readonly string[] | undefined;
+  /** The one check it accepts findings from. */
+  owner?: string | undefined;
 }
 
 export class FindingCollector {
-	readonly findings: Finding[]
-	readonly inconclusive: Inconclusive[]
-	readonly #operations: readonly string[] | undefined
-	readonly #owner: string | undefined
+  readonly findings: Finding[];
+  readonly inconclusive: Inconclusive[];
+  readonly #operations: readonly string[] | undefined;
+  readonly #owner: string | undefined;
 
-	constructor(findings: Finding[] = [], inconclusive: Inconclusive[] = [], view: CollectorView = {}) {
-		this.findings = findings
-		this.inconclusive = inconclusive
-		this.#operations = view.operations
-		this.#owner = view.owner
-	}
+  constructor(findings: Finding[] = [], inconclusive: Inconclusive[] = [], view: CollectorView = {}) {
+    this.findings = findings;
+    this.inconclusive = inconclusive;
+    this.#operations = view.operations;
+    this.#owner = view.owner;
+  }
 
-	/**
-	 * A view that accepts findings only under `check`. Each check runs against one, so a check
-	 * cannot report under another's id: a finding filed under the wrong id is proven by the wrong
-	 * defect, and suppresses the wrong dependents.
-	 */
-	ownedBy(check: string): FindingCollector {
-		return new FindingCollector(this.findings, this.inconclusive, { operations: this.#operations, owner: check })
-	}
+  /**
+   * A view that accepts findings only under `check`. Each check runs against one, so a check
+   * cannot report under another's id: a finding filed under the wrong id is proven by the wrong
+   * defect, and suppresses the wrong dependents.
+   */
+  ownedBy(check: string): FindingCollector {
+    return new FindingCollector(this.findings, this.inconclusive, { operations: this.#operations, owner: check });
+  }
 
-	#own(check: string): void {
-		if (this.#owner !== undefined && check !== this.#owner) {
-			throw new Error(`check "${this.#owner}" tried to report under "${check}"`)
-		}
-	}
+  #own(check: string): void {
+    if (this.#owner !== undefined && check !== this.#owner) {
+      throw new Error(`check "${this.#owner}" tried to report under "${check}"`);
+    }
+  }
 
-	/**
-	 * A view over the same findings that attributes everything it records to `operations`.
-	 *
-	 * Each check runs against its own view, so a finding lands on the operations the check judges
-	 * without threading an id through every call site. Read-only checks run concurrently, so a
-	 * shared "current check" would attribute one check's finding to another.
-	 */
-	attributed(operations: readonly string[]): FindingCollector {
-		return new FindingCollector(this.findings, this.inconclusive, { operations, owner: this.#owner })
-	}
+  /**
+   * A view over the same findings that attributes everything it records to `operations`.
+   *
+   * Each check runs against its own view, so a finding lands on the operations the check judges
+   * without threading an id through every call site. Read-only checks run concurrently, so a
+   * shared "current check" would attribute one check's finding to another.
+   */
+  attributed(operations: readonly string[]): FindingCollector {
+    return new FindingCollector(this.findings, this.inconclusive, { operations, owner: this.#owner });
+  }
 
-	#stamp(): { operations: string[] } | Record<string, never> {
-		return this.#operations === undefined ? {} : { operations: [...this.#operations] }
-	}
+  #stamp(): { operations: string[] } | Record<string, never> {
+    return this.#operations === undefined ? {} : { operations: [...this.#operations] };
+  }
 
-	/**
-	 * Records that a check ran without reaching a verdict. Returns `undefined` so a check can
-	 * `return ctx.findings.unresolved(...)` at the point it gives up, which keeps the reason
-	 * beside the condition that caused it rather than in a comment.
-	 */
-	unresolved(check: string, entity: string, reason: string): Outcome {
-		this.#own(check)
-		const said = reportable(reason)
-		this.inconclusive.push({ check, entity, reason: said, ...this.#stamp() })
-		return { kind: "unresolved", reason: said }
-	}
+  /**
+   * Records that a check ran without reaching a verdict. Returns `undefined` so a check can
+   * `return ctx.findings.unresolved(...)` at the point it gives up, which keeps the reason
+   * beside the condition that caused it rather than in a comment.
+   */
+  unresolved(check: string, entity: string, reason: string): Outcome {
+    this.#own(check);
+    const said = reportable(reason);
+    this.inconclusive.push({ check, entity, reason: said, ...this.#stamp() });
+    return { kind: "unresolved", reason: said };
+  }
 
-	/** Records a finding. Every finding passes here, so here its text is made fit to share. */
-	report(finding: Finding): Outcome {
-		this.#own(finding.check)
-		const recorded: Finding = {
-			...finding,
-			detail: reportable(finding.detail),
-			summary: reportable(finding.summary),
-			...(finding.operations === undefined ? this.#stamp() : {}),
-		}
-		this.findings.push(recorded)
-		if (recorded.verdict === "COVERAGE_GAP") return standDown(recorded.summary)
-		if (recorded.verdict === "BLOCKED") return { kind: "unresolved", reason: recorded.summary }
-		return { kind: "finding", verdict: recorded.verdict }
-	}
+  /** Records a finding. Every finding passes here, so here its text is made fit to share. */
+  report(finding: Finding): Outcome {
+    this.#own(finding.check);
+    const recorded: Finding = {
+      ...finding,
+      detail: reportable(finding.detail),
+      summary: reportable(finding.summary),
+      ...(finding.operations === undefined ? this.#stamp() : {}),
+    };
+    this.findings.push(recorded);
+    if (recorded.verdict === "COVERAGE_GAP") return standDown(recorded.summary);
+    if (recorded.verdict === "BLOCKED") return { kind: "unresolved", reason: recorded.summary };
+    return { kind: "finding", verdict: recorded.verdict };
+  }
 
-	#claim(check: string, entity: string, claim: Claim & { verdict: Verdict }): Outcome {
-		const { detail, evidence, fixture, summary, verdict } = claim
-		const finding: Finding = { check, detail, entity, evidence, summary, verdict }
-		return this.report(fixture === undefined || fixture === "" ? finding : { ...finding, fixture })
-	}
+  #claim(check: string, entity: string, claim: Claim & { verdict: Verdict }): Outcome {
+    const { detail, evidence, fixture, summary, verdict } = claim;
+    const finding: Finding = { check, detail, entity, evidence, summary, verdict };
+    return this.report(fixture === undefined || fixture === "" ? finding : { ...finding, fixture });
+  }
 
-	backend(check: string, entity: string, claim: Claim): Outcome {
-		return this.#claim(check, entity, { ...claim, verdict: "BACKEND_BUG" })
-	}
+  backend(check: string, entity: string, claim: Claim): Outcome {
+    return this.#claim(check, entity, { ...claim, verdict: "BACKEND_BUG" });
+  }
 
-	security(check: string, entity: string, claim: Claim): Outcome {
-		return this.#claim(check, entity, { ...claim, verdict: "SECURITY" })
-	}
+  security(check: string, entity: string, claim: Claim): Outcome {
+    return this.#claim(check, entity, { ...claim, verdict: "SECURITY" });
+  }
 
-	spec(check: string, entity: string, claim: Claim): Outcome {
-		return this.#claim(check, entity, { ...claim, verdict: "SPEC_BUG" })
-	}
+  spec(check: string, entity: string, claim: Claim): Outcome {
+    return this.#claim(check, entity, { ...claim, verdict: "SPEC_BUG" });
+  }
 
-	gap(check: string, entity: string, claim: GapClaim): Outcome {
-		return this.#claim(check, entity, { ...claim, evidence: [], verdict: "COVERAGE_GAP" })
-	}
+  gap(check: string, entity: string, claim: GapClaim): Outcome {
+    return this.#claim(check, entity, { ...claim, evidence: [], verdict: "COVERAGE_GAP" });
+  }
 
-	blocked(check: string, entity: string, claim: BlockedClaim): Outcome {
-		const { cause, evidence = [], summary } = claim
-		return this.report({ check, detail: `blocked by ${cause}`, entity, evidence, summary, verdict: "BLOCKED" })
-	}
+  blocked(check: string, entity: string, claim: BlockedClaim): Outcome {
+    const { cause, evidence = [], summary } = claim;
+    return this.report({ check, detail: `blocked by ${cause}`, entity, evidence, summary, verdict: "BLOCKED" });
+  }
 
-	byVerdict(verdict: Verdict): Finding[] {
-		return this.findings.filter((f) => f.verdict === verdict)
-	}
+  byVerdict(verdict: Verdict): Finding[] {
+    return this.findings.filter((f) => f.verdict === verdict);
+  }
 }

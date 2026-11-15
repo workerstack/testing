@@ -9,8 +9,9 @@ Releases follow npm versions.
 
 ## Cutting a release
 
-1. On `main`, with CI green, set `version` in `package.json` to `X.Y.Z` and add its `## X.Y.Z`
-   heading to `CHANGELOG.md`. Commit and push through the hooks, as any change.
+1. On `main`, with CI green, set `version` in `package.json` to `X.Y.Z` and turn `CHANGELOG.md`'s
+   `## [Unreleased]` entries into a `## [X.Y.Z] - YYYY-MM-DD` section under a fresh, empty
+   `## [Unreleased]`. Commit and push through the hooks, as any change.
 2. Tag that commit `vX.Y.Z` and push the tag: `git tag vX.Y.Z && git push origin vX.Y.Z`.
 3. Watch the run. It publishes only when every job before it passed.
 4. Check the result: `npm view @workerstack/testing@X.Y.Z` answers the version, its page on npmjs.com
@@ -26,7 +27,7 @@ A tag matches `v*`. Its jobs, in order:
 | job               | what it does                                                                                                                                                                      |
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `gates`           | `bun scripts/release-gates.ts vX.Y.Z`: passes once `ci.yml` passed on the tagged commit; fails on a red run; runs `ci.yml` on the tag when a later push canceled the commit's run |
-| `changelog`       | `bun scripts/changelog-has.ts vX.Y.Z`: fails unless `CHANGELOG.md` has a `## X.Y.Z` heading                                                                                       |
+| `changelog`       | `bun scripts/changelog-has.ts vX.Y.Z`: fails unless `CHANGELOG.md` has a `## [X.Y.Z] - YYYY-MM-DD` heading                                                                        |
 | `npmjs.com`       | after both, checks the tag equals `package.json`'s `version`, then `npm publish --access public --provenance`                                                                     |
 | `GitHub Packages` | after both, publishes the same build to `npm.pkg.github.com`                                                                                                                      |
 | `GitHub Release`  | `gh release create vX.Y.Z --generate-notes`                                                                                                                                       |

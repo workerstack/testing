@@ -1,19 +1,26 @@
-import { existsSync, readdirSync } from "node:fs"
-import { mkdtemp, rm, writeFile } from "node:fs/promises"
-import { tmpdir } from "node:os"
-import { join } from "node:path"
-import { afterAll, beforeAll, describe, expect, it } from "vitest"
-import { ensureVendored } from "../support/vendored.ts"
+import { existsSync, readdirSync } from "node:fs";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
+import { ensureVendored } from "../support/vendored.ts";
+import crapi from "./crapi/target.ts";
+import immich from "./immich/target.ts";
+import keycloak from "./keycloak/target.ts";
 import {
-	compose,
-	missing,
-	runTarget,
-	targetsAsked,
-	unexpected,
-	type Target,
-	TARGETS_DIR,
-	type TargetRun,
-} from "./target.ts"
+  compose,
+  missing,
+  runTarget,
+  targetsAsked,
+  unexpected,
+  type Target,
+  TARGETS_DIR,
+  type TargetRun,
+} from "./target.ts";
+import typesense from "./typesense/target.ts";
+import vampi from "./vampi/target.ts";
 
 /*
  * The API tester against real APIs: each target's stack up from pinned images, prepared as a fresh install
@@ -22,46 +29,50 @@ import {
  * positive or a defect nobody judged. `TESTING_API_TARGETS=keycloak,vampi` runs some of them.
  */
 
-const asked = targetsAsked(process.env["TESTING_API_TARGETS"])
+/* Imported by name, so the type checker and knip see each one; a folder with a target.ts missing here fails below. */
+const TARGETS: Readonly<Record<string, Target>> = { crapi, immich, keycloak, typesense, vampi };
+
+const asked = targetsAsked(process.env["TESTING_API_TARGETS"]);
 const names = readdirSync(TARGETS_DIR, { withFileTypes: true })
-	.filter((entry) => entry.isDirectory() && existsSync(join(TARGETS_DIR, entry.name, "target.ts")))
-	.map((entry) => entry.name)
-	.filter((name) => asked === undefined || asked.includes(name))
-	.toSorted()
+  .filter((entry) => entry.isDirectory() && existsSync(join(TARGETS_DIR, entry.name, "target.ts")))
+  .map((entry) => entry.name)
+  .filter((name) => asked === undefined || asked.includes(name))
+  .toSorted();
 
 describe.each(names)("%s", (name) => {
-	let run: TargetRun
-	let out: string
+  let run: TargetRun;
+  let out: string;
 
-	beforeAll(async () => {
-		const target = ((await import(join(TARGETS_DIR, name, "target.ts"))) as { default: Target }).default
-		await ensureVendored(join(TARGETS_DIR, name), target.vendored ?? [])
-		compose(name, ["up", "-d", "--wait", "--quiet-pull"])
-		out = await mkdtemp(join(tmpdir(), `testing-target-${name}-`))
-		run = await runTarget(name, await target.prepare(target.baseUrl), out)
-		/* `TESTING_API_TARGETS_SUMMARY=<dir>` keeps each run's console summary, which the run's folder does not outlive. */
-		const summary = process.env["TESTING_API_TARGETS_SUMMARY"]
-		if (summary !== undefined) {
-			await writeFile(join(summary, `${name}.txt`), `exit ${run.code}\n${run.out}`)
-			await writeFile(join(summary, `${name}.report.json`), JSON.stringify(run.report, null, 1))
-		}
-	}, 900_000)
+  beforeAll(async () => {
+    const target = TARGETS[name];
+    if (target === undefined) throw new Error(`tests/api/targets/${name}/target.ts is not in run.test.ts's TARGETS`);
+    await ensureVendored(join(TARGETS_DIR, name), target.vendored ?? []);
+    compose(name, ["up", "-d", "--wait", "--quiet-pull"]);
+    out = await mkdtemp(join(tmpdir(), `testing-target-${name}-`));
+    run = await runTarget(name, await target.prepare(target.baseUrl), out);
+    /* `TESTING_API_TARGETS_SUMMARY=<dir>` keeps each run's console summary, which the run's folder does not outlive. */
+    const summary = process.env["TESTING_API_TARGETS_SUMMARY"];
+    if (summary !== undefined) {
+      await writeFile(join(summary, `${name}.txt`), `exit ${run.code}\n${run.out}`);
+      await writeFile(join(summary, `${name}.report.json`), JSON.stringify(run.report, null, 1));
+    }
+  }, 900_000);
 
-	afterAll(async () => {
-		compose(name, ["down", "-v", "--remove-orphans"])
-		await rm(out, { force: true, recursive: true })
-	}, 300_000)
+  afterAll(async () => {
+    compose(name, ["down", "-v", "--remove-orphans"]);
+    await rm(out, { force: true, recursive: true });
+  }, 300_000);
 
-	it("finishes: exit 0 or 1, never a failed run", () => {
-		expect({ code: run.code, outcome: run.report.outcome.result }).not.toMatchObject({ outcome: "failed" })
-		expect([0, 1]).toContain(run.code)
-	})
+  it("finishes: exit 0 or 1, never a failed run", () => {
+    expect({ code: run.code, outcome: run.report.outcome.result }).not.toMatchObject({ outcome: "failed" });
+    expect([0, 1]).toContain(run.code);
+  });
 
-	it("reports every finding the target is known to deserve", () => {
-		expect(missing(run)).toEqual([])
-	})
+  it("reports every finding the target is known to deserve", () => {
+    expect(missing(run)).toEqual([]);
+  });
 
-	it("reports nothing else: every finding is one the target is known to deserve", () => {
-		expect(unexpected(run)).toEqual([])
-	})
-})
+  it("reports nothing else: every finding is one the target is known to deserve", () => {
+    expect(unexpected(run)).toEqual([]);
+  });
+});

@@ -1,6 +1,8 @@
-import { readFileSync } from "node:fs"
-import { describe, expect, it } from "vitest"
-import { grammarTable } from "../support/grammar-table.ts"
+import { readFileSync } from "node:fs";
+
+import { describe, expect, it } from "vitest";
+
+import { grammarTable } from "../support/grammar-table.ts";
 
 /*
  * Today's filter, sort and select writers, pinned. Template grammars replace these writers with
@@ -9,15 +11,15 @@ import { grammarTable } from "../support/grammar-table.ts"
  */
 
 const PINNED = JSON.parse(
-	readFileSync(new URL("../../../src/api/spec/__fixtures__/grammar-characterization.json", import.meta.url), "utf8"),
-) as Record<string, unknown>
+  readFileSync(new URL("../../../src/api/spec/__fixtures__/grammar-characterization.json", import.meta.url), "utf8"),
+) as Record<string, unknown>;
 
 describe("filter, sort and select terms", () => {
-	it("render exactly as they did before template grammars", () => {
-		expect(grammarTable()).toEqual(PINNED)
-	})
+  it("render exactly as they did before template grammars", () => {
+    expect(grammarTable()).toEqual(PINNED);
+  });
 
-	it("cover every grammar, operator and value shape", () => {
-		expect(Object.keys(PINNED).length).toBeGreaterThan(1300)
-	})
-})
+  it("cover every grammar, operator and value shape", () => {
+    expect(Object.keys(PINNED).length).toBeGreaterThan(1300);
+  });
+});

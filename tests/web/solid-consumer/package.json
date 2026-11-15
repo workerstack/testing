@@ -1,8 +1,8 @@
 {
-	"name": "solid-consumer",
-	"private": true,
-	"type": "module",
-	"devDependencies": {
-		"@workerstack/testing": "*"
-	}
+  "name": "solid-consumer",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@workerstack/testing": "*"
+  }
 }

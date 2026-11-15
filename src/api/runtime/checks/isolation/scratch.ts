@@ -1,26 +1,26 @@
-import type { OperationModel } from "../../../spec/graph/types.ts"
-import type { RequestOptions } from "../../../client/types.ts"
-import type { Exchange } from "../../exchange.ts"
-import { type Outcome, standDown } from "../../finding.ts"
-import { ordinaryRequestSchema } from "../../fixture.ts"
-import { createdRecord } from "../../world/created-record.ts"
-import { type Record_, recordOf } from "../../world/records.ts"
-import type { CheckContext, WriteContext } from "../core/context.ts"
-import { encodeOpBody, requestSchemaOf, validBody } from "../payloads/body.ts"
-import { createFresh } from "../payloads/create.ts"
-import { standDownForFeatureGate } from "../planning/stand-down.ts"
-import type { JsonSchema } from "../../../spec/types.ts"
+import type { RequestOptions } from "../../../client/types.ts";
+import type { OperationModel } from "../../../spec/graph/types.ts";
+import type { JsonSchema } from "../../../spec/types.ts";
+import type { Exchange } from "../../exchange.ts";
+import { type Outcome, standDown } from "../../finding.ts";
+import { ordinaryRequestSchema } from "../../fixture.ts";
+import { createdRecord } from "../../world/created-record.ts";
+import { type Record_, recordOf } from "../../world/records.ts";
+import type { CheckContext, WriteContext } from "../core/context.ts";
+import { encodeOpBody, requestSchemaOf, validBody } from "../payloads/body.ts";
+import { createFresh } from "../payloads/create.ts";
+import { standDownForFeatureGate } from "../planning/stand-down.ts";
 
 /** The record a single-record answer holds (`x-entity.recordPath`), or `undefined` when there is none. */
 export function readRecord(op: OperationModel, exchange: Exchange): Record_ | undefined {
-	return recordOf(op, exchange.responseBody)
+  return recordOf(op, exchange.responseBody);
 }
 
 /** A record created for one mutating check: what it holds, and the create that made it. */
 interface Scratch {
-	id: string
-	record: Record_
-	exchange: Exchange
+  id: string;
+  record: Record_;
+  exchange: Exchange;
 }
 
 /**
@@ -32,48 +32,48 @@ interface Scratch {
  * is probing was itself broken.
  */
 export async function scratchRecord(
-	ctx: WriteContext,
-	check: string,
+  ctx: WriteContext,
+  check: string,
 ): Promise<{ scratch: Scratch } | { outcome: Outcome }> {
-	const createOp = ctx.createOp
-	const schema = createOp === undefined ? null : requestSchemaOf(ctx, createOp)
-	if (createOp === undefined || schema === null) {
-		return { outcome: standDown("a create operation with a request body, to make a record this check may change") }
-	}
-	const fresh = await createFresh(ctx, createOp, schema, ctx.actor.id)
-	if ("withheld" in fresh) return { outcome: standDown(fresh.withheld) }
-	const { exchange, exhausted, sent } = fresh
-	if (standDownForFeatureGate(ctx, createOp, exchange, check)) {
-		return { outcome: standDown("a documented feature gate refused the request") }
-	}
-	/* The id the answer names, or one a read under it confirms: a nested related record's id is
-	 * never taken for this one, since the check is about to change and delete what it names. */
-	const made =
-		exchange.status >= 300
-			? null
-			: await createdRecord({
-					client: ctx.client,
-					createOp,
-					exchange,
-					model: ctx.model,
-					principal: ctx.actor.id,
-					readable: (op) => op.operationId === ctx.readOp?.operationId,
-					scope: ctx.scope,
-					sent,
-				})
-	const record = made?.record ?? {}
-	const id = record[ctx.identity]
-	if (made === null || (typeof id !== "string" && typeof id !== "number")) {
-		return {
-			outcome: ctx.findings.unresolved(
-				check,
-				ctx.entityName,
-				`a record for this check could not be made: ${exhausted ?? `the create answered ${exchange.status}`}` +
-					(exchange.status < 300 ? ` without an id the API tester could read` : ""),
-			),
-		}
-	}
-	return { scratch: { exchange, id: String(id), record } }
+  const createOp = ctx.createOp;
+  const schema = createOp === undefined ? null : requestSchemaOf(ctx, createOp);
+  if (createOp === undefined || schema === null) {
+    return { outcome: standDown("a create operation with a request body, to make a record this check may change") };
+  }
+  const fresh = await createFresh(ctx, createOp, schema, ctx.actor.id);
+  if ("withheld" in fresh) return { outcome: standDown(fresh.withheld) };
+  const { exchange, exhausted, sent } = fresh;
+  if (standDownForFeatureGate(ctx, createOp, exchange, check)) {
+    return { outcome: standDown("a documented feature gate refused the request") };
+  }
+  /* The id the answer names, or one a read under it confirms: a nested related record's id is
+   * never taken for this one, since the check is about to change and delete what it names. */
+  const made =
+    exchange.status >= 300
+      ? null
+      : await createdRecord({
+          client: ctx.client,
+          createOp,
+          exchange,
+          model: ctx.model,
+          principal: ctx.actor.id,
+          readable: (op) => op.operationId === ctx.readOp?.operationId,
+          scope: ctx.scope,
+          sent,
+        });
+  const record = made?.record ?? {};
+  const id = record[ctx.identity];
+  if (made === null || (typeof id !== "string" && typeof id !== "number")) {
+    return {
+      outcome: ctx.findings.unresolved(
+        check,
+        ctx.entityName,
+        `a record for this check could not be made: ${exhausted ?? `the create answered ${exchange.status}`}` +
+          (exchange.status < 300 ? ` without an id the API tester could read` : ""),
+      ),
+    };
+  }
+  return { scratch: { exchange, id: String(id), record } };
 }
 
 /**
@@ -82,20 +82,20 @@ export async function scratchRecord(
  * replace the record with it.
  */
 export async function updateRequest(
-	ctx: CheckContext,
-	updateOp: OperationModel,
-	current: Record_,
-	changes: Record_,
+  ctx: CheckContext,
+  updateOp: OperationModel,
+  current: Record_,
+  changes: Record_,
 ): Promise<{ method: string; options: Pick<RequestOptions, "body" | "contentType"> }> {
-	const method = updateOp.method.toUpperCase()
-	if (method !== "PUT") return { method, options: await encodeOpBody(ctx, updateOp, changes) }
-	const schema = requestSchemaOf(ctx, updateOp)
-	/* What any writer may send: never a readOnly property, nor an optional x-privileged one. */
-	const ordinary: JsonSchema = schema === null ? {} : ordinaryRequestSchema(schema)
-	const properties = Object.keys((ordinary.properties ?? {}) as Record<string, unknown>)
-	const kept = Object.fromEntries(
-		properties.filter((key) => current[key] !== undefined).map((key) => [key, current[key]]),
-	)
-	const whole = { ...(schema === null ? {} : validBody(ctx, schema)), ...kept, ...changes }
-	return { method, options: await encodeOpBody(ctx, updateOp, whole) }
+  const method = updateOp.method.toUpperCase();
+  if (method !== "PUT") return { method, options: await encodeOpBody(ctx, updateOp, changes) };
+  const schema = requestSchemaOf(ctx, updateOp);
+  /* What any writer may send: never a readOnly property, nor an optional x-privileged one. */
+  const ordinary: JsonSchema = schema === null ? {} : ordinaryRequestSchema(schema);
+  const properties = Object.keys((ordinary.properties ?? {}) as Record<string, unknown>);
+  const kept = Object.fromEntries(
+    properties.filter((key) => current[key] !== undefined).map((key) => [key, current[key]]),
+  );
+  const whole = { ...(schema === null ? {} : validBody(ctx, schema)), ...kept, ...changes };
+  return { method, options: await encodeOpBody(ctx, updateOp, whole) };
 }

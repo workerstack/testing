@@ -1,6 +1,8 @@
 # Changelog
 
-## 0.35.0
+## [Unreleased]
+
+## [0.35.0] - 2026-11-09
 
 ### Added
 
@@ -24,7 +26,7 @@
   why, even when teardown's delete-self attempt is what found the renewal blocked. It is never
   another principal's credential.
 
-## 0.34.0
+## [0.34.0] - 2026-11-09
 
 ### Added
 
@@ -41,7 +43,7 @@
   invite, doctor's JSON names it as `revokeStaleness` (`null` when undeclared), and a value that is
   not a positive integer is a gap doctor names.
 
-## 0.33.0
+## [0.33.0] - 2026-11-09
 
 ### Added
 
@@ -56,7 +58,7 @@
   `testing api plan` list every create that adopts a credential, and doctor's JSON names them under
   `adoptingCreates`.
 
-## 0.32.2
+## [0.32.2] - 2026-11-09
 
 ### Fixed
 
@@ -70,7 +72,7 @@
   `x-entity.action` decides: a `read` of `GET /me` whose record holds several arrays is a record, and
   an item-shaped path declared `action: list` is asked. Without an action, the path still decides.
 
-## 0.32.1
+## [0.32.1] - 2026-11-09
 
 ### Fixed
 
@@ -79,9 +81,11 @@
 - Every tag block in [docs/api/tags.md](docs/api/tags.md) is valid YAML: JSON paths with `[` inside
   a `{ … }` map are quoted, so a copied `x-query` `…From` or `x-bind` block parses.
 
-## 0.32.0
+## [0.32.0] - 2026-11-09
 
-### Changed (breaking)
+### Changed
+
+Breaking:
 
 - oat is now `@workerstack/testing`, and oat itself is its `/api` subpath, the API tester. Every name
   changed; [the migration guide](docs/api/migrating-from-oat.md) lists each one, old to new:
@@ -101,7 +105,7 @@
   (it holds `oat-report.json`) say so and name the migration guide, instead of reporting a missing
   `report.json`.
 
-## 0.31.0
+## [0.31.0] - 2026-11-03
 
 ### Added
 
@@ -129,7 +133,7 @@
   configured scheme or the principal's own override), or an earlier binding. Such a step used to
   send the placeholder as written and fail at run time.
 
-## 0.30.0
+## [0.30.0] - 2026-11-02
 
 ### Added
 
@@ -145,7 +149,7 @@
   day read as "unavailable even after waiting out its Retry-After". A wait within the limit is now
   waited out in full, and the 60s total for a 503's waits is replaced by the per-wait limit.
 
-## 0.29.0
+## [0.29.0] - 2026-11-01
 
 ### Added
 
@@ -165,7 +169,7 @@
   a control: refused too, the check is unresolved. A backend whose API keys were broken passed it,
   hiding a missing scope check behind the broken keys.
 
-## 0.28.0
+## [0.28.0] - 2026-10-31
 
 ### Added
 
@@ -180,7 +184,7 @@
   operator selects exactly what the well-formed term does. Typesense reads `year:1` as `year:=1`:
   it applied the term rather than dropping it.
 
-## 0.27.2
+## [0.27.2] - 2026-10-30
 
 ### Fixed
 
@@ -201,7 +205,7 @@
   trimmed or case-folded as stored. A backend that lowercased a submitted slug was reported as
   discarding it.
 
-## 0.27.1
+## [0.27.1] - 2026-10-29
 
 ### Fixed
 
@@ -222,7 +226,7 @@
   highest writes instead. The check is unresolved only when no such rank can update the record. A
   role lattice turned over for updates had hidden a privileged field any lower rank could set.
 
-## 0.27.0
+## [0.27.0] - 2026-10-29
 
 ### Added
 
@@ -248,7 +252,7 @@
   a collateral change (`patch.minimality`). A freshness check whose update's own answer keeps the old
   value stands down.
 
-## 0.26.0
+## [0.26.0] - 2026-10-29
 
 ### Added
 
@@ -271,7 +275,7 @@
   against the database rather than a cache in front of it. A header `globalHeaders` or
   `resolveHeaders` sets under that name wins, and config `cache: { bypass: false }` sends none.
 
-## 0.25.1
+## [0.25.1] - 2026-10-28
 
 ### Fixed
 
@@ -283,9 +287,11 @@
   it minted, the removal of the accounts its sign-ups made, and the end of the principals' own
   sessions. `principals.json` is written after them too.
 
-## 0.25.0
+## [0.25.0] - 2026-10-27
 
-### Breaking
+### Changed
+
+Breaking:
 
 - **Security comes from the document.** Each operation is sent the credentials its OpenAPI
   `security` requires, placed where its scheme says. The config gives one recipe per scheme
@@ -307,6 +313,20 @@
 - **Everything oat prints is spelled en-US**, the report's **Observed behavior** heading among it.
 
 See [docs/migrating-0.25.md](docs/migrating-0.25.md) for each change and what to write instead.
+
+Not breaking:
+
+- `concurrency.no-lost-update` stands down before sending anything when the update body lists fewer
+  than two fields a string may go into, naming them, instead of reporting an inconclusive.
+- A note a check makes now survives a finding the same check reports; before, a check that both
+  noted something and found a defect lost the note.
+- When the per-write-path payload budget sends a field one case of each family, the run says so in
+  a note: another entity already ran the whole catalog on that write path. It is no longer reported
+  as a coverage gap.
+- A teardown names every record it cannot prove gone, and every account oat signs up is torn down
+  or reported as a leftover.
+- Every finding's text is safe to share: secrets are redacted where they are recorded, a run writes
+  no credential to disk in the clear, and principals.json keeps no configured credential.
 
 ### Added
 
@@ -340,20 +360,6 @@ See [docs/migrating-0.25.md](docs/migrating-0.25.md) for each change and what to
 - `test:targets` runs oat against five real APIs (crAPI, Immich, Keycloak, Typesense, VAmPI); each
   must report exactly the findings its `expected.json` lists, so a false positive fails as surely as
   a missed defect.
-
-### Changed
-
-- `concurrency.no-lost-update` stands down before sending anything when the update body lists fewer
-  than two fields a string may go into, naming them, instead of reporting an inconclusive.
-- A note a check makes now survives a finding the same check reports; before, a check that both
-  noted something and found a defect lost the note.
-- When the per-write-path payload budget sends a field one case of each family, the run says so in
-  a note: another entity already ran the whole catalog on that write path. It is no longer reported
-  as a coverage gap.
-- A teardown names every record it cannot prove gone, and every account oat signs up is torn down
-  or reported as a leftover.
-- Every finding's text is safe to share: secrets are redacted where they are recorded, a run writes
-  no credential to disk in the clear, and principals.json keeps no configured credential.
 
 ### Fixed
 

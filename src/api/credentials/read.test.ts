@@ -1,64 +1,65 @@
-import { describe, expect, it } from "vitest"
-import { readAnswer, stringsOf } from "./read.ts"
+import { describe, expect, it } from "vitest";
+
+import { readAnswer, stringsOf } from "./read.ts";
 
 describe("readAnswer", () => {
-	const answer = { body: { token: "b" }, cookies: { sid: "c" }, headers: { "x-token": "h" }, status: 200 }
+  const answer = { body: { token: "b" }, cookies: { sid: "c" }, headers: { "x-token": "h" }, status: 200 };
 
-	it("reads the body, a header or a cookie by the saveAs address forms", () => {
-		expect([
-			readAnswer(answer, "$.token"),
-			readAnswer(answer, "header:X-Token"),
-			readAnswer(answer, "cookie:sid"),
-		]).toEqual(["b", "h", "c"])
-	})
+  it("reads the body, a header or a cookie by the saveAs address forms", () => {
+    expect([
+      readAnswer(answer, "$.token"),
+      readAnswer(answer, "header:X-Token"),
+      readAnswer(answer, "cookie:sid"),
+    ]).toEqual(["b", "h", "c"]);
+  });
 
-	it("reads a JSON pointer and a filter, as every other `from` in the API tester does", () => {
-		const body = {
-			keys: [
-				{ kind: "web", value: "w" },
-				{ kind: "api", value: "a" },
-			],
-			token: "t",
-		}
-		expect([
-			readAnswer({ ...answer, body }, "/token"),
-			readAnswer({ ...answer, body }, "$.keys[?(@.kind=='api')].value"),
-		]).toEqual(["t", "a"])
-	})
+  it("reads a JSON pointer and a filter, as every other `from` in the API tester does", () => {
+    const body = {
+      keys: [
+        { kind: "web", value: "w" },
+        { kind: "api", value: "a" },
+      ],
+      token: "t",
+    };
+    expect([
+      readAnswer({ ...answer, body }, "/token"),
+      readAnswer({ ...answer, body }, "$.keys[?(@.kind=='api')].value"),
+    ]).toEqual(["t", "a"]);
+  });
 
-	it("is a string only when the value is a non-empty string or a number", () => {
-		const body = { empty: "", n: 7, object: {} }
-		expect([
-			readAnswer({ ...answer, body }, "$.n"),
-			readAnswer({ ...answer, body }, "$.empty"),
-			readAnswer({ ...answer, body }, "$.object"),
-			readAnswer(answer, "$.missing"),
-		]).toEqual(["7", undefined, undefined, undefined])
-	})
+  it("is a string only when the value is a non-empty string or a number", () => {
+    const body = { empty: "", n: 7, object: {} };
+    expect([
+      readAnswer({ ...answer, body }, "$.n"),
+      readAnswer({ ...answer, body }, "$.empty"),
+      readAnswer({ ...answer, body }, "$.object"),
+      readAnswer(answer, "$.missing"),
+    ]).toEqual(["7", undefined, undefined, undefined]);
+  });
 
-	it("reads a form answer's top-level fields by the same address forms, and nothing deeper", () => {
-		const headers = { "content-type": "application/x-www-form-urlencoded; charset=utf-8" }
-		const form = { ...answer, body: "access_token=a1&expires_in=3600", headers }
-		expect([
-			readAnswer(form, "$.access_token"),
-			readAnswer(form, "access_token"),
-			readAnswer(form, "/expires_in"),
-			readAnswer(form, "$.access_token.length"),
-		]).toEqual(["a1", "a1", "3600", undefined])
-	})
+  it("reads a form answer's top-level fields by the same address forms, and nothing deeper", () => {
+    const headers = { "content-type": "application/x-www-form-urlencoded; charset=utf-8" };
+    const form = { ...answer, body: "access_token=a1&expires_in=3600", headers };
+    expect([
+      readAnswer(form, "$.access_token"),
+      readAnswer(form, "access_token"),
+      readAnswer(form, "/expires_in"),
+      readAnswer(form, "$.access_token.length"),
+    ]).toEqual(["a1", "a1", "3600", undefined]);
+  });
 
-	it("reads no form out of an answer that does not say it is one", () => {
-		const plain = { ...answer, body: "access_token=a1", headers: { "content-type": "text/plain" } }
-		expect(readAnswer(plain, "access_token")).toBeUndefined()
-	})
-})
+  it("reads no form out of an answer that does not say it is one", () => {
+    const plain = { ...answer, body: "access_token=a1", headers: { "content-type": "text/plain" } };
+    expect(readAnswer(plain, "access_token")).toBeUndefined();
+  });
+});
 
 describe("stringsOf", () => {
-	it("keeps an object body's top-level strings, and nothing of any other body", () => {
-		expect(stringsOf({ access_token: "t", expires_in: 3600, nested: { a: "b" }, refresh_token: "r" })).toEqual({
-			access_token: "t",
-			refresh_token: "r",
-		})
-		expect([stringsOf(null), stringsOf("t"), stringsOf(["t"])]).toEqual([{}, {}, {}])
-	})
-})
+  it("keeps an object body's top-level strings, and nothing of any other body", () => {
+    expect(stringsOf({ access_token: "t", expires_in: 3600, nested: { a: "b" }, refresh_token: "r" })).toEqual({
+      access_token: "t",
+      refresh_token: "r",
+    });
+    expect([stringsOf(null), stringsOf("t"), stringsOf(["t"])]).toEqual([{}, {}, {}]);
+  });
+});

@@ -1,5 +1,5 @@
-import type { Hooks } from "../config/types/hooks.ts"
-import type { AuthStep } from "../config/types/steps.ts"
+import type { Hooks } from "../config/types/hooks.ts";
+import type { AuthStep } from "../config/types/steps.ts";
 
 /*
  * What the runtime lends the credentials library. Sending a request needs the run's clients, paths
@@ -7,19 +7,19 @@ import type { AuthStep } from "../config/types/steps.ts"
  * and the run injects them.
  */
 
-export type { Sends } from "../config/types/hooks.ts"
+export type { Sends } from "../config/types/hooks.ts";
 
 /** What an answer gives a recipe to read a credential, a lifetime or a claim from. */
 export interface StepAnswer {
-	status: number
-	body: unknown
-	headers: Readonly<Record<string, string>>
-	cookies: Readonly<Record<string, string>>
+  status: number;
+  body: unknown;
+  headers: Readonly<Record<string, string>>;
+  cookies: Readonly<Record<string, string>>;
 }
 
 /** How a credential hop is sent: `probe` when it is meant to be refused, so its exchange is labeled one. */
 export interface Hop {
-	probe?: true
+  probe?: true;
 }
 
 /**
@@ -28,15 +28,15 @@ export interface Hop {
  * whose message is the reason when a step fails or a value is missing.
  */
 export interface StepRunner {
-	run(
-		steps: readonly AuthStep[],
-		input: {
-			principal: string
-			scope: Readonly<Record<string, string>>
-			/** Where each answer holds a credential: registered as secrets before the answer is recorded. */
-			secrets?: readonly string[]
-		} & Hop,
-	): Promise<{ scope: Record<string, string>; answer: StepAnswer }>
+  run(
+    steps: readonly AuthStep[],
+    input: {
+      principal: string;
+      scope: Readonly<Record<string, string>>;
+      /** Where each answer holds a credential: registered as secrets before the answer is recorded. */
+      secrets?: readonly string[];
+    } & Hop,
+  ): Promise<{ scope: Record<string, string>; answer: StepAnswer }>;
 }
 
 /**
@@ -45,20 +45,20 @@ export interface StepRunner {
  * the operation's path parameters, over the principal's own. It resolves with whatever the backend
  * answered, and rejects with the reason when the principal holds no credential for the scheme.
  */
-export interface OperationCaller {
-	call(input: {
-		operationId: string
-		body?: unknown
-		as: { principal: string; scheme: string }
-		scope?: Readonly<Record<string, string>>
-		/**
-		 * Send this value as the scheme's credential, placed and redacted like it, instead of what the
-		 * principal holds: the one session a revoke ends. Never renewed on a 401.
-		 */
-		value?: string
-		/** Where the answer holds a credential, as `from` addresses it: a secret before the answer is recorded. */
-		secrets?: readonly string[]
-	}): Promise<StepAnswer>
+interface OperationCaller {
+  call(input: {
+    operationId: string;
+    body?: unknown;
+    as: { principal: string; scheme: string };
+    scope?: Readonly<Record<string, string>>;
+    /**
+     * Send this value as the scheme's credential, placed and redacted like it, instead of what the
+     * principal holds: the one session a revoke ends. Never renewed on a 401.
+     */
+    value?: string;
+    /** Where the answer holds a credential, as `from` addresses it: a secret before the answer is recorded. */
+    secrets?: readonly string[];
+  }): Promise<StepAnswer>;
 }
 
 /**
@@ -66,41 +66,41 @@ export interface OperationCaller {
  * operation, the scope that fills its path, and who sends it.
  */
 export interface CredentialRecord {
-	operationId: string
-	scope: Readonly<Record<string, string>>
-	as: { principal: string; scheme: string }
+  operationId: string;
+  scope: Readonly<Record<string, string>>;
+  as: { principal: string; scheme: string };
 }
 
 /** What the run knows of a minted credential's record, so teardown never revokes a key twice. */
 export interface CredentialRecords {
-	/** Whether the run already saw an accepted DELETE remove the record. */
-	removed(record: CredentialRecord): boolean
-	/** Whether the document's read of the record shows it gone; false when nothing can read it. */
-	gone(record: CredentialRecord): Promise<boolean>
+  /** Whether the run already saw an accepted DELETE remove the record. */
+  removed(record: CredentialRecord): boolean;
+  /** Whether the document's read of the record shows it gone; false when nothing can read it. */
+  gone(record: CredentialRecord): Promise<boolean>;
 }
 
 /** POSTs a form, `application/x-www-form-urlencoded`, to an OAuth 2 token URL. */
-export interface TokenPoster {
-	post(url: string, form: Readonly<Record<string, string>>, hop?: Hop): Promise<StepAnswer>
+interface TokenPoster {
+  post(url: string, form: Readonly<Record<string, string>>, hop?: Hop): Promise<StepAnswer>;
 }
 
 /**
  * The run's redactor, as a recipe registers a value it sends from a principal's identity: never
  * printed from then on, whatever its key is called. Too-short values are ignored, as for any secret.
  */
-export interface SecretRegistry {
-	register(value: string): void
+interface SecretRegistry {
+  register(value: string): void;
 }
 
 /** `hooks.resolveCredential`, as a `{ hook: true }` recipe calls it. */
-export type CredentialHook = NonNullable<Hooks["resolveCredential"]>
+type CredentialHook = NonNullable<Hooks["resolveCredential"]>;
 
 /** Every port a run lends the credentials library. The hook is absent when the config sets none. */
 export interface CredentialPorts {
-	steps: StepRunner
-	operations: OperationCaller
-	records: CredentialRecords
-	tokens: TokenPoster
-	secrets: SecretRegistry
-	resolveCredential?: CredentialHook
+  steps: StepRunner;
+  operations: OperationCaller;
+  records: CredentialRecords;
+  tokens: TokenPoster;
+  secrets: SecretRegistry;
+  resolveCredential?: CredentialHook;
 }

@@ -1,318 +1,321 @@
-import { describe, expect, it } from "vitest"
-import type { Client } from "../client/client.ts"
-import type { RequestOptions } from "../client/types.ts"
-import { capabilitiesFromTag, resolveEntityCapabilities } from "./query-capabilities.ts"
-import type { OperationModel, SpecModel } from "../spec/graph/types.ts"
-import { emptyCapabilities } from "../spec/query/merge.ts"
-import { parseQueryCatalog } from "../spec/query/parse-catalog.ts"
-import { canWriteFilterOp, filterTerm } from "../spec/conventions/filter.ts"
-import { selectTerm } from "../spec/conventions/select.ts"
-import { sortTerm, sortTermWithNulls } from "../spec/conventions/sort.ts"
-import type { QueryConventions } from "../spec/conventions/types.ts"
+import { describe, expect, it } from "vitest";
+
+import type { Client } from "../client/client.ts";
+import type { RequestOptions } from "../client/types.ts";
+import { canWriteFilterOp, filterTerm } from "../spec/conventions/filter.ts";
+import { selectTerm } from "../spec/conventions/select.ts";
+import { sortTerm, sortTermWithNulls } from "../spec/conventions/sort.ts";
+import type { QueryConventions } from "../spec/conventions/types.ts";
+import type { OperationModel, SpecModel } from "../spec/graph/types.ts";
+import { emptyCapabilities } from "../spec/query/merge.ts";
+import { parseQueryCatalog } from "../spec/query/parse-catalog.ts";
+import { capabilitiesFromTag, resolveEntityCapabilities } from "./query-capabilities.ts";
 
 /* The conventions with one parameter role absent, as a document without that parameter derives them. */
 function without(conventions: QueryConventions, role: "filter" | "select"): QueryConventions {
-	const copy = { ...conventions }
-	delete copy[role]
-	return copy
+  const copy = { ...conventions };
+  delete copy[role];
+  return copy;
 }
 
 const postgrest: QueryConventions = {
-	envelope: {},
-	filter: "filter",
-	grammar: "postgrest",
-	order: "order",
-	search: "q",
-	select: "select",
-	selectGrammar: "csv",
-	sortGrammar: "dotted",
-}
+  envelope: {},
+  filter: "filter",
+  grammar: "postgrest",
+  order: "order",
+  search: "q",
+  select: "select",
+  selectGrammar: "csv",
+  sortGrammar: "dotted",
+};
 
 describe("postgrest writers", () => {
-	it("writes in / is / ilike / contains and dotted nulls", () => {
-		expect(filterTerm(postgrest, { field: "status", op: "in", value: ["a", "b"] })).toEqual({
-			filter: "status.in.(a,b)",
-		})
-		expect(filterTerm(postgrest, { field: "status", op: "in", value: "a" })).toEqual({ filter: "status.in.(a)" })
-		expect(filterTerm(postgrest, { field: "status", op: "nin", value: [null, "b"] })).toEqual({
-			filter: "status.nin.(null,b)",
-		})
-		expect(filterTerm(postgrest, { field: "note", op: "is", value: "null" })).toEqual({ filter: "note.is.null" })
-		expect(filterTerm(postgrest, { field: "note", op: "is", value: null })).toEqual({ filter: "note.is.null" })
-		expect(filterTerm(postgrest, { field: "note", op: "is", value: "notnull" })).toEqual({ filter: "note.is.notnull" })
-		expect(filterTerm(postgrest, { field: "note", op: "is", value: "not.null" })).toEqual({ filter: "note.is.notnull" })
-		expect(filterTerm(postgrest, { field: "note", op: "is", value: "true" })).toBeNull()
-		expect(filterTerm(postgrest, { field: "name", op: "ilike", value: "FOO" })).toEqual({ filter: "name.ilike.FOO" })
-		expect(filterTerm(postgrest, { field: "tags", op: "contains", value: "x" })).toEqual({ filter: "tags.contains.x" })
-		expect(filterTerm(without(postgrest, "filter"), { field: "name", op: "eq", value: "x" })).toBeNull()
-		expect(filterTerm(postgrest, { field: "name", op: "eq", value: ["a", "b"] })).toBeNull()
-		expect(sortTermWithNulls(postgrest, { direction: "asc", field: "name", nulls: "last" })).toBe("name.asc.nullslast")
-		expect(sortTerm(postgrest, { direction: "asc", field: "name", nulls: "first" })).toBe("name.asc.nullsfirst")
-		expect(sortTerm({ ...postgrest, sortGrammar: "colon" }, { direction: "desc", field: "name" })).toBe("name:desc")
-		expect(sortTerm({ ...postgrest, sortGrammar: "spaced" }, { direction: "desc", field: "name" })).toBe("name desc")
-		expect(sortTerm({ ...postgrest, sortGrammar: "prefixed" }, { direction: "desc", field: "name" })).toBe("-name")
-		expect(sortTerm({ ...postgrest, sortGrammar: "prefixed" }, { direction: "asc", field: "name" })).toBe("name")
-		expect(selectTerm(postgrest, ["id", "name"], "row")).toEqual({ select: "id,name" })
-		expect(selectTerm(without(postgrest, "select"), ["id"], "row")).toBeNull()
-		expect(selectTerm({ ...postgrest, select: "fields", selectGrammar: "bracketed" }, ["id"], "row")).toEqual({
-			"fields[row]": "id",
-		})
-		expect(selectTerm({ ...postgrest, select: "fields[row]", selectGrammar: "bracketed" }, ["id"], "row")).toEqual({
-			"fields[row]": "id",
-		})
-	})
+  it("writes in / is / ilike / contains and dotted nulls", () => {
+    expect(filterTerm(postgrest, { field: "status", op: "in", value: ["a", "b"] })).toEqual({
+      filter: "status.in.(a,b)",
+    });
+    expect(filterTerm(postgrest, { field: "status", op: "in", value: "a" })).toEqual({ filter: "status.in.(a)" });
+    expect(filterTerm(postgrest, { field: "status", op: "nin", value: [null, "b"] })).toEqual({
+      filter: "status.nin.(null,b)",
+    });
+    expect(filterTerm(postgrest, { field: "note", op: "is", value: "null" })).toEqual({ filter: "note.is.null" });
+    expect(filterTerm(postgrest, { field: "note", op: "is", value: null })).toEqual({ filter: "note.is.null" });
+    expect(filterTerm(postgrest, { field: "note", op: "is", value: "notnull" })).toEqual({ filter: "note.is.notnull" });
+    expect(filterTerm(postgrest, { field: "note", op: "is", value: "not.null" })).toEqual({
+      filter: "note.is.notnull",
+    });
+    expect(filterTerm(postgrest, { field: "note", op: "is", value: "true" })).toBeNull();
+    expect(filterTerm(postgrest, { field: "name", op: "ilike", value: "FOO" })).toEqual({ filter: "name.ilike.FOO" });
+    expect(filterTerm(postgrest, { field: "tags", op: "contains", value: "x" })).toEqual({ filter: "tags.contains.x" });
+    expect(filterTerm(without(postgrest, "filter"), { field: "name", op: "eq", value: "x" })).toBeNull();
+    expect(filterTerm(postgrest, { field: "name", op: "eq", value: ["a", "b"] })).toBeNull();
+    expect(sortTermWithNulls(postgrest, { direction: "asc", field: "name", nulls: "last" })).toBe("name.asc.nullslast");
+    expect(sortTerm(postgrest, { direction: "asc", field: "name", nulls: "first" })).toBe("name.asc.nullsfirst");
+    expect(sortTerm({ ...postgrest, sortGrammar: "colon" }, { direction: "desc", field: "name" })).toBe("name:desc");
+    expect(sortTerm({ ...postgrest, sortGrammar: "spaced" }, { direction: "desc", field: "name" })).toBe("name desc");
+    expect(sortTerm({ ...postgrest, sortGrammar: "prefixed" }, { direction: "desc", field: "name" })).toBe("-name");
+    expect(sortTerm({ ...postgrest, sortGrammar: "prefixed" }, { direction: "asc", field: "name" })).toBe("name");
+    expect(selectTerm(postgrest, ["id", "name"], "row")).toEqual({ select: "id,name" });
+    expect(selectTerm(without(postgrest, "select"), ["id"], "row")).toBeNull();
+    expect(selectTerm({ ...postgrest, select: "fields", selectGrammar: "bracketed" }, ["id"], "row")).toEqual({
+      "fields[row]": "id",
+    });
+    expect(selectTerm({ ...postgrest, select: "fields[row]", selectGrammar: "bracketed" }, ["id"], "row")).toEqual({
+      "fields[row]": "id",
+    });
+  });
 
-	it("does not write in / ilike / is on colon or equality", () => {
-		const colon: QueryConventions = { ...postgrest, grammar: "colon" }
-		const equality: QueryConventions = { ...without(postgrest, "filter"), grammar: "equality" }
-		expect(canWriteFilterOp(colon, "in")).toBe(false)
-		expect(canWriteFilterOp(colon, "eq")).toBe(true)
-		expect(canWriteFilterOp(equality, "eq")).toBe(true)
-		expect(canWriteFilterOp(equality, "neq")).toBe(false)
-		expect(filterTerm(colon, { field: "status", op: "in", value: ["a", "b"] })).toBeNull()
-		expect(filterTerm(colon, { field: "name", op: "ilike", value: "FOO" })).toBeNull()
-		expect(filterTerm(without(colon, "filter"), { field: "name", op: "eq", value: "x" })).toBeNull()
-		expect(filterTerm(colon, { field: "name", op: "eq", value: ["a"] })).toBeNull()
-		expect(filterTerm(colon, { field: "name", op: "eq", value: "x" })).toEqual({ filter: "name=eq:x" })
-		expect(filterTerm(equality, { field: "note", op: "is", value: "null" })).toBeNull()
-		expect(filterTerm(equality, { field: "status", op: "eq", value: ["a"] })).toBeNull()
-		expect(filterTerm(equality, { field: "status", op: "eq", value: "active" })).toEqual({ status: "active" })
-		expect(
-			sortTermWithNulls({ ...postgrest, sortGrammar: "colon" }, { direction: "asc", field: "name", nulls: "last" }),
-		).toBeNull()
-	})
-})
+  it("does not write in / ilike / is on colon or equality", () => {
+    const colon: QueryConventions = { ...postgrest, grammar: "colon" };
+    const equality: QueryConventions = { ...without(postgrest, "filter"), grammar: "equality" };
+    expect(canWriteFilterOp(colon, "in")).toBe(false);
+    expect(canWriteFilterOp(colon, "eq")).toBe(true);
+    expect(canWriteFilterOp(equality, "eq")).toBe(true);
+    expect(canWriteFilterOp(equality, "neq")).toBe(false);
+    expect(filterTerm(colon, { field: "status", op: "in", value: ["a", "b"] })).toBeNull();
+    expect(filterTerm(colon, { field: "name", op: "ilike", value: "FOO" })).toBeNull();
+    expect(filterTerm(without(colon, "filter"), { field: "name", op: "eq", value: "x" })).toBeNull();
+    expect(filterTerm(colon, { field: "name", op: "eq", value: ["a"] })).toBeNull();
+    expect(filterTerm(colon, { field: "name", op: "eq", value: "x" })).toEqual({ filter: "name=eq:x" });
+    expect(filterTerm(equality, { field: "note", op: "is", value: "null" })).toBeNull();
+    expect(filterTerm(equality, { field: "status", op: "eq", value: ["a"] })).toBeNull();
+    expect(filterTerm(equality, { field: "status", op: "eq", value: "active" })).toEqual({ status: "active" });
+    expect(
+      sortTermWithNulls({ ...postgrest, sortGrammar: "colon" }, { direction: "asc", field: "name", nulls: "last" }),
+    ).toBeNull();
+  });
+});
 
 function modelWith(ops: Array<{ id: string; method: string; path: string }>): SpecModel {
-	const byOperationId = new Map<string, OperationModel>()
-	const byRoute = new Map<string, OperationModel>()
-	for (const op of ops) {
-		const row = { method: op.method, operationId: op.id, path: op.path } as OperationModel
-		byOperationId.set(op.id, row)
-		byRoute.set(`${op.method} ${op.path}`, row)
-	}
-	return { byOperationId, byRoute } as SpecModel
+  const byOperationId = new Map<string, OperationModel>();
+  const byRoute = new Map<string, OperationModel>();
+  for (const op of ops) {
+    const row = { method: op.method, operationId: op.id, path: op.path } as OperationModel;
+    byOperationId.set(op.id, row);
+    byRoute.set(`${op.method} ${op.path}`, row);
+  }
+  return { byOperationId, byRoute } as SpecModel;
 }
 
 /** A client answering every request with `body`, keeping the options each was sent with. */
 function clientWith(body: unknown, sent: RequestOptions[] = []): Client {
-	return {
-		request: async (_method: string, _path: string, options: RequestOptions) => {
-			sent.push(options)
-			return { responseBody: body }
-		},
-	} as unknown as Client
+  return {
+    request: async (_method: string, _path: string, options: RequestOptions) => {
+      sent.push(options);
+      return { responseBody: body };
+    },
+  } as unknown as Client;
 }
 
 describe("live harvest and hook", () => {
-	it("returns an empty map for a missing tag", () => {
-		expect(capabilitiesFromTag(null)).toEqual(emptyCapabilities())
-	})
+  it("returns an empty map for a missing tag", () => {
+    expect(capabilitiesFromTag(null)).toEqual(emptyCapabilities());
+  });
 
-	it("resolves without harvest when no *From is declared", async () => {
-		const caps = await resolveEntityCapabilities({
-			principal: "alpha",
-			client: clientWith({}),
-			entityName: "row",
-			hook: async () => null,
-			model: modelWith([]),
-			scope: {},
-			tag: {
-				filterable: ["id"],
-				filterableDeclared: true,
-				searchable: [],
-				selectable: [],
-				sortable: [],
-				source: "tag",
-			},
-		})
-		expect(caps.filterable.map((field) => field.field)).toEqual(["id"])
-		expect(caps.hook).toBe(true)
-		expect(caps.filterableFrom).toBeUndefined()
-	})
+  it("resolves without harvest when no *From is declared", async () => {
+    const caps = await resolveEntityCapabilities({
+      principal: "alpha",
+      client: clientWith({}),
+      entityName: "row",
+      hook: async () => null,
+      model: modelWith([]),
+      scope: {},
+      tag: {
+        filterable: ["id"],
+        filterableDeclared: true,
+        searchable: [],
+        selectable: [],
+        sortable: [],
+        source: "tag",
+      },
+    });
+    expect(caps.filterable.map((field) => field.field)).toEqual(["id"]);
+    expect(caps.hook).toBe(true);
+    expect(caps.filterableFrom).toBeUndefined();
+  });
 
-	it("merges a tag through capabilitiesFromTag", () => {
-		const caps = capabilitiesFromTag({
-			filterable: ["id"],
-			filterableDeclared: true,
-			searchable: [],
-			selectable: [],
-			sortable: [],
-			source: "tag",
-		})
-		expect(caps.source).toBe("tag")
-		expect(caps.filterable.map((field) => field.field)).toEqual(["id"])
-	})
-})
+  it("merges a tag through capabilitiesFromTag", () => {
+    const caps = capabilitiesFromTag({
+      filterable: ["id"],
+      filterableDeclared: true,
+      searchable: [],
+      selectable: [],
+      sortable: [],
+      source: "tag",
+    });
+    expect(caps.source).toBe("tag");
+    expect(caps.filterable.map((field) => field.field)).toEqual(["id"]);
+  });
+});
 
 describe("live harvest of type paths", () => {
-	it("maps a typePath that mixes strings and junk, harvested as the principal", async () => {
-		const sent: RequestOptions[] = []
-		const caps = await resolveEntityCapabilities({
-			principal: "alpha",
-			client: clientWith({ names: ["id", "n"], types: ["text", 1] }, sent),
-			entityName: "row",
-			model: modelWith([{ id: "table.get", method: "GET", path: "/v1/tables/{id}" }]),
-			scope: { id: "t1" },
-			tag: {
-				catalog: {
-					filterableFrom: {
-						operationId: "table.get",
-						path: "$.names[*]",
-						typeMap: { text: "string" },
-						typePath: "$.types[*]",
-					},
-				},
-				filterable: [],
-				filterableDeclared: true,
-				searchable: [],
-				selectable: [],
-				sortable: [],
-				source: "tag",
-			},
-		})
-		expect(caps.filterable).toEqual([{ field: "id", type: "string" }, { field: "n" }])
-		expect(sent).toEqual([{ as: { principal: "alpha" }, operationId: "table.get" }])
-	})
-})
+  it("maps a typePath that mixes strings and junk, harvested as the principal", async () => {
+    const sent: RequestOptions[] = [];
+    const caps = await resolveEntityCapabilities({
+      principal: "alpha",
+      client: clientWith({ names: ["id", "n"], types: ["text", 1] }, sent),
+      entityName: "row",
+      model: modelWith([{ id: "table.get", method: "GET", path: "/v1/tables/{id}" }]),
+      scope: { id: "t1" },
+      tag: {
+        catalog: {
+          filterableFrom: {
+            operationId: "table.get",
+            path: "$.names[*]",
+            typeMap: { text: "string" },
+            typePath: "$.types[*]",
+          },
+        },
+        filterable: [],
+        filterableDeclared: true,
+        searchable: [],
+        selectable: [],
+        sortable: [],
+        source: "tag",
+      },
+    });
+    expect(caps.filterable).toEqual([{ field: "id", type: "string" }, { field: "n" }]);
+    expect(sent).toEqual([{ as: { principal: "alpha" }, operationId: "table.get" }]);
+  });
+});
 
 describe("live harvest across every axis", () => {
-	it("harvests every axis and then applies the hook", async () => {
-		const body = {
-			columns: [
-				{ name: "id", searchable: false, type: "text" },
-				{ name: "title", searchable: true, type: "text" },
-			],
-		}
-		const caps = await resolveEntityCapabilities({
-			principal: "alpha",
-			client: clientWith(body),
-			entity: {
-				filterableFrom: {
-					operationId: "table.get",
-					path: "$.columns[*].name",
-					typeMap: { text: "string" },
-					typePath: "$.columns[*].type",
-				},
-				searchableFrom: { operationId: "table.get", path: "$.columns[?(@.searchable==true)].name" },
-				selectableFrom: { operationId: "table.get", path: "$.columns[*].name" },
-				sortableFrom: { operationId: "table.get", path: "$.columns[*].name" },
-			},
-			entityName: "row",
-			global: {},
-			hook: async ({ get }) => {
-				const harvested = await get("table.get")
-				expect(harvested).toEqual(body)
-				return { searchable: ["title"] }
-			},
-			itemSchema: { properties: { id: { type: "string" } }, type: "object" },
-			model: modelWith([{ id: "table.get", method: "GET", path: "/v1/tables/{id}" }]),
-			scope: { id: "t1" },
-			tag: {
-				filterable: ["id"],
-				filterableDeclared: true,
-				searchable: [],
-				searchableDeclared: true,
-				selectable: [],
-				selectableDeclared: true,
-				sortable: [],
-				sortableDeclared: true,
-				source: "tag",
-			},
-		})
-		expect(caps.filterable.map((field) => field.field)).toEqual(["id", "title"])
-		expect(caps.filterable.find((field) => field.field === "title")?.type).toBe("string")
-		expect(caps.sortable.map((field) => field.field)).toEqual(["id", "title"])
-		expect(caps.searchable).toEqual(["title"])
-		expect(caps.selectable).toEqual(["id", "title"])
-		expect(caps.hook).toBe(true)
-	})
-})
+  it("harvests every axis and then applies the hook", async () => {
+    const body = {
+      columns: [
+        { name: "id", searchable: false, type: "text" },
+        { name: "title", searchable: true, type: "text" },
+      ],
+    };
+    const caps = await resolveEntityCapabilities({
+      principal: "alpha",
+      client: clientWith(body),
+      entity: {
+        filterableFrom: {
+          operationId: "table.get",
+          path: "$.columns[*].name",
+          typeMap: { text: "string" },
+          typePath: "$.columns[*].type",
+        },
+        searchableFrom: { operationId: "table.get", path: "$.columns[?(@.searchable==true)].name" },
+        selectableFrom: { operationId: "table.get", path: "$.columns[*].name" },
+        sortableFrom: { operationId: "table.get", path: "$.columns[*].name" },
+      },
+      entityName: "row",
+      global: {},
+      hook: async ({ get }) => {
+        const harvested = await get("table.get");
+        expect(harvested).toEqual(body);
+        return { searchable: ["title"] };
+      },
+      itemSchema: { properties: { id: { type: "string" } }, type: "object" },
+      model: modelWith([{ id: "table.get", method: "GET", path: "/v1/tables/{id}" }]),
+      scope: { id: "t1" },
+      tag: {
+        filterable: ["id"],
+        filterableDeclared: true,
+        searchable: [],
+        searchableDeclared: true,
+        selectable: [],
+        selectableDeclared: true,
+        sortable: [],
+        sortableDeclared: true,
+        source: "tag",
+      },
+    });
+    expect(caps.filterable.map((field) => field.field)).toEqual(["id", "title"]);
+    expect(caps.filterable.find((field) => field.field === "title")?.type).toBe("string");
+    expect(caps.sortable.map((field) => field.field)).toEqual(["id", "title"]);
+    expect(caps.searchable).toEqual(["title"]);
+    expect(caps.selectable).toEqual(["id", "title"]);
+    expect(caps.hook).toBe(true);
+  });
+});
 
 describe("live harvest by route", () => {
-	it("resolves harvest by route and skips a harvest with no target", async () => {
-		const caps = await resolveEntityCapabilities({
-			principal: "alpha",
-			client: clientWith({ columns: [{ name: "n" }] }),
-			entityName: "row",
-			model: modelWith([{ id: "meta", method: "GET", path: "/v1/meta" }]),
-			scope: {},
-			tag: {
-				catalog: {
-					filterableFrom: { path: "$.columns[*].name" },
-					sortableFrom: { operationId: "/v1/meta", path: "$.columns[*].name" },
-				},
-				filterable: [],
-				filterableDeclared: true,
-				searchable: [],
-				selectable: [],
-				sortable: [],
-				sortableDeclared: true,
-				source: "tag",
-			},
-		})
-		expect(caps.filterable).toEqual([])
-		expect(caps.sortable.map((field) => field.field)).toEqual(["n"])
-	})
-})
+  it("resolves harvest by route and skips a harvest with no target", async () => {
+    const caps = await resolveEntityCapabilities({
+      principal: "alpha",
+      client: clientWith({ columns: [{ name: "n" }] }),
+      entityName: "row",
+      model: modelWith([{ id: "meta", method: "GET", path: "/v1/meta" }]),
+      scope: {},
+      tag: {
+        catalog: {
+          filterableFrom: { path: "$.columns[*].name" },
+          sortableFrom: { operationId: "/v1/meta", path: "$.columns[*].name" },
+        },
+        filterable: [],
+        filterableDeclared: true,
+        searchable: [],
+        selectable: [],
+        sortable: [],
+        sortableDeclared: true,
+        source: "tag",
+      },
+    });
+    expect(caps.filterable).toEqual([]);
+    expect(caps.sortable.map((field) => field.field)).toEqual(["n"]);
+  });
+});
 
 describe("live harvest failures and route ids", () => {
-	it("throws when harvest names an unknown operation", async () => {
-		await expect(
-			resolveEntityCapabilities({
-				principal: "alpha",
-				client: clientWith({}),
-				entityName: "row",
-				model: modelWith([]),
-				scope: {},
-				tag: {
-					catalog: { filterableFrom: { operationId: "missing.get", path: "$.x" } },
-					filterable: [],
-					searchable: [],
-					selectable: [],
-					sortable: [],
-					source: "tag",
-				},
-			}),
-		).rejects.toThrow(/missing.get/)
-		await expect(
-			resolveEntityCapabilities({
-				principal: "alpha",
-				client: clientWith({}),
-				entityName: "row",
-				model: modelWith([]),
-				scope: {},
-				tag: {
-					catalog: { filterableFrom: { operationId: "NOT A ROUTE", path: "$.x" } },
-					filterable: [],
-					searchable: [],
-					selectable: [],
-					sortable: [],
-					source: "tag",
-				},
-			}),
-		).rejects.toThrow(/NOT A ROUTE/)
-	})
+  it("throws when harvest names an unknown operation", async () => {
+    await expect(
+      resolveEntityCapabilities({
+        principal: "alpha",
+        client: clientWith({}),
+        entityName: "row",
+        model: modelWith([]),
+        scope: {},
+        tag: {
+          catalog: { filterableFrom: { operationId: "missing.get", path: "$.x" } },
+          filterable: [],
+          searchable: [],
+          selectable: [],
+          sortable: [],
+          source: "tag",
+        },
+      }),
+    ).rejects.toThrow(/missing.get/);
+    await expect(
+      resolveEntityCapabilities({
+        principal: "alpha",
+        client: clientWith({}),
+        entityName: "row",
+        model: modelWith([]),
+        scope: {},
+        tag: {
+          catalog: { filterableFrom: { operationId: "NOT A ROUTE", path: "$.x" } },
+          filterable: [],
+          searchable: [],
+          selectable: [],
+          sortable: [],
+          source: "tag",
+        },
+      }),
+    ).rejects.toThrow(/NOT A ROUTE/);
+  });
 
-	it("harvests without a typePath and accepts GET /path operation ids", async () => {
-		const caps = await resolveEntityCapabilities({
-			principal: "alpha",
-			client: clientWith({ names: ["a", 1] }),
-			entityName: "row",
-			model: modelWith([{ id: "meta", method: "GET", path: "/v1/meta" }]),
-			scope: {},
-			tag: {
-				catalog: parseQueryCatalog({
-					filterableFrom: { operationId: "GET /v1/meta", path: "$.names[*]" },
-				}),
-				filterable: [],
-				filterableDeclared: true,
-				searchable: [],
-				selectable: [],
-				sortable: [],
-				source: "tag",
-			},
-		})
-		expect(caps.filterable.map((field) => field.field)).toEqual(["a"])
-	})
-})
+  it("harvests without a typePath and accepts GET /path operation ids", async () => {
+    const caps = await resolveEntityCapabilities({
+      principal: "alpha",
+      client: clientWith({ names: ["a", 1] }),
+      entityName: "row",
+      model: modelWith([{ id: "meta", method: "GET", path: "/v1/meta" }]),
+      scope: {},
+      tag: {
+        catalog: parseQueryCatalog({
+          filterableFrom: { operationId: "GET /v1/meta", path: "$.names[*]" },
+        }),
+        filterable: [],
+        filterableDeclared: true,
+        searchable: [],
+        selectable: [],
+        sortable: [],
+        source: "tag",
+      },
+    });
+    expect(caps.filterable.map((field) => field.field)).toEqual(["a"]);
+  });
+});

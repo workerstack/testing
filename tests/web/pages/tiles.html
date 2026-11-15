@@ -1,20 +1,20 @@
 <!doctype html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<title>Tiles</title>
-	</head>
-	<body>
-		<main>
-			<h1>Tiles</h1>
-			<output>loading</output>
-		</main>
-		<script>
-			/* A cross-origin read: it shows the stub only when the answer carries a CORS header. */
-			fetch("https://tiles.example.invalid/tiles.json")
-				.then((response) => response.json())
-				.then((body) => (document.querySelector("output").textContent = body.name))
-				.catch(() => (document.querySelector("output").textContent = "failed"))
-		</script>
-	</body>
+  <head>
+    <meta charset="utf-8" />
+    <title>Tiles</title>
+  </head>
+  <body>
+    <main>
+      <h1>Tiles</h1>
+      <output>loading</output>
+    </main>
+    <script>
+      /* A cross-origin read: it shows the stub only when the answer carries a CORS header. */
+      fetch("https://tiles.example.invalid/tiles.json")
+        .then((response) => response.json())
+        .then((body) => (document.querySelector("output").textContent = body.name))
+        .catch(() => (document.querySelector("output").textContent = "failed"));
+    </script>
+  </body>
 </html>

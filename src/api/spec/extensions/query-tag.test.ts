@@ -1,81 +1,82 @@
-import { describe, expect, it } from "vitest"
-import type { Endpoint, JsonSchema, OperationObject } from "../types.ts"
-import { GapCollector } from "./gaps.ts"
-import { readQueryCapability } from "./query-tag.ts"
+import { describe, expect, it } from "vitest";
+
+import type { Endpoint, JsonSchema, OperationObject } from "../types.ts";
+import { GapCollector } from "./gaps.ts";
+import { readQueryCapability } from "./query-tag.ts";
 
 const listing = (op: Partial<OperationObject>, path = "/rows"): Endpoint => ({
-	method: "get",
-	op: { parameters: [], responses: {}, ...op } as OperationObject,
-	operationId: "row.list",
-	path,
-})
+  method: "get",
+  op: { parameters: [], responses: {}, ...op } as OperationObject,
+  operationId: "row.list",
+  path,
+});
 
 const query = (name: string, schema: JsonSchema = { type: "string" }) => ({
-	in: "query" as const,
-	name,
-	schema,
-})
+  in: "query" as const,
+  name,
+  schema,
+});
 
 describe("x-query structured tag", () => {
-	it("keeps declared empty lists and structured rows", () => {
-		const taggedEmpty = readQueryCapability(
-			listing({ "x-query": { filterable: [], searchable: null, selectable: [], sortable: [] } }),
-			{ properties: { id: { type: "string" } }, type: "object" },
-		)
-		expect(taggedEmpty).toMatchObject({
-			filterable: [],
-			filterableDeclared: true,
-			searchable: [],
-			searchableDeclared: true,
-			selectable: [],
-			selectableDeclared: true,
-			sortable: [],
-			sortableDeclared: true,
-			source: "tag",
-		})
-		const structured = readQueryCapability(
-			listing({
-				"x-query": {
-					defaultOrder: "id.asc",
-					filterable: [{ field: "id", ops: ["eq", "in"] }],
-					maxLimit: 50,
-					searchable: ["name"],
-					selectable: ["id"],
-					sortable: ["name"],
-					stableTiebreak: "id",
-				},
-			}),
-			null,
-		)
-		expect(structured?.filterFields?.[0]).toEqual({ field: "id", ops: ["eq", "in"] })
-		expect(structured).toMatchObject({
-			defaultOrder: "id.asc",
-			filterable: ["id"],
-			maxLimit: 50,
-			searchable: ["name"],
-			selectable: ["id"],
-			sortable: ["name"],
-			sortableFields: [{ field: "name" }],
-			stableTiebreak: "id",
-		})
-	})
+  it("keeps declared empty lists and structured rows", () => {
+    const taggedEmpty = readQueryCapability(
+      listing({ "x-query": { filterable: [], searchable: null, selectable: [], sortable: [] } }),
+      { properties: { id: { type: "string" } }, type: "object" },
+    );
+    expect(taggedEmpty).toMatchObject({
+      filterable: [],
+      filterableDeclared: true,
+      searchable: [],
+      searchableDeclared: true,
+      selectable: [],
+      selectableDeclared: true,
+      sortable: [],
+      sortableDeclared: true,
+      source: "tag",
+    });
+    const structured = readQueryCapability(
+      listing({
+        "x-query": {
+          defaultOrder: "id.asc",
+          filterable: [{ field: "id", ops: ["eq", "in"] }],
+          maxLimit: 50,
+          searchable: ["name"],
+          selectable: ["id"],
+          sortable: ["name"],
+          stableTiebreak: "id",
+        },
+      }),
+      null,
+    );
+    expect(structured?.filterFields?.[0]).toEqual({ field: "id", ops: ["eq", "in"] });
+    expect(structured).toMatchObject({
+      defaultOrder: "id.asc",
+      filterable: ["id"],
+      maxLimit: 50,
+      searchable: ["name"],
+      selectable: ["id"],
+      sortable: ["name"],
+      sortableFields: [{ field: "name" }],
+      stableTiebreak: "id",
+    });
+  });
 
-	it("reads a tag without lists as declaring none of them", () => {
-		const bare = readQueryCapability(listing({ "x-query": { maxLimit: "50", searchable: "name" } }), null)
-		expect(bare).toMatchObject({
-			filterable: [],
-			filterableDeclared: false,
-			searchable: [],
-			searchableDeclared: true,
-			selectable: [],
-			selectableDeclared: false,
-			sortable: [],
-			sortableDeclared: false,
-		})
-		expect(bare?.maxLimit).toBeUndefined()
-		expect(bare?.defaultOrder).toBeUndefined()
-	})
-})
+  it("reads a tag without lists as declaring none of them", () => {
+    const bare = readQueryCapability(listing({ "x-query": { maxLimit: "50", searchable: "name" } }), null);
+    expect(bare).toMatchObject({
+      filterable: [],
+      filterableDeclared: false,
+      searchable: [],
+      searchableDeclared: true,
+      selectable: [],
+      selectableDeclared: false,
+      sortable: [],
+      sortableDeclared: false,
+    });
+    expect(bare?.maxLimit).toBeUndefined();
+    expect(bare?.defaultOrder).toBeUndefined();
+  });
+});
 
 /*
  * Without `x-query`, the API tester guesses which fields a listing sorts by. A parameter of the list's own
@@ -83,150 +84,152 @@ describe("x-query structured tag", () => {
  * ordering by it shows nothing; it is never guessed sortable. It stays filterable.
  */
 const item = {
-	properties: {
-		blob: { type: "object" },
-		id: { type: "string" },
-		name: { type: "string" },
-		nick: { oneOf: [{ type: "string" }, { type: "null" }] },
-		note: { anyOf: [{ type: "string" }, null] },
-		project_id: { type: ["string", "null"] },
-		raw: null,
-		tags: { type: ["array", "null"] },
-		untyped: {},
-	},
-	type: "object",
-}
+  properties: {
+    blob: { type: "object" },
+    id: { type: "string" },
+    name: { type: "string" },
+    nick: { oneOf: [{ type: "string" }, { type: "null" }] },
+    note: { anyOf: [{ type: "string" }, null] },
+    project_id: { type: ["string", "null"] },
+    raw: null,
+    tags: { type: ["array", "null"] },
+    untyped: {},
+  },
+  type: "object",
+};
 
 describe("a guessed capability", () => {
-	it("never sorts by a parameter of the list's own path", () => {
-		const gaps = new GapCollector()
-		const capability = readQueryCapability(
-			listing(
-				{
-					parameters: [
-						{ in: "path", name: "project_id", required: true, schema: { type: "string" } },
-						query("order"),
-						query("filter"),
-					],
-				},
-				"/v1/projects/{project_id}/tables",
-			),
-			item,
-			{ gaps },
-		)
-		expect(capability).toEqual({
-			filterable: ["id", "name", "nick", "project_id"],
-			searchable: ["name"],
-			selectable: ["id", "name", "nick", "project_id"],
-			sortable: ["id", "name", "nick"],
-			source: "heuristic",
-		})
-		expect(gaps.gaps).toEqual([
-			{
-				detail:
-					"endpoint accepts filter/order but does not declare which fields support them. Assuming all 4 scalar " +
-					"properties, which will produce false failures on unindexed fields",
-				operationId: "row.list",
-				tag: "x-query",
-			},
-		])
-	})
+  it("never sorts by a parameter of the list's own path", () => {
+    const gaps = new GapCollector();
+    const capability = readQueryCapability(
+      listing(
+        {
+          parameters: [
+            { in: "path", name: "project_id", required: true, schema: { type: "string" } },
+            query("order"),
+            query("filter"),
+          ],
+        },
+        "/v1/projects/{project_id}/tables",
+      ),
+      item,
+      { gaps },
+    );
+    expect(capability).toEqual({
+      filterable: ["id", "name", "nick", "project_id"],
+      searchable: ["name"],
+      selectable: ["id", "name", "nick", "project_id"],
+      sortable: ["id", "name", "nick"],
+      source: "heuristic",
+    });
+    expect(gaps.gaps).toEqual([
+      {
+        detail:
+          "endpoint accepts filter/order but does not declare which fields support them. Assuming all 4 scalar " +
+          "properties, which will produce false failures on unindexed fields",
+        operationId: "row.list",
+        tag: "x-query",
+      },
+    ]);
+  });
 
-	it("takes the page size's documented maximum", () => {
-		const capped = readQueryCapability(
-			listing({ parameters: [query("select"), query("limit", { maximum: 100, type: "integer" })] }),
-			null,
-		)
-		expect(capped).toMatchObject({ filterable: [], maxLimit: 100 })
-		const open = readQueryCapability(listing({ parameters: [query("q"), query("limit", { type: "integer" })] }), null)
-		expect(open?.maxLimit).toBeUndefined()
-	})
+  it("takes the page size's documented maximum", () => {
+    const capped = readQueryCapability(
+      listing({ parameters: [query("select"), query("limit", { maximum: 100, type: "integer" })] }),
+      null,
+    );
+    expect(capped).toMatchObject({ filterable: [], maxLimit: 100 });
+    const open = readQueryCapability(listing({ parameters: [query("q"), query("limit", { type: "integer" })] }), null);
+    expect(open?.maxLimit).toBeUndefined();
+  });
 
-	it("reads an item without properties as no scalars", () => {
-		expect(readQueryCapability(listing({ parameters: [query("filter")] }), { properties: null })?.filterable).toEqual(
-			[],
-		)
-	})
+  it("reads an item without properties as no scalars", () => {
+    expect(readQueryCapability(listing({ parameters: [query("filter")] }), { properties: null })?.filterable).toEqual(
+      [],
+    );
+  });
 
-	it("is null for a list that takes no query grammar", () => {
-		expect(readQueryCapability(listing({ parameters: [query("page"), query("limit")] }), null)).toBeNull()
-		expect(readQueryCapability({ ...listing({}), op: { responses: {} } }, null)).toBeNull()
-	})
-})
+  it("is null for a list that takes no query grammar", () => {
+    expect(readQueryCapability(listing({ parameters: [query("page"), query("limit")] }), null)).toBeNull();
+    expect(readQueryCapability({ ...listing({}), op: { responses: {} } }, null)).toBeNull();
+  });
+});
 
 describe("an x-query that is not an object", () => {
-	it("guesses when the tag is not an object", () => {
-		const gaps = new GapCollector()
-		const guess = readQueryCapability(listing({ parameters: [query("filter")], "x-query": null }), item, { gaps })
-		expect(guess?.source).toBe("heuristic")
-		expect(gaps.gaps).toHaveLength(1)
-	})
-})
+  it("guesses when the tag is not an object", () => {
+    const gaps = new GapCollector();
+    const guess = readQueryCapability(listing({ parameters: [query("filter")], "x-query": null }), item, { gaps });
+    expect(guess?.source).toBe("heuristic");
+    expect(gaps.gaps).toHaveLength(1);
+  });
+});
 
 describe("a guessed capability's scalar fields", () => {
-	it("counts the nullable, untyped and wrapped scalars, and nothing that is only null or empty", () => {
-		const record = {
-			properties: {
-				both: { type: ["string", "integer"] },
-				code: { enum: ["a", "b"] },
-				empty: { type: [] },
-				legacy: { nullable: true, type: "string" },
-				nobody: { oneOf: [{ type: "null" }] },
-				note: { oneOf: [{ type: "string" }, { type: "null" }] },
-				titled: { allOf: [{ type: "string" }, { description: "a title" }] },
-			},
-			type: "object",
-		}
-		const capability = readQueryCapability(listing({ parameters: [query("filter")] }), record)
-		expect(capability?.filterable).toEqual(["both", "code", "legacy", "note", "titled"])
-	})
-})
+  it("counts the nullable, untyped and wrapped scalars, and nothing that is only null or empty", () => {
+    const record = {
+      properties: {
+        both: { type: ["string", "integer"] },
+        code: { enum: ["a", "b"] },
+        empty: { type: [] },
+        legacy: { nullable: true, type: "string" },
+        nobody: { oneOf: [{ type: "null" }] },
+        note: { oneOf: [{ type: "string" }, { type: "null" }] },
+        titled: { allOf: [{ type: "string" }, { description: "a title" }] },
+      },
+      type: "object",
+    };
+    const capability = readQueryCapability(listing({ parameters: [query("filter")] }), record);
+    expect(capability?.filterable).toEqual(["both", "code", "legacy", "note", "titled"]);
+  });
+});
 
 describe("an x-query that names its parameters", () => {
-	const filterBy = [query("filter_by"), query("page", { type: "integer" })]
+  const filterBy = [query("filter_by"), query("page", { type: "integer" })];
 
-	it("guesses the capabilities when the tag only names parameters, and says so", () => {
-		const gaps = new GapCollector()
-		const guess = readQueryCapability(
-			listing({ parameters: filterBy, "x-query": { params: { filter: "filter_by" } } }),
-			item,
-			{
-				gaps,
-			},
-		)
-		expect(guess).toMatchObject({ filterable: ["id", "name", "nick", "project_id"], source: "heuristic" })
-		expect(gaps.gaps[0]?.detail).toMatch(/^endpoint accepts filter_by but does not declare which fields/)
-		expect(readQueryCapability(listing({ parameters: filterBy }), item)).toBeNull()
-	})
+  it("guesses the capabilities when the tag only names parameters, and says so", () => {
+    const gaps = new GapCollector();
+    const guess = readQueryCapability(
+      listing({ parameters: filterBy, "x-query": { params: { filter: "filter_by" } } }),
+      item,
+      {
+        gaps,
+      },
+    );
+    expect(guess).toMatchObject({ filterable: ["id", "name", "nick", "project_id"], source: "heuristic" });
+    expect(gaps.gaps[0]?.detail).toMatch(/^endpoint accepts filter_by but does not declare which fields/);
+    expect(readQueryCapability(listing({ parameters: filterBy }), item)).toBeNull();
+  });
 
-	it("guesses the capabilities when the tag only names parameters and envelope fields", () => {
-		const envelopeOnly = listing({ parameters: filterBy, "x-query": { envelope: { total: "tally" } } })
-		expect(readQueryCapability(envelopeOnly, item, { params: { filter: "filter_by" } })?.source).toBe("heuristic")
-		const both = listing({
-			parameters: filterBy,
-			"x-query": { envelope: { total: "tally" }, params: { filter: "filter_by" } },
-		})
-		expect(readQueryCapability(both, item)?.source).toBe("heuristic")
-		const declared = listing({ parameters: filterBy, "x-query": { envelope: {}, filterable: ["name"] } })
-		expect(readQueryCapability(declared, item)?.source).toBe("tag")
-	})
+  it("guesses the capabilities when the tag only names parameters and envelope fields", () => {
+    const envelopeOnly = listing({ parameters: filterBy, "x-query": { envelope: { total: "tally" } } });
+    expect(readQueryCapability(envelopeOnly, item, { params: { filter: "filter_by" } })?.source).toBe("heuristic");
+    const both = listing({
+      parameters: filterBy,
+      "x-query": { envelope: { total: "tally" }, params: { filter: "filter_by" } },
+    });
+    expect(readQueryCapability(both, item)?.source).toBe("heuristic");
+    const declared = listing({ parameters: filterBy, "x-query": { envelope: {}, filterable: ["name"] } });
+    expect(readQueryCapability(declared, item)?.source).toBe("tag");
+  });
 
-	it("counts a role config names, outranking the tag where the operation declares the name", () => {
-		const configured = readQueryCapability(listing({ parameters: filterBy }), item, { params: { filter: "filter_by" } })
-		expect(configured?.source).toBe("heuristic")
-		const tagged = listing({ parameters: filterBy, "x-query": { params: { filter: "nope" } } })
-		expect(readQueryCapability(tagged, item)).toBeNull()
-		expect(readQueryCapability(tagged, item, { params: { filter: "filter_by" } })?.source).toBe("heuristic")
-		const kept = listing({ parameters: filterBy, "x-query": { params: { filter: "filter_by" } } })
-		expect(readQueryCapability(kept, item, { params: { filter: "elsewhere" } })?.source).toBe("heuristic")
-	})
+  it("counts a role config names, outranking the tag where the operation declares the name", () => {
+    const configured = readQueryCapability(listing({ parameters: filterBy }), item, {
+      params: { filter: "filter_by" },
+    });
+    expect(configured?.source).toBe("heuristic");
+    const tagged = listing({ parameters: filterBy, "x-query": { params: { filter: "nope" } } });
+    expect(readQueryCapability(tagged, item)).toBeNull();
+    expect(readQueryCapability(tagged, item, { params: { filter: "filter_by" } })?.source).toBe("heuristic");
+    const kept = listing({ parameters: filterBy, "x-query": { params: { filter: "filter_by" } } });
+    expect(readQueryCapability(kept, item, { params: { filter: "elsewhere" } })?.source).toBe("heuristic");
+  });
 
-	it("reads a tag that declares capabilities beside the names as declared", () => {
-		const declared = readQueryCapability(
-			listing({ parameters: filterBy, "x-query": { filterable: ["id"], params: { filter: "filter_by" } } }),
-			item,
-		)
-		expect(declared).toMatchObject({ filterable: ["id"], source: "tag" })
-		expect(readQueryCapability(listing({ parameters: filterBy, "x-query": {} }), item)?.source).toBe("tag")
-	})
-})
+  it("reads a tag that declares capabilities beside the names as declared", () => {
+    const declared = readQueryCapability(
+      listing({ parameters: filterBy, "x-query": { filterable: ["id"], params: { filter: "filter_by" } } }),
+      item,
+    );
+    expect(declared).toMatchObject({ filterable: ["id"], source: "tag" });
+    expect(readQueryCapability(listing({ parameters: filterBy, "x-query": {} }), item)?.source).toBe("tag");
+  });
+});

@@ -10,13 +10,13 @@
  * Vendored rather than downloaded so the check stays offline and deterministic.
  */
 
-import { documentFixtures } from "./specs/documents.ts"
-import { modelFixtures } from "./specs/models.ts"
-import type { SpecFixture } from "./specs/types.ts"
+import { documentFixtures } from "./specs/documents.ts";
+import { modelFixtures } from "./specs/models.ts";
+import type { SpecFixture } from "./specs/types.ts";
 
-export type { SpecFixture } from "./specs/types.ts"
+export type { SpecFixture } from "./specs/types.ts";
 
 /** Every fixture, in the order the parser suite reports them. */
 export function specFixtures(): SpecFixture[] {
-	return [...documentFixtures(), ...modelFixtures()]
+  return [...documentFixtures(), ...modelFixtures()];
 }

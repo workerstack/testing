@@ -54,14 +54,16 @@ export function fakeToolkit(options: ToolkitOptions = {}): { toolkit: Toolkit; l
 		effects: { runEffectsSuite: async () => suite("effects")() },
 		featureGate: { runFeatureGateSuite: async () => suite("featureGate")() },
 		fuzz: {
-			renderFuzz: (results: Case[]) => rendered(results),
-			renderPrecision: (results: Case[]) => rendered(results),
 			runFuzz: async ({ via, ...input }: { via?: unknown }) => (
 				via === undefined ? undefined : reachedBySocket(via),
 				log.push(`fuzz ${JSON.stringify(input)}`),
 				cases
 			),
 			runPrecision: async (input: unknown) => (log.push(`precision ${JSON.stringify(input)}`), cases),
+		},
+		fuzzRender: {
+			renderFuzz: (results: Case[]) => rendered(results),
+			renderPrecision: (results: Case[]) => rendered(results),
 		},
 		pool: { createPool: (jobs: number) => fakePool(jobs, options, log), defaultJobs: () => 3 },
 		rateLimit: { runRateLimitSuite: async () => suite("rateLimit")() },

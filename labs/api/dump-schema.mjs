@@ -4,16 +4,17 @@
  *
  *   node labs/api/dump-schema.mjs
  */
-import { mkdir, writeFile } from "node:fs/promises"
-import { dirname, join } from "node:path"
-import { fileURLToPath } from "node:url"
-import { schemaStatements } from "./kit/schema.ts"
-import { WORLDS } from "./worlds/catalog.ts"
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const dir = join(dirname(fileURLToPath(import.meta.url)), "schema")
-await mkdir(dir, { recursive: true })
+import { schemaStatements } from "./kit/schema.ts";
+import { WORLDS } from "./worlds/catalog.ts";
+
+const dir = join(dirname(fileURLToPath(import.meta.url)), "schema");
+await mkdir(dir, { recursive: true });
 for (const [id, world] of Object.entries(WORLDS).sort(([a], [b]) => a.localeCompare(b))) {
-	const sql = `-- labs/api/${id} — ${world.entities.length} entities. Applied to D1 testing-labs-${id}.\n${schemaStatements(world).join(";\n")};\n`
-	await writeFile(join(dir, `${id}.sql`), sql)
-	process.stdout.write(`wrote schema/${id}.sql  ${world.entities.length} entities\n`)
+  const sql = `-- labs/api/${id} — ${world.entities.length} entities. Applied to D1 testing-labs-${id}.\n${schemaStatements(world).join(";\n")};\n`;
+  await writeFile(join(dir, `${id}.sql`), sql);
+  process.stdout.write(`wrote schema/${id}.sql  ${world.entities.length} entities\n`);
 }

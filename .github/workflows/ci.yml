@@ -19,9 +19,9 @@ env:
   BUN_VERSION: "1.4.4"
 
 jobs:
-  commitlint:
-    name: commitlint
-    if: github.event_name == 'pull_request'
+  # Every pushed commit's message, checked by the same rules the commit-msg hook runs.
+  commits:
+    name: commits
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -32,12 +32,10 @@ jobs:
         with:
           bun-version: ${{ env.BUN_VERSION }}
       - run: bun install --frozen-lockfile
-      - name: Lint commit messages
-        run: |
-          bunx commitlint \
-            --from ${{ github.event.pull_request.base.sha }} \
-            --to ${{ github.event.pull_request.head.sha }} \
-            --verbose
+      - name: Check every pushed commit
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: bun repo commit-msg --range "$BASE..HEAD"
 
   check:
     name: lint
@@ -50,7 +48,8 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
       - run: bun install --frozen-lockfile
       - run: bun run fmt:check
-      - run: bun run lint
+      # Lint under the .repo/lint-baseline.json ratchet, knip, sync drift and the config checks.
+      - run: bun repo check
       - run: bun run check
 
   # Jobs side by side; they share only the checkout and the install. Timeouts are about 1.5 times

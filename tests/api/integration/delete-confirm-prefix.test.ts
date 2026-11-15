@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest"
-import { judgeDefect } from "../../../src/api/conformance/matrix/cases.ts"
-import { listening } from "../../../src/api/conformance/harness/launch.ts"
+import { describe, expect, it } from "vitest";
+
+import { listening } from "../../../src/api/conformance/harness/launch.ts";
+import { judgeDefect } from "../../../src/api/conformance/matrix/cases.ts";
 
 /*
  * A delete is confirmed by reading its path again. Under an API mounted below a prefix
@@ -10,15 +11,15 @@ import { listening } from "../../../src/api/conformance/harness/launch.ts"
  */
 
 describe("delete.absent-record-returns-404 behind a path prefix", () => {
-	it("still catches a delete that keeps its record", async () => {
-		const result = await judgeDefect("DELETE_KEEPS_ROW", {
-			backend: "memory",
-			dialect: "postgrest",
-			shape: "path-prefix",
-			via: listening,
-		})
-		expect(result.error).toBeUndefined()
-		expect(result.detected).toBe(true)
-		expect(result.spurious.map((finding) => `${finding.check}: ${finding.summary}`)).toEqual([])
-	}, 240_000)
-})
+  it("still catches a delete that keeps its record", async () => {
+    const result = await judgeDefect("DELETE_KEEPS_ROW", {
+      backend: "memory",
+      dialect: "postgrest",
+      shape: "path-prefix",
+      via: listening,
+    });
+    expect(result.error).toBeUndefined();
+    expect(result.detected).toBe(true);
+    expect(result.spurious.map((finding) => `${finding.check}: ${finding.summary}`)).toEqual([]);
+  }, 240_000);
+});

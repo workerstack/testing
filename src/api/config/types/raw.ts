@@ -7,21 +7,21 @@
  */
 
 /** Every key of every member of a union, where `keyof` alone keeps only the shared ones. */
-export type AllKeys<U> = U extends unknown ? keyof U : never
+type AllKeys<U> = U extends unknown ? keyof U : never;
 
 /** Config section `T` as written: the keys `T` declares, each optional and unchecked. */
-export type RawOf<T> = { [K in keyof T]?: unknown }
+export type RawOf<T> = { [K in keyof T]?: unknown };
 
 /** A union config shape (a recipe of any kind, a step of any kind) as written: every member's keys, unchecked. */
-export type RawOfUnion<U> = { [K in AllKeys<U>]?: unknown }
+export type RawOfUnion<U> = { [K in AllKeys<U>]?: unknown };
 
-const isPlainObject = (value: unknown): boolean => value !== null && typeof value === "object" && !Array.isArray(value)
+const isPlainObject = (value: unknown): boolean => value !== null && typeof value === "object" && !Array.isArray(value);
 
 /** A plain object, read as config section `T`: nothing about its values is assumed. */
-export const isRaw = <T>(value: unknown): value is RawOf<T> => isPlainObject(value)
+export const isRaw = <T>(value: unknown): value is RawOf<T> => isPlainObject(value);
 
 /** A plain object, read as a union config shape: every member's keys, nothing about its values assumed. */
-export const isRawUnion = <U>(value: unknown): value is RawOfUnion<U> => isPlainObject(value)
+export const isRawUnion = <U>(value: unknown): value is RawOfUnion<U> => isPlainObject(value);
 
 /** A plain object whose keys the user chose (a map of schemes, principals, headers), for iterating them. */
-export const isRecord = (value: unknown): value is Record<string, unknown> => isPlainObject(value)
+export const isRecord = (value: unknown): value is Record<string, unknown> => isPlainObject(value);

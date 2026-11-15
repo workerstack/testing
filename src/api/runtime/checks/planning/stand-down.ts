@@ -1,16 +1,16 @@
-import type { OperationModel } from "../../../spec/graph/types.ts"
-import type { Exchange } from "../../exchange.ts"
-import { describeFeatureGate, isDocumentedFeatureGateDenial } from "../../feature-gate.ts"
-import { describeExceeded } from "../../rate-limit/retry-after.ts"
-import type { CheckContext } from "../core/context.ts"
-import { cannot, type Plan } from "../core/plan.ts"
+import type { OperationModel } from "../../../spec/graph/types.ts";
+import type { Exchange } from "../../exchange.ts";
+import { describeFeatureGate, isDocumentedFeatureGateDenial } from "../../feature-gate.ts";
+import { describeExceeded } from "../../rate-limit/retry-after.ts";
+import type { CheckContext } from "../core/context.ts";
+import { cannot, type Plan } from "../core/plan.ts";
 
 /* ------------------------------------------------------------------- helpers */
 
 /** What a check that predicts stored values from the cohort's fields needs, when the records are what the API tester sent. */
 export const STORED_FIELDS_UNKNOWN: string =
-	"records read back from the server: the create answered without the record and there was no item read, " +
-	"so the cohort holds only the bodies the API tester sent"
+  "records read back from the server: the create answered without the record and there was no item read, " +
+  "so the cohort holds only the bodies the API tester sent";
 
 /**
  * The stand-down for a check that works out from a record's fields what the server must answer —
@@ -19,7 +19,7 @@ export const STORED_FIELDS_UNKNOWN: string =
  * `undefined` when the records are the server's.
  */
 export function storedFieldsUnknown(ctx: Pick<CheckContext, "recordsUnverified">): Plan<never> | undefined {
-	return ctx.recordsUnverified === true ? cannot(STORED_FIELDS_UNKNOWN) : undefined
+  return ctx.recordsUnverified === true ? cannot(STORED_FIELDS_UNKNOWN) : undefined;
 }
 
 /**
@@ -29,21 +29,21 @@ export function storedFieldsUnknown(ctx: Pick<CheckContext, "recordsUnverified">
  * against the documented error schema, by schema.error-response-matches-document.
  */
 export function standDownForFeatureGate(
-	ctx: CheckContext,
-	op: OperationModel | undefined,
-	exchange: Exchange,
-	check: string,
+  ctx: CheckContext,
+  op: OperationModel | undefined,
+  exchange: Exchange,
+  check: string,
 ): boolean {
-	if (op === undefined) return false
-	if (!isDocumentedFeatureGateDenial(op, exchange.status, exchange.responseBody)) return false
-	/* The 403 body is judged against its schema by schema.error-response-matches-document. */
-	ctx.findings.gap(check, ctx.entityName, {
-		summary: `${op.operationId} did not apply`,
-		detail:
-			`${describeFeatureGate(op, exchange.responseBody)}. The check that needed a 2xx stands ` +
-			"down rather than treat the documented 403 as a defect.",
-	})
-	return true
+  if (op === undefined) return false;
+  if (!isDocumentedFeatureGateDenial(op, exchange.status, exchange.responseBody)) return false;
+  /* The 403 body is judged against its schema by schema.error-response-matches-document. */
+  ctx.findings.gap(check, ctx.entityName, {
+    summary: `${op.operationId} did not apply`,
+    detail:
+      `${describeFeatureGate(op, exchange.responseBody)}. The check that needed a 2xx stands ` +
+      "down rather than treat the documented 403 as a defect.",
+  });
+  return true;
 }
 
 /**
@@ -51,13 +51,15 @@ export function standDownForFeatureGate(
  * 2xx stands down; it is not a defect and it is not a concurrency conclusion.
  */
 export function standDownForRateLimit(ctx: CheckContext, exchange: Exchange, check: string): boolean {
-	if (exchange.status !== 429) return false
-	const why =
-		exchange.retryAfterExceeded === undefined ? "after retries" : `and ${describeExceeded(exchange.retryAfterExceeded)}`
-	ctx.findings.unresolved(
-		check,
-		ctx.entityName,
-		`the request was rate-limited (429) ${why}, so this check could not complete`,
-	)
-	return true
+  if (exchange.status !== 429) return false;
+  const why =
+    exchange.retryAfterExceeded === undefined
+      ? "after retries"
+      : `and ${describeExceeded(exchange.retryAfterExceeded)}`;
+  ctx.findings.unresolved(
+    check,
+    ctx.entityName,
+    `the request was rate-limited (429) ${why}, so this check could not complete`,
+  );
+  return true;
 }

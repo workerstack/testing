@@ -5,34 +5,34 @@
  * No token is a 401.
  */
 
-import type { EntityModel, SpecModel } from "../../spec/graph/types.ts"
-import { SELF_IDENTITY } from "../../spec/sign-up.ts"
-import type { CheckId } from "../check-ids.ts"
+import type { EntityModel, SpecModel } from "../../spec/graph/types.ts";
+import { SELF_IDENTITY } from "../../spec/sign-up.ts";
+import type { CheckId } from "../check-ids.ts";
 
-export const SELF_CHECK_ID: Extract<CheckId, "auth.self-is-the-caller"> = "auth.self-is-the-caller"
+export const SELF_CHECK_ID: Extract<CheckId, "auth.self-is-the-caller"> = "auth.self-is-the-caller";
 
 export function selfReadIds(entity: EntityModel): string[] {
-	if (entity.reads !== undefined && entity.reads.length > 0) return entity.reads
-	return entity.read === undefined ? [] : [entity.read]
+  if (entity.reads !== undefined && entity.reads.length > 0) return entity.reads;
+  return entity.read === undefined ? [] : [entity.read];
 }
 
 /** GET actions with no path id, such as a handle query on the caller. */
 export function selfActionIds(entity: EntityModel, model: SpecModel): string[] {
-	if (entity.identity !== SELF_IDENTITY) return []
-	return entity.actions.filter((id) => {
-		const op = model.byOperationId.get(id)
-		return op !== undefined && op.method.toUpperCase() === "GET" && op.pathParams.length === 0
-	})
+  if (entity.identity !== SELF_IDENTITY) return [];
+  return entity.actions.filter((id) => {
+    const op = model.byOperationId.get(id);
+    return op !== undefined && op.method.toUpperCase() === "GET" && op.pathParams.length === 0;
+  });
 }
 
 export function selfOperationIds(entity: EntityModel, model?: SpecModel): string[] {
-	if (entity.identity !== SELF_IDENTITY) return []
-	const ids = [...selfReadIds(entity), entity.update].filter((id): id is string => id !== undefined)
-	const actions = model === undefined ? [] : selfActionIds(entity, model)
-	const withCreate = ids.length === 0 || entity.create === undefined ? ids : [entity.create, ...ids]
-	return [...withCreate, ...actions]
+  if (entity.identity !== SELF_IDENTITY) return [];
+  const ids = [...selfReadIds(entity), entity.update].filter((id): id is string => id !== undefined);
+  const actions = model === undefined ? [] : selfActionIds(entity, model);
+  const withCreate = ids.length === 0 || entity.create === undefined ? ids : [entity.create, ...ids];
+  return [...withCreate, ...actions];
 }
 
 export function entityIsSelf(entity: EntityModel): boolean {
-	return selfOperationIds(entity).length > 0
+  return selfOperationIds(entity).length > 0;
 }

@@ -44,7 +44,7 @@ export function stage(document: OpenApiDocument, respond: Responder, fields: Par
 		client,
 		credentials: {
 			actorFor: async () => ({ untested: "no dedicated credential" }),
-			identityFields: new Map(),
+			identityFields: new Map<string, never>(),
 			operations: new Set<string>(),
 		},
 		findings: new FindingCollector(),

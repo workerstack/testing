@@ -22,6 +22,26 @@
       }
     },
     {
+      "label": "build:api",
+      "type": "shell",
+      "command": "bun run build:api",
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "new",
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "build:web",
+      "type": "shell",
+      "command": "bun run build:web",
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "new",
+        "reveal": "always"
+      }
+    },
+    {
       "label": "check",
       "type": "shell",
       "command": "bun run check",
@@ -102,9 +122,59 @@
       }
     },
     {
+      "label": "labs:demo",
+      "type": "shell",
+      "command": "bun run labs:demo",
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "new",
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "labs:deploy",
+      "type": "shell",
+      "command": "bun run labs:deploy",
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "new",
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "labs:provision",
+      "type": "shell",
+      "command": "bun run labs:provision",
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "new",
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "labs:schema",
+      "type": "shell",
+      "command": "bun run labs:schema",
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "new",
+        "reveal": "always"
+      }
+    },
+    {
       "label": "labs:sweep",
       "type": "shell",
       "command": "bun run labs:sweep",
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "new",
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "labs:wipe",
+      "type": "shell",
+      "command": "bun run labs:wipe",
       "problemMatcher": [],
       "presentation": {
         "panel": "new",
@@ -145,16 +215,6 @@
       "label": "prepack",
       "type": "shell",
       "command": "bun run prepack",
-      "problemMatcher": [],
-      "presentation": {
-        "panel": "new",
-        "reveal": "always"
-      }
-    },
-    {
-      "label": "prepare",
-      "type": "shell",
-      "command": "bun run prepare",
       "problemMatcher": [],
       "presentation": {
         "panel": "new",
@@ -225,6 +285,26 @@
       "label": "typecheck",
       "type": "shell",
       "command": "bun run typecheck",
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "new",
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "typecheck:test",
+      "type": "shell",
+      "command": "bun run typecheck:test",
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "new",
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "typecheck:web-test",
+      "type": "shell",
+      "command": "bun run typecheck:web-test",
       "problemMatcher": [],
       "presentation": {
         "panel": "new",

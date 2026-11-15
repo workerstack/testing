@@ -7,169 +7,169 @@
  * the predicate is not.
  */
 
-import type { EntityDef } from "../model/types.ts"
-import type { Collation, FilterNode, LikeSegment, OrderTerm, Scalar, SearchMode, SelectPlan } from "../query-types.ts"
+import type { EntityDef } from "../model/types.ts";
+import type { Collation, FilterNode, LikeSegment, OrderTerm, Scalar, SearchMode, SelectPlan } from "../query-types.ts";
 
-export type SqlParam = string | number | boolean | null
+export type SqlParam = string | number | boolean | null;
 
 /** A pattern to match: its segments, and whether case is ignored. */
-export interface LikePattern {
-	segments: LikeSegment[]
-	insensitive: boolean
+interface LikePattern {
+  segments: LikeSegment[];
+  insensitive: boolean;
 }
 
 /** Text to look for, and whether case must match. */
-export interface Needle {
-	text: string
-	caseSensitive: boolean
+interface Needle {
+  text: string;
+  caseSensitive: boolean;
 }
 
 export interface SqlFlavor {
-	/** The expression reading a field — a quoted column, or a deliberately wrong one under a defect. */
-	column(entity: EntityDef, field: string): string
-	/** Appends a bound argument and returns its placeholder. */
-	bind(args: SqlParam[], value: SqlParam): string
-	/** A boolean as the engine stores it. */
-	bool(value: boolean): SqlParam
-	toText(expr: string): string
-	/** Text ordering under a binary collation. */
-	binary(expr: string): string
-	/** A case-sensitive or case-insensitive match of `expr` against the pattern. */
-	like(expr: string, pattern: LikePattern, args: SqlParam[]): string
-	/** Where the needle first occurs in `expr`, 1-based, or 0 — with the engine's own case folding. */
-	position(expr: string, needle: Needle, args: SqlParam[]): string
-	/** Whether a JSON array column holds `element` as one of its elements. */
-	hasElement(expr: string, element: string, args: SqlParam[]): string
-	random: string
+  /** The expression reading a field — a quoted column, or a deliberately wrong one under a defect. */
+  column(entity: EntityDef, field: string): string;
+  /** Appends a bound argument and returns its placeholder. */
+  bind(args: SqlParam[], value: SqlParam): string;
+  /** A boolean as the engine stores it. */
+  bool(value: boolean): SqlParam;
+  toText(expr: string): string;
+  /** Text ordering under a binary collation. */
+  binary(expr: string): string;
+  /** A case-sensitive or case-insensitive match of `expr` against the pattern. */
+  like(expr: string, pattern: LikePattern, args: SqlParam[]): string;
+  /** Where the needle first occurs in `expr`, 1-based, or 0 — with the engine's own case folding. */
+  position(expr: string, needle: Needle, args: SqlParam[]): string;
+  /** Whether a JSON array column holds `element` as one of its elements. */
+  hasElement(expr: string, element: string, args: SqlParam[]): string;
+  random: string;
 }
 
 function isText(entity: EntityDef, field: string): boolean {
-	return entity.fields.find((f) => f.name === field)?.type === "string"
+  return entity.fields.find((f) => f.name === field)?.type === "string";
 }
 
 function value(flavor: SqlFlavor, scalar: Scalar, asText: boolean): SqlParam {
-	if (asText) return String(scalar)
-	if (typeof scalar === "boolean") return flavor.bool(scalar)
-	return scalar
+  if (asText) return String(scalar);
+  if (typeof scalar === "boolean") return flavor.bool(scalar);
+  return scalar;
 }
 
 /** What every clause of one compilation shares: the entity read, the engine's spelling, the bound arguments. */
 export interface Compilation {
-	entity: EntityDef
-	flavor: SqlFlavor
-	args: SqlParam[]
+  entity: EntityDef;
+  flavor: SqlFlavor;
+  args: SqlParam[];
 }
 
-type Node<K extends FilterNode["kind"]> = FilterNode & { kind: K }
+type Node<K extends FilterNode["kind"]> = FilterNode & { kind: K };
 
 export function compileWhere(node: FilterNode, compilation: Compilation): string {
-	const { args, entity, flavor } = compilation
-	switch (node.kind) {
-		case "const":
-			return node.value ? "1 = 1" : "1 = 0"
-		case "and":
-		case "or":
-			return `(${node.children.map((child) => compileWhere(child, compilation)).join(node.kind === "and" ? " AND " : " OR ")})`
-		case "isnull":
-			return `${flavor.column(entity, node.field)} IS ${node.negate ? "NOT " : ""}NULL`
-		case "cmp":
-			return compileCmp(node, compilation)
-		case "in":
-			return compileIn(node, compilation)
-		case "like":
-			return flavor.like(
-				flavor.column(entity, node.field),
-				{ insensitive: node.insensitive, segments: node.pattern },
-				args,
-			)
-		case "contains":
-			return compileContains(node, compilation)
-		case "search":
-			return `(${node.fields
-				.map((field) => searchClause(flavor.toText(flavor.column(entity, field)), node, compilation))
-				.join(" OR ")})`
-	}
+  const { args, entity, flavor } = compilation;
+  switch (node.kind) {
+    case "const":
+      return node.value ? "1 = 1" : "1 = 0";
+    case "and":
+    case "or":
+      return `(${node.children.map((child) => compileWhere(child, compilation)).join(node.kind === "and" ? " AND " : " OR ")})`;
+    case "isnull":
+      return `${flavor.column(entity, node.field)} IS ${node.negate ? "NOT " : ""}NULL`;
+    case "cmp":
+      return compileCmp(node, compilation);
+    case "in":
+      return compileIn(node, compilation);
+    case "like":
+      return flavor.like(
+        flavor.column(entity, node.field),
+        { insensitive: node.insensitive, segments: node.pattern },
+        args,
+      );
+    case "contains":
+      return compileContains(node, compilation);
+    case "search":
+      return `(${node.fields
+        .map((field) => searchClause(flavor.toText(flavor.column(entity, field)), node, compilation))
+        .join(" OR ")})`;
+  }
 }
 
 function compileCmp(node: Node<"cmp">, { args, entity, flavor }: Compilation): string {
-	const column = flavor.column(entity, node.field)
-	/* Text compares binary, whatever the database default collation is. */
-	const ref = node.asText ? flavor.toText(column) : isText(entity, node.field) ? flavor.binary(column) : column
-	const op = { eq: "=", gt: ">", gte: ">=", lt: "<", lte: "<=", neq: "<>" }[node.op]
-	const sql = `${ref} ${op} ${flavor.bind(args, value(flavor, node.value, node.asText))}`
-	return node.nullsMatch ? `(${sql} OR ${column} IS NULL)` : sql
+  const column = flavor.column(entity, node.field);
+  /* Text compares binary, whatever the database default collation is. */
+  const ref = node.asText ? flavor.toText(column) : isText(entity, node.field) ? flavor.binary(column) : column;
+  const op = { eq: "=", gt: ">", gte: ">=", lt: "<", lte: "<=", neq: "<>" }[node.op];
+  const sql = `${ref} ${op} ${flavor.bind(args, value(flavor, node.value, node.asText))}`;
+  return node.nullsMatch ? `(${sql} OR ${column} IS NULL)` : sql;
 }
 
 function compileIn(node: Node<"in">, { args, entity, flavor }: Compilation): string {
-	const column = flavor.column(entity, node.field)
-	if (node.values.length === 0) return node.negate ? "1 = 1" : "1 = 0"
-	const ref = node.asText ? flavor.toText(column) : column
-	const holes = node.values.map((member) => flavor.bind(args, value(flavor, member, node.asText))).join(", ")
-	return node.negate ? `(${ref} NOT IN (${holes}) OR ${column} IS NULL)` : `${ref} IN (${holes})`
+  const column = flavor.column(entity, node.field);
+  if (node.values.length === 0) return node.negate ? "1 = 1" : "1 = 0";
+  const ref = node.asText ? flavor.toText(column) : column;
+  const holes = node.values.map((member) => flavor.bind(args, value(flavor, member, node.asText))).join(", ");
+  return node.negate ? `(${ref} NOT IN (${holes}) OR ${column} IS NULL)` : `${ref} IN (${holes})`;
 }
 
 function compileContains(node: Node<"contains">, { args, entity, flavor }: Compilation): string {
-	const column = flavor.column(entity, node.field)
-	/* The defect matches the serialized array as text, so "red" also matches "redwood". */
-	return node.substring
-		? `${flavor.position(column, { caseSensitive: true, text: node.value }, args)} > 0`
-		: flavor.hasElement(column, node.value, args)
+  const column = flavor.column(entity, node.field);
+  /* The defect matches the serialized array as text, so "red" also matches "redwood". */
+  return node.substring
+    ? `${flavor.position(column, { caseSensitive: true, text: node.value }, args)} > 0`
+    : flavor.hasElement(column, node.value, args);
 }
 
 function searchClause(
-	expr: string,
-	node: { token: string; mode: SearchMode; caseSensitive: boolean },
-	{ args, flavor }: Compilation,
+  expr: string,
+  node: { token: string; mode: SearchMode; caseSensitive: boolean },
+  { args, flavor }: Compilation,
 ): string {
-	const at = flavor.position(expr, { caseSensitive: node.caseSensitive, text: node.token }, args)
-	return node.mode === "prefix" ? `${at} = 1` : `${at} > 0`
+  const at = flavor.position(expr, { caseSensitive: node.caseSensitive, text: node.token }, args);
+  return node.mode === "prefix" ? `${at} = 1` : `${at} > 0`;
 }
 
 /** The ORDER BY clause for a plan's order, or "" when it has none. */
 export function compileOrder(
-	plan: Pick<SelectPlan, "collation" | "order" | "shuffleTies">,
-	entity: EntityDef,
-	flavor: SqlFlavor,
+  plan: Pick<SelectPlan, "collation" | "order" | "shuffleTies">,
+  entity: EntityDef,
+  flavor: SqlFlavor,
 ): string {
-	const terms: string[] = []
-	const ordering = { collation: plan.collation, entity, flavor }
-	for (const term of plan.order) {
-		const column = flavor.column(entity, term.field)
-		/* Null placement is written out rather than left to the engine, because the engines
-		 * disagree: SQLite sorts nulls first ascending, Postgres last. */
-		terms.push(`${column} IS NULL ${term.nullsFirst ? "DESC" : "ASC"}`)
-		terms.push(`${orderRef(term, column, ordering)} ${term.descending ? "DESC" : "ASC"}`)
-	}
-	if (plan.shuffleTies) terms.push(flavor.random)
-	return terms.length === 0 ? "" : ` ORDER BY ${terms.join(", ")}`
+  const terms: string[] = [];
+  const ordering = { collation: plan.collation, entity, flavor };
+  for (const term of plan.order) {
+    const column = flavor.column(entity, term.field);
+    /* Null placement is written out rather than left to the engine, because the engines
+     * disagree: SQLite sorts nulls first ascending, Postgres last. */
+    terms.push(`${column} IS NULL ${term.nullsFirst ? "DESC" : "ASC"}`);
+    terms.push(`${orderRef(term, column, ordering)} ${term.descending ? "DESC" : "ASC"}`);
+  }
+  if (plan.shuffleTies) terms.push(flavor.random);
+  return terms.length === 0 ? "" : ` ORDER BY ${terms.join(", ")}`;
 }
 
 /* What an ORDER BY is written for: the entity, the engine's spelling, and the plan's collation. */
 interface Ordering extends Omit<Compilation, "args"> {
-	collation: Collation
+  collation: Collation;
 }
 
 /* What one order term sorts by: its text form, its text under the collation, or the bare column. */
 function orderRef(term: OrderTerm, column: string, { collation, entity, flavor }: Ordering): string {
-	if (term.asText) return flavor.toText(column)
-	if (!isText(entity, term.field)) return column
-	return collation === "insensitive" ? `LOWER(${column})` : flavor.binary(column)
+  if (term.asText) return flavor.toText(column);
+  if (!isText(entity, term.field)) return column;
+  return collation === "insensitive" ? `LOWER(${column})` : flavor.binary(column);
 }
 
 /** A LIKE pattern with `\` escaping, for engines whose LIKE honors ESCAPE. */
 export function likeText(segments: LikeSegment[]): string {
-	return segments
-		.map((segment) =>
-			segment.kind === "any" ? "%" : segment.kind === "one" ? "_" : segment.text.replace(/[\\%_]/g, (ch) => `\\${ch}`),
-		)
-		.join("")
+  return segments
+    .map((segment) =>
+      segment.kind === "any" ? "%" : segment.kind === "one" ? "_" : segment.text.replace(/[\\%_]/g, (ch) => `\\${ch}`),
+    )
+    .join("");
 }
 
 /** A GLOB pattern — SQLite's case-sensitive matcher, which needs no pragma. */
 export function globText(segments: LikeSegment[]): string {
-	return segments
-		.map((segment) =>
-			segment.kind === "any" ? "*" : segment.kind === "one" ? "?" : segment.text.replace(/[*?[]/g, (ch) => `[${ch}]`),
-		)
-		.join("")
+  return segments
+    .map((segment) =>
+      segment.kind === "any" ? "*" : segment.kind === "one" ? "?" : segment.text.replace(/[*?[]/g, (ch) => `[${ch}]`),
+    )
+    .join("");
 }

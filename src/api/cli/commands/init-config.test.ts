@@ -1,20 +1,23 @@
-import { mkdtempSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
-import { join } from "node:path"
-import { pathToFileURL } from "node:url"
-import { afterEach, describe, expect, it, vi } from "vitest"
-import { configProblems } from "../../config/validate.ts"
-import { specView, securityProblems } from "../../credentials/validate/security.ts"
-import { buildSpec } from "../../reference/spec/build.ts"
-import { buildModel } from "../../spec/graph/build.ts"
-import { dereference } from "../../spec/load/dereference.ts"
-import { anyrow, cloudflare, everyScheme, immich, keycloak } from "../../spec/security/__fixtures__/documents.ts"
-import type { OpenApiDocument } from "../../spec/types.ts"
-import { renderInitConfig } from "./init-config.ts"
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
+
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { configProblems } from "../../config/validate.ts";
+import { specView, securityProblems } from "../../credentials/validate/security.ts";
+import { buildSpec } from "../../reference/spec/build.ts";
+import { buildModel } from "../../spec/graph/build.ts";
+import { dereference } from "../../spec/load/dereference.ts";
+import { anyrow, cloudflare, everyScheme, immich, keycloak } from "../../spec/security/__fixtures__/documents.ts";
+import type { OpenApiDocument } from "../../spec/types.ts";
+import { renderInitConfig } from "./init-config.ts";
 
 /* The config `testing api init` writes, from each real-world security shape: exact text, then loaded and validated. */
 
-const render = (doc: OpenApiDocument) => renderInitConfig(doc, { out: "testing.api.config.ts", spec: "./openapi.json" })
+const render = (doc: OpenApiDocument) =>
+  renderInitConfig(doc, { out: "testing.api.config.ts", spec: "./openapi.json" });
 
 const HEAD = `// Written by testing api init from ./openapi.json. Set each env() variable, then run: testing api doctor --config testing.api.config.ts
 import { defineConfig, env } from "@workerstack/testing/api"
@@ -22,63 +25,63 @@ import { defineConfig, env } from "@workerstack/testing/api"
 export default defineConfig({
 	spec: "./openapi.json",
 	baseUrl: env("TESTING_API_BASE_URL"),
-`
+`;
 
 const PRINCIPALS = `	principals: {
 		// one principal; a second with a different tenant enables the isolation checks
 		alpha: {},
 	},
 })
-`
+`;
 
-const UNTESTED = "Operations that need only it are reported untested."
+const UNTESTED = "Operations that need only it are reported untested.";
 
 /* A document of `schemes`, its operations each needing what `needs` says. */
 const secured = (
-	schemes: Record<string, unknown>,
-	needs: Record<string, Array<Record<string, string[]>>> = {},
+  schemes: Record<string, unknown>,
+  needs: Record<string, Array<Record<string, string[]>>> = {},
 ): OpenApiDocument => ({
-	components: { securitySchemes: schemes },
-	info: { title: "t", version: "1" },
-	openapi: "3.1.0",
-	paths: Object.fromEntries(
-		Object.entries(needs).map(([id, security]) => [`/${id}`, { get: { operationId: id, responses: {}, security } }]),
-	),
-})
+  components: { securitySchemes: schemes },
+  info: { title: "t", version: "1" },
+  openapi: "3.1.0",
+  paths: Object.fromEntries(
+    Object.entries(needs).map(([id, security]) => [`/${id}`, { get: { operationId: id, responses: {}, security } }]),
+  ),
+});
 
 /* One oauth2 flow, its scopes and URLs. */
-const flows = (flow: string, extra: Record<string, unknown> = {}) => ({ flows: { [flow]: { scopes: {}, ...extra } } })
+const flows = (flow: string, extra: Record<string, unknown> = {}) => ({ flows: { [flow]: { scopes: {}, ...extra } } });
 
 /* Grants the API tester runs and one it cannot, a name long enough to wrap, a two-line description, two http schemes it cannot send. */
 const grants = secured(
-	{
-		anExtremelyLongBasicAuthenticationSchemeName: { scheme: "basic", type: "http" },
-		code: { ...flows("authorizationCode", { authorizationUrl: "/authorize" }), type: "oauth2" },
-		pw: { ...flows("password", { tokenUrl: "https://auth.test/token" }), type: "oauth2" },
-		token: { description: "First line.\nSecond line.", scheme: "bearer", type: "http" },
-		weird: { scheme: "negotiate", type: "http" },
-		untyped: { name: "x" },
-	},
-	{
-		"admin.get": [{ code: ["admin"] }],
-		"many.get": [{ pw: Array.from({ length: 9 }, (_, index) => `scope:number-${index}`) }],
-	},
-)
+  {
+    anExtremelyLongBasicAuthenticationSchemeName: { scheme: "basic", type: "http" },
+    code: { ...flows("authorizationCode", { authorizationUrl: "/authorize" }), type: "oauth2" },
+    pw: { ...flows("password", { tokenUrl: "https://auth.test/token" }), type: "oauth2" },
+    token: { description: "First line.\nSecond line.", scheme: "bearer", type: "http" },
+    weird: { scheme: "negotiate", type: "http" },
+    untyped: { name: "x" },
+  },
+  {
+    "admin.get": [{ code: ["admin"] }],
+    "many.get": [{ pw: Array.from({ length: 9 }, (_, index) => `scope:number-${index}`) }],
+  },
+);
 
 /* The text, its import pointed at this checkout, loaded from a fresh folder with every env var it names set. */
 async function load(doc: OpenApiDocument): Promise<Record<string, unknown>> {
-	const { env, text } = render(doc)
-	for (const name of env) vi.stubEnv(name, name === "TESTING_API_BASE_URL" ? "http://api.test" : `value-of-${name}`)
-	const index = pathToFileURL(join(import.meta.dirname, "..", "..", "index.ts")).href
-	const file = join(mkdtempSync(join(tmpdir(), "testing-init-")), "testing.api.config.ts")
-	writeFileSync(file, text.replace('"@workerstack/testing/api"', JSON.stringify(index)))
-	return ((await import(pathToFileURL(file).href)) as { default: Record<string, unknown> }).default
+  const { env, text } = render(doc);
+  for (const name of env) vi.stubEnv(name, name === "TESTING_API_BASE_URL" ? "http://api.test" : `value-of-${name}`);
+  const index = pathToFileURL(join(import.meta.dirname, "..", "..", "index.ts")).href;
+  const file = join(mkdtempSync(join(tmpdir(), "testing-init-")), "testing.api.config.ts");
+  writeFileSync(file, text.replace('"@workerstack/testing/api"', JSON.stringify(index)));
+  return ((await import(pathToFileURL(file).href)) as { default: Record<string, unknown> }).default;
 }
 
 describe("renderInitConfig on real-world documents", () => {
-	it("anyrow: a scoped API key in Authorization and a JWT with a sign-in operation", () => {
-		const config = render(anyrow)
-		expect(config.text).toBe(`${HEAD}	security: {
+  it("anyrow: a scoped API key in Authorization and a JWT with a sign-in operation", () => {
+    const config = render(anyrow);
+    expect(config.text).toBe(`${HEAD}	security: {
 		// apiKey in header Authorization. Send \`ApiKey <key>\`.
 		// add format: "<Prefix> {credential}" if the server expects a prefix
 		// holds: ["rows:read"], // the scopes this credential carries; operations needing scopes it lacks are untested
@@ -87,17 +90,17 @@ describe("renderInitConfig on real-world documents", () => {
 		// or sign in: login: { steps: [{ operationId: "auth.login", body: {} }], from: "$.access_token" }
 		jwt: { static: env("TESTING_API_JWT_TOKEN") },
 	},
-${PRINCIPALS}`)
-		expect(config).toMatchObject({
-			env: ["TESTING_API_BASE_URL", "TESTING_API_API_KEY_KEY", "TESTING_API_JWT_TOKEN"],
-			schemes: 2,
-			unsupported: [],
-		})
-	})
+${PRINCIPALS}`);
+    expect(config).toMatchObject({
+      env: ["TESTING_API_BASE_URL", "TESTING_API_API_KEY_KEY", "TESTING_API_JWT_TOKEN"],
+      schemes: 2,
+      unsupported: [],
+    });
+  });
 
-	it("immich: any of a bearer token, a session cookie or an API key header, none colliding", () => {
-		const config = render(immich)
-		expect(config.text).toBe(`${HEAD}	security: {
+  it("immich: any of a bearer token, a session cookie or an API key header, none colliding", () => {
+    const config = render(immich);
+    expect(config.text).toBe(`${HEAD}	security: {
 		// apiKey in header x-api-key
 		api_key: { static: env("TESTING_API_API_KEY_KEY") },
 		// http bearer in header Authorization: Bearer {credential}
@@ -105,17 +108,17 @@ ${PRINCIPALS}`)
 		// apiKey in cookie immich_access_token
 		cookie: { static: env("TESTING_API_COOKIE_KEY") },
 	},
-${PRINCIPALS}`)
-		expect(config.env).toEqual([
-			"TESTING_API_BASE_URL",
-			"TESTING_API_API_KEY_KEY",
-			"TESTING_API_BEARER_TOKEN",
-			"TESTING_API_COOKIE_KEY",
-		])
-	})
+${PRINCIPALS}`);
+    expect(config.env).toEqual([
+      "TESTING_API_BASE_URL",
+      "TESTING_API_API_KEY_KEY",
+      "TESTING_API_BEARER_TOKEN",
+      "TESTING_API_COOKIE_KEY",
+    ]);
+  });
 
-	it("cloudflare: an email and a key together, or a token, each its own recipe", () => {
-		expect(render(cloudflare).text).toBe(`${HEAD}	security: {
+  it("cloudflare: an email and a key together, or a token, each its own recipe", () => {
+    expect(render(cloudflare).text).toBe(`${HEAD}	security: {
 		// apiKey in header X-Auth-Email
 		api_email: { static: env("TESTING_API_API_EMAIL_KEY") },
 		// apiKey in header X-Auth-Key
@@ -123,14 +126,14 @@ ${PRINCIPALS}`)
 		// http bearer in header Authorization: Bearer {credential}
 		api_token: { static: env("TESTING_API_API_TOKEN_TOKEN") },
 	},
-${PRINCIPALS}`)
-	})
-})
+${PRINCIPALS}`);
+  });
+});
 
 describe("renderInitConfig on every scheme type", () => {
-	it("every scheme type: unsupported ones as a comment naming the type and the reason, an oauth2 grant the API tester runs", () => {
-		const config = render(everyScheme)
-		expect(config.text).toBe(`${HEAD}	security: {
+  it("every scheme type: unsupported ones as a comment naming the type and the reason, an oauth2 grant the API tester runs", () => {
+    const config = render(everyScheme);
+    expect(config.text).toBe(`${HEAD}	security: {
 		// http basic in header Authorization: Basic base64(username:password)
 		basic: { static: { username: env("TESTING_API_BASIC_USERNAME"), password: env("TESTING_API_BASIC_PASSWORD") } },
 		// http bearer (JWT) in header Authorization: Bearer {credential}
@@ -158,81 +161,81 @@ describe("renderInitConfig on every scheme type", () => {
 		query: { static: env("TESTING_API_QUERY_KEY") },
 		// strange: kerberos, not sent by the API tester — scheme type "kerberos" is not one the API tester knows. ${UNTESTED}
 	},
-${PRINCIPALS}`)
-		expect(config.schemes).toBe(7)
-		expect(config.unsupported).toEqual([
-			{ name: "broken", type: "apiKey", why: "an apiKey scheme needs `in` (header, query or cookie) and a `name`" },
-			{ name: "digest", type: "http digest", why: "http digest needs a challenge-response round trip" },
-			{ name: "mtls", type: "mutualTLS", why: "mutualTLS is a TLS client certificate, not a request credential" },
-			{ name: "strange", type: "kerberos", why: 'scheme type "kerberos" is not one the API tester knows' },
-		])
-	})
-})
+${PRINCIPALS}`);
+    expect(config.schemes).toBe(7);
+    expect(config.unsupported).toEqual([
+      { name: "broken", type: "apiKey", why: "an apiKey scheme needs `in` (header, query or cookie) and a `name`" },
+      { name: "digest", type: "http digest", why: "http digest needs a challenge-response round trip" },
+      { name: "mtls", type: "mutualTLS", why: "mutualTLS is a TLS client certificate, not a request credential" },
+      { name: "strange", type: "kerberos", why: 'scheme type "kerberos" is not one the API tester knows' },
+    ]);
+  });
+});
 
 describe("renderInitConfig's base URL and env names", () => {
-	it("keycloak: no scheme declared, so the overlay stub is a comment and env is imported only for baseUrl", () => {
-		const stub = `	// The document declares no security scheme. If the API needs a credential, declare it:
+  it("keycloak: no scheme declared, so the overlay stub is a comment and env is imported only for baseUrl", () => {
+    const stub = `	// The document declares no security scheme. If the API needs a credential, declare it:
 	// overlay: { securitySchemes: { bearer: { type: "http", scheme: "bearer" } }, security: [{ bearer: [] }] },
 	// security: { bearer: { static: env("TESTING_API_BEARER_TOKEN") } },
-`
-		expect(render(keycloak)).toEqual({
-			env: ["TESTING_API_BASE_URL"],
-			schemes: 0,
-			text: `${HEAD}${stub}${PRINCIPALS}`,
-			unsupported: [],
-		})
-		const served = render({ ...keycloak, servers: [{ url: "https://kc.test/admin" }] })
-		expect(served.env).toEqual([])
-		expect(served.text)
-			.toBe(`// Written by testing api init from ./openapi.json. Run: testing api doctor --config testing.api.config.ts
+`;
+    expect(render(keycloak)).toEqual({
+      env: ["TESTING_API_BASE_URL"],
+      schemes: 0,
+      text: `${HEAD}${stub}${PRINCIPALS}`,
+      unsupported: [],
+    });
+    const served = render({ ...keycloak, servers: [{ url: "https://kc.test/admin" }] });
+    expect(served.env).toEqual([]);
+    expect(served.text)
+      .toBe(`// Written by testing api init from ./openapi.json. Run: testing api doctor --config testing.api.config.ts
 import { defineConfig } from "@workerstack/testing/api"
 
 export default defineConfig({
 	spec: "./openapi.json",
 	baseUrl: "https://kc.test/admin",
-${stub}${PRINCIPALS}`)
-	})
+${stub}${PRINCIPALS}`);
+  });
 
-	it("names a colliding env var with _2, and quotes a scheme name that is not an identifier", () => {
-		const doc = secured({
-			"api-key": { in: "header", name: "X-A", type: "apiKey" },
-			apiKey: { in: "header", name: "X-B", type: "apiKey" },
-			api_key: { in: "header", name: "X-C", type: "apiKey" },
-		})
-		const config = render(doc)
-		expect(config.text).toContain(`		"api-key": { static: env("TESTING_API_API_KEY_KEY") },
+  it("names a colliding env var with _2, and quotes a scheme name that is not an identifier", () => {
+    const doc = secured({
+      "api-key": { in: "header", name: "X-A", type: "apiKey" },
+      apiKey: { in: "header", name: "X-B", type: "apiKey" },
+      api_key: { in: "header", name: "X-C", type: "apiKey" },
+    });
+    const config = render(doc);
+    expect(config.text).toContain(`		"api-key": { static: env("TESTING_API_API_KEY_KEY") },
 		// apiKey in header X-B
 		apiKey: { static: env("TESTING_API_API_KEY_2_KEY") },
 		// apiKey in header X-C
 		api_key: { static: env("TESTING_API_API_KEY_3_KEY") },
-`)
-		expect(config.env).toEqual([
-			"TESTING_API_BASE_URL",
-			"TESTING_API_API_KEY_KEY",
-			"TESTING_API_API_KEY_2_KEY",
-			"TESTING_API_API_KEY_3_KEY",
-		])
-	})
+`);
+    expect(config.env).toEqual([
+      "TESTING_API_BASE_URL",
+      "TESTING_API_API_KEY_KEY",
+      "TESTING_API_API_KEY_2_KEY",
+      "TESTING_API_API_KEY_3_KEY",
+    ]);
+  });
 
-	it("takes the first absolute server URL, with its variables' defaults", () => {
-		const servers = [
-			{ url: "/relative" },
-			{ url: "https://{tenant}.api.test", variables: { tenant: {} } },
-			{
-				url: "https://{region}.api.test/v{version}",
-				variables: { region: { default: "eu" }, version: { default: "2" } },
-			},
-		]
-		const config = render({ ...keycloak, servers } as OpenApiDocument)
-		expect(config.text).toContain(`	baseUrl: "https://eu.api.test/v2",\n`)
-		expect(render({ ...keycloak, servers: [{ url: "ftp://files.test" }] }).env).toEqual(["TESTING_API_BASE_URL"])
-	})
-})
+  it("takes the first absolute server URL, with its variables' defaults", () => {
+    const servers = [
+      { url: "/relative" },
+      { url: "https://{tenant}.api.test", variables: { tenant: {} } },
+      {
+        url: "https://{region}.api.test/v{version}",
+        variables: { region: { default: "eu" }, version: { default: "2" } },
+      },
+    ];
+    const config = render({ ...keycloak, servers } as OpenApiDocument);
+    expect(config.text).toContain(`	baseUrl: "https://eu.api.test/v2",\n`);
+    expect(render({ ...keycloak, servers: [{ url: "ftp://files.test" }] }).env).toEqual(["TESTING_API_BASE_URL"]);
+  });
+});
 
 describe("renderInitConfig's grants and line wrapping", () => {
-	it("writes a password grant with its secret commented, a token for a grant the API tester cannot run, and wraps long lines", () => {
-		const config = render(grants)
-		expect(config.text).toBe(`${HEAD}	security: {
+  it("writes a password grant with its secret commented, a token for a grant the API tester cannot run, and wraps long lines", () => {
+    const config = render(grants);
+    expect(config.text).toBe(`${HEAD}	security: {
 		// http basic in header Authorization: Basic base64(username:password)
 		anExtremelyLongBasicAuthenticationSchemeName: {
 			static: {
@@ -270,21 +273,21 @@ describe("renderInitConfig's grants and line wrapping", () => {
 		// weird: http negotiate, not sent by the API tester — http scheme "negotiate" is not one the API tester can send. ${UNTESTED}
 		// untyped: no type, not sent by the API tester — scheme type "undefined" is not one the API tester knows. ${UNTESTED}
 	},
-${PRINCIPALS}`)
-		expect(config.env).not.toContain("TESTING_API_PW_CLIENT_SECRET")
-	})
-})
+${PRINCIPALS}`);
+    expect(config.env).not.toContain("TESTING_API_PW_CLIENT_SECRET");
+  });
+});
 
 describe("renderInitConfig on odd declarations", () => {
-	it("reads odd declarations: a nameless stem, oauth2 without flows or scopes, a null scheme, http without a scheme", () => {
-		const doc = secured({
-			"-": { in: "header", name: "X", type: "apiKey" },
-			bare: { type: "oauth2" },
-			cc: { flows: { clientCredentials: { scopes: {}, tokenUrl: "/t" } }, type: "oauth2" },
-			nothing: null,
-			plain: { type: "http" },
-		})
-		expect(render(doc).text).toBe(`${HEAD}	security: {
+  it("reads odd declarations: a nameless stem, oauth2 without flows or scopes, a null scheme, http without a scheme", () => {
+    const doc = secured({
+      "-": { in: "header", name: "X", type: "apiKey" },
+      bare: { type: "oauth2" },
+      cc: { flows: { clientCredentials: { scopes: {}, tokenUrl: "/t" } }, type: "oauth2" },
+      nothing: null,
+      plain: { type: "http" },
+    });
+    expect(render(doc).text).toBe(`${HEAD}	security: {
 		// apiKey in header X
 		"-": { static: env("TESTING_API_SCHEME_KEY") },
 		// oauth2 in header Authorization: Bearer {credential}
@@ -301,80 +304,83 @@ describe("renderInitConfig on odd declarations", () => {
 		// nothing: no type, not sent by the API tester — the scheme is not an object. ${UNTESTED}
 		// plain: http, not sent by the API tester — http scheme "" is not one the API tester can send. ${UNTESTED}
 	},
-${PRINCIPALS}`)
-	})
-})
+${PRINCIPALS}`);
+  });
+});
 
 describe("the rendered config", () => {
-	afterEach(() => {
-		vi.unstubAllEnvs()
-	})
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
 
-	const documents: Array<[string, OpenApiDocument]> = [
-		["the reference document", buildSpec() as OpenApiDocument],
-		["anyrow", anyrow],
-		["immich", immich],
-		["cloudflare", cloudflare],
-		["everyScheme", everyScheme],
-		["keycloak", keycloak],
-	]
+  const documents: Array<[string, OpenApiDocument]> = [
+    ["the reference document", buildSpec() as OpenApiDocument],
+    ["anyrow", anyrow],
+    ["immich", immich],
+    ["cloudflare", cloudflare],
+    ["everyScheme", everyScheme],
+    ["keycloak", keycloak],
+  ];
 
-	it.each(documents)("loads and passes configProblems and securityProblems against %s", async (_, raw) => {
-		const { doc } = dereference(raw)
-		const config = await load(doc)
-		expect(configProblems(config, { forRun: true })).toEqual([])
-		expect(securityProblems(config, specView(buildModel(doc), doc))).toEqual([])
-	})
-})
+  it.each(documents)("loads and passes configProblems and securityProblems against %s", async (_, raw) => {
+    const { doc } = dereference(raw);
+    const config = await load(doc);
+    expect(configProblems(config, { forRun: true })).toEqual([]);
+    expect(securityProblems(config, specView(buildModel(doc), doc))).toEqual([]);
+  });
+});
 
 describe("renderInitConfig and the roots a run cannot create", () => {
-	it("stubs a scope for each prefix root no create makes, naming the operations it unlocks", () => {
-		const { doc } = dereference(buildSpec() as OpenApiDocument)
-		const { text } = renderInitConfig(doc, { out: "testing.api.config.ts", spec: "openapi.json" })
-		expect(text).toContain(
-			[
-				"\t\talpha: {",
-				"\t\t\t// no create operation makes these path parameters; set each to one this principal can reach:",
-				'\t\t\t// scope: { project_id: "" },',
-				"\t\t\t// project_id unlocks table.list, table.create, table.get, table.delete and 20 more",
-				"\t\t},",
-			].join("\n"),
-		)
-		/* An id a flow yields (the invite's token, its grant) is no root to stub. */
-		expect(text).not.toMatch(/(token|grant_id|\bid): ""|(token|grant_id) unlocks/)
-	})
+  it("stubs a scope for each prefix root no create makes, naming the operations it unlocks", () => {
+    const { doc } = dereference(buildSpec() as OpenApiDocument);
+    const { text } = renderInitConfig(doc, { out: "testing.api.config.ts", spec: "openapi.json" });
+    expect(text).toContain(
+      [
+        "\t\talpha: {",
+        "\t\t\t// no create operation makes these path parameters; set each to one this principal can reach:",
+        '\t\t\t// scope: { project_id: "" },',
+        "\t\t\t// project_id unlocks table.list, table.create, table.get, table.delete and 20 more",
+        "\t\t},",
+      ].join("\n"),
+    );
+    /* An id a flow yields (the invite's token, its grant) is no root to stub. */
+    expect(text).not.toMatch(/(token|grant_id|\bid): ""|(token|grant_id) unlocks/);
+  });
 
-	it("names every operation a root unlocks when there are few", () => {
-		const rows = { items: { properties: { id: { type: "string" } }, type: "object" }, type: "array" }
-		const list = {
-			get: {
-				operationId: "widget.list",
-				parameters: [{ in: "path", name: "org_id", required: true, schema: { type: "string" } }],
-				responses: { "200": { content: { "application/json": { schema: rows } }, description: "ok" } },
-			},
-		}
-		const paths = { "/orgs/{org_id}/widgets": list }
-		const doc = { info: { title: "t", version: "1" }, openapi: "3.1.0", paths } as unknown as OpenApiDocument
-		const { text } = renderInitConfig(dereference(doc).doc, { out: "testing.api.config.ts", spec: "openapi.json" })
-		expect(text).toContain("\t\t\t// org_id unlocks widget.list\n")
-	})
+  it("names every operation a root unlocks when there are few", () => {
+    const rows = { items: { properties: { id: { type: "string" } }, type: "object" }, type: "array" };
+    const list = {
+      get: {
+        operationId: "widget.list",
+        parameters: [{ in: "path", name: "org_id", required: true, schema: { type: "string" } }],
+        responses: { "200": { content: { "application/json": { schema: rows } }, description: "ok" } },
+      },
+    };
+    const paths = { "/orgs/{org_id}/widgets": list };
+    const doc = { info: { title: "t", version: "1" }, openapi: "3.1.0", paths } as unknown as OpenApiDocument;
+    const { text } = renderInitConfig(dereference(doc).doc, { out: "testing.api.config.ts", spec: "openapi.json" });
+    expect(text).toContain("\t\t\t// org_id unlocks widget.list\n");
+  });
 
-	it("writes an empty principal when every route can be seeded", () => {
-		const { text } = renderInitConfig(dereference(keycloak).doc, { out: "testing.api.config.ts", spec: "openapi.json" })
-		expect(text).toContain("\t\talpha: {},")
-	})
-})
+  it("writes an empty principal when every route can be seeded", () => {
+    const { text } = renderInitConfig(dereference(keycloak).doc, {
+      out: "testing.api.config.ts",
+      spec: "openapi.json",
+    });
+    expect(text).toContain("\t\talpha: {},");
+  });
+});
 
 /** The config init writes for a document served at `spec` whose only server is `url`. */
 const servedAt = (url: string, spec: string): string =>
-	renderInitConfig({ ...keycloak, servers: [{ url }] }, { out: "testing.api.config.ts", spec }).text
+  renderInitConfig({ ...keycloak, servers: [{ url }] }, { out: "testing.api.config.ts", spec }).text;
 
 describe("renderInitConfig and a relative server", () => {
-	it("resolves it against the document's URL, as OpenAPI says, and leaves it to env for a file", () => {
-		const remote = "https://petstore.test/api/v3/openapi.json"
-		expect(servedAt("/api/v3", remote)).toContain('baseUrl: "https://petstore.test/api/v3",')
-		expect(servedAt("./v4", remote)).toContain('baseUrl: "https://petstore.test/api/v3/v4",')
-		expect(servedAt("v4", remote)).toContain('baseUrl: "https://petstore.test/api/v3/v4",')
-		expect(servedAt("/api/v3", "./openapi.json")).toContain('baseUrl: env("TESTING_API_BASE_URL"),')
-	})
-})
+  it("resolves it against the document's URL, as OpenAPI says, and leaves it to env for a file", () => {
+    const remote = "https://petstore.test/api/v3/openapi.json";
+    expect(servedAt("/api/v3", remote)).toContain('baseUrl: "https://petstore.test/api/v3",');
+    expect(servedAt("./v4", remote)).toContain('baseUrl: "https://petstore.test/api/v3/v4",');
+    expect(servedAt("v4", remote)).toContain('baseUrl: "https://petstore.test/api/v3/v4",');
+    expect(servedAt("/api/v3", "./openapi.json")).toContain('baseUrl: env("TESTING_API_BASE_URL"),');
+  });
+});

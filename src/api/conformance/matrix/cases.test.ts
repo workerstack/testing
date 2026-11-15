@@ -1,209 +1,214 @@
-import { afterEach, describe, expect, it } from "vitest"
-import { inProcess, type Target, type Via } from "../harness/launch.ts"
-import { judgeDefect, missingValuesOf, portableResult, runBaselines, runSuite } from "./cases.ts"
+import { afterEach, describe, expect, it } from "vitest";
 
-const MEMORY: Target = { backend: "memory", dialect: "postgrest", via: inProcess }
+import type { DefectName } from "../../reference/defects/table.ts";
+import { inProcess, type Target, type Via } from "../harness/launch.ts";
+import { judgeDefect, missingValuesOf, portableResult, runBaselines, runSuite } from "./cases.ts";
+
+const MEMORY: Target = { backend: "memory", dialect: "postgrest", via: inProcess };
 /* D1 without credentials: the reference cannot even start, so every case reports why. */
-const UNREACHABLE: Target = { backend: "d1", dialect: "postgrest", via: inProcess }
-const D1 = ["CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_D1_DATABASE_ID", "CLOUDFLARE_API_TOKEN"] as const
-const saved = { ...process.env }
+const UNREACHABLE: Target = { backend: "d1", dialect: "postgrest", via: inProcess };
+const D1 = ["CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_D1_DATABASE_ID", "CLOUDFLARE_API_TOKEN"] as const;
+const saved = { ...process.env };
 
 /** The reference behind a transport that rewrites what it says: a backend that misbehaves one way. */
 function rewriting(transport: (request: Request, inner: typeof fetch) => Promise<Response>): Target {
-	const via: Via = {
-		...inProcess,
-		launch: async (backend, options) => {
-			const launched = await inProcess.launch(backend, options)
-			const inner = launched.fetch as typeof fetch
-			return { ...launched, fetch: (input, init) => transport(new Request(input, init), inner) }
-		},
-	}
-	return { ...MEMORY, via }
+  const via: Via = {
+    ...inProcess,
+    launch: async (backend, options) => {
+      const launched = await inProcess.launch(backend, options);
+      const inner = launched.fetch as typeof fetch;
+      return { ...launched, fetch: (input, init) => transport(new Request(input, init), inner) };
+    },
+  };
+  return { ...MEMORY, via };
 }
 
 /* Every create answers 201 without the new record's id. */
 const ANONYMOUS = rewriting(async (request, inner) => {
-	const answer = await inner(request)
-	if (answer.status !== 201) return answer
-	const { id: _, ...rest } = (await answer.json()) as Record<string, unknown>
-	return Response.json(rest, { status: 201 })
-})
+  const answer = await inner(request);
+  if (answer.status !== 201) return answer;
+  const { id: _, ...rest } = (await answer.json()) as Record<string, unknown>;
+  return Response.json(rest, { status: 201 });
+});
 
 /* Every create is refused: nothing is made, so there is nothing to tear down. */
 const READ_ONLY = rewriting(async (request, inner) =>
-	request.method === "POST" && !request.url.includes("/auth/")
-		? Response.json({ error: "read only" }, { status: 403 })
-		: inner(request),
-)
+  request.method === "POST" && !request.url.includes("/auth/")
+    ? Response.json({ error: "read only" }, { status: 403 })
+    : inner(request),
+);
 
 /* A reproducer checker that finds every generated script broken. */
 async function unrunnable(): Promise<string[]> {
-	return ["stale.sh: syntax error near unexpected token"]
+  return ["stale.sh: syntax error near unexpected token"];
 }
 
 afterEach(() => {
-	process.env = { ...saved }
-})
+  process.env = { ...saved };
+});
 
 describe("runSuite", () => {
-	it("runs the baselines, then each defect the filter names", async () => {
-		const results = await runSuite(MEMORY, ["STALE_LIST"])
-		expect(results.map((result) => [result.label, result.detected, result.spurious.length])).toEqual([
-			["baseline (correct backend)", true, 0],
-			["baseline (untagged spec)", true, 0],
-			["STALE_LIST", true, 0],
-		])
-		const [tagged, untagged, defect] = results
-		expect(tagged).toMatchObject({ bystanders: [], leaked: 0, strayLedger: [], unreported: [] })
-		expect(untagged?.leaked).toBeUndefined()
-		/* Its register is untagged: the account the API tester made there is a leftover it names, never one it keeps quiet. */
-		expect(untagged).toMatchObject({
-			reported: expect.arrayContaining([expect.stringMatching(/^account testing-\S+@example\.test$/)]),
-			unreported: [],
-		})
-		expect(defect).toMatchObject({
-			acceptable: expect.arrayContaining(["list.read-after-write"]),
-			expected: "list.read-after-write",
-		})
-	}, 180_000)
-})
+  it("runs the baselines, then each defect the filter names", async () => {
+    const results = await runSuite(MEMORY, ["STALE_LIST"]);
+    expect(results.map((result) => [result.label, result.detected, result.spurious.length])).toEqual([
+      ["baseline (correct backend)", true, 0],
+      ["baseline (untagged spec)", true, 0],
+      ["STALE_LIST", true, 0],
+    ]);
+    const [tagged, untagged, defect] = results;
+    expect(tagged).toMatchObject({ bystanders: [], leaked: 0, strayLedger: [], unreported: [] });
+    expect(untagged?.leaked).toBeUndefined();
+    /* Its register is untagged: the account the API tester made there is a leftover it names, never one it keeps quiet. */
+    expect(untagged).toMatchObject({
+      reported: expect.arrayContaining([expect.stringMatching(/^account testing-\S+@example\.test$/)]),
+      unreported: [],
+    });
+    expect(defect).toMatchObject({
+      acceptable: expect.arrayContaining(["list.read-after-write"]),
+      expected: "list.read-after-write",
+    });
+  }, 180_000);
+});
 
 describe("judgeDefect", () => {
-	it("leaves out the bystanders a defect damages by design", async () => {
-		const result = await judgeDefect("PATCH_REPLACES", MEMORY, { label: "patch" })
-		expect(result).toMatchObject({ bystanders: [], detected: true, label: "patch" })
-	}, 120_000)
+  it("leaves out the bystanders a defect damages by design", async () => {
+    const result = await judgeDefect("PATCH_REPLACES", MEMORY, { label: "patch" });
+    expect(result).toMatchObject({ bystanders: [], detected: true, label: "patch" });
+  }, 120_000);
 
-	it("switches on what a defect needs to show: the reference's throttle, and the API tester's opt-in check", async () => {
-		const result = await judgeDefect("LOGIN_NOT_THROTTLED", MEMORY, { checkRepros: async () => [] })
-		expect(result).toMatchObject({ detected: true, expected: "auth.login-throttled", spurious: [] })
-	}, 120_000)
+  it("switches on what a defect needs to show: the reference's throttle, and the API tester's opt-in check", async () => {
+    const result = await judgeDefect("LOGIN_NOT_THROTTLED", MEMORY, { checkRepros: async () => [] });
+    expect(result).toMatchObject({ detected: true, expected: "auth.login-throttled", spurious: [] });
+  }, 120_000);
 
-	it("reports why a case could not run", async () => {
-		for (const name of D1) delete process.env[name]
-		const result = await judgeDefect("STALE_LIST", UNREACHABLE)
-		expect(result).toMatchObject({ checksRun: [], detected: false, error: expect.stringMatching(/D1 backend needs/) })
-	})
-})
+  it("reports why a case could not run", async () => {
+    for (const name of D1) delete process.env[name];
+    const result = await judgeDefect("STALE_LIST", UNREACHABLE);
+    expect(result).toMatchObject({ checksRun: [], detected: false, error: expect.stringMatching(/D1 backend needs/) });
+  });
+});
 
 describe("judgeDefect under a refusal probe's DELETE that goes through", () => {
-	/* A DELETE probe goes to a throwaway: the shared table_000001 is removed by teardown alone, after its rows. */
-	for (const defect of ["TOKEN_NOT_VERIFIED", "SCOPE_NOT_CHECKED", "ROLE_NOT_CHECKED"] as const) {
-		it(`keeps the shared table and its rows whole, judged clean and detected: ${defect}`, async () => {
-			const removed: string[] = []
-			const recording = rewriting(async (request, inner) => {
-				const answer = await inner(request)
-				if (request.method === "DELETE" && answer.ok) removed.push(new URL(request.url).pathname)
-				return answer
-			})
-			const result = await judgeDefect(defect, recording, { checkRepros: async () => [] })
-			expect(result).toMatchObject({ bystanders: [], detected: true, spurious: [], strayLedger: [], unreported: [] })
-			const table = removed.indexOf("/v1/projects/proj_alpha/tables/table_000001")
-			const lastRow = removed.findLastIndex((path) => path.startsWith("/v1/projects/proj_alpha/tables/table_000001/"))
-			expect(table).toBeGreaterThan(lastRow)
-		}, 120_000)
-	}
-})
+  /* A DELETE probe goes to a throwaway: the shared table_000001 is removed by teardown alone, after its rows. */
+  for (const defect of ["TOKEN_NOT_VERIFIED", "SCOPE_NOT_CHECKED", "ROLE_NOT_CHECKED"] as const) {
+    it(`keeps the shared table and its rows whole, judged clean and detected: ${defect}`, async () => {
+      const removed: string[] = [];
+      const recording = rewriting(async (request, inner) => {
+        const answer = await inner(request);
+        if (request.method === "DELETE" && answer.ok) removed.push(new URL(request.url).pathname);
+        return answer;
+      });
+      const result = await judgeDefect(defect, recording, { checkRepros: async () => [] });
+      expect(result).toMatchObject({ bystanders: [], detected: true, spurious: [], strayLedger: [], unreported: [] });
+      const table = removed.indexOf("/v1/projects/proj_alpha/tables/table_000001");
+      const lastRow = removed.findLastIndex((path) => path.startsWith("/v1/projects/proj_alpha/tables/table_000001/"));
+      expect(table).toBeGreaterThan(lastRow);
+    }, 120_000);
+  }
+});
 
 describe("judgeDefect's judging", () => {
-	it("fails a defect whose generated reproducer is not runnable", async () => {
-		const result = await judgeDefect("STALE_LIST", MEMORY, { checkRepros: unrunnable, label: "stale" })
-		expect(result).toMatchObject({
-			detected: false,
-			error: "generated reproducer is not runnable — stale.sh: syntax error near unexpected token",
-			spurious: [],
-		})
-	}, 120_000)
+  it("fails a defect whose generated reproducer is not runnable", async () => {
+    const result = await judgeDefect("STALE_LIST", MEMORY, { checkRepros: unrunnable, label: "stale" });
+    expect(result).toMatchObject({
+      detected: false,
+      error: "generated reproducer is not runnable — stale.sh: syntax error near unexpected token",
+      spurious: [],
+    });
+  }, 120_000);
 
-	it("expects the caller a destructive call killed to be blocked, not a spurious finding", async () => {
-		const result = await judgeDefect("DISPOSABLE_KILLS_CALLER", MEMORY, { checkRepros: async () => [] })
-		expect(result).toMatchObject({ detected: true, expected: "auth.destructive-spares-the-caller", spurious: [] })
-	}, 120_000)
+  it("expects the caller a destructive call killed to be blocked, not a spurious finding", async () => {
+    const result = await judgeDefect("DISPOSABLE_KILLS_CALLER", MEMORY, { checkRepros: async () => [] });
+    expect(result).toMatchObject({ detected: true, expected: "auth.destructive-spares-the-caller", spurious: [] });
+  }, 120_000);
 
-	it("detects an update that applies an invalid body, with nothing spurious and nothing left behind", async () => {
-		const result = await judgeDefect("WRITE_BODY_NOT_VALIDATED", MEMORY)
-		expect(result).toMatchObject({
-			bystanders: [],
-			detected: true,
-			expected: "request.invalid-body-refused",
-			spurious: [],
-			strayLedger: [],
-			unreported: [],
-		})
-	}, 120_000)
+  it("detects an update that applies an invalid body, with nothing spurious and nothing left behind", async () => {
+    const result = await judgeDefect("WRITE_BODY_NOT_VALIDATED", MEMORY);
+    expect(result).toMatchObject({
+      bystanders: [],
+      detected: true,
+      expected: "request.invalid-body-refused",
+      spurious: [],
+      strayLedger: [],
+      unreported: [],
+    });
+  }, 120_000);
 
-	it("holds no excused defect to the bystander rule", async () => {
-		const result = await judgeDefect("STALE_LIST", MEMORY, { excused: new Set(["STALE_LIST"]), label: "stale" })
-		expect(result).toMatchObject({ bystanders: [], detected: true })
-	}, 120_000)
-})
+  it("holds no excused defect to the bystander rule", async () => {
+    const result = await judgeDefect("STALE_LIST", MEMORY, {
+      excused: new Set<DefectName>(["STALE_LIST"]),
+      label: "stale",
+    });
+    expect(result).toMatchObject({ bystanders: [], detected: true });
+  }, 120_000);
+});
 
 describe("runBaselines", () => {
-	it("names each check a create without an id left undecided", async () => {
-		const [tagged, untagged] = await runBaselines(ANONYMOUS)
-		const reason =
-			"a record for this check could not be made: the create answered 201 without an id the API tester could read"
-		expect(tagged?.inconclusive).toContain(`patch.minimality@table: ${reason}`)
-		expect(untagged?.inconclusive).toContain(`patch.minimality@table: ${reason}`)
-	}, 180_000)
+  it("names each check a create without an id left undecided", async () => {
+    const [tagged, untagged] = await runBaselines(ANONYMOUS);
+    const reason =
+      "a record for this check could not be made: the create answered 201 without an id the API tester could read";
+    expect(tagged?.inconclusive).toContain(`patch.minimality@table: ${reason}`);
+    expect(untagged?.inconclusive).toContain(`patch.minimality@table: ${reason}`);
+  }, 180_000);
 
-	it("ledgers nothing against a backend that makes nothing", async () => {
-		const [tagged] = await runBaselines(READ_ONLY)
-		expect(tagged).toMatchObject({ leaked: 0, strayLedger: [], unreported: [] })
-	}, 180_000)
+  it("ledgers nothing against a backend that makes nothing", async () => {
+    const [tagged] = await runBaselines(READ_ONLY);
+    expect(tagged).toMatchObject({ leaked: 0, strayLedger: [], unreported: [] });
+  }, 180_000);
 
-	it("ledgers nothing when the network drops after the document, before any principal acts", async () => {
-		const cut = rewriting(async (request, inner) => {
-			if (new URL(request.url).pathname.endsWith("/openapi/spec")) return inner(request)
-			throw new TypeError("fetch failed")
-		})
-		const [tagged] = await runBaselines(cut)
-		expect(tagged).toMatchObject({ leaked: 0, strayLedger: [], unreported: [] })
-	}, 180_000)
+  it("ledgers nothing when the network drops after the document, before any principal acts", async () => {
+    const cut = rewriting(async (request, inner) => {
+      if (new URL(request.url).pathname.endsWith("/openapi/spec")) return inner(request);
+      throw new TypeError("fetch failed");
+    });
+    const [tagged] = await runBaselines(cut);
+    expect(tagged).toMatchObject({ leaked: 0, strayLedger: [], unreported: [] });
+  }, 180_000);
 
-	it("reports why each baseline could not run", async () => {
-		for (const name of D1) delete process.env[name]
-		const results = await runBaselines(UNREACHABLE)
-		expect(results.map((result) => [result.label, result.detected, result.error !== undefined])).toEqual([
-			["baseline (correct backend)", false, true],
-			["baseline (untagged spec)", false, true],
-		])
-	})
-})
+  it("reports why each baseline could not run", async () => {
+    for (const name of D1) delete process.env[name];
+    const results = await runBaselines(UNREACHABLE);
+    expect(results.map((result) => [result.label, result.detected, result.error !== undefined])).toEqual([
+      ["baseline (correct backend)", false, true],
+      ["baseline (untagged spec)", false, true],
+    ]);
+  });
+});
 
 describe("missingValuesOf", () => {
-	it("names each check that would have sent a value the API tester did not have, and nothing else", () => {
-		const inconclusive = [
-			{ check: "patch.minimality", entity: "table", reason: "the API tester had no value for PATCH /table/undefined" },
-			{ check: "sort.order-is-applied", entity: "table", reason: "the listing has one row" },
-		]
-		expect(missingValuesOf(inconclusive)).toEqual(["patch.minimality@table"])
-	})
-})
+  it("names each check that would have sent a value the API tester did not have, and nothing else", () => {
+    const inconclusive = [
+      { check: "patch.minimality", entity: "table", reason: "the API tester had no value for PATCH /table/undefined" },
+      { check: "sort.order-is-applied", entity: "table", reason: "the listing has one row" },
+    ];
+    expect(missingValuesOf(inconclusive)).toEqual(["patch.minimality@table"]);
+  });
+});
 
 describe("portableResult", () => {
-	it("drops the exchanges findings cite, and keeps the rest", () => {
-		const finding = {
-			check: "c",
-			detail: "d",
-			entity: "e",
-			evidence: [{ seq: 1 }],
-			summary: "s",
-			verdict: "BACKEND_BUG",
-		}
-		const result = {
-			checksRun: ["c"],
-			defect: null,
-			detected: true,
-			entitiesTested: ["e"],
-			expected: null,
-			findings: [finding],
-			label: "l",
-			spurious: [finding],
-		} as never
-		const portable = portableResult(result)
-		expect(portable.findings[0]?.evidence).toEqual([])
-		expect(portable.spurious[0]?.evidence).toEqual([])
-		expect(portable.findings[0]?.summary).toBe("s")
-	})
-})
+  it("drops the exchanges findings cite, and keeps the rest", () => {
+    const finding = {
+      check: "c",
+      detail: "d",
+      entity: "e",
+      evidence: [{ seq: 1 }],
+      summary: "s",
+      verdict: "BACKEND_BUG",
+    };
+    const result = {
+      checksRun: ["c"],
+      defect: null,
+      detected: true,
+      entitiesTested: ["e"],
+      expected: null,
+      findings: [finding],
+      label: "l",
+      spurious: [finding],
+    } as never;
+    const portable = portableResult(result);
+    expect(portable.findings[0]?.evidence).toEqual([]);
+    expect(portable.spurious[0]?.evidence).toEqual([]);
+    expect(portable.findings[0]?.summary).toBe("s");
+  });
+});

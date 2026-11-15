@@ -4,111 +4,111 @@
  * and work the list down.
  */
 
-import type { SpecModel } from "../../spec/graph/types.ts"
-import { type DoctorConfig, type DoctorFacts, doctorFacts } from "./doctor-facts.ts"
-import { authLines, catalogLines, envelopeLines } from "./doctor-notes.ts"
-import { declarationLines, entityLines, summaryLines, tagLines } from "./doctor-text.ts"
-import { danglingRefLines, externalRefLines, gapLines } from "./gaps.ts"
-import { rootsJson } from "./roots.ts"
-import { securityJson } from "./security.ts"
-import { securityLines } from "./security-text.ts"
+import type { SpecModel } from "../../spec/graph/types.ts";
+import { type DoctorConfig, type DoctorFacts, doctorFacts } from "./doctor-facts.ts";
+import { authLines, catalogLines, envelopeLines } from "./doctor-notes.ts";
+import { declarationLines, entityLines, summaryLines, tagLines } from "./doctor-text.ts";
+import { danglingRefLines, externalRefLines, gapLines } from "./gaps.ts";
+import { rootsJson } from "./roots.ts";
+import { securityLines } from "./security-text.ts";
+import { securityJson } from "./security.ts";
 
 /** How `doctor` reports: the refs the API tester could not follow, JSON or text, and the config beside it. */
 export interface DoctorOptions {
-	/** Refs to other files, which the API tester did not follow. */
-	externalRefs?: string[]
-	/** Internal refs that point at nothing. */
-	danglingRefs?: string[]
-	asJson?: boolean
-	config?: DoctorConfig | undefined
-	/** Variables the config names that are not set: a note, never a block. Given only with a config. */
-	unsetEnv?: string[] | undefined
+  /** Refs to other files, which the API tester did not follow. */
+  externalRefs?: string[];
+  /** Internal refs that point at nothing. */
+  danglingRefs?: string[];
+  asJson?: boolean;
+  config?: DoctorConfig | undefined;
+  /** Variables the config names that are not set: a note, never a block. Given only with a config. */
+  unsetEnv?: string[] | undefined;
 }
 
 /* Everything one doctor report is written from. */
 interface Diagnosis {
-	model: SpecModel
-	facts: DoctorFacts
-	externalRefs: string[]
-	danglingRefs: string[]
-	config: DoctorConfig | undefined
-	unsetEnv: string[] | undefined
+  model: SpecModel;
+  facts: DoctorFacts;
+  externalRefs: string[];
+  danglingRefs: string[];
+  config: DoctorConfig | undefined;
+  unsetEnv: string[] | undefined;
 }
 
 /** The note for variables a config names that are not set, or nothing when every one is. */
 export function unsetEnvLines(unsetEnv: readonly string[] | undefined): string[] {
-	if (unsetEnv === undefined || unsetEnv.length === 0) return []
-	return [`  ${"env".padEnd(11)}${unsetEnv.join(", ")} not set — a run stops until they are`, ""]
+  if (unsetEnv === undefined || unsetEnv.length === 0) return [];
+  return [`  ${"env".padEnd(11)}${unsetEnv.join(", ")} not set — a run stops until they are`, ""];
 }
 
 function doctorJson({ config, danglingRefs, externalRefs, facts, unsetEnv }: Diagnosis): string {
-	return `${JSON.stringify(
-		{
-			blocking: facts.blocking,
-			cacheBypass: facts.bypass,
-			entities: facts.entities.length,
-			externalRefs,
-			danglingRefs,
-			featureGates: facts.featureGates,
-			invites: facts.inviting.map((entity) => ({
-				accept: entity.invite.accept,
-				acceptFrom: entity.invite.acceptFrom === "link" ? "link" : "token",
-				entity: entity.name,
-				revokeStaleness: entity.invite.revokeStaleness ?? null,
-				tokenFrom: entity.invite.tokenFrom,
-			})),
-			adoptingCreates: facts.adopting.map((op) => ({
-				credentialFrom: op.credentialFrom,
-				entity: op.entity,
-				operationId: op.operationId,
-			})),
-			uniqueConstraints: facts.uniqueConstraints,
-			gaps: facts.gaps,
-			listableEntities: facts.listable.length,
-			queryCatalog: facts.catalogs,
-			...(config?.allowRemoved === undefined ? {} : { allowRemoved: config.allowRemoved }),
-			...rootsJson(facts.roots),
-			security: securityJson(facts.security),
-			testableEntities: facts.testable.length,
-			trackableEntities: facts.trackable.length,
-			untestableEntities: facts.untestable,
-			unknownEntities: facts.unknownEntities,
-			...(unsetEnv === undefined ? {} : { unsetEnv }),
-		},
-		null,
-		2,
-	)}\n`
+  return `${JSON.stringify(
+    {
+      blocking: facts.blocking,
+      cacheBypass: facts.bypass,
+      entities: facts.entities.length,
+      externalRefs,
+      danglingRefs,
+      featureGates: facts.featureGates,
+      invites: facts.inviting.map((entity) => ({
+        accept: entity.invite.accept,
+        acceptFrom: entity.invite.acceptFrom === "link" ? "link" : "token",
+        entity: entity.name,
+        revokeStaleness: entity.invite.revokeStaleness ?? null,
+        tokenFrom: entity.invite.tokenFrom,
+      })),
+      adoptingCreates: facts.adopting.map((op) => ({
+        credentialFrom: op.credentialFrom,
+        entity: op.entity,
+        operationId: op.operationId,
+      })),
+      uniqueConstraints: facts.uniqueConstraints,
+      gaps: facts.gaps,
+      listableEntities: facts.listable.length,
+      queryCatalog: facts.catalogs,
+      ...(config?.allowRemoved === undefined ? {} : { allowRemoved: config.allowRemoved }),
+      ...rootsJson(facts.roots),
+      security: securityJson(facts.security),
+      testableEntities: facts.testable.length,
+      trackableEntities: facts.trackable.length,
+      untestableEntities: facts.untestable,
+      unknownEntities: facts.unknownEntities,
+      ...(unsetEnv === undefined ? {} : { unsetEnv }),
+    },
+    null,
+    2,
+  )}\n`;
 }
 
 /* Said only where the document declares or names a scheme: `authLines` already speaks for one that declares none. */
 function securityBlock(facts: DoctorFacts): string[] {
-	const { security } = facts
-	return security.schemes.length === 0 && security.undeclared.length === 0 ? [] : securityLines(security)
+  const { security } = facts;
+  return security.schemes.length === 0 && security.undeclared.length === 0 ? [] : securityLines(security);
 }
 
 function doctorText({ config, danglingRefs, externalRefs, facts, model, unsetEnv }: Diagnosis): string {
-	const lines = [
-		...summaryLines(facts, config),
-		...tagLines(model, facts),
-		...entityLines(facts),
-		...declarationLines(facts),
-		...catalogLines(facts),
-		...envelopeLines(model),
-		...authLines(model),
-		...securityBlock(facts),
-		...unsetEnvLines(unsetEnv),
-		...externalRefLines(externalRefs),
-		...danglingRefLines(danglingRefs),
-		...gapLines(facts),
-	]
-	if (facts.blocking === 0 && facts.gapsByTag.size === 0) lines.push("  no gaps — full coverage available\n")
-	return lines.join("\n")
+  const lines = [
+    ...summaryLines(facts, config),
+    ...tagLines(model, facts),
+    ...entityLines(facts),
+    ...declarationLines(facts),
+    ...catalogLines(facts),
+    ...envelopeLines(model),
+    ...authLines(model),
+    ...securityBlock(facts),
+    ...unsetEnvLines(unsetEnv),
+    ...externalRefLines(externalRefs),
+    ...danglingRefLines(danglingRefs),
+    ...gapLines(facts),
+  ];
+  if (facts.blocking === 0 && facts.gapsByTag.size === 0) lines.push("  no gaps — full coverage available\n");
+  return lines.join("\n");
 }
 
 /** `testing api doctor`: what the API tester can and cannot test in the document, as text or JSON, and how much of it blocks a run. */
 export function doctor(model: SpecModel, options: DoctorOptions = {}): { text: string; blocking: number } {
-	const { asJson = false, config, danglingRefs = [], externalRefs = [], unsetEnv } = options
-	const facts = doctorFacts(model, config)
-	const diagnosis = { config, danglingRefs, externalRefs, facts, model, unsetEnv }
-	return { blocking: facts.blocking, text: asJson ? doctorJson(diagnosis) : doctorText(diagnosis) }
+  const { asJson = false, config, danglingRefs = [], externalRefs = [], unsetEnv } = options;
+  const facts = doctorFacts(model, config);
+  const diagnosis = { config, danglingRefs, externalRefs, facts, model, unsetEnv };
+  return { blocking: facts.blocking, text: asJson ? doctorJson(diagnosis) : doctorText(diagnosis) };
 }

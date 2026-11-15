@@ -68,7 +68,7 @@ const BEFORE_CARDS = `  :root {
   .bar-n { color: var(--mute); font-size: 11px; }
   .bar-more { color: var(--mute); margin-top: 8px; }
   .crowd-note { margin-top: 16px; color: var(--mute); }
-`
+`;
 
 const AFTER_CARDS = `  .card { background: var(--card); padding: 14px 16px 16px; }
   .card h2 { font-family: Syne, sans-serif; font-size: 18px; margin: 0 0 6px; }
@@ -96,10 +96,10 @@ const AFTER_CARDS = `  .card { background: var(--card); padding: 14px 16px 16px;
     border-top: 1px solid var(--line); padding-top: 12px;
   }
   footer code { color: var(--ink); }
-`
+`;
 
 /** The sheet for a poster of `entityCount` entities, one or more. */
 export function posterStyle(entityCount: number): string {
-	const cards = `  .cards { display: grid; grid-template-columns: repeat(${Math.min(entityCount, 5)}, minmax(200px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }`
-	return `${BEFORE_CARDS}${cards}\n${AFTER_CARDS}`
+  const cards = `  .cards { display: grid; grid-template-columns: repeat(${Math.min(entityCount, 5)}, minmax(200px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }`;
+  return `${BEFORE_CARDS}${cards}\n${AFTER_CARDS}`;
 }

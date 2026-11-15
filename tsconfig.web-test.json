@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    // Solid's JSX, which its vite plugin compiles; tsc only checks it.
+    "jsx": "preserve",
+    "jsxImportSource": "@solidjs/web",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    // The consumer project imports the package by name, as a consumer does; this check reads the source.
+    "paths": {
+      "@workerstack/testing/web": ["./src/web/index.ts"],
+      "@workerstack/testing/web/dom": ["./src/web/dom/index.ts"],
+      "@workerstack/testing/web/solid": ["./src/web/solid/index.ts"],
+      "@workerstack/testing/web/solid/vitest": ["./src/web/solid/vitest.ts"]
+    }
+  },
+  "exclude": [],
+  // Browser tests, the web modules with their tests, and the runner configs: the test config plus the DOM, which the API tester never sees.
+  "extends": "./tsconfig.test.json",
+  "include": [
+    "tests/web/**/*.ts",
+    "tests/web/**/*.tsx",
+    "src/web/**/*.ts",
+    "playwright.config.ts",
+    "vitest.web.config.ts"
+  ]
+}

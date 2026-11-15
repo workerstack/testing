@@ -4,5 +4,5 @@
  * the CLI exits with `EXIT.usage` naming the mistake.
  */
 export class UsageError extends Error {
-	override name = "UsageError"
+  override name = "UsageError";
 }

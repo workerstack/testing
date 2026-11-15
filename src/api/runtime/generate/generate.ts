@@ -13,32 +13,32 @@
  * never from suffix arithmetic that ignores `maximum`, `multipleOf`, `enum` or `format`.
  */
 
-import { instance } from "./instance.ts"
-import type { Context, GenerateOptions, Generated } from "./types.ts"
-import { Unconstructible } from "./unconstructible.ts"
-import { messageOf } from "../../errors/message.ts"
+import { messageOf } from "../../errors/message.ts";
+import { instance } from "./instance.ts";
+import type { Context, GenerateOptions, Generated } from "./types.ts";
+import { Unconstructible } from "./unconstructible.ts";
 
 /** One value valid for `schema`, or why none can be made. */
 export function generate(schema: unknown, options: GenerateOptions = {}): Generated {
-	const ctx: Context = {
-		defs: options.defs ?? {},
-		depth: 0,
-		distinct: options.distinct ?? new Set(),
-		examples: options.examples ?? true,
-		index: options.index ?? 0,
-		nonce: options.nonce,
-		optional: options.optional ?? "all",
-		rand: options.rand ?? (() => 0.5),
-		refs: [],
-		variant: options.variant ?? "baseline",
-	}
-	try {
-		return { ok: true, value: instance(schema, { ctx, distinct: false, pointer: "" }) }
-	} catch (error) {
-		if (error instanceof Unconstructible) return { ok: false, pointer: error.pointer || "/", reason: error.reason }
-		if (error instanceof RangeError)
-			return { ok: false, pointer: "/", reason: "the schema nests too deeply to generate" }
-		/* Anything else is a schema generation could not even read: a reason, never a crash. */
-		return { ok: false, pointer: "/", reason: `generation failed: ${messageOf(error)}` }
-	}
+  const ctx: Context = {
+    defs: options.defs ?? {},
+    depth: 0,
+    distinct: options.distinct ?? new Set(),
+    examples: options.examples ?? true,
+    index: options.index ?? 0,
+    nonce: options.nonce,
+    optional: options.optional ?? "all",
+    rand: options.rand ?? (() => 0.5),
+    refs: [],
+    variant: options.variant ?? "baseline",
+  };
+  try {
+    return { ok: true, value: instance(schema, { ctx, distinct: false, pointer: "" }) };
+  } catch (error) {
+    if (error instanceof Unconstructible) return { ok: false, pointer: error.pointer || "/", reason: error.reason };
+    if (error instanceof RangeError)
+      return { ok: false, pointer: "/", reason: "the schema nests too deeply to generate" };
+    /* Anything else is a schema generation could not even read: a reason, never a crash. */
+    return { ok: false, pointer: "/", reason: `generation failed: ${messageOf(error)}` };
+  }
 }

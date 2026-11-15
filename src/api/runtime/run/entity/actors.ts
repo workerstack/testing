@@ -1,17 +1,17 @@
-import type { Actor } from "../../checks/core/context.ts"
-import { privilegedBar } from "../../privileged-create.ts"
-import { resolvePathScope } from "../../world/path-scope.ts"
-import type { RunPrincipal } from "../context.ts"
-import type { EntityRun, World } from "./state.ts"
+import type { Actor } from "../../checks/core/context.ts";
+import { privilegedBar } from "../../privileged-create.ts";
+import { resolvePathScope } from "../../world/path-scope.ts";
+import type { RunPrincipal } from "../context.ts";
+import type { EntityRun, World } from "./state.ts";
 
 /** Every principal as the entity's checks act as it: the first in the world, the rest each in theirs. */
 export async function actorsOf(run: EntityRun, world: World): Promise<[Actor, ...Actor[]]> {
-	const { principals } = run.ctx
-	const actors: [Actor, ...Actor[]] = [actor(principals.alpha, world.scope.values)]
-	for (const [index, principal] of principals.all.slice(1).entries()) {
-		actors.push(await scopedActor(run, principal, index + 1))
-	}
-	return actors
+  const { principals } = run.ctx;
+  const actors: [Actor, ...Actor[]] = [actor(principals.alpha, world.scope.values)];
+  for (const [index, principal] of principals.all.slice(1).entries()) {
+    actors.push(await scopedActor(run, principal, index + 1));
+  }
+  return actors;
 }
 
 /**
@@ -19,41 +19,41 @@ export async function actorsOf(run: EntityRun, world: World): Promise<[Actor, ..
  * so they are removed as it. A principal that cannot make them acts within its own scope alone.
  */
 async function scopedActor(run: EntityRun, principal: RunPrincipal, offset: number): Promise<Actor> {
-	const { ctx, collectionOp, seeding, ancestors } = run
-	const { principals, exclusion, nonce, seed, uploads } = ctx
-	const roots = { ...principal.scope }
-	try {
-		const next = await resolvePathScope(collectionOp, {
-			client: seeding,
-			model: ctx.model,
-			options: {
-				ancestors,
-				/* Its own nonce: its parents must not share the first principal's names, or a server
-				 * deriving a key from them gives both tenants the same one. */
-				nonce: `${nonce}-${offset}`,
-				onCreate: principals.recorder(principals.ownerOf(principal)),
-				onUnidentified: principals.unidentified,
-				principal: principal.id,
-				readable: exclusion.readable,
-				roots,
-				seed: seed + offset,
-				uploads: { ...uploads, seed: seed + offset },
-				withheld: (createOp) => privilegedBar(createOp, principal, principals.all),
-			},
-		})
-		return actor(principal, { ...roots, ...next.values })
-	} catch {
-		return actor(principal, roots)
-	}
+  const { ctx, collectionOp, seeding, ancestors } = run;
+  const { principals, exclusion, nonce, seed, uploads } = ctx;
+  const roots = { ...principal.scope };
+  try {
+    const next = await resolvePathScope(collectionOp, {
+      client: seeding,
+      model: ctx.model,
+      options: {
+        ancestors,
+        /* Its own nonce: its parents must not share the first principal's names, or a server
+         * deriving a key from them gives both tenants the same one. */
+        nonce: `${nonce}-${offset}`,
+        onCreate: principals.recorder(principals.ownerOf(principal)),
+        onUnidentified: principals.unidentified,
+        principal: principal.id,
+        readable: exclusion.readable,
+        roots,
+        seed: seed + offset,
+        uploads: { ...uploads, seed: seed + offset },
+        withheld: (createOp) => privilegedBar(createOp, principal, principals.all),
+      },
+    });
+    return actor(principal, { ...roots, ...next.values });
+  } catch {
+    return actor(principal, roots);
+  }
 }
 
 function actor(principal: RunPrincipal, scope: Record<string, string>): Actor {
-	const acting = {
-		id: principal.id,
-		inviteAs: principal.inviteAs,
-		rank: principal.rank,
-		scope,
-		tenant: principal.tenant,
-	}
-	return principal.readOnly === true ? { ...acting, readOnly: true } : acting
+  const acting = {
+    id: principal.id,
+    inviteAs: principal.inviteAs,
+    rank: principal.rank,
+    scope,
+    tenant: principal.tenant,
+  };
+  return principal.readOnly === true ? { ...acting, readOnly: true } : acting;
 }

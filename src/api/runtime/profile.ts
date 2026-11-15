@@ -8,21 +8,21 @@
  * create already takes. An excluded operation must never look like a passed check.
  */
 
-import type { ProfileSpec } from "../config/types/config.ts"
-import type { Scenario } from "../config/types/steps.ts"
-import { UsageError } from "../errors/usage-error.ts"
-import type { OperationModel } from "../spec/graph/types.ts"
+import type { ProfileSpec } from "../config/types/config.ts";
+import type { Scenario } from "../config/types/steps.ts";
+import { UsageError } from "../errors/usage-error.ts";
+import type { OperationModel } from "../spec/graph/types.ts";
 
 export const BUILTIN_PROFILES: Record<string, ProfileSpec> = {
-	cheap: { maxCost: "low" },
-	full: {},
-}
+  cheap: { maxCost: "low" },
+  full: {},
+};
 
-const COST_RANK: Record<"low" | "medium" | "high", number> = { high: 2, low: 0, medium: 1 }
+const COST_RANK: Record<"low" | "medium" | "high", number> = { high: 2, low: 0, medium: 1 };
 
 export interface ResolvedProfile {
-	name: string
-	spec: ProfileSpec
+  name: string;
+  spec: ProfileSpec;
 }
 
 /**
@@ -30,16 +30,16 @@ export interface ResolvedProfile {
  * behavior, so a config that never mentions a profile runs identically to before this existed.
  */
 export function resolveProfile(
-	name: string | undefined,
-	configured: Record<string, ProfileSpec> | undefined,
+  name: string | undefined,
+  configured: Record<string, ProfileSpec> | undefined,
 ): ResolvedProfile {
-	const activeName = name ?? "full"
-	const spec = configured?.[activeName] ?? BUILTIN_PROFILES[activeName]
-	if (spec === undefined) {
-		const known = [...new Set([...Object.keys(BUILTIN_PROFILES), ...Object.keys(configured ?? {})])]
-		throw new UsageError(`testing api: profile "${activeName}" is not defined. Known: ${known.join(", ")}`)
-	}
-	return { name: activeName, spec }
+  const activeName = name ?? "full";
+  const spec = configured?.[activeName] ?? BUILTIN_PROFILES[activeName];
+  if (spec === undefined) {
+    const known = [...new Set([...Object.keys(BUILTIN_PROFILES), ...Object.keys(configured ?? {})])];
+    throw new UsageError(`testing api: profile "${activeName}" is not defined. Known: ${known.join(", ")}`);
+  }
+  return { name: activeName, spec };
 }
 
 /**
@@ -50,14 +50,14 @@ export function resolveProfile(
  * whichever rule happened to be checked first.
  */
 export function excludedByProfile(op: OperationModel, spec: ProfileSpec): string | null {
-	if (spec.exclude?.includes(op.operationId) === true) {
-		return `excluded by name (operationId: ${op.operationId})`
-	}
-	if (spec.excludeDestructive === true && op.destructive) return "x-destructive"
-	if (spec.maxCost !== undefined && COST_RANK[op.cost] > COST_RANK[spec.maxCost]) {
-		return `x-cost: ${op.cost}`
-	}
-	return null
+  if (spec.exclude?.includes(op.operationId) === true) {
+    return `excluded by name (operationId: ${op.operationId})`;
+  }
+  if (spec.excludeDestructive === true && op.destructive) return "x-destructive";
+  if (spec.maxCost !== undefined && COST_RANK[op.cost] > COST_RANK[spec.maxCost]) {
+    return `x-cost: ${op.cost}`;
+  }
+  return null;
 }
 
 /**
@@ -65,17 +65,17 @@ export function excludedByProfile(op: OperationModel, spec: ProfileSpec): string
  * kind the profile excludes. An external `kinds` does not name is never excluded.
  */
 export function externalExcluded(
-	scenario: Scenario,
-	kinds: Readonly<Record<string, string>> | undefined,
-	profile: ResolvedProfile,
+  scenario: Scenario,
+  kinds: Readonly<Record<string, string>> | undefined,
+  profile: ResolvedProfile,
 ): string | null {
-	const excluded = profile.spec.excludeExternalKinds ?? []
-	for (const step of scenario.steps) {
-		if (!("external" in step)) continue
-		const kind = kinds?.[step.external]
-		if (kind !== undefined && excluded.includes(kind)) {
-			return `external "${step.external}" is kind "${kind}", which profile "${profile.name}" excludes`
-		}
-	}
-	return null
+  const excluded = profile.spec.excludeExternalKinds ?? [];
+  for (const step of scenario.steps) {
+    if (!("external" in step)) continue;
+    const kind = kinds?.[step.external];
+    if (kind !== undefined && excluded.includes(kind)) {
+      return `external "${step.external}" is kind "${kind}", which profile "${profile.name}" excludes`;
+    }
+  }
+  return null;
 }

@@ -1,16 +1,16 @@
-import { filterTerm } from "../../../../spec/conventions/filter.ts"
-import { selectTerm } from "../../../../spec/conventions/select.ts"
-import { idOf, type Record_ } from "../../../world/records.ts"
-import type { CheckContext, Listed } from "../../core/context.ts"
-import { cannot, type Plan, ready } from "../../core/plan.ts"
-import { conv } from "../../query/capabilities.ts"
-import { ids } from "../../sets/list.ts"
+import { filterTerm } from "../../../../spec/conventions/filter.ts";
+import { selectTerm } from "../../../../spec/conventions/select.ts";
+import { idOf, type Record_ } from "../../../world/records.ts";
+import type { CheckContext, Listed } from "../../core/context.ts";
+import { cannot, type Plan, ready } from "../../core/plan.ts";
+import { conv } from "../../query/capabilities.ts";
+import { ids } from "../../sets/list.ts";
 
 /** A filter selecting a proper subset of the cohort, and the record it was built from. */
 export interface Subset {
-	field: string
-	target: Record_
-	term: Record<string, string>
+  field: string;
+  target: Record_;
+  term: Record<string, string>;
 }
 
 /**
@@ -20,61 +20,61 @@ export interface Subset {
  * sets identical, and a composition check would pass whatever the backend did.
  */
 export function subsetPlan(ctx: Listed): Plan<Subset> {
-	const picked = properSubsetFilter(ctx)
-	if (picked === null) return cannot("a filterable value shared by several cohort records but not all of them")
-	const term = filterTerm(conv(ctx), { field: picked.field, op: "eq", value: String(picked.target[picked.field]) })
-	return term === null
-		? cannot(`a filter grammar that can express equality on "${picked.field}"`)
-		: ready({ ...picked, term })
+  const picked = properSubsetFilter(ctx);
+  if (picked === null) return cannot("a filterable value shared by several cohort records but not all of them");
+  const term = filterTerm(conv(ctx), { field: picked.field, op: "eq", value: String(picked.target[picked.field]) });
+  return term === null
+    ? cannot(`a filter grammar that can express equality on "${picked.field}"`)
+    : ready({ ...picked, term });
 }
 
 /** A proper-subset filter and a search token that overlap without nesting. */
 export function overlapPlan(ctx: Listed): Plan<Subset & { token: string }> {
-	const picked = overlappingFilterAndSearch(ctx)
-	if (picked === null) return cannot("a filterable value and a search token that overlap without nesting")
-	const term = filterTerm(conv(ctx), { field: picked.field, op: "eq", value: String(picked.target[picked.field]) })
-	return term === null
-		? cannot(`a filter grammar that can express equality on "${picked.field}"`)
-		: ready({ ...picked, term })
+  const picked = overlappingFilterAndSearch(ctx);
+  if (picked === null) return cannot("a filterable value and a search token that overlap without nesting");
+  const term = filterTerm(conv(ctx), { field: picked.field, op: "eq", value: String(picked.target[picked.field]) });
+  return term === null
+    ? cannot(`a filter grammar that can express equality on "${picked.field}"`)
+    : ready({ ...picked, term });
 }
 
 /** A sparse fieldset of the identity and one other selectable field. */
 export function projectionBeside(ctx: Listed): { extra: string; projection: Record<string, string> } | null {
-	const extra = (ctx.query?.selectable ?? []).find((name) => name !== ctx.identity) ?? ctx.identity
-	const projection = selectTerm(conv(ctx), [ctx.identity, extra], ctx.entityName)
-	return projection === null ? null : { extra, projection }
+  const extra = (ctx.query?.selectable ?? []).find((name) => name !== ctx.identity) ?? ctx.identity;
+  const projection = selectTerm(conv(ctx), [ctx.identity, extra], ctx.entityName);
+  return projection === null ? null : { extra, projection };
 }
 
 /** `projectionBeside` as a plan: it stands down when the select grammar cannot write a fieldset. */
 export function projectionPlan(ctx: Listed): Plan<{ extra: string; projection: Record<string, string> }> {
-	const projected = projectionBeside(ctx)
-	return projected === null ? cannot("a select grammar that can express a sparse fieldset") : ready(projected)
+  const projected = projectionBeside(ctx);
+  return projected === null ? cannot("a select grammar that can express a sparse fieldset") : ready(projected);
 }
 
 /** The sparse fieldset `requested` as a plan: it stands down, unexplained, when no select can write it. */
 export function selectionPlan(ctx: Listed, requested: readonly string[]): Plan<Record<string, string>> {
-	const projection = selectTerm(conv(ctx), requested, ctx.entityName)
-	return projection === null ? cannot() : ready(projection)
+  const projection = selectTerm(conv(ctx), requested, ctx.entityName);
+  return projection === null ? cannot() : ready(projection);
 }
 
 /** A sortable field other than `field` and the identity, else the identity. */
 export function sortFieldBeside(ctx: CheckContext, field: string): string {
-	return (ctx.query?.sortable ?? []).find((name) => name !== field && name !== ctx.identity) ?? ctx.identity
+  return (ctx.query?.sortable ?? []).find((name) => name !== field && name !== ctx.identity) ?? ctx.identity;
 }
 
 /** A filterable field whose value selects a proper subset of the cohort. */
 function properSubsetFilter(ctx: Listed): { field: string; target: Record_ } | null {
-	for (const candidate of ctx.query?.filterable ?? []) {
-		if (candidate === ctx.identity) continue
-		const values = ctx.records.map((record) => JSON.stringify(record[candidate]))
-		const match = ctx.records.find((record) => {
-			if (record[candidate] === null || record[candidate] === undefined) return false
-			const count = values.filter((v) => v === JSON.stringify(record[candidate])).length
-			return count > 1 && count < ctx.records.length
-		})
-		if (match !== undefined) return { field: candidate, target: match }
-	}
-	return null
+  for (const candidate of ctx.query?.filterable ?? []) {
+    if (candidate === ctx.identity) continue;
+    const values = ctx.records.map((record) => JSON.stringify(record[candidate]));
+    const match = ctx.records.find((record) => {
+      if (record[candidate] === null || record[candidate] === undefined) return false;
+      const count = values.filter((v) => v === JSON.stringify(record[candidate])).length;
+      return count > 1 && count < ctx.records.length;
+    });
+    if (match !== undefined) return { field: candidate, target: match };
+  }
+  return null;
 }
 
 /**
@@ -82,27 +82,27 @@ function properSubsetFilter(ctx: Listed): { field: string; target: Record_ } | n
  * changes the intersection.
  */
 function overlappingFilterAndSearch(ctx: Listed): { field: string; target: Record_; token: string } | null {
-	if (ctx.query === null) return null
-	const searchable = ctx.query.searchable
-	for (const candidate of ctx.query.filterable) {
-		if (candidate === ctx.identity) continue
-		const groups = new Map<string, Record_[]>()
-		for (const record of ctx.records) {
-			if (record[candidate] === null || record[candidate] === undefined) continue
-			const key = JSON.stringify(record[candidate])
-			const group = groups.get(key) ?? []
-			group.push(record)
-			groups.set(key, group)
-		}
-		for (const group of groups.values()) {
-			if (group.length <= 1 || group.length >= ctx.records.length) continue
-			const found = overlappingSearchToken(ctx, searchable, new Set(ids(group, ctx.identity)))
-			if (found === null) continue
-			/* A group of more than one record has a first. */
-			return { field: candidate, target: group[0] as Record_, token: found }
-		}
-	}
-	return null
+  if (ctx.query === null) return null;
+  const searchable = ctx.query.searchable;
+  for (const candidate of ctx.query.filterable) {
+    if (candidate === ctx.identity) continue;
+    const groups = new Map<string, Record_[]>();
+    for (const record of ctx.records) {
+      if (record[candidate] === null || record[candidate] === undefined) continue;
+      const key = JSON.stringify(record[candidate]);
+      const group = groups.get(key) ?? [];
+      group.push(record);
+      groups.set(key, group);
+    }
+    for (const group of groups.values()) {
+      if (group.length <= 1 || group.length >= ctx.records.length) continue;
+      const found = overlappingSearchToken(ctx, searchable, new Set(ids(group, ctx.identity)));
+      if (found === null) continue;
+      /* A group of more than one record has a first. */
+      return { field: candidate, target: group[0] as Record_, token: found };
+    }
+  }
+  return null;
 }
 
 /**
@@ -110,45 +110,45 @@ function overlappingFilterAndSearch(ctx: Listed): { field: string; target: Recor
  * the other does not, so dropping either axis changes the intersection.
  */
 function overlappingSearchToken(ctx: CheckContext, fields: readonly string[], filterIds: Set<string>): string | null {
-	if (fields.length === 0) return null
+  if (fields.length === 0) return null;
 
-	const matches = (token: string): Set<string> => {
-		const needle = token.toLowerCase()
-		const hit = new Set<string>()
-		for (const record of ctx.records) {
-			if (
-				fields.some((field) =>
-					String(record[field] ?? "")
-						.toLowerCase()
-						.includes(needle),
-				)
-			) {
-				const key = idOf(record, ctx.identity)
-				if (key !== undefined) hit.add(key)
-			}
-		}
-		return hit
-	}
+  const matches = (token: string): Set<string> => {
+    const needle = token.toLowerCase();
+    const hit = new Set<string>();
+    for (const record of ctx.records) {
+      if (
+        fields.some((field) =>
+          String(record[field] ?? "")
+            .toLowerCase()
+            .includes(needle),
+        )
+      ) {
+        const key = idOf(record, ctx.identity);
+        if (key !== undefined) hit.add(key);
+      }
+    }
+    return hit;
+  };
 
-	const candidates: string[] = []
-	for (const record of ctx.records) {
-		for (const name of fields) {
-			const value = record[name]
-			if (typeof value !== "string" || value.length < 2) continue
-			candidates.push(value)
-			if (value.length >= 3) candidates.push(value.slice(0, 3))
-			for (const word of value.split(/\s+/)) {
-				if (word.length >= 2) candidates.push(word)
-			}
-		}
-	}
+  const candidates: string[] = [];
+  for (const record of ctx.records) {
+    for (const name of fields) {
+      const value = record[name];
+      if (typeof value !== "string" || value.length < 2) continue;
+      candidates.push(value);
+      if (value.length >= 3) candidates.push(value.slice(0, 3));
+      for (const word of value.split(/\s+/)) {
+        if (word.length >= 2) candidates.push(word);
+      }
+    }
+  }
 
-	for (const token of candidates) {
-		const searchIds = matches(token)
-		const inter = [...searchIds].filter((id) => filterIds.has(id)).length
-		const onlySearch = [...searchIds].filter((id) => !filterIds.has(id)).length
-		const onlyFilter = [...filterIds].filter((id) => !searchIds.has(id)).length
-		if (inter > 0 && onlySearch > 0 && onlyFilter > 0) return token
-	}
-	return null
+  for (const token of candidates) {
+    const searchIds = matches(token);
+    const inter = [...searchIds].filter((id) => filterIds.has(id)).length;
+    const onlySearch = [...searchIds].filter((id) => !filterIds.has(id)).length;
+    const onlyFilter = [...filterIds].filter((id) => !searchIds.has(id)).length;
+    if (inter > 0 && onlySearch > 0 && onlyFilter > 0) return token;
+  }
+  return null;
 }

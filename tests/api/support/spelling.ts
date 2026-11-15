@@ -2,7 +2,7 @@
 
 /* The en-GB spellings, inflections spelled out, so no correct en-US word can ever match. */
 const EN_GB: ReadonlySet<string> = /* @__PURE__ */ new Set(
-	`	behaviour behaviours behavioural colour colours coloured colouring honour honours honoured honouring
+  `	behaviour behaviours behavioural colour colours coloured colouring honour honours honoured honouring
 	favour favours favoured favourite favourable flavour flavours flavoured neighbour neighbours
 	labour humour rumour vapour armour endeavour savour harbour
 	organise organised organises organising organiser organisation organisations
@@ -28,36 +28,36 @@ const EN_GB: ReadonlySet<string> = /* @__PURE__ */ new Set(
 	grey judgement judgements acknowledgement acknowledgements programme programmes whilst amongst artefact artefacts sceptical
 	fulfil skilful wilful ageing practise practised enrolment
 `
-		.split(/\s+/)
-		.filter(Boolean),
-)
+    .split(/\s+/)
+    .filter(Boolean),
+);
 
 /**
  * Files that quote en-GB on purpose: a target's vendored API document and lockfiles naming
  * packages, which are third-party text, and this list with its test, which spell what they find.
  */
 export const QUOTED_FILES: readonly RegExp[] = [
-	/^tests\/api\/targets\/[^/]+\/openapi[^/]*\.(json|ya?ml)$/,
-	/(^|\/)package-lock\.json$/,
-	/^tests\/api\/support\/spelling\.ts$/,
-	/^tests\/structure\/spelling\.test\.ts$/,
-]
+  /^tests\/api\/targets\/[^/]+\/openapi[^/]*\.(json|ya?ml)$/,
+  /(^|\/)package-lock\.json$/,
+  /^tests\/api\/support\/spelling\.ts$/,
+  /^tests\/structure\/spelling\.test\.ts$/,
+];
 
 /*
  * Tokens quoted in our own files: GitHub Actions' `cancelled()` and its 'cancelled' result, and the
  * three 0.24 check ids, named where a migration says what replaced them and a baseline refuses them.
  */
 const QUOTED_TOKENS: readonly RegExp[] = [
-	/\bcancelled\(\)/g,
-	/["']cancelled["']/g,
-	/\b(select\.projection|select\.nested|spec\.declared-rate-limit-is)-honoured\b/g,
-]
+  /\bcancelled\(\)/g,
+  /["']cancelled["']/g,
+  /\b(select\.projection|select\.nested|spec\.declared-rate-limit-is)-honoured\b/g,
+];
 
 /** The en-GB words in `text`, lower case, in order, identifiers split at case and `_` boundaries. */
 export function enGbWords(text: string): string[] {
-	const own = QUOTED_TOKENS.reduce((left, token) => left.replace(token, ""), text)
-	return (own.match(/[A-Za-z]+/g) ?? [])
-		.flatMap((word) => word.split(/(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])/))
-		.map((word) => word.toLowerCase())
-		.filter((word) => EN_GB.has(word))
+  const own = QUOTED_TOKENS.reduce((left, token) => left.replace(token, ""), text);
+  return (own.match(/[A-Za-z]+/g) ?? [])
+    .flatMap((word) => word.split(/(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])/))
+    .map((word) => word.toLowerCase())
+    .filter((word) => EN_GB.has(word));
 }

@@ -1,23 +1,23 @@
 {
-	"name": "testing-labs",
-	"private": true,
-	"description": "A family of real Hono backends — tiny through platform — for iterating the API tester",
-	"type": "module",
-	"scripts": {
-		"provision": "node provision.mjs",
-		"start": "node serve.ts",
-		"tiny": "LAB=tiny LAB_PORT=8790 node serve.ts",
-		"shop": "LAB=shop LAB_PORT=8791 node serve.ts",
-		"campus": "LAB=campus LAB_PORT=8792 node serve.ts",
-		"platform": "LAB=platform LAB_PORT=8793 node serve.ts",
-		"deploy": "node deploy.mjs",
-		"iterate": "bash iterate.sh"
-	},
-	"dependencies": {
-		"@hono/node-server": "^1.19.0",
-		"hono": "^4.9.0"
-	},
-	"devDependencies": {
-		"wrangler": "^4.28.0"
-	}
+  "name": "testing-labs",
+  "private": true,
+  "description": "A family of real Hono backends — tiny through platform — for iterating the API tester",
+  "type": "module",
+  "scripts": {
+    "provision": "node provision.mjs",
+    "start": "node serve.ts",
+    "tiny": "LAB=tiny LAB_PORT=8790 node serve.ts",
+    "shop": "LAB=shop LAB_PORT=8791 node serve.ts",
+    "campus": "LAB=campus LAB_PORT=8792 node serve.ts",
+    "platform": "LAB=platform LAB_PORT=8793 node serve.ts",
+    "deploy": "node deploy.mjs",
+    "iterate": "bash iterate.sh"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.0",
+    "hono": "^4.9.0"
+  },
+  "devDependencies": {
+    "wrangler": "^4.28.0"
+  }
 }

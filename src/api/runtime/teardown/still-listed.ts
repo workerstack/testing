@@ -3,115 +3,115 @@
  * paging, until the list ends or every one of them has been seen.
  */
 
-import { UnsatisfiedSecurity } from "../../client/credential-source.ts"
-import { nextCursorOf } from "../../spec/collection/cursor.ts"
-import { largestPageQuery } from "../../spec/graph/paging.ts"
-import type { OperationModel, SpecModel } from "../../spec/graph/types.ts"
-import type { Client } from "../../client/client.ts"
-import type { Exchange } from "../exchange.ts"
-import { FencedError } from "../fence.ts"
-import { isNetworkError } from "../../errors/network.ts"
-import { readPath } from "../../client/read-path.ts"
-import { idOf, recordsFromList } from "../world/records.ts"
-import type { Disposable, Owner } from "./types.ts"
+import type { Client } from "../../client/client.ts";
+import { UnsatisfiedSecurity } from "../../client/credential-source.ts";
+import { readPath } from "../../client/read-path.ts";
+import { isNetworkError } from "../../errors/network.ts";
+import { nextCursorOf } from "../../spec/collection/cursor.ts";
+import { largestPageQuery } from "../../spec/graph/paging.ts";
+import type { OperationModel, SpecModel } from "../../spec/graph/types.ts";
+import type { Exchange } from "../exchange.ts";
+import { FencedError } from "../fence.ts";
+import { idOf, recordsFromList } from "../world/records.ts";
+import type { Disposable, Owner } from "./types.ts";
 
 /* The most pages one re-list reads: teardown looks for its own records, it does not crawl. */
-const VERIFY_PAGES = 50
+const VERIFY_PAGES = 50;
 
 /** Removed records that lived in one list, as one creator reads it. */
 export interface ListGroup {
-	identity: string
-	listOp: OperationModel
-	owner: Owner
-	path: string
-	items: Disposable[]
+  identity: string;
+  listOp: OperationModel;
+  owner: Owner;
+  path: string;
+  items: Disposable[];
 }
 
-type Paging = OperationModel["conventions"]
+type Paging = OperationModel["conventions"];
 
 /** How far a re-list has read. */
 interface Walk {
-	wanted: ReadonlySet<string>
-	listed: Set<string>
-	seen: Set<string>
-	/** The longest page served: a server may cap the size asked for without saying so. */
-	fullPage: number
-	/** Rows served so far, repeats included: what an offset counts. */
-	served: number
-	cursor: string | undefined
-	/** Whether the last page read showed the list ends there. */
-	ended: boolean
+  wanted: ReadonlySet<string>;
+  listed: Set<string>;
+  seen: Set<string>;
+  /** The longest page served: a server may cap the size asked for without saying so. */
+  fullPage: number;
+  /** Rows served so far, repeats included: what an offset counts. */
+  served: number;
+  cursor: string | undefined;
+  /** Whether the last page read showed the list ends there. */
+  ended: boolean;
 }
 
 /** What a re-list saw: the records still listed, and whether it read to the list's proven end. */
 export interface Listing {
-	listed: Set<string>
-	/**
-	 * The last page read showed the list ends there: it was empty, shorter than a full page already
-	 * served, or its envelope said no more follow. Only then is a record it did not list shown absent.
-	 */
-	complete: boolean
+  listed: Set<string>;
+  /**
+   * The last page read showed the list ends there: it was empty, shorter than a full page already
+   * served, or its envelope said no more follow. Only then is a record it did not list shown absent.
+   */
+  complete: boolean;
 }
 
 /** The group's records still listed; `null` when the first page could not be read: nothing is claimed either way. */
 export async function stillListed(model: SpecModel, client: Client, group: ListGroup): Promise<Set<string> | null> {
-	return (await listing(model, client, group))?.listed ?? null
+  return (await listing(model, client, group))?.listed ?? null;
 }
 
 /** The group's list, read as stillListed reads it, and whether that read reached the list's end. */
 export async function listing(model: SpecModel, client: Client, group: ListGroup): Promise<Listing | null> {
-	const paging = group.listOp.conventions
-	const first = largestPageQuery(model, group.listOp)
-	const walk: Walk = {
-		cursor: undefined,
-		ended: false,
-		fullPage: 0,
-		listed: new Set(),
-		seen: new Set(),
-		served: 0,
-		wanted: new Set(group.items.map((item) => item.id)),
-	}
-	for (let index = 0; index < VERIFY_PAGES; index++) {
-		const query = pageQuery(paging, first, { ...walk, index })
-		if (query === null) break
-		let exchange: Exchange
-		try {
-			exchange = await client.get(group.path, {
-				as: { principal: group.owner.id },
-				operationId: group.listOp.operationId,
-				query,
-			})
-		} catch (error) {
-			/* A list that could not be asked shows nothing: fenced, offline, or an owner's BLOCKED credential. */
-			if (!(error instanceof FencedError) && !(error instanceof UnsatisfiedSecurity) && !isNetworkError(error)) {
-				throw error
-			}
-			return index === 0 ? null : unended(walk)
-		}
-		if (exchange.status >= 300) return index === 0 ? null : unended(walk)
-		if (!takePage(walk, group, exchange)) break
-	}
-	return { complete: walk.ended, listed: walk.listed }
+  const paging = group.listOp.conventions;
+  const first = largestPageQuery(model, group.listOp);
+  const walk: Walk = {
+    cursor: undefined,
+    ended: false,
+    fullPage: 0,
+    listed: new Set(),
+    seen: new Set(),
+    served: 0,
+    wanted: new Set(group.items.map((item) => item.id)),
+  };
+  for (let index = 0; index < VERIFY_PAGES; index++) {
+    const query = pageQuery(paging, first, { ...walk, index });
+    if (query === null) break;
+    let exchange: Exchange;
+    try {
+      exchange = await client.get(group.path, {
+        as: { principal: group.owner.id },
+        operationId: group.listOp.operationId,
+        query,
+      });
+    } catch (error) {
+      /* A list that could not be asked shows nothing: fenced, offline, or an owner's BLOCKED credential. */
+      if (!(error instanceof FencedError) && !(error instanceof UnsatisfiedSecurity) && !isNetworkError(error)) {
+        throw error;
+      }
+      return index === 0 ? null : unended(walk);
+    }
+    if (exchange.status >= 300) return index === 0 ? null : unended(walk);
+    if (!takePage(walk, group, exchange)) break;
+  }
+  return { complete: walk.ended, listed: walk.listed };
 }
 
 /* A walk cut short by a page it could not read: what it listed, with no end shown. */
 function unended(walk: Walk): Listing {
-	return { complete: false, listed: walk.listed }
+  return { complete: false, listed: walk.listed };
 }
 
 /** The query for page `index`, or `null` when the list declares no way to ask for it. */
 function pageQuery(
-	paging: Paging,
-	first: Record<string, string | number>,
-	at: { index: number; served: number; cursor: string | undefined },
+  paging: Paging,
+  first: Record<string, string | number>,
+  at: { index: number; served: number; cursor: string | undefined },
 ): Record<string, string | number> | null {
-	const query: Record<string, string | number> = { ...first }
-	if (at.index === 0) return query
-	if (paging.page !== undefined) query[paging.page] = at.index + 1
-	else if (paging.offset !== undefined) query[paging.offset] = at.served
-	else if (paging.cursor !== undefined && at.cursor !== undefined) query[paging.cursor] = at.cursor
-	else return null
-	return query
+  const query: Record<string, string | number> = { ...first };
+  if (at.index === 0) return query;
+  if (paging.page !== undefined) query[paging.page] = at.index + 1;
+  else if (paging.offset !== undefined) query[paging.offset] = at.served;
+  else if (paging.cursor !== undefined && at.cursor !== undefined) query[paging.cursor] = at.cursor;
+  else return null;
+  return query;
 }
 
 /**
@@ -119,33 +119,33 @@ function pageQuery(
  * again, one shorter than a full page already served, or every record seen.
  */
 function takePage(walk: Walk, group: ListGroup, exchange: Exchange): boolean {
-	const paging = group.listOp.conventions
-	const rows = recordsFromList(exchange.responseBody, group.listOp.collection)
-	walk.served += rows.length
-	walk.ended = endsHere(walk, paging.envelope, { body: exchange.responseBody, rows: rows.length })
-	const ids = rows.flatMap((row) => idOf(row, group.identity) ?? [])
-	const fresh = ids.filter((id) => !walk.seen.has(id))
-	for (const id of ids) {
-		walk.seen.add(id)
-		if (walk.wanted.has(id)) walk.listed.add(id)
-	}
-	if (fresh.length === 0 || walk.listed.size === walk.wanted.size) return false
-	if (walk.fullPage > 0 && rows.length < walk.fullPage) return false
-	walk.fullPage = Math.max(walk.fullPage, rows.length)
-	const next =
-		paging.envelope.nextCursor === undefined ? undefined : readPath(exchange.responseBody, paging.envelope.nextCursor)
-	walk.cursor = nextCursorOf(next)
-	return true
+  const paging = group.listOp.conventions;
+  const rows = recordsFromList(exchange.responseBody, group.listOp.collection);
+  walk.served += rows.length;
+  walk.ended = endsHere(walk, paging.envelope, { body: exchange.responseBody, rows: rows.length });
+  const ids = rows.flatMap((row) => idOf(row, group.identity) ?? []);
+  const fresh = ids.filter((id) => !walk.seen.has(id));
+  for (const id of ids) {
+    walk.seen.add(id);
+    if (walk.wanted.has(id)) walk.listed.add(id);
+  }
+  if (fresh.length === 0 || walk.listed.size === walk.wanted.size) return false;
+  if (walk.fullPage > 0 && rows.length < walk.fullPage) return false;
+  walk.fullPage = Math.max(walk.fullPage, rows.length);
+  const next =
+    paging.envelope.nextCursor === undefined ? undefined : readPath(exchange.responseBody, paging.envelope.nextCursor);
+  walk.cursor = nextCursorOf(next);
+  return true;
 }
 
 /* Whether this page is the list's last: empty, short of a full page served before, or its envelope says so. */
 function endsHere(walk: Walk, envelope: Paging["envelope"], page: { body: unknown; rows: number }): boolean {
-	if (page.rows === 0 || (walk.fullPage > 0 && page.rows < walk.fullPage)) return true
-	const read = (path: string | undefined) => (path === undefined ? undefined : readPath(page.body, path))
-	if (read(envelope.hasMore) === false) return true
-	const total = read(envelope.total)
-	if (typeof total === "number" && walk.served >= total) return true
-	if (envelope.nextCursor === undefined) return false
-	const next = read(envelope.nextCursor)
-	return next === null || next === undefined || next === ""
+  if (page.rows === 0 || (walk.fullPage > 0 && page.rows < walk.fullPage)) return true;
+  const read = (path: string | undefined) => (path === undefined ? undefined : readPath(page.body, path));
+  if (read(envelope.hasMore) === false) return true;
+  const total = read(envelope.total);
+  if (typeof total === "number" && walk.served >= total) return true;
+  if (envelope.nextCursor === undefined) return false;
+  const next = read(envelope.nextCursor);
+  return next === null || next === undefined || next === "";
 }

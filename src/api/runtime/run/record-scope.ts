@@ -1,4 +1,4 @@
-import type { OperationModel, SpecModel } from "../../spec/graph/types.ts"
+import type { OperationModel, SpecModel } from "../../spec/graph/types.ts";
 
 /*
  * A minted credential is a record, and the operations that address it (its revoke, its entity's
@@ -10,13 +10,13 @@ import type { OperationModel, SpecModel } from "../../spec/graph/types.ts"
 
 /** `scope` with `op`'s last path parameter bound to the record's identity when nothing named like it is. */
 export function recordScope(
-	model: Pick<SpecModel, "entities">,
-	op: Pick<OperationModel, "entity" | "pathParams">,
-	scope: Readonly<Record<string, string>>,
+  model: Pick<SpecModel, "entities">,
+  op: Pick<OperationModel, "entity" | "pathParams">,
+  scope: Readonly<Record<string, string>>,
 ): Record<string, string> {
-	const last = op.pathParams.at(-1)
-	if (last === undefined || scope[last] !== undefined) return { ...scope }
-	const field = (op.entity === null ? undefined : model.entities.get(op.entity)?.identity) ?? "id"
-	const id = scope[field] ?? scope["id"]
-	return id === undefined ? { ...scope } : { ...scope, [last]: id }
+  const last = op.pathParams.at(-1);
+  if (last === undefined || scope[last] !== undefined) return { ...scope };
+  const field = (op.entity === null ? undefined : model.entities.get(op.entity)?.identity) ?? "id";
+  const id = scope[field] ?? scope["id"];
+  return id === undefined ? { ...scope } : { ...scope, [last]: id };
 }

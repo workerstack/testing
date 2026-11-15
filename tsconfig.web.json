@@ -1,9 +1,9 @@
 {
-	/* The web modules: the package config plus the DOM, since `ready.settle` runs a function in the page. */
-	"extends": "./tsconfig.json",
-	"compilerOptions": {
-		"lib": ["ES2023", "DOM", "DOM.Iterable"]
-	},
-	"include": ["src/web/**/*.ts"],
-	"exclude": ["src/web/**/*.test.ts"]
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"]
+  },
+  "exclude": ["src/web/**/*.test.ts"],
+  // The web modules: the package config plus the DOM, since `ready.settle` runs a function in the page.
+  "extends": "./tsconfig.json",
+  "include": ["src/web/**/*.ts"]
 }

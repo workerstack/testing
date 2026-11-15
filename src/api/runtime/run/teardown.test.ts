@@ -1,16 +1,17 @@
-import { describe, expect, it } from "vitest"
-import type { ProgressSnapshot } from "../progress/types.ts"
-import { createdId } from "../proven-id.ts"
-import type { Record_ } from "../world/records.ts"
-import { contextOf, notesApi, notesDoc, optionsFor, overriding, withLogin, withSignup } from "./__fixtures__/api.ts"
-import type { SecurityConfig } from "../../config/types/security.ts"
-import { keysApi, MINTED } from "./__fixtures__/keys.ts"
-import type { RunContext } from "./context.ts"
-import { reportUnremovable, revokeCredentials, revokeSessions, trackCreates, unwind } from "./teardown.ts"
-import type { RunOptions } from "./types.ts"
-import type { Responder } from "../checks/__fixtures__/harness.ts"
-import { anonymousOperationOpen } from "../checks/families/security/auth-anonymous-operation-open.ts"
-import { runWriteSecurity } from "./security.ts"
+import { describe, expect, it } from "vitest";
+
+import type { SecurityConfig } from "../../config/types/security.ts";
+import type { Responder } from "../checks/__fixtures__/harness.ts";
+import { anonymousOperationOpen } from "../checks/families/security/auth-anonymous-operation-open.ts";
+import type { ProgressSnapshot } from "../progress/types.ts";
+import { createdId } from "../proven-id.ts";
+import type { Record_ } from "../world/records.ts";
+import { contextOf, notesApi, notesDoc, optionsFor, overriding, withLogin, withSignup } from "./__fixtures__/api.ts";
+import { keysApi, MINTED } from "./__fixtures__/keys.ts";
+import type { RunContext } from "./context.ts";
+import { runWriteSecurity } from "./security.ts";
+import { reportUnremovable, revokeCredentials, revokeSessions, trackCreates, unwind } from "./teardown.ts";
+import type { RunOptions } from "./types.ts";
 
 /*
  * What the run made, it removes: every create a principal sent is ledgered as it, the ledger
@@ -18,399 +19,400 @@ import { runWriteSecurity } from "./security.ts"
  * accounts the run signed up go last — or are named as left behind.
  */
 
-const AS_ALPHA = { as: { principal: "alpha" } }
+const AS_ALPHA = { as: { principal: "alpha" } };
 
-const id = (value: string) => createdId(value) as NonNullable<ReturnType<typeof createdId>>
+const id = (value: string) => createdId(value) as NonNullable<ReturnType<typeof createdId>>;
 
 async function contextWith(rows: Record_[], extra: Partial<RunOptions> = {}): Promise<RunContext> {
-	return contextOf(optionsFor(notesApi(notesDoc(), rows), extra))
+  return contextOf(optionsFor(notesApi(notesDoc(), rows), extra));
 }
 
 /** Ledgers `count` notes the API holds, as the first principal. */
 function seed(ctx: RunContext, rows: Record_[], count: number): void {
-	const owner = ctx.principals.ownerOf(ctx.principals.alpha)
-	for (let index = 1; index <= count; index++) {
-		rows.push({ id: `n${index}`, title: `t${index}` })
-		ctx.principals.recorder(owner)("note", id(`n${index}`), {})
-	}
+  const owner = ctx.principals.ownerOf(ctx.principals.alpha);
+  for (let index = 1; index <= count; index++) {
+    rows.push({ id: `n${index}`, title: `t${index}` });
+    ctx.principals.recorder(owner)("note", id(`n${index}`), {});
+  }
 }
 
 async function verifyRemoved(): Promise<never> {
-	throw new Error("hook down")
+  throw new Error("hook down");
 }
 
 describe("trackCreates", () => {
-	it("ledgers a create a principal sent, and marks its identity taken", async () => {
-		const rows: Record_[] = []
-		const ctx = await contextWith(rows)
-		const taken = new Set<string>()
-		ctx.state.takenByEntity.set("note", taken)
-		trackCreates(ctx)
-		await ctx.client.request("POST", "/notes", { ...AS_ALPHA, body: { title: "x" } })
-		expect(ctx.ledger.size).toBe(1)
-		expect(taken).toEqual(new Set([String(rows[0]?.["id"])]))
-	})
+  it("ledgers a create a principal sent, and marks its identity taken", async () => {
+    const rows: Record_[] = [];
+    const ctx = await contextWith(rows);
+    const taken = new Set<string>();
+    ctx.state.takenByEntity.set("note", taken);
+    trackCreates(ctx);
+    await ctx.client.request("POST", "/notes", { ...AS_ALPHA, body: { title: "x" } });
+    expect(ctx.ledger.size).toBe(1);
+    expect(taken).toEqual(new Set([String(rows[0]?.["id"])]));
+  });
 
-	it("ledgers a create of an entity no seeding has started", async () => {
-		const ctx = await contextWith([])
-		trackCreates(ctx)
-		await ctx.client.request("POST", "/notes", { ...AS_ALPHA, body: { title: "x" } })
-		expect(ctx.ledger.size).toBe(1)
-	})
-})
+  it("ledgers a create of an entity no seeding has started", async () => {
+    const ctx = await contextWith([]);
+    trackCreates(ctx);
+    await ctx.client.request("POST", "/notes", { ...AS_ALPHA, body: { title: "x" } });
+    expect(ctx.ledger.size).toBe(1);
+  });
+});
 
 /* Notes whose create hands its creator a token for the note it made. */
 async function adoptingNotes() {
-	const rows: Record_[] = []
-	const doc = notesDoc()
-	const paths = doc.paths as Record<string, Record<string, Record<string, unknown>>>
-	const create = paths["/notes"]?.["post"] as Record<string, unknown>
-	create["x-entity"] = { action: "create", credentialFrom: "$.access_token", name: "note" }
-	const respond = overriding(notesApi(doc, rows), (method, path) => {
-		if (method !== "POST" || path !== "/notes") return undefined
-		rows.push({ id: "n1", title: "x" })
-		return { body: { access_token: "note-token", id: "n1", title: "x" }, status: 201 }
-	})
-	const options = optionsFor(respond)
-	return { ctx: await contextOf(options), seen: options.seen }
+  const rows: Record_[] = [];
+  const doc = notesDoc();
+  const paths = doc.paths as Record<string, Record<string, Record<string, unknown>>>;
+  const create = paths["/notes"]?.["post"] as Record<string, unknown>;
+  create["x-entity"] = { action: "create", credentialFrom: "$.access_token", name: "note" };
+  const respond = overriding(notesApi(doc, rows), (method, path) => {
+    if (method !== "POST" || path !== "/notes") return undefined;
+    rows.push({ id: "n1", title: "x" });
+    return { body: { access_token: "note-token", id: "n1", title: "x" }, status: 201 };
+  });
+  const options = optionsFor(respond);
+  return { ctx: await contextOf(options), seen: options.seen };
 }
 
 describe("trackCreates and a create that hands its creator a credential", () => {
-	it("sends it on what the creator sends under the note, and the creator's own elsewhere", async () => {
-		const { ctx, seen } = await adoptingNotes()
-		trackCreates(ctx)
-		await ctx.client.request("POST", "/notes", { ...AS_ALPHA, body: { title: "x" } })
-		await ctx.client.request("GET", "/notes/n1", AS_ALPHA)
-		await ctx.client.request("GET", "/notes", AS_ALPHA)
-		const sentWith = (path: string) =>
-			seen.filter((request) => request.path === path).map((r) => r.headers["authorization"])
-		expect(sentWith("/notes/n1").every((value) => value === "Bearer note-token")).toBe(true)
-		expect(sentWith("/notes")).not.toContain("Bearer note-token")
-		expect(ctx.ledger.entries()).toMatchObject([{ entity: "note", id: "n1", owner: { id: "alpha" } }])
-	})
-})
+  it("sends it on what the creator sends under the note, and the creator's own elsewhere", async () => {
+    const { ctx, seen } = await adoptingNotes();
+    trackCreates(ctx);
+    await ctx.client.request("POST", "/notes", { ...AS_ALPHA, body: { title: "x" } });
+    await ctx.client.request("GET", "/notes/n1", AS_ALPHA);
+    await ctx.client.request("GET", "/notes", AS_ALPHA);
+    const sentWith = (path: string) =>
+      seen.filter((request) => request.path === path).map((r) => r.headers["authorization"]);
+    expect(sentWith("/notes/n1").every((value) => value === "Bearer note-token")).toBe(true);
+    expect(sentWith("/notes")).not.toContain("Bearer note-token");
+    expect(ctx.ledger.entries()).toMatchObject([{ entity: "note", id: "n1", owner: { id: "alpha" } }]);
+  });
+});
 
 /* An open register that ignores its body, as a broken API does, and answers `answer` having made note r1. */
 async function openRegister(answer: Record<string, unknown>) {
-	const rows: Record_[] = []
-	const register = {
-		post: {
-			operationId: "notes.register",
-			requestBody: {
-				content: {
-					"application/json": {
-						schema: { properties: { email: { type: "string" } }, required: ["email"], type: "object" },
-					},
-				},
-				required: true,
-			},
-			responses: { "201": { description: "registered" } },
-			security: [],
-			"x-entity": { action: "action", name: "note" },
-		},
-	}
-	const respond = overriding(notesApi(notesDoc({ "/register": register }), rows), (method, path) => {
-		if (method !== "POST" || path !== "/register") return undefined
-		rows.push({ id: "r1", title: "made by a body it never read" })
-		return { body: answer, status: 201 }
-	})
-	const options = optionsFor(respond, { ops: ["notes.register", "notes.get"] })
-	const ctx = await contextOf(options)
-	trackCreates(ctx)
-	await runWriteSecurity(ctx, [anonymousOperationOpen])
-	return { ctx, rows, seen: options.seen }
+  const rows: Record_[] = [];
+  const register = {
+    post: {
+      operationId: "notes.register",
+      requestBody: {
+        content: {
+          "application/json": {
+            schema: { properties: { email: { type: "string" } }, required: ["email"], type: "object" },
+          },
+        },
+        required: true,
+      },
+      responses: { "201": { description: "registered" } },
+      security: [],
+      "x-entity": { action: "action", name: "note" },
+    },
+  };
+  const respond = overriding(notesApi(notesDoc({ "/register": register }), rows), (method, path) => {
+    if (method !== "POST" || path !== "/register") return undefined;
+    rows.push({ id: "r1", title: "made by a body it never read" });
+    return { body: answer, status: 201 };
+  });
+  const options = optionsFor(respond, { ops: ["notes.register", "notes.get"] });
+  const ctx = await contextOf(options);
+  trackCreates(ctx);
+  await runWriteSecurity(ctx, [anonymousOperationOpen]);
+  return { ctx, rows, seen: options.seen };
 }
 
 describe("trackCreates on an open write a probe sent with no credential", () => {
-	it("ledgers what a 2xx made, by the id it names and a read that shows it, and teardown removes it", async () => {
-		const { ctx, rows, seen } = await openRegister({ note_id: "r1" })
-		expect(ctx.ledger.entries()).toMatchObject([{ entity: "note", id: "r1", owner: { id: "alpha" } }])
-		await unwind(ctx)
-		expect(seen.filter((request) => request.method === "DELETE").map((request) => request.path)).toEqual(["/notes/r1"])
-		expect(rows).toEqual([])
-	})
+  it("ledgers what a 2xx made, by the id it names and a read that shows it, and teardown removes it", async () => {
+    const { ctx, rows, seen } = await openRegister({ note_id: "r1" });
+    expect(ctx.ledger.entries()).toMatchObject([{ entity: "note", id: "r1", owner: { id: "alpha" } }]);
+    await unwind(ctx);
+    expect(seen.filter((request) => request.method === "DELETE").map((request) => request.path)).toEqual(["/notes/r1"]);
+    expect(rows).toEqual([]);
+  });
 
-	it("reports a 2xx that names no such id as a record that may remain", async () => {
-		const { ctx } = await openRegister({ access_token: "t" })
-		expect(ctx.ledger.entries()).toEqual([])
-		expect(ctx.ledger.unidentifiedCreates).toMatchObject([
-			{ entity: "note", operationId: "notes.register", status: 201 },
-		])
-	})
-})
+  it("reports a 2xx that names no such id as a record that may remain", async () => {
+    const { ctx } = await openRegister({ access_token: "t" });
+    expect(ctx.ledger.entries()).toEqual([]);
+    expect(ctx.ledger.unidentifiedCreates).toMatchObject([
+      { entity: "note", operationId: "notes.register", status: 201 },
+    ]);
+  });
+});
 
 /* Alpha mints project keys with its static bearer token, and the API revokes them. */
 const keyed = () =>
-	contextOf(optionsFor(keysApi(), { principals: { alpha: { scope: { project_id: "p1" } } }, security: MINTED }))
+  contextOf(optionsFor(keysApi(), { principals: { alpha: { scope: { project_id: "p1" } } }, security: MINTED }));
 
 describe("trackCreates and credentials", () => {
-	it("leaves the store's own mint unledgered, and revokes it with the store", async () => {
-		const ctx = await keyed()
-		trackCreates(ctx)
-		expect(await ctx.store.acquire({ principal: "alpha", scheme: "key" })).not.toHaveProperty("blocked")
-		expect(ctx.client.transcript.find((exchange) => exchange.operationId === "keys.create")).toMatchObject({
-			issuedBy: "credentials",
-		})
-		expect(ctx.ledger.entries()).toEqual([])
-		await revokeCredentials(ctx)
-		expect(ctx.client.transcript.at(-1)).toMatchObject({ method: "DELETE", operationId: "keys.revoke", status: 204 })
-	})
+  it("leaves the store's own mint unledgered, and revokes it with the store", async () => {
+    const ctx = await keyed();
+    trackCreates(ctx);
+    expect(await ctx.store.acquire({ principal: "alpha", scheme: "key" })).not.toHaveProperty("blocked");
+    expect(ctx.client.transcript.find((exchange) => exchange.operationId === "keys.create")).toMatchObject({
+      issuedBy: "credentials",
+    });
+    expect(ctx.ledger.entries()).toEqual([]);
+    await revokeCredentials(ctx);
+    expect(ctx.client.transcript.at(-1)).toMatchObject({ method: "DELETE", operationId: "keys.revoke", status: 204 });
+  });
 
-	it("ledgers and tears down a key a scenario step or raw request creates through the same operation", async () => {
-		const ctx = await keyed()
-		trackCreates(ctx)
-		await ctx.client.request("POST", "/projects/p1/keys", { ...AS_ALPHA, body: { label: "by hand" } })
-		expect(ctx.ledger.entries()).toMatchObject([{ id: "1", owner: { id: "alpha" } }])
-		await unwind(ctx)
-		expect(ctx.state.teardown).toMatchObject({ failed: [], removed: 1 })
-	})
-})
+  it("ledgers and tears down a key a scenario step or raw request creates through the same operation", async () => {
+    const ctx = await keyed();
+    trackCreates(ctx);
+    await ctx.client.request("POST", "/projects/p1/keys", { ...AS_ALPHA, body: { label: "by hand" } });
+    expect(ctx.ledger.entries()).toMatchObject([{ id: "1", owner: { id: "alpha" } }]);
+    await unwind(ctx);
+    expect(ctx.state.teardown).toMatchObject({ failed: [], removed: 1 });
+  });
+});
 
 describe("unwind", () => {
-	it("removes what was ledgered, showing its progress every 25 records and at the end", async () => {
-		const rows: Record_[] = []
-		const snaps: ProgressSnapshot[] = []
-		const ctx = await contextWith(rows, { onProgress: (snap) => snaps.push(snap) })
-		seed(ctx, rows, 26)
-		ctx.progress.check = "c1"
-		await unwind(ctx)
-		expect(rows).toEqual([])
-		expect(ctx.state.teardown).toMatchObject({ failed: [], removed: 26, unsupported: [] })
-		const said = snaps.flatMap((snap) => snap.message ?? [])
-		/* Newest first: the unwind reverses creation order, so children go before their parents. */
-		expect(said.slice(said.indexOf("26 record(s)"))).toEqual(["26 record(s)", "25/26 note n2", "26/26 note n1"])
-		expect(snaps.at(-1)).toMatchObject({ phase: "teardown" })
-		expect(snaps.at(-1)).not.toHaveProperty("check")
-	})
+  it("removes what was ledgered, showing its progress every 25 records and at the end", async () => {
+    const rows: Record_[] = [];
+    const snaps: ProgressSnapshot[] = [];
+    const ctx = await contextWith(rows, { onProgress: (snap) => snaps.push(snap) });
+    seed(ctx, rows, 26);
+    ctx.progress.check = "c1";
+    await unwind(ctx);
+    expect(rows).toEqual([]);
+    expect(ctx.state.teardown).toMatchObject({ failed: [], removed: 26, unsupported: [] });
+    const said = snaps.flatMap((snap) => snap.message ?? []);
+    /* Newest first: the unwind reverses creation order, so children go before their parents. */
+    expect(said.slice(said.indexOf("26 record(s)"))).toEqual(["26 record(s)", "25/26 note n2", "26/26 note n1"]);
+    expect(snaps.at(-1)).toMatchObject({ phase: "teardown" });
+    expect(snaps.at(-1)).not.toHaveProperty("check");
+  });
 
-	it("adds a second unwind's report to the first", async () => {
-		const rows: Record_[] = []
-		const ctx = await contextWith(rows, { teardown: { verify: false } })
-		seed(ctx, rows, 1)
-		await unwind(ctx)
-		rows.push({ id: "m1", title: "m" })
-		ctx.principals.recorder(ctx.principals.ownerOf(ctx.principals.alpha))("note", id("m1"), {})
-		await unwind(ctx)
-		expect(ctx.state.teardown?.removed).toBe(2)
-		expect(ctx.state.teardown?.records).toHaveLength(2)
-	})
-})
+  it("adds a second unwind's report to the first", async () => {
+    const rows: Record_[] = [];
+    const ctx = await contextWith(rows, { teardown: { verify: false } });
+    seed(ctx, rows, 1);
+    await unwind(ctx);
+    rows.push({ id: "m1", title: "m" });
+    ctx.principals.recorder(ctx.principals.ownerOf(ctx.principals.alpha))("note", id("m1"), {});
+    await unwind(ctx);
+    expect(ctx.state.teardown?.removed).toBe(2);
+    expect(ctx.state.teardown?.records).toHaveLength(2);
+  });
+});
 
 describe("unwind edge cases", () => {
-	it("leaves everything in place when asked to keep fixtures, or when nothing was made", async () => {
-		const rows: Record_[] = []
-		const kept = await contextWith(rows, { keepFixtures: true })
-		seed(kept, rows, 1)
-		await unwind(kept)
-		expect(rows).toHaveLength(1)
-		const empty = await contextWith([])
-		await unwind(empty)
-		expect(empty.state.teardown).toBeNull()
-	})
+  it("leaves everything in place when asked to keep fixtures, or when nothing was made", async () => {
+    const rows: Record_[] = [];
+    const kept = await contextWith(rows, { keepFixtures: true });
+    seed(kept, rows, 1);
+    await unwind(kept);
+    expect(rows).toHaveLength(1);
+    const empty = await contextWith([]);
+    await unwind(empty);
+    expect(empty.state.teardown).toBeNull();
+  });
 
-	it("reports a verify hook that threw once, however many unwinds it threw in", async () => {
-		const rows: Record_[] = []
-		const ctx = await contextWith(rows, { hooks: { verifyRemoved } as never })
-		seed(ctx, rows, 1)
-		await unwind(ctx)
-		seed(ctx, rows, 1)
-		await unwind(ctx)
-		expect(ctx.findings.findings.filter((finding) => finding.check === "teardown.verify-hook")).toEqual([
-			expect.objectContaining({ summary: "hooks.verifyRemoved threw" }),
-		])
-		expect(ctx.state.verifyHookFailed).toBe(true)
-	})
+  it("reports a verify hook that threw once, however many unwinds it threw in", async () => {
+    const rows: Record_[] = [];
+    const ctx = await contextWith(rows, { hooks: { verifyRemoved } as never });
+    seed(ctx, rows, 1);
+    await unwind(ctx);
+    seed(ctx, rows, 1);
+    await unwind(ctx);
+    expect(ctx.findings.findings.filter((finding) => finding.check === "teardown.verify-hook")).toEqual([
+      expect.objectContaining({ summary: "hooks.verifyRemoved threw" }),
+    ]);
+    expect(ctx.state.verifyHookFailed).toBe(true);
+  });
 
-	it("reports a teardown that stopped on an unexpected error", async () => {
-		const rows: Record_[] = []
-		const ctx = await contextWith(rows)
-		seed(ctx, rows, 1)
-		const broken: RunContext = {
-			...ctx,
-			principals: { ...ctx.principals, fallbackDeleters: () => [] },
-			model: null as never,
-		}
-		await unwind(broken)
-		expect(ctx.findings.findings).toEqual([
-			/* Counted after the unwind took the records off the ledger, as it always was. */
-			expect.objectContaining({
-				check: "world.teardown",
-				summary: "teardown stopped on an unexpected error with 0 record(s) ledgered",
-			}),
-		])
-		/* None of what it took is shown gone, so each is a leftover. */
-		expect(ctx.state.teardown?.failed).toEqual([
-			expect.objectContaining({ reason: expect.stringMatching(/^teardown stopped on an unexpected error: /) }),
-		])
-		expect(ctx.state.teardown?.records).toEqual([expect.objectContaining({ removed: false })])
-	})
-})
+  it("reports a teardown that stopped on an unexpected error", async () => {
+    const rows: Record_[] = [];
+    const ctx = await contextWith(rows);
+    seed(ctx, rows, 1);
+    const broken: RunContext = {
+      ...ctx,
+      principals: { ...ctx.principals, fallbackDeleters: () => [] },
+      model: null as never,
+    };
+    await unwind(broken);
+    expect(ctx.findings.findings).toEqual([
+      /* Counted after the unwind took the records off the ledger, as it always was. */
+      expect.objectContaining({
+        check: "world.teardown",
+        summary: "teardown stopped on an unexpected error with 0 record(s) ledgered",
+      }),
+    ]);
+    /* None of what it took is shown gone, so each is a leftover. */
+    expect(ctx.state.teardown?.failed).toEqual([
+      expect.objectContaining({ reason: expect.stringMatching(/^teardown stopped on an unexpected error: /) }),
+    ]);
+    expect(ctx.state.teardown?.records).toEqual([expect.objectContaining({ removed: false })]);
+  });
+});
 
 describe("reportUnremovable", () => {
-	it("names the entities whose records no delete reaches", async () => {
-		const ctx = await contextWith([])
-		reportUnremovable(ctx)
-		expect(ctx.findings.findings).toEqual([])
-		ctx.state.teardown = { failed: [], records: [], removed: 0, unidentified: [], unsupported: ["note", "tag"] }
-		reportUnremovable(ctx)
-		expect(ctx.findings.findings).toEqual([expect.objectContaining({ check: "world.teardown", entity: "note, tag" })])
-	})
-})
+  it("names the entities whose records no delete reaches", async () => {
+    const ctx = await contextWith([]);
+    reportUnremovable(ctx);
+    expect(ctx.findings.findings).toEqual([]);
+    ctx.state.teardown = { failed: [], records: [], removed: 0, unidentified: [], unsupported: ["note", "tag"] };
+    reportUnremovable(ctx);
+    expect(ctx.findings.findings).toEqual([expect.objectContaining({ check: "world.teardown", entity: "note, tag" })]);
+  });
+});
 
 describe("revokeCredentials", () => {
-	it("revokes what the run minted, and lists each revoke that failed as a record it could not remove", async () => {
-		const ctx = await contextOf(
-			optionsFor(keysApi(500), { principals: { alpha: { scope: { project_id: "p1" } } }, security: MINTED }),
-		)
-		await ctx.client.request("GET", "/secure", AS_ALPHA)
-		await revokeCredentials(ctx)
-		expect(ctx.state.teardown?.failed).toEqual([
-			{ entity: "credential", id: "alpha/key", principal: "alpha", reason: "revoke keys.revoke answered 500" },
-			{ entity: "credential", id: "alpha/key", principal: "alpha", reason: "revoke keys.revoke answered 500" },
-		])
-	})
+  it("revokes what the run minted, and lists each revoke that failed as a record it could not remove", async () => {
+    const ctx = await contextOf(
+      optionsFor(keysApi(500), { principals: { alpha: { scope: { project_id: "p1" } } }, security: MINTED }),
+    );
+    await ctx.client.request("GET", "/secure", AS_ALPHA);
+    await revokeCredentials(ctx);
+    expect(ctx.state.teardown?.failed).toEqual([
+      { entity: "credential", id: "alpha/key", principal: "alpha", reason: "revoke keys.revoke answered 500" },
+      { entity: "credential", id: "alpha/key", principal: "alpha", reason: "revoke keys.revoke answered 500" },
+    ]);
+  });
 
-	it("adds nothing when every revoke succeeds, and leaves a secondary origin's to the primary", async () => {
-		const options = optionsFor(keysApi(), { principals: { alpha: { scope: { project_id: "p1" } } }, security: MINTED })
-		const ctx = await contextOf(options)
-		await ctx.client.request("GET", "/secure", AS_ALPHA)
-		const shared = {
-			...ctx,
-			options: { ...ctx.options, sharedCredentials: { mapping: {}, originOnly: new Set<string>(), store: ctx.store } },
-		}
-		await revokeCredentials(shared)
-		expect(options.seen.filter((request) => request.method === "DELETE")).toEqual([])
-		await revokeCredentials(ctx)
-		expect([ctx.state.teardown, options.seen.filter((request) => request.method === "DELETE")]).toMatchObject([
-			null,
-			[{}, {}],
-		])
-	})
-})
+  it("adds nothing when every revoke succeeds, and leaves a secondary origin's to the primary", async () => {
+    const options = optionsFor(keysApi(), { principals: { alpha: { scope: { project_id: "p1" } } }, security: MINTED });
+    const ctx = await contextOf(options);
+    await ctx.client.request("GET", "/secure", AS_ALPHA);
+    const shared = {
+      ...ctx,
+      options: { ...ctx.options, sharedCredentials: { mapping: {}, originOnly: new Set<string>(), store: ctx.store } },
+    };
+    await revokeCredentials(shared);
+    expect(options.seen.filter((request) => request.method === "DELETE")).toEqual([]);
+    await revokeCredentials(ctx);
+    expect([ctx.state.teardown, options.seen.filter((request) => request.method === "DELETE")]).toMatchObject([
+      null,
+      [{}, {}],
+    ]);
+  });
+});
 
 /* Alpha's minted key `k1` (id 1), over `respond`: by default an API that answers 400 to a DELETE of a key already gone. */
 async function keyedBy(respond: Responder = keysApi()) {
-	const options = optionsFor(respond, { principals: { alpha: { scope: { project_id: "p1" } } }, security: MINTED })
-	const ctx = await contextOf(options)
-	expect(await ctx.store.acquire({ principal: "alpha", scheme: "key" })).not.toHaveProperty("blocked")
-	const sent = (method: string) => options.seen.filter((request) => request.method === method).map(({ path }) => path)
-	return { ctx, sent }
+  const options = optionsFor(respond, { principals: { alpha: { scope: { project_id: "p1" } } }, security: MINTED });
+  const ctx = await contextOf(options);
+  expect(await ctx.store.acquire({ principal: "alpha", scheme: "key" })).not.toHaveProperty("blocked");
+  const sent = (method: string) => options.seen.filter((request) => request.method === method).map(({ path }) => path);
+  return { ctx, sent };
 }
 
-const KEY_1 = "/projects/p1/keys/1"
+const KEY_1 = "/projects/p1/keys/1";
 
 describe("revokeCredentials: a key the run already removed", () => {
-	it("never revokes a key an accepted DELETE removed during the run, and counts it no leftover", async () => {
-		const { ctx, sent } = await keyedBy()
-		expect((await ctx.client.request("DELETE", KEY_1, AS_ALPHA)).status).toBe(204)
-		await revokeCredentials(ctx)
-		expect([ctx.state.teardown, sent("DELETE")]).toEqual([null, [KEY_1]])
-	})
+  it("never revokes a key an accepted DELETE removed during the run, and counts it no leftover", async () => {
+    const { ctx, sent } = await keyedBy();
+    expect((await ctx.client.request("DELETE", KEY_1, AS_ALPHA)).status).toBe(204);
+    await revokeCredentials(ctx);
+    expect([ctx.state.teardown, sent("DELETE")]).toEqual([null, [KEY_1]]);
+  });
 
-	it("still revokes a key whose DELETE was refused, or when another key was deleted", async () => {
-		const { ctx, sent } = await keyedBy(keysApi(204, { readable: true }))
-		await ctx.client.request("DELETE", "/projects/p1/keys/9", AS_ALPHA)
-		await revokeCredentials(ctx)
-		expect([ctx.state.teardown, sent("DELETE")]).toEqual([null, ["/projects/p1/keys/9", KEY_1]])
-	})
+  it("still revokes a key whose DELETE was refused, or when another key was deleted", async () => {
+    const { ctx, sent } = await keyedBy(keysApi(204, { readable: true }));
+    await ctx.client.request("DELETE", "/projects/p1/keys/9", AS_ALPHA);
+    await revokeCredentials(ctx);
+    expect([ctx.state.teardown, sent("DELETE")]).toEqual([null, ["/projects/p1/keys/9", KEY_1]]);
+  });
 
-	it("reads a key back when its revoke is refused with a 4xx: one the read shows gone is no leftover", async () => {
-		const read = (method: string, path: string) => (method === "GET" && path === KEY_1 ? { status: 404 } : undefined)
-		const gone = overriding(keysApi(400, { readable: true }), read)
-		const { ctx, sent } = await keyedBy(gone)
-		await revokeCredentials(ctx)
-		expect([ctx.state.teardown, sent("GET")]).toEqual([null, ["/openapi.json", KEY_1]])
-	})
+  it("reads a key back when its revoke is refused with a 4xx: one the read shows gone is no leftover", async () => {
+    const read = (method: string, path: string) => (method === "GET" && path === KEY_1 ? { status: 404 } : undefined);
+    const gone = overriding(keysApi(400, { readable: true }), read);
+    const { ctx, sent } = await keyedBy(gone);
+    await revokeCredentials(ctx);
+    expect([ctx.state.teardown, sent("GET")]).toEqual([null, ["/openapi.json", KEY_1]]);
+  });
 
-	it("keeps a key the read shows still present a leftover", async () => {
-		const { ctx, sent } = await keyedBy(keysApi(400, { readable: true }))
-		await revokeCredentials(ctx)
-		expect(ctx.state.teardown?.failed).toEqual([
-			{ entity: "credential", id: "alpha/key", principal: "alpha", reason: "revoke keys.revoke answered 400" },
-		])
-		expect(sent("GET")).toEqual(["/openapi.json", KEY_1])
-	})
-})
+  it("keeps a key the read shows still present a leftover", async () => {
+    const { ctx, sent } = await keyedBy(keysApi(400, { readable: true }));
+    await revokeCredentials(ctx);
+    expect(ctx.state.teardown?.failed).toEqual([
+      { entity: "credential", id: "alpha/key", principal: "alpha", reason: "revoke keys.revoke answered 400" },
+    ]);
+    expect(sent("GET")).toEqual(["/openapi.json", KEY_1]);
+  });
+});
 
 /* Alpha's login, whose sessions `notes.list` revokes, answering `revoked` to that revoke. */
 function revocable(extra: Partial<RunOptions> = {}, revoked = 200) {
-	const security: SecurityConfig = {
-		bearer: { login: { from: "$.token", revoke: "notes.list", steps: [{ operationId: "auth.login" }] } },
-	}
-	const answer = overriding(withLogin(), (method, path) =>
-		method === "GET" && path === "/notes" ? { body: [], status: revoked } : undefined,
-	)
-	return optionsFor(answer, { security, ...extra })
+  const security: SecurityConfig = {
+    bearer: { login: { from: "$.token", revoke: "notes.list", steps: [{ operationId: "auth.login" }] } },
+  };
+  const answer = overriding(withLogin(), (method, path) =>
+    method === "GET" && path === "/notes" ? { body: [], status: revoked } : undefined,
+  );
+  return optionsFor(answer, { security, ...extra });
 }
 
 describe("revokeSessions", () => {
-	it("ends each configured principal's login session by its declared revoke, as the credential store", async () => {
-		const options = revocable()
-		const ctx = await contextOf(options)
-		await revokeSessions(ctx)
-		const revoke = options.seen.filter((request) => request.path === "/notes")
-		expect(revoke.map((request) => request.headers["authorization"])).toEqual(["Bearer token-1"])
-		expect(ctx.client.transcript.at(-1)).toMatchObject({ issuedBy: "credentials", operationId: "notes.list" })
-		expect(ctx.state.teardown).toBeNull()
-	})
+  it("ends each configured principal's login session by its declared revoke, as the credential store", async () => {
+    const options = revocable();
+    const ctx = await contextOf(options);
+    await revokeSessions(ctx);
+    const revoke = options.seen.filter((request) => request.path === "/notes");
+    expect(revoke.map((request) => request.headers["authorization"])).toEqual(["Bearer token-1"]);
+    expect(ctx.client.transcript.at(-1)).toMatchObject({ issuedBy: "credentials", operationId: "notes.list" });
+    expect(ctx.state.teardown).toBeNull();
+  });
 
-	it("sends nothing when the login declares no revoke, or when the run keeps its credentials", async () => {
-		const plain = optionsFor(withLogin(), {
-			security: { bearer: { login: { from: "$.token", steps: [{ operationId: "auth.login" }] } } },
-		})
-		await revokeSessions(await contextOf(plain))
-		const kept = revocable({ keepCredentials: true })
-		await revokeSessions(await contextOf(kept))
-		for (const options of [plain, kept]) expect(options.seen.filter((request) => request.path === "/notes")).toEqual([])
-	})
+  it("sends nothing when the login declares no revoke, or when the run keeps its credentials", async () => {
+    const plain = optionsFor(withLogin(), {
+      security: { bearer: { login: { from: "$.token", steps: [{ operationId: "auth.login" }] } } },
+    });
+    await revokeSessions(await contextOf(plain));
+    const kept = revocable({ keepCredentials: true });
+    await revokeSessions(await contextOf(kept));
+    for (const options of [plain, kept])
+      expect(options.seen.filter((request) => request.path === "/notes")).toEqual([]);
+  });
 
-	it("records a revoke that failed as an unremovable credential record", async () => {
-		const ctx = await contextOf(revocable({}, 500))
-		await revokeSessions(ctx)
-		expect(ctx.state.teardown?.failed).toEqual([
-			{ entity: "credential", id: "alpha/bearer", principal: "alpha", reason: "revoke notes.list answered 500" },
-		])
-	})
+  it("records a revoke that failed as an unremovable credential record", async () => {
+    const ctx = await contextOf(revocable({}, 500));
+    await revokeSessions(ctx);
+    expect(ctx.state.teardown?.failed).toEqual([
+      { entity: "credential", id: "alpha/bearer", principal: "alpha", reason: "revoke notes.list answered 500" },
+    ]);
+  });
 
-	it("leaves the session of a principal the run made, which teardownPrincipal already removed", async () => {
-		const security: SecurityConfig = {
-			bearer: {
-				login: {
-					from: "$.access_token",
-					revoke: "notes.list",
-					steps: [{ body: { email: "{principal.email}" }, operationId: "auth.login" }],
-				},
-			},
-		}
-		const options = optionsFor(
-			withSignup(() => ({ status: 201 })),
-			{
-				principals: { alpha: { email: "alpha@x.test" }, fresh: { fresh: true } },
-				security,
-			},
-		)
-		const ctx = await contextOf(options)
-		await ctx.store.acquire({ principal: "fresh", scheme: "bearer" })
-		await revokeSessions(ctx)
-		const revoke = options.seen.filter((request) => request.method === "GET" && request.path === "/notes")
-		expect(revoke.map((request) => request.headers["authorization"])).toEqual(["Bearer login-alpha@x.test"])
-	})
-})
+  it("leaves the session of a principal the run made, which teardownPrincipal already removed", async () => {
+    const security: SecurityConfig = {
+      bearer: {
+        login: {
+          from: "$.access_token",
+          revoke: "notes.list",
+          steps: [{ body: { email: "{principal.email}" }, operationId: "auth.login" }],
+        },
+      },
+    };
+    const options = optionsFor(
+      withSignup(() => ({ status: 201 })),
+      {
+        principals: { alpha: { email: "alpha@x.test" }, fresh: { fresh: true } },
+        security,
+      },
+    );
+    const ctx = await contextOf(options);
+    await ctx.store.acquire({ principal: "fresh", scheme: "bearer" });
+    await revokeSessions(ctx);
+    const revoke = options.seen.filter((request) => request.method === "GET" && request.path === "/notes");
+    expect(revoke.map((request) => request.headers["authorization"])).toEqual(["Bearer login-alpha@x.test"]);
+  });
+});
 
 describe("revokeSessions and a credential a create handed its creator", () => {
-	it("ends a record's renewed credential too, a refusal of it no leftover since its record is gone", async () => {
-		const options = revocable({}, 500)
-		const ctx = await contextOf(options)
-		const holder = ctx.records.nextHolder("alpha")
-		ctx.store.enroll(holder, ctx.store.principals["alpha"] ?? {})
-		await ctx.store.adopt({ principal: holder, scheme: "bearer", value: "record-token" })
-		/* With no refresh declared, renewing it signs in again: a session its login can end. */
-		await ctx.store.refresh({ principal: holder, scheme: "bearer", sentValue: "record-token" })
-		await revokeSessions(ctx)
-		const revoke = options.seen.filter((request) => request.path === "/notes")
-		expect(revoke.map((request) => request.headers["authorization"])).toEqual(["Bearer token-1", "Bearer token-2"])
-		expect(ctx.state.teardown?.failed).toEqual([
-			{ entity: "credential", id: "alpha/bearer", principal: "alpha", reason: "revoke notes.list answered 500" },
-		])
-	})
-})
+  it("ends a record's renewed credential too, a refusal of it no leftover since its record is gone", async () => {
+    const options = revocable({}, 500);
+    const ctx = await contextOf(options);
+    const holder = ctx.records.nextHolder("alpha");
+    ctx.store.enroll(holder, ctx.store.principals["alpha"] ?? {});
+    await ctx.store.adopt({ principal: holder, scheme: "bearer", value: "record-token" });
+    /* With no refresh declared, renewing it signs in again: a session its login can end. */
+    await ctx.store.refresh({ principal: holder, scheme: "bearer", sentValue: "record-token" });
+    await revokeSessions(ctx);
+    const revoke = options.seen.filter((request) => request.path === "/notes");
+    expect(revoke.map((request) => request.headers["authorization"])).toEqual(["Bearer token-1", "Bearer token-2"]);
+    expect(ctx.state.teardown?.failed).toEqual([
+      { entity: "credential", id: "alpha/bearer", principal: "alpha", reason: "revoke notes.list answered 500" },
+    ]);
+  });
+});

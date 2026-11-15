@@ -1,45 +1,45 @@
 /** A specification's text read as an OpenAPI 3.x document, JSON or YAML. */
 
-import { messageOf } from "../../errors/message.ts"
-import type { OpenApiDocument } from "../types.ts"
-import { assertVersion, type RawDocument } from "./version.ts"
-import { isRaw } from "../../config/types/raw.ts"
+import { isRaw } from "../../config/types/raw.ts";
+import { messageOf } from "../../errors/message.ts";
+import type { OpenApiDocument } from "../types.ts";
+import { assertVersion, type RawDocument } from "./version.ts";
 
 /** Parses `text` read from `source`; every failure names the source and what went wrong. */
 export async function parseDocument(text: string, source: string): Promise<OpenApiDocument> {
-	return assertOpenApi(await parseText(text, source), source)
+  return assertOpenApi(await parseText(text, source), source);
 }
 
 /** Parses JSON or YAML text read from `source`, whatever it holds: a file another one refers to. */
 export async function parseText(text: string, source: string): Promise<unknown> {
-	/* A byte-order mark is not part of the document; JSON.parse rejects it outright. */
-	const body = text.replace(/^\uFEFF/, "")
-	if (body.trim() === "") {
-		throw new Error(`testing api: ${source} is empty`)
-	}
-	return looksLikeJson(body) ? parseJson(body, source) : parseYaml(body, source)
+  /* A byte-order mark is not part of the document; JSON.parse rejects it outright. */
+  const body = text.replace(/^\uFEFF/, "");
+  if (body.trim() === "") {
+    throw new Error(`testing api: ${source} is empty`);
+  }
+  return looksLikeJson(body) ? parseJson(body, source) : parseYaml(body, source);
 }
 
 function parseJson(text: string, source: string): unknown {
-	try {
-		return JSON.parse(text)
-	} catch (error) {
-		throw new Error(
-			`testing api: ${source} starts as JSON but does not parse: ${messageOf(error)}. ${diagnoseJson(text)}`,
-			{
-				cause: error,
-			},
-		)
-	}
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    throw new Error(
+      `testing api: ${source} starts as JSON but does not parse: ${messageOf(error)}. ${diagnoseJson(text)}`,
+      {
+        cause: error,
+      },
+    );
+  }
 }
 
 async function parseYaml(text: string, source: string): Promise<unknown> {
-	try {
-		const { parse } = await import("yaml")
-		return parse(text)
-	} catch (error) {
-		throw new Error(`testing api: could not parse ${source} as JSON or YAML: ${messageOf(error)}`, { cause: error })
-	}
+  try {
+    const { parse } = await import("yaml");
+    return parse(text);
+  } catch (error) {
+    throw new Error(`testing api: could not parse ${source} as JSON or YAML: ${messageOf(error)}`, { cause: error });
+  }
 }
 
 /**
@@ -51,21 +51,21 @@ async function parseYaml(text: string, source: string): Promise<unknown> {
  * zero operations and reported success.
  */
 export function assertOpenApi(parsed: unknown, source: string): OpenApiDocument {
-	if (!isRaw<RawDocument>(parsed)) {
-		const shown = typeof parsed === "string" ? JSON.stringify(parsed.slice(0, 60)) : String(parsed)
-		throw new Error(`testing api: ${source} is not an OpenAPI document — it parsed as ${shown}`)
-	}
-	const doc: RawDocument = parsed
-	assertVersion(doc, source)
-	if (doc.paths === null || typeof doc.paths !== "object" || Array.isArray(doc.paths)) {
-		throw new Error(`testing api: ${source} has no "paths" object, so there is nothing to test`)
-	}
-	return doc as OpenApiDocument
+  if (!isRaw<RawDocument>(parsed)) {
+    const shown = typeof parsed === "string" ? JSON.stringify(parsed.slice(0, 60)) : String(parsed);
+    throw new Error(`testing api: ${source} is not an OpenAPI document — it parsed as ${shown}`);
+  }
+  const doc: RawDocument = parsed;
+  assertVersion(doc, source);
+  if (doc.paths === null || typeof doc.paths !== "object" || Array.isArray(doc.paths)) {
+    throw new Error(`testing api: ${source} has no "paths" object, so there is nothing to test`);
+  }
+  return doc as OpenApiDocument;
 }
 
 function looksLikeJson(text: string): boolean {
-	const first = text.trimStart()[0]
-	return first === "{" || first === "["
+  const first = text.trimStart()[0];
+  return first === "{" || first === "[";
 }
 
 /**
@@ -74,14 +74,14 @@ function looksLikeJson(text: string): boolean {
  * people looking for a bug in a file that is actually fine.
  */
 function diagnoseJson(text: string): string {
-	const opens = (text.match(/[[{]/g) as RegExpMatchArray).length
-	const closes = (text.match(/[\]}]/g) ?? []).length
-	if (opens > closes) {
-		return (
-			`The document has ${opens - closes} more opening than closing brackets, so it is most ` +
-			`likely truncated — it ends after ${text.length} bytes. Check for a download or proxy ` +
-			"size limit."
-		)
-	}
-	return "The document appears complete, so this is a syntax error rather than truncation."
+  const opens = (text.match(/[[{]/g) as RegExpMatchArray).length;
+  const closes = (text.match(/[\]}]/g) ?? []).length;
+  if (opens > closes) {
+    return (
+      `The document has ${opens - closes} more opening than closing brackets, so it is most ` +
+      `likely truncated — it ends after ${text.length} bytes. Check for a download or proxy ` +
+      "size limit."
+    );
+  }
+  return "The document appears complete, so this is a syntax error rather than truncation.";
 }

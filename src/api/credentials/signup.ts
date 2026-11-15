@@ -5,9 +5,9 @@
  * so the store refuses the renewal.
  */
 
-import type { Recipe } from "../config/types/security.ts"
-import type { AuthStep } from "../config/types/steps.ts"
-import type { SignupOperation } from "../spec/sign-up.ts"
+import type { Recipe } from "../config/types/security.ts";
+import type { AuthStep } from "../config/types/steps.ts";
+import type { SignupOperation } from "../spec/sign-up.ts";
 
 /**
  * Whether a recipe's login steps call one of the account makers on the primary origin: by its
@@ -15,12 +15,12 @@ import type { SignupOperation } from "../spec/sign-up.ts"
  * document's operation.
  */
 export function signsUp(recipe: Partial<Recipe>, makers: readonly SignupOperation[]): boolean {
-	if (recipe.login === undefined) return false
-	return recipe.login.steps.some((step) => makers.some((maker) => callsSignup(step, maker)))
+  if (recipe.login === undefined) return false;
+  return recipe.login.steps.some((step) => makers.some((maker) => callsSignup(step, maker)));
 }
 
 function callsSignup(step: AuthStep, signup: SignupOperation): boolean {
-	if ("origin" in step && step.origin !== undefined) return false
-	if ("operationId" in step) return step.operationId === signup.operationId
-	return "method" in step && step.method.toUpperCase() === signup.method.toUpperCase() && step.path === signup.path
+  if ("origin" in step && step.origin !== undefined) return false;
+  if ("operationId" in step) return step.operationId === signup.operationId;
+  return "method" in step && step.method.toUpperCase() === signup.method.toUpperCase() && step.path === signup.path;
 }

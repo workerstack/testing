@@ -3,63 +3,63 @@
  * account a scenario kept for a later run.
  */
 
-import type { TeardownReport, UnidentifiedCreate } from "./types.ts"
+import type { TeardownReport, UnidentifiedCreate } from "./types.ts";
 
 /** `report` is null when no teardown ran: `keepFixtures`, or nothing was made. */
 export function renderTeardown(report: TeardownReport | null, created: number): string[] {
-	if (report === null)
-		return created === 0 ? [] : [`  left ${created} created record(s) in place: teardown did not run`]
-	const lines = renderUnidentified(report.unidentified)
-	if (created === 0) return lines
+  if (report === null)
+    return created === 0 ? [] : [`  left ${created} created record(s) in place: teardown did not run`];
+  const lines = renderUnidentified(report.unidentified);
+  if (created === 0) return lines;
 
-	const kept = report.records.filter((record) => record.kept !== undefined)
-	const keptNote = kept.length === 0 ? "" : `, ${kept.length} kept for a later run`
-	if (report.failed.length === 0 && report.unsupported.length === 0) {
-		lines.push(`  cleaned up ${report.removed}/${created} created record(s)${keptNote}`)
-		return [...lines, ...renderKept(kept), ...renderInferred(report.records)]
-	}
+  const kept = report.records.filter((record) => record.kept !== undefined);
+  const keptNote = kept.length === 0 ? "" : `, ${kept.length} kept for a later run`;
+  if (report.failed.length === 0 && report.unsupported.length === 0) {
+    lines.push(`  cleaned up ${report.removed}/${created} created record(s)${keptNote}`);
+    return [...lines, ...renderKept(kept), ...renderInferred(report.records)];
+  }
 
-	lines.push(`  cleanup: removed ${report.removed}/${created} created record(s)${keptNote}`)
-	if (report.unsupported.length > 0) {
-		lines.push(
-			`    ${report.unsupported.join(", ")} — no delete operation in the document, so records ` +
-				"created for these entities remain. Declare x-cleanup to make them removable.",
-		)
-	}
-	for (const failure of report.failed.slice(0, 5)) {
-		lines.push(`    ${failure.entity} ${failure.id} (as ${failure.principal}): ${failure.reason}`)
-	}
-	if (report.failed.length > 5) lines.push(`    … and ${report.failed.length - 5} more`)
-	return [...lines, ...renderKept(kept), ...renderInferred(report.records)]
+  lines.push(`  cleanup: removed ${report.removed}/${created} created record(s)${keptNote}`);
+  if (report.unsupported.length > 0) {
+    lines.push(
+      `    ${report.unsupported.join(", ")} — no delete operation in the document, so records ` +
+        "created for these entities remain. Declare x-cleanup to make them removable.",
+    );
+  }
+  for (const failure of report.failed.slice(0, 5)) {
+    lines.push(`    ${failure.entity} ${failure.id} (as ${failure.principal}): ${failure.reason}`);
+  }
+  if (report.failed.length > 5) lines.push(`    … and ${report.failed.length - 5} more`);
+  return [...lines, ...renderKept(kept), ...renderInferred(report.records)];
 }
 
 /* Each account a scenario kept, with the scenario: in place on purpose, so never cut short. */
 function renderKept(kept: TeardownReport["records"]): string[] {
-	return kept.map((record) => `    ${record.entity} ${record.id} kept by scenario "${record.kept}"`)
+  return kept.map((record) => `    ${record.entity} ${record.id} kept by scenario "${record.kept}"`);
 }
 
 /* Each record ledgered from an answer rather than a declared create, so a reader can check it. */
 function renderInferred(records: TeardownReport["records"]): string[] {
-	const inferred = records.filter((record) => record.inferred === true)
-	if (inferred.length === 0) return []
-	return [
-		`  inferred: ${inferred.length} record(s) ledgered from an answer that named a new id, not from a declared create`,
-		...inferred.map(
-			(record) =>
-				`    ${record.entity} ${record.id} (as ${record.principal}): ${record.removed ? "removed" : "left in place"}`,
-		),
-	]
+  const inferred = records.filter((record) => record.inferred === true);
+  if (inferred.length === 0) return [];
+  return [
+    `  inferred: ${inferred.length} record(s) ledgered from an answer that named a new id, not from a declared create`,
+    ...inferred.map(
+      (record) =>
+        `    ${record.entity} ${record.id} (as ${record.principal}): ${record.removed ? "removed" : "left in place"}`,
+    ),
+  ];
 }
 
 /* Each one a record the API tester made and cannot remove: listed by the request that made it. */
 function renderUnidentified(unidentified: readonly UnidentifiedCreate[]): string[] {
-	if (unidentified.length === 0) return []
-	const lines = [
-		`  leftovers: ${unidentified.length} create(s) answered 2xx but no id could be read; the record may remain`,
-	]
-	for (const create of unidentified.slice(0, 5)) {
-		lines.push(`    ${create.operationId} ${create.method} ${create.url} → ${create.status} (#${create.seq})`)
-	}
-	if (unidentified.length > 5) lines.push(`    … and ${unidentified.length - 5} more`)
-	return lines
+  if (unidentified.length === 0) return [];
+  const lines = [
+    `  leftovers: ${unidentified.length} create(s) answered 2xx but no id could be read; the record may remain`,
+  ];
+  for (const create of unidentified.slice(0, 5)) {
+    lines.push(`    ${create.operationId} ${create.method} ${create.url} → ${create.status} (#${create.seq})`);
+  }
+  if (unidentified.length > 5) lines.push(`    … and ${unidentified.length - 5} more`);
+  return lines;
 }

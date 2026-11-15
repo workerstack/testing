@@ -1,16 +1,17 @@
-import { readFile } from "node:fs/promises"
-import { resolve } from "node:path"
-import { fileURLToPath } from "node:url"
-import type { OpenApiDocument } from "../types.ts"
-import { bundleLocalRefs } from "./bundle.ts"
-import { parseDocument } from "./parse.ts"
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+import type { OpenApiDocument } from "../types.ts";
+import { bundleLocalRefs } from "./bundle.ts";
+import { parseDocument } from "./parse.ts";
 
 /** Where a document is read from, and how a URL is fetched; the caller owns the network. */
 export interface SpecSourceOptions {
-	baseUrl?: string | undefined
-	fetchText?: (url: string) => Promise<string>
-	/** The folder a relative path is read from: the config's, for a document a config names. Default the working directory. */
-	dir?: string | undefined
+  baseUrl?: string | undefined;
+  fetchText?: (url: string) => Promise<string>;
+  /** The folder a relative path is read from: the config's, for a document a config names. Default the working directory. */
+  dir?: string | undefined;
 }
 
 /**
@@ -31,49 +32,51 @@ export interface SpecSourceOptions {
  * document's are left unfetched, for the caller to report.
  */
 export async function loadSpec(source: string, options: SpecSourceOptions = {}): Promise<OpenApiDocument> {
-	const { path, text } = await readSpecSource(source, options)
-	const doc = await parseDocument(text, source)
-	return path === undefined ? doc : bundleLocalRefs(doc, path)
+  const { path, text } = await readSpecSource(source, options);
+  const doc = await parseDocument(text, source);
+  return path === undefined ? doc : bundleLocalRefs(doc, path);
 }
 
 /** A document's text, and the file it was read from; no path when it was fetched. */
 interface SpecText {
-	text: string
-	path?: string
+  text: string;
+  path?: string;
 }
 
 /* A URL with nothing to fetch it is a caller's mistake: the API tester's network policy lives in the runtime. */
 function fetcher(options: SpecSourceOptions): (url: string) => Promise<string> {
-	return (
-		options.fetchText ??
-		((url) => Promise.reject(new Error(`testing api: ${url} is a URL, and this caller reads only files`)))
-	)
+  return (
+    options.fetchText ??
+    ((url) => Promise.reject(new Error(`testing api: ${url} is a URL, and this caller reads only files`)))
+  );
 }
 
 async function readSpecSource(source: string, options: SpecSourceOptions): Promise<SpecText> {
-	const { baseUrl } = options
-	if (/^https?:\/\//.test(source)) return { text: await fetcher(options)(source) }
-	if (source.startsWith("file://")) return readPath(fileURLToPath(source))
+  const { baseUrl } = options;
+  if (/^https?:\/\//.test(source)) return { text: await fetcher(options)(source) };
+  if (source.startsWith("file://")) return readPath(fileURLToPath(source));
 
-	/* A real file wins over a route: a spec checked into the repository is the more specific
-	 * intent, and silently fetching instead would hide a typo in the path. */
-	const asPath = resolve(options.dir ?? process.cwd(), source)
-	try {
-		return await readPath(asPath)
-	} catch (error) {
-		if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error
-	}
+  /* A real file wins over a route: a spec checked into the repository is the more specific
+   * intent, and silently fetching instead would hide a typo in the path. */
+  const asPath = resolve(options.dir ?? process.cwd(), source);
+  try {
+    return await readPath(asPath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
 
-	if (baseUrl !== undefined && baseUrl !== "") {
-		return { text: await fetcher(options)(new URL(source, baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`).toString()) }
-	}
+  if (baseUrl !== undefined && baseUrl !== "") {
+    return {
+      text: await fetcher(options)(new URL(source, baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`).toString()),
+    };
+  }
 
-	throw new Error(
-		`testing api: could not find a specification at "${source}". Tried:\n  ${asPath}` +
-			(baseUrl === undefined ? "\nPass --base-url (or set baseUrl in the config) to resolve it as a route." : ""),
-	)
+  throw new Error(
+    `testing api: could not find a specification at "${source}". Tried:\n  ${asPath}` +
+      (baseUrl === undefined ? "\nPass --base-url (or set baseUrl in the config) to resolve it as a route." : ""),
+  );
 }
 
 async function readPath(path: string): Promise<SpecText> {
-	return { path, text: await readFile(path, "utf8") }
+  return { path, text: await readFile(path, "utf8") };
 }

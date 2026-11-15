@@ -1,163 +1,164 @@
-import { describe, expect, it } from "vitest"
-import type { OperationModel } from "../../../../spec/graph/types.ts"
-import { REQUIRED_IDS, STRING_PAYLOADS } from "../../../payloads.ts"
-import { contextFor, modelOf, op } from "../../__fixtures__/harness.ts"
-import type { CheckContext } from "../../core/context.ts"
-import { payloadCases, pickPayloadField, writePathOf } from "./payload-cases.ts"
-import { PayloadClaims } from "./payload-claims.ts"
-import { widgetApi, widgetDoc } from "./__fixtures__/widget-api.ts"
+import { describe, expect, it } from "vitest";
+
+import type { OperationModel } from "../../../../spec/graph/types.ts";
+import { REQUIRED_IDS, STRING_PAYLOADS } from "../../../payloads.ts";
+import { contextFor, modelOf, op } from "../../__fixtures__/harness.ts";
+import type { CheckContext } from "../../core/context.ts";
+import { widgetApi, widgetDoc } from "./__fixtures__/widget-api.ts";
+import { payloadCases, pickPayloadField, writePathOf } from "./payload-cases.ts";
+import { PayloadClaims } from "./payload-claims.ts";
 
 function stage(properties: Record<string, unknown>, update: Partial<OperationModel> = {}) {
-	const model = modelOf(widgetDoc({ item: { properties, type: "object" } }))
-	const { ctx } = contextFor(model, "listWidgets", {
-		respond: widgetApi(),
-		fields: {
-			createOp: op(model, "createWidget"),
-			readOp: op(model, "getWidget"),
-			updateOp: { ...op(model, "updateWidget"), ...update },
-		},
-	})
-	return { ctx, model }
+  const model = modelOf(widgetDoc({ item: { properties, type: "object" } }));
+  const { ctx } = contextFor(model, "listWidgets", {
+    respond: widgetApi(),
+    fields: {
+      createOp: op(model, "createWidget"),
+      readOp: op(model, "getWidget"),
+      updateOp: { ...op(model, "updateWidget"), ...update },
+    },
+  });
+  return { ctx, model };
 }
 
 const picked = (properties: Record<string, unknown>, update: Partial<OperationModel> = {}) => {
-	const { ctx, model } = stage(properties, update)
-	return pickPayloadField(ctx, op(model, "updateWidget"))
-}
+  const { ctx, model } = stage(properties, update);
+  return pickPayloadField(ctx, op(model, "updateWidget"));
+};
 
 describe("pickPayloadField", () => {
-	it("prefers a nullable string, then the roomiest", () => {
-		expect(picked({ big: { maxLength: 900, type: "string" }, small: { maxLength: 20, type: "string" } })).toEqual({
-			maxLength: 900,
-			minLength: undefined,
-			name: "big",
-			score: 900,
-		})
-		expect(picked({ big: { maxLength: 900, type: "string" }, open: { type: ["string", "null"] } })?.name).toBe("open")
-		expect(picked({ big: { type: "string" }, flagged: { nullable: true, type: "string" } })?.name).toBe("flagged")
-		expect(picked({ first: { type: "string" }, second: { type: "string" } })?.name).toBe("first")
-	})
+  it("prefers a nullable string, then the roomiest", () => {
+    expect(picked({ big: { maxLength: 900, type: "string" }, small: { maxLength: 20, type: "string" } })).toEqual({
+      maxLength: 900,
+      minLength: undefined,
+      name: "big",
+      score: 900,
+    });
+    expect(picked({ big: { maxLength: 900, type: "string" }, open: { type: ["string", "null"] } })?.name).toBe("open");
+    expect(picked({ big: { type: "string" }, flagged: { nullable: true, type: "string" } })?.name).toBe("flagged");
+    expect(picked({ first: { type: "string" }, second: { type: "string" } })?.name).toBe("first");
+  });
 
-	it("takes the string branch of a union, and a null branch makes it nullable", () => {
-		const union = { oneOf: [null, { type: "string", maxLength: 50, minLength: 2 }, { type: "null" }] }
-		expect(picked({ plain: { type: "string" }, union })).toEqual({
-			maxLength: 50,
-			minLength: 2,
-			name: "union",
-			score: 1050,
-		})
-		const anyOf = { anyOf: [{ type: "integer" }, { type: "string" }] }
-		expect(picked({ anyOf })).toEqual({ maxLength: undefined, minLength: undefined, name: "anyOf", score: 1024 })
-		/* A union that is not a list is no union: the property's own (absent) type stands. */
-		expect(picked({ odd: { oneOf: { type: "string" } } })?.name).toBe("odd")
-	})
+  it("takes the string branch of a union, and a null branch makes it nullable", () => {
+    const union = { oneOf: [null, { type: "string", maxLength: 50, minLength: 2 }, { type: "null" }] };
+    expect(picked({ plain: { type: "string" }, union })).toEqual({
+      maxLength: 50,
+      minLength: 2,
+      name: "union",
+      score: 1050,
+    });
+    const anyOf = { anyOf: [{ type: "integer" }, { type: "string" }] };
+    expect(picked({ anyOf })).toEqual({ maxLength: undefined, minLength: undefined, name: "anyOf", score: 1024 });
+    /* A union that is not a list is no union: the property's own (absent) type stands. */
+    expect(picked({ odd: { oneOf: { type: "string" } } })?.name).toBe("odd");
+  });
 
-	it("skips what an arbitrary string cannot be written into", () => {
-		const skipped = {
-			code: { pattern: "^x$", type: "string" },
-			count: { type: "integer" },
-			created_at: { type: "string" },
-			email: { format: "email", type: "string" },
-			fixed: { type: "string" },
-			id: { type: "string" },
-			made: { type: "string" },
-			nothing: null,
-			owner_id: { type: "string" },
-			secret: { readOnly: true, type: "string" },
-			/* Taken and never returned: no read could show it survived. */
-			sealed: { type: "string", writeOnly: true },
-			stamp: { type: "string" },
-			status: { enum: ["a"], type: "string" },
-			tiny: { maxLength: 7, type: "string" },
-			truth: true,
-		}
-		const { ctx, model } = stage(skipped, { generated: ["stamp"], immutable: ["fixed"] })
-		const createOp = { ...op(model, "createWidget"), generated: ["made"] }
-		expect(pickPayloadField({ ...ctx, createOp }, op(model, "updateWidget"))).toBeNull()
-		expect(pickPayloadField({ ...ctx, createOp }, op(model, "listWidgets"))).toBeNull()
-		/* With no update or create to say what is immutable, only the identity is held back. */
-		const bare = pickPayloadField({ ...ctx, createOp: undefined, updateOp: undefined }, op(model, "updateWidget"))
-		expect(["fixed", "made", "stamp"]).toContain(bare?.name)
-		expect(picked({ untyped: {}, wide: { type: ["string", "integer"] } })?.name).toBe("untyped")
-	})
-})
+  it("skips what an arbitrary string cannot be written into", () => {
+    const skipped = {
+      code: { pattern: "^x$", type: "string" },
+      count: { type: "integer" },
+      created_at: { type: "string" },
+      email: { format: "email", type: "string" },
+      fixed: { type: "string" },
+      id: { type: "string" },
+      made: { type: "string" },
+      nothing: null,
+      owner_id: { type: "string" },
+      secret: { readOnly: true, type: "string" },
+      /* Taken and never returned: no read could show it survived. */
+      sealed: { type: "string", writeOnly: true },
+      stamp: { type: "string" },
+      status: { enum: ["a"], type: "string" },
+      tiny: { maxLength: 7, type: "string" },
+      truth: true,
+    };
+    const { ctx, model } = stage(skipped, { generated: ["stamp"], immutable: ["fixed"] });
+    const createOp = { ...op(model, "createWidget"), generated: ["made"] };
+    expect(pickPayloadField({ ...ctx, createOp }, op(model, "updateWidget"))).toBeNull();
+    expect(pickPayloadField({ ...ctx, createOp }, op(model, "listWidgets"))).toBeNull();
+    /* With no update or create to say what is immutable, only the identity is held back. */
+    const bare = pickPayloadField({ ...ctx, createOp: undefined, updateOp: undefined }, op(model, "updateWidget"));
+    expect(["fixed", "made", "stamp"]).toContain(bare?.name);
+    expect(picked({ untyped: {}, wide: { type: ["string", "integer"] } })?.name).toBe("untyped");
+  });
+});
 
 describe("pickPayloadField under a guard pattern on every string", () => {
-	const guard = "^[^\\u0000\\uD800-\\uDFFF]*$"
+  const guard = "^[^\\u0000\\uD800-\\uDFFF]*$";
 
-	it("takes a string whose pattern admits every payload, and skips one whose allOf pattern refuses them", () => {
-		const phone = {
-			oneOf: [
-				{
-					allOf: [{ pattern: "^\\+[1-9]\\d{7,14}$" }, { pattern: guard }],
-					maxLength: 15,
-					minLength: 7,
-					type: "string",
-				},
-				{ type: "null" },
-			],
-		}
-		const name = { maxLength: 128, pattern: guard, type: "string" }
-		expect(picked({ name, phone })).toEqual({ maxLength: 128, minLength: undefined, name: "name", score: 128 })
-		expect(picked({ phone })).toBeNull()
-	})
-})
+  it("takes a string whose pattern admits every payload, and skips one whose allOf pattern refuses them", () => {
+    const phone = {
+      oneOf: [
+        {
+          allOf: [{ pattern: "^\\+[1-9]\\d{7,14}$" }, { pattern: guard }],
+          maxLength: 15,
+          minLength: 7,
+          type: "string",
+        },
+        { type: "null" },
+      ],
+    };
+    const name = { maxLength: 128, pattern: guard, type: "string" };
+    expect(picked({ name, phone })).toEqual({ maxLength: 128, minLength: undefined, name: "name", score: 128 });
+    expect(picked({ phone })).toBeNull();
+  });
+});
 
 describe("payloadCases", () => {
-	const field = { maxLength: undefined, minLength: undefined, name: "name" }
-	const all = (ctx: CheckContext, writeOp: OperationModel) => payloadCases(ctx, writeOp, field)
+  const field = { maxLength: undefined, minLength: undefined, name: "name" };
+  const all = (ctx: CheckContext, writeOp: OperationModel) => payloadCases(ctx, writeOp, field);
 
-	it("sends the whole fitting catalog without a policy, or under the full one", async () => {
-		const { ctx, model } = stage({ name: { type: "string" } })
-		const writeOp = op(model, "updateWidget")
-		expect(await all(ctx, writeOp)).toEqual({ cases: [...STRING_PAYLOADS], narrowed: null })
-		const full = { ...ctx, payloads: { claims: new PayloadClaims(), policy: "full" as const } }
-		expect(await all(full, writeOp)).toEqual({ cases: [...STRING_PAYLOADS], narrowed: null })
-		const capped = await payloadCases(ctx, writeOp, { ...field, maxLength: 8, minLength: 1 })
-		expect(capped.cases.length).toBeLessThan(STRING_PAYLOADS.length)
-		expect(capped.cases.every((payload) => payload.value.length >= 1 && [...payload.value].length <= 8)).toBe(true)
-	})
+  it("sends the whole fitting catalog without a policy, or under the full one", async () => {
+    const { ctx, model } = stage({ name: { type: "string" } });
+    const writeOp = op(model, "updateWidget");
+    expect(await all(ctx, writeOp)).toEqual({ cases: [...STRING_PAYLOADS], narrowed: null });
+    const full = { ...ctx, payloads: { claims: new PayloadClaims(), policy: "full" as const } };
+    expect(await all(full, writeOp)).toEqual({ cases: [...STRING_PAYLOADS], narrowed: null });
+    const capped = await payloadCases(ctx, writeOp, { ...field, maxLength: 8, minLength: 1 });
+    expect(capped.cases.length).toBeLessThan(STRING_PAYLOADS.length);
+    expect(capped.cases.every((payload) => payload.value.length >= 1 && [...payload.value].length <= 8)).toBe(true);
+  });
 
-	it("runs the whole catalog once per write path, then one case of each family", async () => {
-		const { ctx, model } = stage({
-			free: {},
-			mail: { format: "email", type: "string" },
-			name: { type: "string" },
-			slug: { type: "integer" },
-		})
-		const writeOp = op(model, "updateWidget")
-		const path = 'application/json|["string",null]'
-		const claims = new PayloadClaims()
-		claims.plan([
-			{ entity: "widget", path },
-			{ entity: "gadget", path },
-		])
-		const first = { ...ctx, entityName: "widget", payloads: { claims, policy: "per-write-path" as const } }
-		expect((await all(first, writeOp)).narrowed).toBeNull()
-		/* The first runs the catalog to its end, then settles the path. */
-		claims.settle("widget", path)
-		const second = { ...first, entityName: "gadget" }
-		const narrowed = await all(second, writeOp)
-		expect(narrowed.narrowed).toBe("widget")
-		expect(narrowed.cases.map((payload) => payload.id).sort()).toEqual(
-			STRING_PAYLOADS.filter((payload) => (REQUIRED_IDS as readonly string[]).includes(payload.id))
-				.map((payload) => payload.id)
-				.sort(),
-		)
-		/* Another field type or format is another path; a field with no type is a string's. */
-		expect((await payloadCases(second, writeOp, { ...field, name: "slug" })).narrowed).toBeNull()
-		expect((await payloadCases(second, writeOp, { ...field, name: "free" })).narrowed).toBe("widget")
-		expect((await payloadCases(second, writeOp, { ...field, name: "mail" })).narrowed).toBeNull()
-		expect(writePathOf(ctx, writeOp, "mail")).toBe('application/json|["string","email"]')
-		/* A field neither the body nor the item declares is keyed as a plain string. */
-		expect(writePathOf(ctx, writeOp, "undeclared")).toBe(path)
-		expect((await payloadCases(second, writeOp, { ...field, name: "undeclared" })).narrowed).toBe("widget")
-	})
+  it("runs the whole catalog once per write path, then one case of each family", async () => {
+    const { ctx, model } = stage({
+      free: {},
+      mail: { format: "email", type: "string" },
+      name: { type: "string" },
+      slug: { type: "integer" },
+    });
+    const writeOp = op(model, "updateWidget");
+    const path = 'application/json|["string",null]';
+    const claims = new PayloadClaims();
+    claims.plan([
+      { entity: "widget", path },
+      { entity: "gadget", path },
+    ]);
+    const first = { ...ctx, entityName: "widget", payloads: { claims, policy: "per-write-path" as const } };
+    expect((await all(first, writeOp)).narrowed).toBeNull();
+    /* The first runs the catalog to its end, then settles the path. */
+    claims.settle("widget", path);
+    const second = { ...first, entityName: "gadget" };
+    const narrowed = await all(second, writeOp);
+    expect(narrowed.narrowed).toBe("widget");
+    expect(narrowed.cases.map((payload) => payload.id).sort()).toEqual(
+      STRING_PAYLOADS.filter((payload) => (REQUIRED_IDS as readonly string[]).includes(payload.id))
+        .map((payload) => payload.id)
+        .sort(),
+    );
+    /* Another field type or format is another path; a field with no type is a string's. */
+    expect((await payloadCases(second, writeOp, { ...field, name: "slug" })).narrowed).toBeNull();
+    expect((await payloadCases(second, writeOp, { ...field, name: "free" })).narrowed).toBe("widget");
+    expect((await payloadCases(second, writeOp, { ...field, name: "mail" })).narrowed).toBeNull();
+    expect(writePathOf(ctx, writeOp, "mail")).toBe('application/json|["string","email"]');
+    /* A field neither the body nor the item declares is keyed as a plain string. */
+    expect(writePathOf(ctx, writeOp, "undeclared")).toBe(path);
+    expect((await payloadCases(second, writeOp, { ...field, name: "undeclared" })).narrowed).toBe("widget");
+  });
 
-	it("keys a path with no request body, or no raw operation, by an empty media type", () => {
-		const { ctx, model } = stage({ name: { type: "string" } })
-		expect(writePathOf(ctx, op(model, "getWidget"), "name")).toBe('|["string",null]')
-		const bare = { ...ctx, model: { ...model, rawOperations: new Map() } }
-		expect(writePathOf(bare, op(model, "deleteWidget"), "name")).toBe('|["string",null]')
-	})
-})
+  it("keys a path with no request body, or no raw operation, by an empty media type", () => {
+    const { ctx, model } = stage({ name: { type: "string" } });
+    expect(writePathOf(ctx, op(model, "getWidget"), "name")).toBe('|["string",null]');
+    const bare = { ...ctx, model: { ...model, rawOperations: new Map<string, never>() } };
+    expect(writePathOf(bare, op(model, "deleteWidget"), "name")).toBe('|["string",null]');
+  });
+});

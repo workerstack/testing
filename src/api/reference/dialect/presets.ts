@@ -11,31 +11,31 @@
  * other was reading a convention rather than the contract.
  */
 
-import type { Dialect } from "./types.ts"
+import type { Dialect } from "./types.ts";
 
 /** `field.op.value` with cursor pagination and entity-named collections. */
 export const POSTGREST: Dialect = {
-	envelope: {
-		collection: null,
-		hasMore: "hasMore",
-		limit: "limit",
-		nextCursor: "nextCursor",
-		page: "page",
-		total: "count",
-	},
-	grammar: "postgrest",
-	name: "postgrest",
-	params: {
-		cursor: "cursor",
-		filter: "filter",
-		limit: "limit",
-		order: "order",
-		page: "page",
-		search: "q",
-		searchMode: "search_mode",
-		select: "select",
-	},
-}
+  envelope: {
+    collection: null,
+    hasMore: "hasMore",
+    limit: "limit",
+    nextCursor: "nextCursor",
+    page: "page",
+    total: "count",
+  },
+  grammar: "postgrest",
+  name: "postgrest",
+  params: {
+    cursor: "cursor",
+    filter: "filter",
+    limit: "limit",
+    order: "order",
+    page: "page",
+    search: "q",
+    searchMode: "search_mode",
+    select: "select",
+  },
+};
 
 /**
  * A deliberately unrelated spelling: `per_page`, `sort`, `fields`, `search`, a `data` envelope
@@ -45,24 +45,24 @@ export const POSTGREST: Dialect = {
  * the document rather than from familiarity.
  */
 export const CLASSIC: Dialect = {
-	envelope: {
-		collection: "data",
-		hasMore: "has_more",
-		limit: "per_page",
-		page: "page",
-		total: "total_count",
-	},
-	grammar: "colon",
-	name: "classic",
-	params: {
-		filter: "filter",
-		limit: "per_page",
-		order: "sort",
-		page: "page",
-		search: "search",
-		select: "fields",
-	},
-}
+  envelope: {
+    collection: "data",
+    hasMore: "has_more",
+    limit: "per_page",
+    page: "page",
+    total: "total_count",
+  },
+  grammar: "colon",
+  name: "classic",
+  params: {
+    filter: "filter",
+    limit: "per_page",
+    order: "sort",
+    page: "page",
+    search: "search",
+    select: "fields",
+  },
+};
 
 /**
  * Root array, `Link` header pagination, `offset`/`limit`.
@@ -72,18 +72,18 @@ export const CLASSIC: Dialect = {
  * have to change for this, and where something does, the check was reading the fixture's habits.
  */
 export const LINKED: Dialect = {
-	envelope: null,
-	grammar: "postgrest",
-	name: "linked",
-	params: {
-		filter: "filter",
-		limit: "limit",
-		offset: "offset",
-		order: "order",
-		search: "q",
-		select: "fields",
-	},
-}
+  envelope: null,
+  grammar: "postgrest",
+  name: "linked",
+  params: {
+    filter: "filter",
+    limit: "limit",
+    offset: "offset",
+    order: "order",
+    search: "q",
+    select: "fields",
+  },
+};
 
 /**
  * JSON:API-flavored: `sort=-name` for descending, `fields[table]=id,name` for projection.
@@ -94,26 +94,26 @@ export const LINKED: Dialect = {
  * of whether that generalization was real.
  */
 export const JSONAPI: Dialect = {
-	envelope: {
-		collection: "data",
-		hasMore: "has_more",
-		limit: "size",
-		page: "number",
-		total: "total",
-	},
-	grammar: "postgrest",
-	name: "jsonapi",
-	params: {
-		filter: "filter",
-		limit: "size",
-		order: "sort",
-		page: "page",
-		search: "q",
-		select: "fields",
-	},
-	selectGrammar: "bracketed",
-	sortGrammar: "prefixed",
-}
+  envelope: {
+    collection: "data",
+    hasMore: "has_more",
+    limit: "size",
+    page: "number",
+    total: "total",
+  },
+  grammar: "postgrest",
+  name: "jsonapi",
+  params: {
+    filter: "filter",
+    limit: "size",
+    order: "sort",
+    page: "page",
+    search: "q",
+    select: "fields",
+  },
+  selectGrammar: "bracketed",
+  sortGrammar: "prefixed",
+};
 
 /**
  * The plainest shape there is: `?status=active&page=2`, no filter expression language at all.
@@ -124,27 +124,27 @@ export const JSONAPI: Dialect = {
  * world is the single most damaging way this tool could fail.
  */
 export const PLAIN: Dialect = {
-	envelope: {
-		collection: "items",
-		hasMore: "has_more",
-		limit: "limit",
-		page: "page",
-		total: "total",
-	},
-	grammar: "equality",
-	name: "plain",
-	params: {
-		/* Declared for completeness; the equality grammar never sends it, and the fixture never
-		 * reads it. A parameter a backend accepts and ignores is itself a defect the API tester reports. */
-		filter: "filter",
-		limit: "limit",
-		order: "sort",
-		page: "page",
-		search: "q",
-		select: "fields",
-	},
-	sortGrammar: "colon",
-}
+  envelope: {
+    collection: "items",
+    hasMore: "has_more",
+    limit: "limit",
+    page: "page",
+    total: "total",
+  },
+  grammar: "equality",
+  name: "plain",
+  params: {
+    /* Declared for completeness; the equality grammar never sends it, and the fixture never
+     * reads it. A parameter a backend accepts and ignores is itself a defect the API tester reports. */
+    filter: "filter",
+    limit: "limit",
+    order: "sort",
+    page: "page",
+    search: "q",
+    select: "fields",
+  },
+  sortGrammar: "colon",
+};
 
 /**
  * A grammar the API tester has no name for, declared as a template: one term per filter parameter,
@@ -158,44 +158,44 @@ export const PLAIN: Dialect = {
  * finds `tally` or `more_ahead`, so every walk that reads one read it off `x-query.envelope`.
  */
 export const TEMPLATE: Dialect = {
-	envelope: {
-		collection: "results",
-		hasMore: "more_ahead",
-		limit: "limit",
-		page: "page",
-		total: "tally",
-	},
-	filterTemplate: {
-		combine: "repeat",
-		conj: { and: "and", or: "or" },
-		escape: { _: "~" },
-		likeMatches: "contains",
-		list: ",",
-		null: { is: "{conj}_{field}_is_null", not: "{conj}_{field}_isn_null" },
-		ops: { eq: "eq", gt: "gt", gte: "gte", in: "in", like: "like", lt: "lt", lte: "lte", neq: "ne" },
-		or: "terms",
-		term: "{conj}_{field}_{op}_{value}",
-	},
-	grammar: "template",
-	name: "template",
-	sortGrammar: "template",
-	sortTemplate: { asc: "ascending", desc: "descending", join: ",", term: "{field}_{direction}" },
-	declaresNames: true,
-	params: {
-		filter: "filter_by",
-		limit: "take",
-		order: "arrange",
-		page: "leaf",
-		search: "needle",
-		select: "pick",
-	},
-}
+  envelope: {
+    collection: "results",
+    hasMore: "more_ahead",
+    limit: "limit",
+    page: "page",
+    total: "tally",
+  },
+  filterTemplate: {
+    combine: "repeat",
+    conj: { and: "and", or: "or" },
+    escape: { _: "~" },
+    likeMatches: "contains",
+    list: ",",
+    null: { is: "{conj}_{field}_is_null", not: "{conj}_{field}_isn_null" },
+    ops: { eq: "eq", gt: "gt", gte: "gte", in: "in", like: "like", lt: "lt", lte: "lte", neq: "ne" },
+    or: "terms",
+    term: "{conj}_{field}_{op}_{value}",
+  },
+  grammar: "template",
+  name: "template",
+  sortGrammar: "template",
+  sortTemplate: { asc: "ascending", desc: "descending", join: ",", term: "{field}_{direction}" },
+  declaresNames: true,
+  params: {
+    filter: "filter_by",
+    limit: "take",
+    order: "arrange",
+    page: "leaf",
+    search: "needle",
+    select: "pick",
+  },
+};
 
 export const DIALECTS: Record<string, Dialect> = {
-	jsonapi: JSONAPI,
-	plain: PLAIN,
-	classic: CLASSIC,
-	linked: LINKED,
-	postgrest: POSTGREST,
-	template: TEMPLATE,
-}
+  jsonapi: JSONAPI,
+  plain: PLAIN,
+  classic: CLASSIC,
+  linked: LINKED,
+  postgrest: POSTGREST,
+  template: TEMPLATE,
+};

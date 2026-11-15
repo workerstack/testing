@@ -1,321 +1,326 @@
-import { describe, expect, it } from "vitest"
-import type { Client } from "../client/client.ts"
-import type { Exchange } from "./exchange.ts"
-import { pathTo, proveFromTranscript } from "./evidence.ts"
-import { GradeLedger } from "./grades.ts"
-import { buildModel } from "../spec/graph/build.ts"
-import { dereference } from "../spec/load/dereference.ts"
-import type { OpenApiDocument } from "../spec/types.ts"
+import { describe, expect, it } from "vitest";
 
-const ok = { "200": { description: "ok" } }
-const param = (name: string) => ({ in: "path", name, required: true, schema: { type: "string" } })
+import type { Client } from "../client/client.ts";
+import { buildModel } from "../spec/graph/build.ts";
+import { dereference } from "../spec/load/dereference.ts";
+import type { OpenApiDocument } from "../spec/types.ts";
+import { pathTo, proveFromTranscript } from "./evidence.ts";
+import type { Exchange } from "./exchange.ts";
+import { GradeLedger } from "./grades.ts";
+
+const ok = { "200": { description: "ok" } };
+const param = (name: string) => ({ in: "path", name, required: true, schema: { type: "string" } });
 
 const spec: OpenApiDocument = {
-	info: { title: "evidence", version: "1" },
-	openapi: "3.1.0",
-	paths: {
-		"/v1/rows": {
-			get: { operationId: "row.list", responses: ok },
-			post: { operationId: "row.create", responses: ok },
-		},
-		"/v1/rows/{id}": {
-			delete: { operationId: "row.remove", parameters: [param("id")], responses: ok },
-			get: { operationId: "row.get", parameters: [param("id")], responses: ok },
-		},
-		"/v1/tables/{table_id}": {
-			get: { operationId: "table.get", parameters: [param("table_id")], responses: ok },
-		},
-		"/v1/tables/{table_id}/columns/{col_id}": {
-			delete: { operationId: "column.remove", parameters: [param("table_id"), param("col_id")], responses: ok },
-		},
-	},
-} as OpenApiDocument
+  info: { title: "evidence", version: "1" },
+  openapi: "3.1.0",
+  paths: {
+    "/v1/rows": {
+      get: { operationId: "row.list", responses: ok },
+      post: { operationId: "row.create", responses: ok },
+    },
+    "/v1/rows/{id}": {
+      delete: { operationId: "row.remove", parameters: [param("id")], responses: ok },
+      get: { operationId: "row.get", parameters: [param("id")], responses: ok },
+    },
+    "/v1/tables/{table_id}": {
+      get: { operationId: "table.get", parameters: [param("table_id")], responses: ok },
+    },
+    "/v1/tables/{table_id}/columns/{col_id}": {
+      delete: { operationId: "column.remove", parameters: [param("table_id"), param("col_id")], responses: ok },
+    },
+  },
+} as OpenApiDocument;
 
-const BASE = "http://api.test"
-const COLUMN = "col_amount_2"
-const ROW = "row_abc123"
+const BASE = "http://api.test";
+const COLUMN = "col_amount_2";
+const ROW = "row_abc123";
 
 interface Shape {
-	body?: unknown
-	sent?: unknown
-	op?: string
-	status?: number
-	purpose?: string
-	url?: string
+  body?: unknown;
+  sent?: unknown;
+  op?: string;
+  status?: number;
+  purpose?: string;
+  url?: string;
 }
 
 /** The `seq`th exchange, for `request` written as its request line: "GET /v1/rows". */
 function exchange(seq: number, request: string, shape: Shape = {}): Exchange {
-	const [method, path] = request.split(" ") as [string, string]
-	return {
-		at: seq,
-		method,
-		requestBody: shape.sent,
-		responseBody: shape.body,
-		seq,
-		status: shape.status ?? 200,
-		url: shape.url ?? `${BASE}${path}`,
-		...(shape.op === undefined ? {} : { operationId: shape.op }),
-		...(shape.purpose === undefined ? {} : { purpose: shape.purpose }),
-	} as Exchange
+  const [method, path] = request.split(" ") as [string, string];
+  return {
+    at: seq,
+    method,
+    requestBody: shape.sent,
+    responseBody: shape.body,
+    seq,
+    status: shape.status ?? 200,
+    url: shape.url ?? `${BASE}${path}`,
+    ...(shape.op === undefined ? {} : { operationId: shape.op }),
+    ...(shape.purpose === undefined ? {} : { purpose: shape.purpose }),
+  } as Exchange;
 }
 
-const table = (columns: string[]) => ({ columns_json: columns.map((id) => ({ id })), id: "tbl_1" })
+const table = (columns: string[]) => ({ columns_json: columns.map((id) => ({ id })), id: "tbl_1" });
 
 async function evidenceFor(operation: string, transcript: Exchange[], grades = new GradeLedger()) {
-	grades.graded([operation], "some.check")
-	let hydrations = 0
-	const hydrate = async (e: Exchange) => {
-		hydrations += 1
-		return e
-	}
-	const client = { hydrate, transcript } as unknown as Client
-	await proveFromTranscript({ client, grades, model: buildModel(dereference(spec).doc) })
-	return { evidence: grades.evidence.get(operation), hydrations }
+  grades.graded([operation], "some.check");
+  let hydrations = 0;
+  const hydrate = async (e: Exchange) => {
+    hydrations += 1;
+    return e;
+  };
+  const client = { hydrate, transcript } as unknown as Client;
+  await proveFromTranscript({ client, grades, model: buildModel(dereference(spec).doc) });
+  return { evidence: grades.evidence.get(operation), hydrations };
 }
 
 describe("delete evidence through an ancestor read", () => {
-	it("is observed when the ancestor held the id before and lacks it after", async () => {
-		const { evidence } = await evidenceFor("column.remove", [
-			exchange(1, "GET /v1/tables/tbl_1", { body: table(["col_amount", COLUMN]), op: "table.get" }),
-			exchange(2, `DELETE /v1/tables/tbl_1/columns/${COLUMN}`, { op: "column.remove" }),
-			exchange(3, "GET /v1/tables/tbl_1", { body: table(["col_amount"]), op: "table.get" }),
-		])
-		expect(evidence).toEqual({ call: 2, observation: { absent: true, path: "$", seq: 3, value: COLUMN } })
-	})
+  it("is observed when the ancestor held the id before and lacks it after", async () => {
+    const { evidence } = await evidenceFor("column.remove", [
+      exchange(1, "GET /v1/tables/tbl_1", { body: table(["col_amount", COLUMN]), op: "table.get" }),
+      exchange(2, `DELETE /v1/tables/tbl_1/columns/${COLUMN}`, { op: "column.remove" }),
+      exchange(3, "GET /v1/tables/tbl_1", { body: table(["col_amount"]), op: "table.get" }),
+    ]);
+    expect(evidence).toEqual({ call: 2, observation: { absent: true, path: "$", seq: 3, value: COLUMN } });
+  });
 
-	it("is not observed when the ancestor never held the id, nor from reads that cannot show it", async () => {
-		const { evidence } = await evidenceFor("column.remove", [
-			exchange(1, "GET /v1/tables/tbl_1", { body: table(["col_amount"]), op: "table.get" }),
-			exchange(2, "GET /v1/other", { body: table([COLUMN]) }),
-			exchange(3, "GET /v1/tables/tbl_1", { body: table([COLUMN]), status: 500 }),
-			exchange(4, `DELETE /v1/tables/tbl_1/columns/${COLUMN}`, { op: "column.remove" }),
-			exchange(5, "POST /v1/tables/tbl_1", { body: {} }),
-			exchange(6, "GET /v1/elsewhere", { body: {} }),
-			exchange(7, "GET /v1/tables/tbl_1", { body: table([COLUMN]) }),
-			exchange(8, "GET /v1/tables/tbl_1", { body: table(["col_amount"]), op: "table.get" }),
-		])
-		expect(evidence).toEqual({ call: 4 })
-	})
-})
+  it("is not observed when the ancestor never held the id, nor from reads that cannot show it", async () => {
+    const { evidence } = await evidenceFor("column.remove", [
+      exchange(1, "GET /v1/tables/tbl_1", { body: table(["col_amount"]), op: "table.get" }),
+      exchange(2, "GET /v1/other", { body: table([COLUMN]) }),
+      exchange(3, "GET /v1/tables/tbl_1", { body: table([COLUMN]), status: 500 }),
+      exchange(4, `DELETE /v1/tables/tbl_1/columns/${COLUMN}`, { op: "column.remove" }),
+      exchange(5, "POST /v1/tables/tbl_1", { body: {} }),
+      exchange(6, "GET /v1/elsewhere", { body: {} }),
+      exchange(7, "GET /v1/tables/tbl_1", { body: table([COLUMN]) }),
+      exchange(8, "GET /v1/tables/tbl_1", { body: table(["col_amount"]), op: "table.get" }),
+    ]);
+    expect(evidence).toEqual({ call: 4 });
+  });
+});
 
 describe("delete evidence through its own route", () => {
-	it("is a later read of the item answering 404 or 410", async () => {
-		for (const status of [404, 410]) {
-			const { evidence } = await evidenceFor("row.remove", [
-				exchange(1, `DELETE /v1/rows/${ROW}`, { op: "row.remove" }),
-				exchange(2, `GET /v1/rows/${ROW}`, { status }),
-			])
-			expect(evidence).toEqual({ call: 1, observation: { seq: 2, status } })
-		}
-	})
+  it("is a later read of the item answering 404 or 410", async () => {
+    for (const status of [404, 410]) {
+      const { evidence } = await evidenceFor("row.remove", [
+        exchange(1, `DELETE /v1/rows/${ROW}`, { op: "row.remove" }),
+        exchange(2, `GET /v1/rows/${ROW}`, { status }),
+      ]);
+      expect(evidence).toEqual({ call: 1, observation: { seq: 2, status } });
+    }
+  });
 
-	it("is a later QUERY that no longer holds the id: QUERY reads", async () => {
-		const { evidence } = await evidenceFor("row.remove", [
-			exchange(1, `DELETE /v1/rows/${ROW}`, { op: "row.remove" }),
-			exchange(2, "QUERY /v1/rows", { body: { items: [{ id: ROW }] } }),
-			exchange(3, "QUERY /v1/rows", { body: { items: [] } }),
-		])
-		expect(evidence).toEqual({ call: 1, observation: { absent: true, path: "$", seq: 3, value: ROW } })
-	})
+  it("is a later QUERY that no longer holds the id: QUERY reads", async () => {
+    const { evidence } = await evidenceFor("row.remove", [
+      exchange(1, `DELETE /v1/rows/${ROW}`, { op: "row.remove" }),
+      exchange(2, "QUERY /v1/rows", { body: { items: [{ id: ROW }] } }),
+      exchange(3, "QUERY /v1/rows", { body: { items: [] } }),
+    ]);
+    expect(evidence).toEqual({ call: 1, observation: { absent: true, path: "$", seq: 3, value: ROW } });
+  });
 
-	it("is a later listing that no longer holds the id, after one that still does", async () => {
-		const { evidence } = await evidenceFor("row.remove", [
-			exchange(1, `DELETE /v1/rows/${ROW}`, { op: "row.remove" }),
-			exchange(2, "GET /v1/rows", { body: { items: [{ id: ROW }] } }),
-			exchange(3, "GET /v1/rows", { body: { items: [] } }),
-		])
-		expect(evidence).toEqual({ call: 1, observation: { absent: true, path: "$", seq: 3, value: ROW } })
-	})
+  it("is a later listing that no longer holds the id, after one that still does", async () => {
+    const { evidence } = await evidenceFor("row.remove", [
+      exchange(1, `DELETE /v1/rows/${ROW}`, { op: "row.remove" }),
+      exchange(2, "GET /v1/rows", { body: { items: [{ id: ROW }] } }),
+      exchange(3, "GET /v1/rows", { body: { items: [] } }),
+    ]);
+    expect(evidence).toEqual({ call: 1, observation: { absent: true, path: "$", seq: 3, value: ROW } });
+  });
 
-	it("reads each body once across calls", async () => {
-		const { evidence, hydrations } = await evidenceFor("row.remove", [
-			exchange(1, "DELETE /v1/rows/row_first_1", { op: "row.remove" }),
-			exchange(2, `DELETE /v1/rows/${ROW}`, { op: "row.remove" }),
-			exchange(3, "GET /v1/rows", { body: { items: [{ id: "row_first_1" }, { id: ROW }] } }),
-		])
-		expect(evidence).toEqual({ call: 2 })
-		expect(hydrations).toBe(3)
-	})
+  it("reads each body once across calls", async () => {
+    const { evidence, hydrations } = await evidenceFor("row.remove", [
+      exchange(1, "DELETE /v1/rows/row_first_1", { op: "row.remove" }),
+      exchange(2, `DELETE /v1/rows/${ROW}`, { op: "row.remove" }),
+      exchange(3, "GET /v1/rows", { body: { items: [{ id: "row_first_1" }, { id: ROW }] } }),
+    ]);
+    expect(evidence).toEqual({ call: 2 });
+    expect(hydrations).toBe(3);
+  });
 
-	it("cannot name an id from a path ending in a slash, and reads one that is no URL whole", async () => {
-		const trailing = await evidenceFor("row.remove", [
-			exchange(1, "DELETE /v1/rows/", { op: "row.remove" }),
-			exchange(2, "GET /v1/rows", { body: { items: [] } }),
-		])
-		expect(trailing.evidence).toEqual({ call: 1 })
-		const bare = await evidenceFor("row.remove", [
-			exchange(1, "DELETE ", { op: "row.remove", url: "rows" }),
-			exchange(2, "GET ", { body: { items: [] }, url: "" }),
-		])
-		expect(bare.evidence).toEqual({ call: 1, observation: { absent: true, path: "$", seq: 2, value: "rows" } })
-	})
-})
+  it("cannot name an id from a path ending in a slash, and reads one that is no URL whole", async () => {
+    const trailing = await evidenceFor("row.remove", [
+      exchange(1, "DELETE /v1/rows/", { op: "row.remove" }),
+      exchange(2, "GET /v1/rows", { body: { items: [] } }),
+    ]);
+    expect(trailing.evidence).toEqual({ call: 1 });
+    const bare = await evidenceFor("row.remove", [
+      exchange(1, "DELETE ", { op: "row.remove", url: "rows" }),
+      exchange(2, "GET ", { body: { items: [] }, url: "" }),
+    ]);
+    expect(bare.evidence).toEqual({ call: 1, observation: { absent: true, path: "$", seq: 2, value: "rows" } });
+  });
+});
 
 describe("read evidence", () => {
-	it("is a value an earlier write put into the world, found in the read", async () => {
-		const { evidence } = await evidenceFor("row.get", [
-			exchange(1, "GET /v1/rows", { body: { id: "row_unrelated" } }),
-			exchange(2, "POST /v1/rows", { body: { id: "row_failed" }, status: 500 }),
-			exchange(3, "POST /v1/rows", { body: { id: ROW } }),
-			exchange(4, `GET /v1/rows/${ROW}`, { body: { data: { id: ROW } }, op: "row.get" }),
-		])
-		expect(evidence).toEqual({ call: 4, observation: { path: "$.data.id", seq: 4, value: ROW } })
-	})
+  it("is a value an earlier write put into the world, found in the read", async () => {
+    const { evidence } = await evidenceFor("row.get", [
+      exchange(1, "GET /v1/rows", { body: { id: "row_unrelated" } }),
+      exchange(2, "POST /v1/rows", { body: { id: "row_failed" }, status: 500 }),
+      exchange(3, "POST /v1/rows", { body: { id: ROW } }),
+      exchange(4, `GET /v1/rows/${ROW}`, { body: { data: { id: ROW } }, op: "row.get" }),
+    ]);
+    expect(evidence).toEqual({ call: 4, observation: { path: "$.data.id", seq: 4, value: ROW } });
+  });
 
-	it("names the earliest write whose value the read holds, whichever value the read lists first", async () => {
-		const { evidence } = await evidenceFor("row.get", [
-			exchange(1, "POST /v1/rows", { body: { id: "row_first_1" } }),
-			exchange(2, "POST /v1/rows", { body: { id: ROW } }),
-			exchange(3, "POST /v1/rows", { body: { id: "row_third_3" } }),
-			exchange(4, `GET /v1/rows/${ROW}`, { body: { a: ROW, b: "row_first_1", c: "row_third_3" }, op: "row.get" }),
-		])
-		expect(evidence).toEqual({ call: 4, observation: { path: "$.b", seq: 4, value: "row_first_1" } })
-	})
+  it("names the earliest write whose value the read holds, whichever value the read lists first", async () => {
+    const { evidence } = await evidenceFor("row.get", [
+      exchange(1, "POST /v1/rows", { body: { id: "row_first_1" } }),
+      exchange(2, "POST /v1/rows", { body: { id: ROW } }),
+      exchange(3, "POST /v1/rows", { body: { id: "row_third_3" } }),
+      exchange(4, `GET /v1/rows/${ROW}`, { body: { a: ROW, b: "row_first_1", c: "row_third_3" }, op: "row.get" }),
+    ]);
+    expect(evidence).toEqual({ call: 4, observation: { path: "$.b", seq: 4, value: "row_first_1" } });
+  });
 
-	it("keeps only the call when no earlier write shows in it", async () => {
-		const { evidence } = await evidenceFor("row.get", [
-			exchange(1, "POST /v1/rows", { body: { id: ROW } }),
-			exchange(2, `GET /v1/rows/${ROW}`, { body: { id: "row_other" }, op: "row.get" }),
-		])
-		expect(evidence).toEqual({ call: 2 })
-	})
-})
+  it("keeps only the call when no earlier write shows in it", async () => {
+    const { evidence } = await evidenceFor("row.get", [
+      exchange(1, "POST /v1/rows", { body: { id: ROW } }),
+      exchange(2, `GET /v1/rows/${ROW}`, { body: { id: "row_other" }, op: "row.get" }),
+    ]);
+    expect(evidence).toEqual({ call: 2 });
+  });
+});
 
 describe("write evidence", () => {
-	it("is a later read holding an id the call returned or a string it sent", async () => {
-		const sent = { meta: { note: "a long note" }, tags: ["tag"] }
-		const { evidence } = await evidenceFor("row.create", [
-			exchange(1, "POST /v1/rows", {
-				body: { id: ROW, name: "short", owner_id: "usr_123456", title: "not an id" },
-				op: "row.create",
-				sent,
-			}),
-			exchange(2, "GET /v1/rows", { body: [ROW], status: 503 }),
-			exchange(3, "GET /v1/rows", { body: [{ x: 1 }, ["a long note"]] }),
-		])
-		expect(evidence).toEqual({ call: 1, observation: { path: "$[*][*]", seq: 3, value: "a long note" } })
-	})
+  it("is a later read holding an id the call returned or a string it sent", async () => {
+    const sent = { meta: { note: "a long note" }, tags: ["tag"] };
+    const { evidence } = await evidenceFor("row.create", [
+      exchange(1, "POST /v1/rows", {
+        body: { id: ROW, name: "short", owner_id: "usr_123456", title: "not an id" },
+        op: "row.create",
+        sent,
+      }),
+      exchange(2, "GET /v1/rows", { body: [ROW], status: 503 }),
+      exchange(3, "GET /v1/rows", { body: [{ x: 1 }, ["a long note"]] }),
+    ]);
+    expect(evidence).toEqual({ call: 1, observation: { path: "$[*][*]", seq: 3, value: "a long note" } });
+  });
 
-	it("keeps only the call when it put nothing distinctive into the world", async () => {
-		const { evidence } = await evidenceFor("row.create", [
-			exchange(1, "POST /v1/rows", { body: { a: { b: { c: { d: { e: { id: ROW } } } } } }, op: "row.create" }),
-			exchange(2, "GET /v1/rows", { body: [ROW] }),
-		])
-		expect(evidence).toEqual({ call: 1 })
-	})
+  it("keeps only the call when it put nothing distinctive into the world", async () => {
+    const { evidence } = await evidenceFor("row.create", [
+      exchange(1, "POST /v1/rows", { body: { a: { b: { c: { d: { e: { id: ROW } } } } } }, op: "row.create" }),
+      exchange(2, "GET /v1/rows", { body: [ROW] }),
+    ]);
+    expect(evidence).toEqual({ call: 1 });
+  });
 
-	it("ignores teardown reads, and reads each body once across calls", async () => {
-		const { evidence, hydrations } = await evidenceFor("row.create", [
-			exchange(1, "POST /v1/rows", { body: { id: ROW }, op: "row.create" }),
-			exchange(2, "POST /v1/rows", { body: { id: "row_second" }, op: "row.create" }),
-			exchange(3, "GET /v1/rows", { body: [{ id: "row_none" }] }),
-			exchange(4, "GET /v1/rows", { body: [{ id: ROW }], purpose: "teardown" }),
-		])
-		expect(evidence).toEqual({ call: 2 })
-		expect(hydrations).toBe(3)
-	})
-})
+  it("ignores teardown reads, and reads each body once across calls", async () => {
+    const { evidence, hydrations } = await evidenceFor("row.create", [
+      exchange(1, "POST /v1/rows", { body: { id: ROW }, op: "row.create" }),
+      exchange(2, "POST /v1/rows", { body: { id: "row_second" }, op: "row.create" }),
+      exchange(3, "GET /v1/rows", { body: [{ id: "row_none" }] }),
+      exchange(4, "GET /v1/rows", { body: [{ id: ROW }], purpose: "teardown" }),
+    ]);
+    expect(evidence).toEqual({ call: 2 });
+    expect(hydrations).toBe(3);
+  });
+});
 
 /* Another lane's traffic, as much as ran while this lane waited: its own writes and reads. */
 const otherLane = (from: number) =>
-	Array.from({ length: 450 }, (_, i) =>
-		i % 2 === 0
-			? exchange(from + i, "POST /v1/tables", { body: { id: `tbl_other_${i}` } })
-			: exchange(from + i, "GET /v1/tables/tbl_9", { body: { id: "tbl_9", note: `other ${i}` } }),
-	)
+  Array.from({ length: 450 }, (_, i) =>
+    i % 2 === 0
+      ? exchange(from + i, "POST /v1/tables", { body: { id: `tbl_other_${i}` } })
+      : exchange(from + i, "GET /v1/tables/tbl_9", { body: { id: "tbl_9", note: `other ${i}` } }),
+  );
 
 describe("evidence across concurrent lanes", () => {
-	it("finds the write a read shows however much traffic ran between them", async () => {
-		const { evidence } = await evidenceFor("row.get", [
-			exchange(1, "POST /v1/rows", { body: { id: ROW } }),
-			...otherLane(2),
-			exchange(452, `GET /v1/rows/${ROW}`, { body: { data: { id: ROW } }, op: "row.get" }),
-		])
-		expect(evidence).toEqual({ call: 452, observation: { path: "$.data.id", seq: 452, value: ROW } })
-	})
+  it("finds the write a read shows however much traffic ran between them", async () => {
+    const { evidence } = await evidenceFor("row.get", [
+      exchange(1, "POST /v1/rows", { body: { id: ROW } }),
+      ...otherLane(2),
+      exchange(452, `GET /v1/rows/${ROW}`, { body: { data: { id: ROW } }, op: "row.get" }),
+    ]);
+    expect(evidence).toEqual({ call: 452, observation: { path: "$.data.id", seq: 452, value: ROW } });
+  });
 
-	it("finds the read that shows a write however much traffic ran between them", async () => {
-		const { evidence } = await evidenceFor("row.create", [
-			exchange(1, "POST /v1/rows", { body: { id: ROW }, op: "row.create" }),
-			...otherLane(2),
-			exchange(452, "GET /v1/rows", { body: [{ id: ROW }] }),
-		])
-		expect(evidence).toEqual({ call: 1, observation: { path: "$[*].id", seq: 452, value: ROW } })
-	})
+  it("finds the read that shows a write however much traffic ran between them", async () => {
+    const { evidence } = await evidenceFor("row.create", [
+      exchange(1, "POST /v1/rows", { body: { id: ROW }, op: "row.create" }),
+      ...otherLane(2),
+      exchange(452, "GET /v1/rows", { body: [{ id: ROW }] }),
+    ]);
+    expect(evidence).toEqual({ call: 1, observation: { path: "$[*].id", seq: 452, value: ROW } });
+  });
 
-	it("finds the read that shows a delete however much traffic ran between them", async () => {
-		const { evidence } = await evidenceFor("column.remove", [
-			exchange(1, "GET /v1/tables/tbl_1", { body: table(["col_amount", COLUMN]), op: "table.get" }),
-			...otherLane(2),
-			exchange(452, `DELETE /v1/tables/tbl_1/columns/${COLUMN}`, { op: "column.remove" }),
-			...otherLane(453),
-			exchange(903, "GET /v1/tables/tbl_1", { body: table(["col_amount"]), op: "table.get" }),
-		])
-		expect(evidence).toEqual({ call: 452, observation: { absent: true, path: "$", seq: 903, value: COLUMN } })
-	})
+  it("finds the read that shows a delete however much traffic ran between them", async () => {
+    const { evidence } = await evidenceFor("column.remove", [
+      exchange(1, "GET /v1/tables/tbl_1", { body: table(["col_amount", COLUMN]), op: "table.get" }),
+      ...otherLane(2),
+      exchange(452, `DELETE /v1/tables/tbl_1/columns/${COLUMN}`, { op: "column.remove" }),
+      ...otherLane(453),
+      exchange(903, "GET /v1/tables/tbl_1", { body: table(["col_amount"]), op: "table.get" }),
+    ]);
+    expect(evidence).toEqual({ call: 452, observation: { absent: true, path: "$", seq: 903, value: COLUMN } });
+  });
 
-	it("decides a delete from the run's index without reading any read body again", async () => {
-		const grades = new GradeLedger()
-		grades.graded(["row.create", "row.remove"], "some.check")
-		const hydrated: number[] = []
-		const hydrate = async (e: Exchange) => {
-			hydrated.push(e.seq)
-			return e
-		}
-		const transcript = [
-			exchange(1, "POST /v1/rows", { body: { id: ROW }, op: "row.create" }),
-			exchange(2, "GET /v1/rows", { body: { items: [{ id: ROW }] } }),
-			...otherLane(3),
-			exchange(453, `DELETE /v1/rows/${ROW}`, { op: "row.remove" }),
-			...otherLane(454),
-			exchange(904, "GET /v1/rows", { body: { items: [{ id: ROW }] } }),
-			exchange(905, "GET /v1/rows", { body: { items: [] } }),
-		]
-		const client = { hydrate, transcript } as unknown as Client
-		await proveFromTranscript({ client, grades, model: buildModel(dereference(spec).doc) })
-		expect(grades.evidence.get("row.remove")).toEqual({
-			call: 453,
-			observation: { absent: true, path: "$", seq: 905, value: ROW },
-		})
-		expect(hydrated.slice(hydrated.indexOf(453))).toEqual([453])
-	})
-})
+  it("decides a delete from the run's index without reading any read body again", async () => {
+    const grades = new GradeLedger();
+    grades.graded(["row.create", "row.remove"], "some.check");
+    const hydrated: number[] = [];
+    const hydrate = async (e: Exchange) => {
+      hydrated.push(e.seq);
+      return e;
+    };
+    const transcript = [
+      exchange(1, "POST /v1/rows", { body: { id: ROW }, op: "row.create" }),
+      exchange(2, "GET /v1/rows", { body: { items: [{ id: ROW }] } }),
+      ...otherLane(3),
+      exchange(453, `DELETE /v1/rows/${ROW}`, { op: "row.remove" }),
+      ...otherLane(454),
+      exchange(904, "GET /v1/rows", { body: { items: [{ id: ROW }] } }),
+      exchange(905, "GET /v1/rows", { body: { items: [] } }),
+    ];
+    const client = { hydrate, transcript } as unknown as Client;
+    await proveFromTranscript({ client, grades, model: buildModel(dereference(spec).doc) });
+    expect(grades.evidence.get("row.remove")).toEqual({
+      call: 453,
+      observation: { absent: true, path: "$", seq: 905, value: ROW },
+    });
+    expect(hydrated.slice(hydrated.indexOf(453))).toEqual([453]);
+  });
+});
 
 describe("which operations are proven", () => {
-	it("skips one never graded, one already observed, and one with no successful call", async () => {
-		const grades = new GradeLedger()
-		grades.prove("row.list", { call: 9, observation: { seq: 9, status: 404 } })
-		grades.graded(["row.list"], "some.check")
-		const { evidence } = await evidenceFor(
-			"row.get",
-			[
-				exchange(1, `GET /v1/rows/${ROW}`, { op: "row.get", status: 404 }),
-				exchange(2, "GET /v1/rows", { op: "row.list" }),
-			],
-			grades,
-		)
-		expect(evidence).toBeUndefined()
-		expect(grades.evidence.get("row.list")).toEqual({ call: 9, observation: { seq: 9, status: 404 } })
-		expect(grades.evidence.has("row.create")).toBe(false)
-	})
+  it("skips one never graded, one already observed, and one with no successful call", async () => {
+    const grades = new GradeLedger();
+    grades.prove("row.list", { call: 9, observation: { seq: 9, status: 404 } });
+    grades.graded(["row.list"], "some.check");
+    const { evidence } = await evidenceFor(
+      "row.get",
+      [
+        exchange(1, `GET /v1/rows/${ROW}`, { op: "row.get", status: 404 }),
+        exchange(2, "GET /v1/rows", { op: "row.list" }),
+      ],
+      grades,
+    );
+    expect(evidence).toBeUndefined();
+    expect(grades.evidence.get("row.list")).toEqual({ call: 9, observation: { seq: 9, status: 404 } });
+    expect(grades.evidence.has("row.create")).toBe(false);
+  });
 
-	it("takes no evidence for an operation only a security probe graded", async () => {
-		const grades = new GradeLedger()
-		grades.probedBy(["row.create"], "auth.anonymous-operation-open")
-		const client = {
-			hydrate: async (e: Exchange) => e,
-			transcript: [exchange(1, "POST /v1/rows", { op: "row.create" })],
-		}
-		await proveFromTranscript({ client: client as unknown as Client, grades, model: buildModel(dereference(spec).doc) })
-		expect(grades.evidence.has("row.create")).toBe(false)
-	})
-})
+  it("takes no evidence for an operation only a security probe graded", async () => {
+    const grades = new GradeLedger();
+    grades.probedBy(["row.create"], "auth.anonymous-operation-open");
+    const client = {
+      hydrate: async (e: Exchange) => e,
+      transcript: [exchange(1, "POST /v1/rows", { op: "row.create" })],
+    };
+    await proveFromTranscript({
+      client: client as unknown as Client,
+      grades,
+      model: buildModel(dereference(spec).doc),
+    });
+    expect(grades.evidence.has("row.create")).toBe(false);
+  });
+});
 
 describe("pathTo", () => {
-	it("names a string inside arrays, and gives up past its depth", () => {
-		expect(pathTo([["x"], [{ a: "v" }]], "v")).toBe("$[*][*].a")
-		expect(pathTo([1, 2], "v")).toBeNull()
-		expect(pathTo({ a: { b: { c: { d: { e: { f: { g: { h: "v" } } } } } } } }, "v")).toBeNull()
-	})
-})
+  it("names a string inside arrays, and gives up past its depth", () => {
+    expect(pathTo([["x"], [{ a: "v" }]], "v")).toBe("$[*][*].a");
+    expect(pathTo([1, 2], "v")).toBeNull();
+    expect(pathTo({ a: { b: { c: { d: { e: { f: { g: { h: "v" } } } } } } } }, "v")).toBeNull();
+  });
+});

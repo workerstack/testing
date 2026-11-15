@@ -1,42 +1,43 @@
-import { describe, expect, it } from "vitest"
-import { buildModel } from "../../spec/graph/build.ts"
-import { dereference } from "../../spec/load/dereference.ts"
-import type { OperationObject } from "../../spec/types.ts"
-import { bearerSecurity } from "../harness/security.ts"
-import { planLimitSpec, thingSpec } from "./spec.ts"
+import { describe, expect, it } from "vitest";
+
+import { buildModel } from "../../spec/graph/build.ts";
+import { dereference } from "../../spec/load/dereference.ts";
+import type { OperationObject } from "../../spec/types.ts";
+import { bearerSecurity } from "../harness/security.ts";
+import { planLimitSpec, thingSpec } from "./spec.ts";
 
 const operations = (doc: ReturnType<typeof thingSpec>) =>
-	buildModel(dereference(doc).doc)
-		.operations.map((op) => op.operationId)
-		.toSorted()
+  buildModel(dereference(doc).doc)
+    .operations.map((op) => op.operationId)
+    .toSorted();
 
 describe("the rate-limit suite's documents", () => {
-	it("model untagged things with full CRUD", () => {
-		expect(operations(thingSpec())).toEqual(["thing.create", "thing.delete", "thing.list", "thing.read"])
-	})
+  it("model untagged things with full CRUD", () => {
+    expect(operations(thingSpec())).toEqual(["thing.create", "thing.delete", "thing.list", "thing.read"]);
+  });
 
-	it("model tables, whose create documents a 402, and the rows inside them", () => {
-		expect(operations(planLimitSpec())).toEqual([
-			"row.create",
-			"row.delete",
-			"row.list",
-			"row.read",
-			"table.create",
-			"table.delete",
-			"table.list",
-			"table.read",
-		])
-		const created = planLimitSpec().paths?.["/v1/tables"]?.["post"] as OperationObject | undefined
-		expect(Object.keys(created?.responses ?? {})).toEqual(["201", "402"])
-	})
-})
+  it("model tables, whose create documents a 402, and the rows inside them", () => {
+    expect(operations(planLimitSpec())).toEqual([
+      "row.create",
+      "row.delete",
+      "row.list",
+      "row.read",
+      "table.create",
+      "table.delete",
+      "table.list",
+      "table.read",
+    ]);
+    const created = planLimitSpec().paths?.["/v1/tables"]?.["post"] as OperationObject | undefined;
+    expect(Object.keys(created?.responses ?? {})).toEqual(["201", "402"]);
+  });
+});
 
 describe("the rate-limit suite's documents security", () => {
-	it("each require the bearer on every operation, from the root", () => {
-		for (const doc of [thingSpec(), planLimitSpec()]) {
-			expect(doc).toMatchObject(bearerSecurity())
-			const sources = buildModel(dereference(doc).doc).operations.map((op) => op.security.source)
-			expect(new Set(sources)).toEqual(new Set(["root"]))
-		}
-	})
-})
+  it("each require the bearer on every operation, from the root", () => {
+    for (const doc of [thingSpec(), planLimitSpec()]) {
+      expect(doc).toMatchObject(bearerSecurity());
+      const sources = buildModel(dereference(doc).doc).operations.map((op) => op.security.source);
+      expect(new Set(sources)).toEqual(new Set(["root"]));
+    }
+  });
+});

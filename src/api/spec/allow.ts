@@ -8,98 +8,98 @@
  * anything is sent.
  */
 
-import type { PrincipalEntry, Recipe } from "../config/types/security.ts"
-import type { Scenario } from "../config/types/steps.ts"
-import { UsageError } from "../errors/usage-error.ts"
-import { PATH_ITEM_METHODS as METHODS } from "./methods.ts"
-import { operationSlots, resolveOperationName } from "./operation-name.ts"
-import type { OpenApiDocument } from "./types.ts"
+import type { PrincipalEntry, Recipe } from "../config/types/security.ts";
+import type { Scenario } from "../config/types/steps.ts";
+import { UsageError } from "../errors/usage-error.ts";
+import { PATH_ITEM_METHODS as METHODS } from "./methods.ts";
+import { operationSlots, resolveOperationName } from "./operation-name.ts";
+import type { OpenApiDocument } from "./types.ts";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
-	typeof value === "object" && value !== null && !Array.isArray(value)
+  typeof value === "object" && value !== null && !Array.isArray(value);
 
 /** The document without the operations `allow` leaves out, what it removed, and the names it kept. */
 export function pruneToAllow(
-	doc: OpenApiDocument,
-	allow: readonly string[],
+  doc: OpenApiDocument,
+  allow: readonly string[],
 ): { doc: OpenApiDocument; removed: string[]; kept: ReadonlySet<string> } {
-	const out = structuredClone(doc)
-	const paths = (out.paths ?? {}) as Record<string, unknown>
-	const slots = operationSlots(paths)
-	const kept = new Set<string>()
-	const unknown: string[] = []
-	for (const ref of allow) {
-		const name = resolveOperationName(ref, slots)
-		if (name === undefined) unknown.push(ref)
-		else kept.add(name)
-	}
-	if (unknown.length > 0) {
-		throw new UsageError(`allow names ${unknown.map((id) => `"${id}"`).join(", ")}, which the document does not have`)
-	}
-	const removed: string[] = []
-	for (const [name, { item, method }] of slots) {
-		if (kept.has(name)) continue
-		removed.push(name)
-		delete item[method]
-	}
-	for (const [route, item] of Object.entries(paths)) {
-		if (isRecord(item) && !METHODS.some((method) => isRecord(item[method]))) delete paths[route]
-	}
-	return { doc: out, kept, removed: removed.sort() }
+  const out = structuredClone(doc);
+  const paths = (out.paths ?? {}) as Record<string, unknown>;
+  const slots = operationSlots(paths);
+  const kept = new Set<string>();
+  const unknown: string[] = [];
+  for (const ref of allow) {
+    const name = resolveOperationName(ref, slots);
+    if (name === undefined) unknown.push(ref);
+    else kept.add(name);
+  }
+  if (unknown.length > 0) {
+    throw new UsageError(`allow names ${unknown.map((id) => `"${id}"`).join(", ")}, which the document does not have`);
+  }
+  const removed: string[] = [];
+  for (const [name, { item, method }] of slots) {
+    if (kept.has(name)) continue;
+    removed.push(name);
+    delete item[method];
+  }
+  for (const [route, item] of Object.entries(paths)) {
+    if (isRecord(item) && !METHODS.some((method) => isRecord(item[method]))) delete paths[route];
+  }
+  return { doc: out, kept, removed: removed.sort() };
 }
 
 /** The operations `steps` call on the document itself that the allowlist removed. */
 function removedCalls(kept: ReadonlySet<string>, steps: readonly object[]): string[] {
-	return steps
-		.filter((step): step is { operationId: string; origin?: unknown } => "operationId" in step)
-		.filter((step) => step.origin === undefined && !kept.has(step.operationId))
-		.map((step) => step.operationId)
+  return steps
+    .filter((step): step is { operationId: string; origin?: unknown } => "operationId" in step)
+    .filter((step) => step.origin === undefined && !kept.has(step.operationId))
+    .map((step) => step.operationId);
 }
 
 /** Recipes by scheme name: the config's `security`, or one principal's overrides of it. */
-type Recipes = Readonly<Record<string, Partial<Recipe>>>
+type Recipes = Readonly<Record<string, Partial<Recipe>>>;
 
 /* The removed operations one recipe calls by name: its login and refresh steps, its mint and that mint's revoke. */
 function recipeCalls(kept: ReadonlySet<string>, path: string, recipe: Partial<Recipe>): string[] {
-	const named = (operationId: string | undefined): string[] =>
-		operationId === undefined || kept.has(operationId) ? [] : [operationId]
-	return [
-		...removedCalls(kept, recipe.login?.steps ?? []).map((id) => `${path} login step "${id}"`),
-		...removedCalls(kept, recipe.refresh?.steps ?? []).map((id) => `${path} refresh step "${id}"`),
-		...named(recipe.mint?.operationId).map((id) => `${path} mint "${id}"`),
-		...named(recipe.mint?.revoke).map((id) => `${path} revoke "${id}"`),
-	]
+  const named = (operationId: string | undefined): string[] =>
+    operationId === undefined || kept.has(operationId) ? [] : [operationId];
+  return [
+    ...removedCalls(kept, recipe.login?.steps ?? []).map((id) => `${path} login step "${id}"`),
+    ...removedCalls(kept, recipe.refresh?.steps ?? []).map((id) => `${path} refresh step "${id}"`),
+    ...named(recipe.mint?.operationId).map((id) => `${path} mint "${id}"`),
+    ...named(recipe.mint?.revoke).map((id) => `${path} revoke "${id}"`),
+  ];
 }
 
 function recipesCalls(kept: ReadonlySet<string>, path: string, recipes: Recipes | undefined): string[] {
-	return Object.entries(recipes ?? {}).flatMap(([scheme, recipe]) => recipeCalls(kept, `${path}.${scheme}`, recipe))
+  return Object.entries(recipes ?? {}).flatMap(([scheme, recipe]) => recipeCalls(kept, `${path}.${scheme}`, recipe));
 }
 
 function scenarioProblems(kept: ReadonlySet<string>, scenario: Scenario): string[] {
-	if (scenario.origin !== undefined) return []
-	return [
-		...removedCalls(kept, scenario.steps).map((id) => `scenario "${scenario.id}" step "${id}"`),
-		...scenario.covers.filter((id) => !kept.has(id)).map((id) => `scenario "${scenario.id}" covers "${id}"`),
-	]
+  if (scenario.origin !== undefined) return [];
+  return [
+    ...removedCalls(kept, scenario.steps).map((id) => `scenario "${scenario.id}" step "${id}"`),
+    ...scenario.covers.filter((id) => !kept.has(id)).map((id) => `scenario "${scenario.id}" covers "${id}"`),
+  ];
 }
 
 /** Every operation the config itself will call by name must survive the allowlist. */
 export function assertAllowedReferences(
-	kept: ReadonlySet<string>,
-	config: {
-		security?: Recipes
-		principals?: Readonly<Record<string, PrincipalEntry>>
-		scenarios?: readonly Scenario[]
-	},
+  kept: ReadonlySet<string>,
+  config: {
+    security?: Recipes;
+    principals?: Readonly<Record<string, PrincipalEntry>>;
+    scenarios?: readonly Scenario[];
+  },
 ): void {
-	const problems = [
-		...recipesCalls(kept, "security", config.security),
-		...Object.entries(config.principals ?? {}).flatMap(([id, principal]) =>
-			recipesCalls(kept, `principals.${id}.security`, principal.security),
-		),
-		...(config.scenarios ?? []).flatMap((scenario) => scenarioProblems(kept, scenario)),
-	]
-	if (problems.length > 0) {
-		throw new UsageError(`allow removes operations the config still calls: ${[...new Set(problems)].join("; ")}`)
-	}
+  const problems = [
+    ...recipesCalls(kept, "security", config.security),
+    ...Object.entries(config.principals ?? {}).flatMap(([id, principal]) =>
+      recipesCalls(kept, `principals.${id}.security`, principal.security),
+    ),
+    ...(config.scenarios ?? []).flatMap((scenario) => scenarioProblems(kept, scenario)),
+  ];
+  if (problems.length > 0) {
+    throw new UsageError(`allow removes operations the config still calls: ${[...new Set(problems)].join("; ")}`);
+  }
 }

@@ -4,13 +4,13 @@
  * it. Anyone else's create is a guaranteed refusal, so it is never sent; it is untested with the reason.
  */
 
-import type { OperationModel } from "../spec/graph/types.ts"
+import type { OperationModel } from "../spec/graph/types.ts";
 
 /** A principal as the rule reads it. */
 export interface Ranked {
-	id: string
-	rank: number
-	tenant?: string | undefined
+  id: string;
+  rank: number;
+  tenant?: string | undefined;
 }
 
 /**
@@ -18,17 +18,17 @@ export interface Ranked {
  * property and a principal of the sender's tenant outranks it.
  */
 export function privilegedBar(
-	createOp: Pick<OperationModel, "operationId" | "privilegedRequired">,
-	sender: Ranked,
-	principals: readonly Ranked[],
+  createOp: Pick<OperationModel, "operationId" | "privilegedRequired">,
+  sender: Ranked,
+  principals: readonly Ranked[],
 ): string | undefined {
-	if (createOp.privilegedRequired.length === 0) return undefined
-	const top = principals
-		.filter((principal) => principal.tenant === sender.tenant)
-		.reduce((highest, principal) => (principal.rank > highest.rank ? principal : highest), sender)
-	if (top.rank <= sender.rank) return undefined
-	return (
-		`${createOp.operationId} requires ${createOp.privilegedRequired.join(", ")}, marked x-privileged, which ` +
-		`only ${top.id} (rank ${top.rank}) may set; ${sender.id} (rank ${sender.rank}) does not send it`
-	)
+  if (createOp.privilegedRequired.length === 0) return undefined;
+  const top = principals
+    .filter((principal) => principal.tenant === sender.tenant)
+    .reduce((highest, principal) => (principal.rank > highest.rank ? principal : highest), sender);
+  if (top.rank <= sender.rank) return undefined;
+  return (
+    `${createOp.operationId} requires ${createOp.privilegedRequired.join(", ")}, marked x-privileged, which ` +
+    `only ${top.id} (rank ${top.rank}) may set; ${sender.id} (rank ${sender.rank}) does not send it`
+  );
 }

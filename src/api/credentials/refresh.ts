@@ -8,26 +8,26 @@
  */
 
 /** How long before it lapses a credential counts as stale. */
-export const DEFAULT_REFRESH_BUFFER_MS = 30_000
+export const DEFAULT_REFRESH_BUFFER_MS = 30_000;
 
 /** Whether a credential issued at `issuedAt` and lapsing at `expiresAt` is due for renewal at `now`. */
 export function isStale(
-	held: { expiresAt: number | null; issuedAt: number },
-	at: { now: number; bufferMs: number },
+  held: { expiresAt: number | null; issuedAt: number },
+  at: { now: number; bufferMs: number },
 ): boolean {
-	if (held.expiresAt === null) return false
-	const buffer = Math.min(at.bufferMs, (held.expiresAt - held.issuedAt) / 2)
-	return held.expiresAt - buffer <= at.now
+  if (held.expiresAt === null) return false;
+  const buffer = Math.min(at.bufferMs, (held.expiresAt - held.issuedAt) / 2);
+  return held.expiresAt - buffer <= at.now;
 }
 
 /** A single-flight renewal per held entry: the first caller starts it, the rest share it. */
 export function createRenewals<E extends object, R>(): (held: E, start: () => Promise<R>) => Promise<R> {
-	const renewals = new WeakMap<E, Promise<R>>()
-	return (held, start) => {
-		const running = renewals.get(held)
-		if (running !== undefined) return running
-		const renewal = start()
-		renewals.set(held, renewal)
-		return renewal
-	}
+  const renewals = new WeakMap<E, Promise<R>>();
+  return (held, start) => {
+    const running = renewals.get(held);
+    if (running !== undefined) return running;
+    const renewal = start();
+    renewals.set(held, renewal);
+    return renewal;
+  };
 }

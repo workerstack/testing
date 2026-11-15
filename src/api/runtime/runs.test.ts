@@ -1,170 +1,172 @@
-import { chmod, lstat, mkdir, mkdtemp, readdir, readlink, realpath, rm, writeFile } from "node:fs/promises"
-import { tmpdir } from "node:os"
-import { join, resolve } from "node:path"
-import { afterEach, describe, expect, it } from "vitest"
-import { allocateRunDir, DEFAULT_RUNS_ROOT, formatRunStamp, LATEST_LINK, publishLatest } from "./runs.ts"
+import { chmod, lstat, mkdir, mkdtemp, readdir, readlink, realpath, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 
-const temps: string[] = []
+import { afterEach, describe, expect, it } from "vitest";
+
+import { allocateRunDir, DEFAULT_RUNS_ROOT, formatRunStamp, LATEST_LINK, publishLatest } from "./runs.ts";
+
+const temps: string[] = [];
 
 afterEach(async () => {
-	await Promise.all(temps.splice(0).map((dir) => rm(dir, { force: true, recursive: true })))
-})
+  await Promise.all(temps.splice(0).map((dir) => rm(dir, { force: true, recursive: true })));
+});
 
 async function scratch(): Promise<string> {
-	const dir = await mkdtemp(join(tmpdir(), "testing-runs-"))
-	temps.push(dir)
-	return dir
+  const dir = await mkdtemp(join(tmpdir(), "testing-runs-"));
+  temps.push(dir);
+  return dir;
 }
 
 describe("formatRunStamp", () => {
-	it("is UTC and filesystem-safe", () => {
-		expect(formatRunStamp(new Date("2026-08-18T14:30:05.123Z"))).toBe("2026-08-18T14-30-05Z")
-	})
+  it("is UTC and filesystem-safe", () => {
+    expect(formatRunStamp(new Date("2026-08-18T14:30:05.123Z"))).toBe("2026-08-18T14-30-05Z");
+  });
 
-	it("zero-pads and drops milliseconds", () => {
-		expect(formatRunStamp(new Date("2026-01-02T03:04:05.000Z"))).toBe("2026-01-02T03-04-05Z")
-	})
-})
+  it("zero-pads and drops milliseconds", () => {
+    expect(formatRunStamp(new Date("2026-01-02T03:04:05.000Z"))).toBe("2026-01-02T03-04-05Z");
+  });
+});
 
 describe("allocateRunDir", () => {
-	it("defaults the root name", () => {
-		expect(DEFAULT_RUNS_ROOT).toBe(".testing/api/runs")
-		expect(LATEST_LINK).toBe("latest")
-	})
+  it("defaults the root name", () => {
+    expect(DEFAULT_RUNS_ROOT).toBe(".testing/api/runs");
+    expect(LATEST_LINK).toBe("latest");
+  });
 
-	it("creates a timestamped folder and a latest symlink", async () => {
-		const root = await scratch()
-		const at = new Date("2026-08-18T12:00:00.000Z")
-		const allocated = await allocateRunDir(root, at)
-		expect(allocated.root).toBe(resolve(root))
-		expect(allocated.stamp).toBe("2026-08-18T12-00-00Z")
-		expect(allocated.runDir).toBe(join(allocated.root, allocated.stamp))
-		expect(allocated.latest).toBe(join(allocated.root, "latest"))
-		await writeFile(join(allocated.runDir, "report.json"), "{}\n")
-		await publishLatest(allocated)
-		expect(await readlink(allocated.latest)).toBe(allocated.stamp)
-		expect(await realpath(join(allocated.latest, "report.json"))).toBe(
-			await realpath(join(allocated.runDir, "report.json")),
-		)
-	})
+  it("creates a timestamped folder and a latest symlink", async () => {
+    const root = await scratch();
+    const at = new Date("2026-08-18T12:00:00.000Z");
+    const allocated = await allocateRunDir(root, at);
+    expect(allocated.root).toBe(resolve(root));
+    expect(allocated.stamp).toBe("2026-08-18T12-00-00Z");
+    expect(allocated.runDir).toBe(join(allocated.root, allocated.stamp));
+    expect(allocated.latest).toBe(join(allocated.root, "latest"));
+    await writeFile(join(allocated.runDir, "report.json"), "{}\n");
+    await publishLatest(allocated);
+    expect(await readlink(allocated.latest)).toBe(allocated.stamp);
+    expect(await realpath(join(allocated.latest, "report.json"))).toBe(
+      await realpath(join(allocated.runDir, "report.json")),
+    );
+  });
 
-	it("does not overwrite a same-second collision", async () => {
-		const root = await scratch()
-		const at = new Date("2026-08-18T12:00:00.000Z")
-		const first = await allocateRunDir(root, at)
-		const second = await allocateRunDir(root, at)
-		const third = await allocateRunDir(root, at)
-		expect(first.stamp).toBe("2026-08-18T12-00-00Z")
-		expect(second.stamp).toBe("2026-08-18T12-00-00Z-2")
-		expect(third.stamp).toBe("2026-08-18T12-00-00Z-3")
-		expect(first.runDir).not.toBe(second.runDir)
-		await publishLatest(third)
-		expect(await readlink(third.latest)).toBe(third.stamp)
-	})
+  it("does not overwrite a same-second collision", async () => {
+    const root = await scratch();
+    const at = new Date("2026-08-18T12:00:00.000Z");
+    const first = await allocateRunDir(root, at);
+    const second = await allocateRunDir(root, at);
+    const third = await allocateRunDir(root, at);
+    expect(first.stamp).toBe("2026-08-18T12-00-00Z");
+    expect(second.stamp).toBe("2026-08-18T12-00-00Z-2");
+    expect(third.stamp).toBe("2026-08-18T12-00-00Z-3");
+    expect(first.runDir).not.toBe(second.runDir);
+    await publishLatest(third);
+    expect(await readlink(third.latest)).toBe(third.stamp);
+  });
 
-	it("skips a file sitting on the stamp name", async () => {
-		const root = await scratch()
-		await writeFile(join(root, "2026-08-18T12-00-00Z"), "nope\n")
-		const allocated = await allocateRunDir(root, new Date("2026-08-18T12:00:00.000Z"))
-		expect(allocated.stamp).toBe("2026-08-18T12-00-00Z-2")
-	})
+  it("skips a file sitting on the stamp name", async () => {
+    const root = await scratch();
+    await writeFile(join(root, "2026-08-18T12-00-00Z"), "nope\n");
+    const allocated = await allocateRunDir(root, new Date("2026-08-18T12:00:00.000Z"));
+    expect(allocated.stamp).toBe("2026-08-18T12-00-00Z-2");
+  });
 
-	it("throws what is not a name collision", async () => {
-		const root = await scratch()
-		await chmod(root, 0o500)
-		await expect(allocateRunDir(root, new Date("2026-08-18T12:00:00.000Z"))).rejects.toThrow(/EACCES/)
-		await chmod(root, 0o700)
-	})
-})
+  it("throws what is not a name collision", async () => {
+    const root = await scratch();
+    await chmod(root, 0o500);
+    await expect(allocateRunDir(root, new Date("2026-08-18T12:00:00.000Z"))).rejects.toThrow(/EACCES/);
+    await chmod(root, 0o700);
+  });
+});
 
 describe("publishLatest", () => {
-	it("advances latest to the newest run", async () => {
-		const root = await scratch()
-		const older = await allocateRunDir(root, new Date("2026-08-18T12:00:00.000Z"))
-		const newer = await allocateRunDir(root, new Date("2026-08-18T12:00:01.000Z"))
-		await publishLatest(older)
-		await publishLatest(newer)
-		expect(await readlink(newer.latest)).toBe(newer.stamp)
-		expect(older.latest).toBe(newer.latest)
-	})
+  it("advances latest to the newest run", async () => {
+    const root = await scratch();
+    const older = await allocateRunDir(root, new Date("2026-08-18T12:00:00.000Z"));
+    const newer = await allocateRunDir(root, new Date("2026-08-18T12:00:01.000Z"));
+    await publishLatest(older);
+    await publishLatest(newer);
+    expect(await readlink(newer.latest)).toBe(newer.stamp);
+    expect(older.latest).toBe(newer.latest);
+  });
 
-	it("replaces a leftover latest directory", async () => {
-		const root = await scratch()
-		await mkdir(join(root, "latest"), { recursive: true })
-		await writeFile(join(root, "latest", "stale.txt"), "old\n")
-		const allocated = await allocateRunDir(root, new Date("2026-08-18T12:00:00.000Z"))
-		await publishLatest(allocated)
-		expect(await readlink(allocated.latest)).toBe(allocated.stamp)
-	})
+  it("replaces a leftover latest directory", async () => {
+    const root = await scratch();
+    await mkdir(join(root, "latest"), { recursive: true });
+    await writeFile(join(root, "latest", "stale.txt"), "old\n");
+    const allocated = await allocateRunDir(root, new Date("2026-08-18T12:00:00.000Z"));
+    await publishLatest(allocated);
+    expect(await readlink(allocated.latest)).toBe(allocated.stamp);
+  });
 
-	it("leaves latest alone until the run's reports are written", async () => {
-		const root = await scratch()
-		const done = await allocateRunDir(root, new Date("2026-08-18T12:00:00.000Z"))
-		await publishLatest(done)
-		const crashed = await allocateRunDir(root, new Date("2026-08-18T12:00:01.000Z"))
-		expect(await readlink(crashed.latest)).toBe(done.stamp)
-	})
+  it("leaves latest alone until the run's reports are written", async () => {
+    const root = await scratch();
+    const done = await allocateRunDir(root, new Date("2026-08-18T12:00:00.000Z"));
+    await publishLatest(done);
+    const crashed = await allocateRunDir(root, new Date("2026-08-18T12:00:01.000Z"));
+    expect(await readlink(crashed.latest)).toBe(done.stamp);
+  });
 
-	it("links latest as a junction on Windows, where a plain link needs admin", async () => {
-		const root = await scratch()
-		const allocated = await allocateRunDir(root, new Date("2026-08-18T12:00:00.000Z"))
-		const platform = Object.getOwnPropertyDescriptor(process, "platform") as PropertyDescriptor
-		Object.defineProperty(process, "platform", { value: "win32" })
-		try {
-			await publishLatest(allocated)
-		} finally {
-			Object.defineProperty(process, "platform", platform)
-		}
-		expect(await readlink(allocated.latest)).toBe(allocated.stamp)
-	})
-})
+  it("links latest as a junction on Windows, where a plain link needs admin", async () => {
+    const root = await scratch();
+    const allocated = await allocateRunDir(root, new Date("2026-08-18T12:00:00.000Z"));
+    const platform = Object.getOwnPropertyDescriptor(process, "platform") as PropertyDescriptor;
+    Object.defineProperty(process, "platform", { value: "win32" });
+    try {
+      await publishLatest(allocated);
+    } finally {
+      Object.defineProperty(process, "platform", platform);
+    }
+    expect(await readlink(allocated.latest)).toBe(allocated.stamp);
+  });
+});
 
 describe("rollback", () => {
-	it("removes the folder and points latest back where it was", async () => {
-		const root = await scratch()
-		const done = await allocateRunDir(root, new Date("2026-08-18T12:00:00.000Z"))
-		await publishLatest(done)
-		const refused = await allocateRunDir(root, new Date("2026-08-18T12:00:01.000Z"))
-		await publishLatest(refused)
-		await refused.rollback()
-		expect(await readdir(root)).toEqual([done.stamp, "latest"].toSorted())
-		expect(await readlink(done.latest)).toBe(done.stamp)
-	})
+  it("removes the folder and points latest back where it was", async () => {
+    const root = await scratch();
+    const done = await allocateRunDir(root, new Date("2026-08-18T12:00:00.000Z"));
+    await publishLatest(done);
+    const refused = await allocateRunDir(root, new Date("2026-08-18T12:00:01.000Z"));
+    await publishLatest(refused);
+    await refused.rollback();
+    expect(await readdir(root)).toEqual([done.stamp, "latest"].toSorted());
+    expect(await readlink(done.latest)).toBe(done.stamp);
+  });
 
-	it("removes the folder and the link when there was no latest before", async () => {
-		const root = await scratch()
-		const refused = await allocateRunDir(root, new Date("2026-08-18T12:00:00.000Z"))
-		await publishLatest(refused)
-		await refused.rollback()
-		expect(await readdir(root)).toEqual([])
-		await expect(lstat(refused.latest)).rejects.toThrow(/ENOENT/)
-	})
+  it("removes the folder and the link when there was no latest before", async () => {
+    const root = await scratch();
+    const refused = await allocateRunDir(root, new Date("2026-08-18T12:00:00.000Z"));
+    await publishLatest(refused);
+    await refused.rollback();
+    expect(await readdir(root)).toEqual([]);
+    await expect(lstat(refused.latest)).rejects.toThrow(/ENOENT/);
+  });
 
-	it("leaves latest alone when the run never moved it", async () => {
-		const root = await scratch()
-		const done = await allocateRunDir(root, new Date("2026-08-18T12:00:00.000Z"))
-		await publishLatest(done)
-		const refused = await allocateRunDir(root, new Date("2026-08-18T12:00:01.000Z"))
-		await refused.rollback()
-		expect(await readdir(root)).toEqual([done.stamp, "latest"].toSorted())
-		expect(await readlink(done.latest)).toBe(done.stamp)
-	})
-})
+  it("leaves latest alone when the run never moved it", async () => {
+    const root = await scratch();
+    const done = await allocateRunDir(root, new Date("2026-08-18T12:00:00.000Z"));
+    await publishLatest(done);
+    const refused = await allocateRunDir(root, new Date("2026-08-18T12:00:01.000Z"));
+    await refused.rollback();
+    expect(await readdir(root)).toEqual([done.stamp, "latest"].toSorted());
+    expect(await readlink(done.latest)).toBe(done.stamp);
+  });
+});
 
 describe("allocateRunDir roots and stamps", () => {
-	it("creates a missing root", async () => {
-		const parent = await scratch()
-		const root = join(parent, "nested", "runs")
-		const allocated = await allocateRunDir(root, new Date("2026-08-18T12:00:00.000Z"))
-		expect(allocated.root).toBe(resolve(root))
-		expect(allocated.stamp).toBe("2026-08-18T12-00-00Z")
-	})
+  it("creates a missing root", async () => {
+    const parent = await scratch();
+    const root = join(parent, "nested", "runs");
+    const allocated = await allocateRunDir(root, new Date("2026-08-18T12:00:00.000Z"));
+    expect(allocated.root).toBe(resolve(root));
+    expect(allocated.stamp).toBe("2026-08-18T12-00-00Z");
+  });
 
-	it("stamps from now when no date is given", async () => {
-		const root = await scratch()
-		const before = formatRunStamp(new Date())
-		const allocated = await allocateRunDir(root)
-		const after = formatRunStamp(new Date())
-		expect([before, after, `${before}-2`, `${after}-2`]).toContain(allocated.stamp)
-	})
-})
+  it("stamps from now when no date is given", async () => {
+    const root = await scratch();
+    const before = formatRunStamp(new Date());
+    const allocated = await allocateRunDir(root);
+    const after = formatRunStamp(new Date());
+    expect([before, after, `${before}-2`, `${after}-2`]).toContain(allocated.stamp);
+  });
+});

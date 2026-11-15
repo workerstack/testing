@@ -9,35 +9,35 @@
  * encoding the same assumptions the API tester does, and the two drift together into agreeing on nonsense.
  */
 
-import { CATALOG_DEFECTS } from "./catalog.ts"
-import { COMPOSITION_DEFECTS } from "./composition.ts"
-import { CORE_DEFECTS } from "./core.ts"
-import { FRESHNESS_DEFECTS } from "./freshness.ts"
-import { QUERY_DEFECTS } from "./query.ts"
-import { RECORD_DEFECTS } from "./records.ts"
-import { SECURITY_DEFECTS } from "./security.ts"
+import { CATALOG_DEFECTS } from "./catalog.ts";
+import { COMPOSITION_DEFECTS } from "./composition.ts";
+import { CORE_DEFECTS } from "./core.ts";
+import { FRESHNESS_DEFECTS } from "./freshness.ts";
+import { QUERY_DEFECTS } from "./query.ts";
+import { RECORD_DEFECTS } from "./records.ts";
+import { SECURITY_DEFECTS } from "./security.ts";
 
 /* The families in the table's order: every reader of the names (the matrix, the docs, the goldens) sees this order. */
 export const DEFECTS: Readonly<
-	typeof CORE_DEFECTS &
-		typeof COMPOSITION_DEFECTS &
-		typeof QUERY_DEFECTS &
-		typeof RECORD_DEFECTS &
-		typeof CATALOG_DEFECTS &
-		typeof SECURITY_DEFECTS &
-		typeof FRESHNESS_DEFECTS
+  typeof CORE_DEFECTS &
+    typeof COMPOSITION_DEFECTS &
+    typeof QUERY_DEFECTS &
+    typeof RECORD_DEFECTS &
+    typeof CATALOG_DEFECTS &
+    typeof SECURITY_DEFECTS &
+    typeof FRESHNESS_DEFECTS
 > = {
-	...CORE_DEFECTS,
-	...COMPOSITION_DEFECTS,
-	...QUERY_DEFECTS,
-	...RECORD_DEFECTS,
-	...CATALOG_DEFECTS,
-	...SECURITY_DEFECTS,
-	...FRESHNESS_DEFECTS,
-}
+  ...CORE_DEFECTS,
+  ...COMPOSITION_DEFECTS,
+  ...QUERY_DEFECTS,
+  ...RECORD_DEFECTS,
+  ...CATALOG_DEFECTS,
+  ...SECURITY_DEFECTS,
+  ...FRESHNESS_DEFECTS,
+};
 
-export type DefectName = keyof typeof DEFECTS
+export type DefectName = keyof typeof DEFECTS;
 
 export function isDefectName(value: string): value is DefectName {
-	return Object.hasOwn(DEFECTS, value)
+  return Object.hasOwn(DEFECTS, value);
 }

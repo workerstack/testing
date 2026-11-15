@@ -6,26 +6,26 @@
  * provokes is reported: a judge not named here judges probes by default.
  */
 
-import type { CheckId } from "./check-ids.ts"
-import type { Exchange } from "./exchange.ts"
+import type { CheckId } from "./check-ids.ts";
+import type { Exchange } from "./exchange.ts";
 
 /** The documentation-conformance judges: each compares an answer with what the document says. */
 export const DOCUMENTATION_JUDGES: readonly CheckId[] = [
-	"create.status-matches-document",
-	"response.contract-call",
-	"response.status-is-documented",
-	"schema.error-response-matches-document",
-	"schema.read-response-matches-document",
-	"schema.success-response-matches-document",
-]
+  "create.status-matches-document",
+  "response.contract-call",
+  "response.status-is-documented",
+  "schema.error-response-matches-document",
+  "schema.read-response-matches-document",
+  "schema.success-response-matches-document",
+];
 
 /** Whether the exchange was a probe: sent as one, or with a forged credential. */
 export function isProbeExchange(exchange: Pick<Exchange, "probe" | "forged">): boolean {
-	return exchange.probe === true || exchange.forged === true
+  return exchange.probe === true || exchange.forged === true;
 }
 
 /** Whether `judge` grades `exchange`: anything but a probe, unless the judge is not a documentation judge. */
 export function judges(judge: CheckId, exchange: Pick<Exchange, "probe" | "forged">): boolean {
-	const documentation: readonly string[] = DOCUMENTATION_JUDGES
-	return !isProbeExchange(exchange) || !documentation.includes(judge)
+  const documentation: readonly string[] = DOCUMENTATION_JUDGES;
+  return !isProbeExchange(exchange) || !documentation.includes(judge);
 }

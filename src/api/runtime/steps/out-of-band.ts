@@ -4,13 +4,13 @@
  * was sent, so an inbox holding older deliveries can tell them apart.
  */
 
-import type { Hooks } from "../../config/types/hooks.ts"
-import type { Exchange } from "../exchange.ts"
-import { type BackoffConfig, isAbsentValue, pollWithBackoff, resolveBackoff, worstCaseWaitMs } from "../poll.ts"
+import type { Hooks } from "../../config/types/hooks.ts";
+import type { Exchange } from "../exchange.ts";
+import { type BackoffConfig, isAbsentValue, pollWithBackoff, resolveBackoff, worstCaseWaitMs } from "../poll.ts";
 
 /** When an exchange's request left: its answer's time less how long it took. */
 export function sentAt(exchange: Pick<Exchange, "at" | "durationMs">): number {
-	return exchange.at - exchange.durationMs
+  return exchange.at - exchange.durationMs;
 }
 
 /**
@@ -19,27 +19,27 @@ export function sentAt(exchange: Pick<Exchange, "at" | "durationMs">): number {
  * request naming someone else does not move it; when none names the address, the API tester cannot tell.
  */
 export function triggerSentAt(
-	sent: readonly Pick<Exchange, "at" | "durationMs" | "requestBody" | "url">[],
-	address: string,
+  sent: readonly Pick<Exchange, "at" | "durationMs" | "requestBody" | "url">[],
+  address: string,
 ): number | undefined {
-	if (address === "") return undefined
-	const forms = [address, encodeURIComponent(address)]
-	const trigger = sent.findLast((exchange) => {
-		const body =
-			typeof exchange.requestBody === "string" ? exchange.requestBody : JSON.stringify(exchange.requestBody ?? "")
-		return forms.some((form) => exchange.url.includes(form) || body.includes(form))
-	})
-	return trigger === undefined ? undefined : sentAt(trigger)
+  if (address === "") return undefined;
+  const forms = [address, encodeURIComponent(address)];
+  const trigger = sent.findLast((exchange) => {
+    const body =
+      typeof exchange.requestBody === "string" ? exchange.requestBody : JSON.stringify(exchange.requestBody ?? "");
+    return forms.some((form) => exchange.url.includes(form) || body.includes(form));
+  });
+  return trigger === undefined ? undefined : sentAt(trigger);
 }
 
 /** What a value is, who is waiting for it, and what the hook is told alongside the address. */
 export interface OutOfBandOptions {
-	kind: string
-	label: string
-	outOfBand?: Partial<BackoffConfig>
-	scope?: Record<string, string>
-	/** When the request this value answers was sent; see `OutOfBandRequest.since`. */
-	since?: number
+  kind: string;
+  label: string;
+  outOfBand?: Partial<BackoffConfig>;
+  scope?: Record<string, string>;
+  /** When the request this value answers was sent; see `OutOfBandRequest.since`. */
+  since?: number;
 }
 
 /**
@@ -48,36 +48,36 @@ export interface OutOfBandOptions {
  * like a broken delivery mechanism.
  */
 export async function resolveOutOfBandValue(
-	hook: Hooks["resolveOutOfBand"],
-	address: string,
-	options: OutOfBandOptions,
+  hook: Hooks["resolveOutOfBand"],
+  address: string,
+  options: OutOfBandOptions,
 ): Promise<string> {
-	const { kind } = options
-	if (hook === undefined) {
-		throw new Error(
-			`testing api: ${options.label} needs a "${kind}" value delivered outside HTTP, ` +
-				"but the config declares no resolveOutOfBand hook. The API tester cannot read your mail catcher, " +
-				"KV store or webhook sink — supply a function that can.",
-		)
-	}
-	const backoff = resolveBackoff(options.outOfBand)
-	const scope = options.scope ?? {}
-	const value = await pollWithBackoff(
-		(attempt) =>
-			hook({
-				address,
-				attempt,
-				kind,
-				scope,
-				...(options.since === undefined ? {} : { since: options.since }),
-			}),
-		backoff,
-		isAbsentValue,
-	)
-	if (typeof value === "string" && value !== "") return value
-	throw new Error(
-		`testing api: no "${kind}" value arrived for ${address} after ${backoff.attempts} attempts ` +
-			`(~${worstCaseWaitMs(backoff)}ms worst-case wait). The delivery mechanism is ` +
-			"either slow beyond the backoff window or not firing at all.",
-	)
+  const { kind } = options;
+  if (hook === undefined) {
+    throw new Error(
+      `testing api: ${options.label} needs a "${kind}" value delivered outside HTTP, ` +
+        "but the config declares no resolveOutOfBand hook. The API tester cannot read your mail catcher, " +
+        "KV store or webhook sink — supply a function that can.",
+    );
+  }
+  const backoff = resolveBackoff(options.outOfBand);
+  const scope = options.scope ?? {};
+  const value = await pollWithBackoff(
+    (attempt) =>
+      hook({
+        address,
+        attempt,
+        kind,
+        scope,
+        ...(options.since === undefined ? {} : { since: options.since }),
+      }),
+    backoff,
+    isAbsentValue,
+  );
+  if (typeof value === "string" && value !== "") return value;
+  throw new Error(
+    `testing api: no "${kind}" value arrived for ${address} after ${backoff.attempts} attempts ` +
+      `(~${worstCaseWaitMs(backoff)}ms worst-case wait). The delivery mechanism is ` +
+      "either slow beyond the backoff window or not firing at all.",
+  );
 }

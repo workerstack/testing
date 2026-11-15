@@ -1,99 +1,101 @@
-import { mkdtemp, writeFile } from "node:fs/promises"
-import { tmpdir } from "node:os"
-import { dirname, join, relative } from "node:path"
-import { pathToFileURL } from "node:url"
-import { describe, expect, it } from "vitest"
-import { dereference } from "./dereference.ts"
-import { loadSpec } from "./source.ts"
+import { mkdtemp, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join, relative } from "node:path";
+import { pathToFileURL } from "node:url";
 
-const DOC = { info: { title: "t", version: "1" }, openapi: "3.1.0", paths: {} }
-const SPLIT = join(import.meta.dirname, "__fixtures__", "split", "openapi.yaml")
+import { describe, expect, it } from "vitest";
+
+import { dereference } from "./dereference.ts";
+import { loadSpec } from "./source.ts";
+
+const DOC = { info: { title: "t", version: "1" }, openapi: "3.1.0", paths: {} };
+const SPLIT = join(import.meta.dirname, "__fixtures__", "split", "openapi.yaml");
 
 async function file(name: string, text: string): Promise<string> {
-	const dir = await mkdtemp(join(tmpdir(), "testing-load-"))
-	const path = join(dir, name)
-	await writeFile(path, text)
-	return path
+  const dir = await mkdtemp(join(tmpdir(), "testing-load-"));
+  const path = join(dir, name);
+  await writeFile(path, text);
+  return path;
 }
 
 describe("loadSpec", () => {
-	it("reads a file by absolute or relative path, or by file URL", async () => {
-		const json = await file("a.json", JSON.stringify(DOC))
-		const yaml = await file("a.yaml", "openapi: 3.1.0\ninfo: { title: t, version: '1' }\npaths: {}\n")
-		expect((await loadSpec(json)).openapi).toBe("3.1.0")
-		expect((await loadSpec(relative(process.cwd(), json))).openapi).toBe("3.1.0")
-		expect((await loadSpec(pathToFileURL(yaml).toString())).openapi).toBe("3.1.0")
-	})
+  it("reads a file by absolute or relative path, or by file URL", async () => {
+    const json = await file("a.json", JSON.stringify(DOC));
+    const yaml = await file("a.yaml", "openapi: 3.1.0\ninfo: { title: t, version: '1' }\npaths: {}\n");
+    expect((await loadSpec(json)).openapi).toBe("3.1.0");
+    expect((await loadSpec(relative(process.cwd(), json))).openapi).toBe("3.1.0");
+    expect((await loadSpec(pathToFileURL(yaml).toString())).openapi).toBe("3.1.0");
+  });
 
-	it("fetches a URL, and a route below the base URL, only through the caller's fetcher", async () => {
-		const asked: string[] = []
-		const fetchText = async (url: string): Promise<string> => {
-			asked.push(url)
-			return JSON.stringify(DOC)
-		}
-		await loadSpec("https://api.test/openapi.json", { fetchText })
-		await loadSpec("http://api.test/openapi.json", { fetchText })
-		await loadSpec("v1/openapi", { baseUrl: "https://api.test/base", fetchText })
-		await loadSpec("v1/openapi", { baseUrl: "https://api.test/base/", fetchText })
-		expect(asked).toEqual([
-			"https://api.test/openapi.json",
-			"http://api.test/openapi.json",
-			"https://api.test/base/v1/openapi",
-			"https://api.test/base/v1/openapi",
-		])
-		await expect(loadSpec("https://api.test/openapi.json")).rejects.toThrow(
-			"testing api: https://api.test/openapi.json is a URL, and this caller reads only files",
-		)
-		await expect(loadSpec("v1/openapi", { baseUrl: "https://api.test" })).rejects.toThrow(
-			"this caller reads only files",
-		)
-	})
+  it("fetches a URL, and a route below the base URL, only through the caller's fetcher", async () => {
+    const asked: string[] = [];
+    const fetchText = async (url: string): Promise<string> => {
+      asked.push(url);
+      return JSON.stringify(DOC);
+    };
+    await loadSpec("https://api.test/openapi.json", { fetchText });
+    await loadSpec("http://api.test/openapi.json", { fetchText });
+    await loadSpec("v1/openapi", { baseUrl: "https://api.test/base", fetchText });
+    await loadSpec("v1/openapi", { baseUrl: "https://api.test/base/", fetchText });
+    expect(asked).toEqual([
+      "https://api.test/openapi.json",
+      "http://api.test/openapi.json",
+      "https://api.test/base/v1/openapi",
+      "https://api.test/base/v1/openapi",
+    ]);
+    await expect(loadSpec("https://api.test/openapi.json")).rejects.toThrow(
+      "testing api: https://api.test/openapi.json is a URL, and this caller reads only files",
+    );
+    await expect(loadSpec("v1/openapi", { baseUrl: "https://api.test" })).rejects.toThrow(
+      "this caller reads only files",
+    );
+  });
 
-	it("names the place it looked when nothing is there, and how to resolve a route", async () => {
-		const missing = join(tmpdir(), "testing-no-such", "spec.json")
-		await expect(loadSpec(missing)).rejects.toThrow(
-			`testing api: could not find a specification at "${missing}". Tried:\n  ${missing}\nPass --base-url`,
-		)
-		await expect(loadSpec(missing, { baseUrl: "" })).rejects.toThrow(new RegExp(`Tried:\\n  ${missing}$`))
-	})
+  it("names the place it looked when nothing is there, and how to resolve a route", async () => {
+    const missing = join(tmpdir(), "testing-no-such", "spec.json");
+    await expect(loadSpec(missing)).rejects.toThrow(
+      `testing api: could not find a specification at "${missing}". Tried:\n  ${missing}\nPass --base-url`,
+    );
+    await expect(loadSpec(missing, { baseUrl: "" })).rejects.toThrow(new RegExp(`Tried:\\n  ${missing}$`));
+  });
 
-	it("reads a relative path from `dir` when given, and still falls back to the route as written", async () => {
-		const json = await file("a.json", JSON.stringify(DOC))
-		const dir = dirname(json)
-		expect((await loadSpec("a.json", { dir })).openapi).toBe("3.1.0")
-		expect((await loadSpec(json, { dir: tmpdir() })).openapi).toBe("3.1.0")
-		const asked: string[] = []
-		const fetchText = async (url: string): Promise<string> => {
-			asked.push(url)
-			return JSON.stringify(DOC)
-		}
-		await loadSpec("v1/openapi", { baseUrl: "https://api.test", dir, fetchText })
-		expect(asked).toEqual(["https://api.test/v1/openapi"])
-		await expect(loadSpec("b.json", { dir })).rejects.toThrow(`Tried:\n  ${join(dir, "b.json")}`)
-	})
+  it("reads a relative path from `dir` when given, and still falls back to the route as written", async () => {
+    const json = await file("a.json", JSON.stringify(DOC));
+    const dir = dirname(json);
+    expect((await loadSpec("a.json", { dir })).openapi).toBe("3.1.0");
+    expect((await loadSpec(json, { dir: tmpdir() })).openapi).toBe("3.1.0");
+    const asked: string[] = [];
+    const fetchText = async (url: string): Promise<string> => {
+      asked.push(url);
+      return JSON.stringify(DOC);
+    };
+    await loadSpec("v1/openapi", { baseUrl: "https://api.test", dir, fetchText });
+    expect(asked).toEqual(["https://api.test/v1/openapi"]);
+    await expect(loadSpec("b.json", { dir })).rejects.toThrow(`Tried:\n  ${join(dir, "b.json")}`);
+  });
 
-	it("passes on a read failure other than a missing file", async () => {
-		await expect(loadSpec(tmpdir())).rejects.toMatchObject({ code: "EISDIR" })
-	})
-})
+  it("passes on a read failure other than a missing file", async () => {
+    await expect(loadSpec(tmpdir())).rejects.toMatchObject({ code: "EISDIR" });
+  });
+});
 
 describe("loadSpec and the files a document refers to", () => {
-	it("reads the files a document on disk refers to, so no ref is left external", async () => {
-		for (const source of [SPLIT, relative(process.cwd(), SPLIT), pathToFileURL(SPLIT).toString()]) {
-			const { doc, externalRefs } = dereference(await loadSpec(source))
-			expect(externalRefs).toEqual([])
-			expect(doc).toMatchObject({ paths: { "/pets/{id}": { get: { operationId: "pets.read" } } } })
-		}
-	})
+  it("reads the files a document on disk refers to, so no ref is left external", async () => {
+    for (const source of [SPLIT, relative(process.cwd(), SPLIT), pathToFileURL(SPLIT).toString()]) {
+      const { doc, externalRefs } = dereference(await loadSpec(source));
+      expect(externalRefs).toEqual([]);
+      expect(doc).toMatchObject({ paths: { "/pets/{id}": { get: { operationId: "pets.read" } } } });
+    }
+  });
 
-	it("leaves every ref of a fetched document unfetched, and reports it", async () => {
-		const response = {
-			content: { "application/json": { schema: { $ref: "schemas/pet.yaml#/Pet" } } },
-			description: "x",
-		}
-		const doc = { ...DOC, paths: { "/x": { get: { responses: { "200": response } } } } }
-		const fetchText = async (): Promise<string> => JSON.stringify(doc)
-		const { externalRefs } = dereference(await loadSpec("https://api.test/openapi.json", { fetchText }))
-		expect(externalRefs).toEqual(["schemas/pet.yaml#/Pet"])
-	})
-})
+  it("leaves every ref of a fetched document unfetched, and reports it", async () => {
+    const response = {
+      content: { "application/json": { schema: { $ref: "schemas/pet.yaml#/Pet" } } },
+      description: "x",
+    };
+    const doc = { ...DOC, paths: { "/x": { get: { responses: { "200": response } } } } };
+    const fetchText = async (): Promise<string> => JSON.stringify(doc);
+    const { externalRefs } = dereference(await loadSpec("https://api.test/openapi.json", { fetchText }));
+    expect(externalRefs).toEqual(["schemas/pet.yaml#/Pet"]);
+  });
+});

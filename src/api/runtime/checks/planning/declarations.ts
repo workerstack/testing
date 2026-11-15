@@ -4,6 +4,6 @@
  * capability is ever consulted, and a 5xx is a crash, not a refusal.
  */
 export function declarationAnswer(status: number): "accepted" | "refused" | "unknown" {
-	if (status > 0 && status < 400) return "accepted"
-	return status === 400 || status === 422 ? "refused" : "unknown"
+  if (status > 0 && status < 400) return "accepted";
+  return status === 400 || status === 422 ? "refused" : "unknown";
 }

@@ -3,110 +3,110 @@
  * block may also be written as flat keys on the tag (`sortNulls`, `selectNested`); the block wins.
  */
 
-import type { FieldType, FilterableFrom, Nulls, QueryCapabilities, SelectRelation } from "../../config/types/query.ts"
-import type { RawOf } from "../../config/types/raw.ts"
-import { isFieldType, isNulls } from "./ops.ts"
-import type { QueryTag } from "./tag.ts"
+import type { FieldType, FilterableFrom, Nulls, QueryCapabilities, SelectRelation } from "../../config/types/query.ts";
+import type { RawOf } from "../../config/types/raw.ts";
+import { isFieldType, isNulls } from "./ops.ts";
+import type { QueryTag } from "./tag.ts";
 
-type Tag = RawOf<QueryTag>
-type SortBlock = NonNullable<QueryCapabilities["sort"]>
-type SelectBlock = NonNullable<QueryCapabilities["select"]>
+type Tag = RawOf<QueryTag>;
+type SortBlock = NonNullable<QueryCapabilities["sort"]>;
+type SelectBlock = NonNullable<QueryCapabilities["select"]>;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
-	value !== null && typeof value === "object" && !Array.isArray(value)
+  value !== null && typeof value === "object" && !Array.isArray(value);
 
 /** A block of the tag when it is an object, else an empty one. */
-const blockOf = (value: unknown): Record<string, unknown> => (isRecord(value) ? value : {})
+const blockOf = (value: unknown): Record<string, unknown> => (isRecord(value) ? value : {});
 
-const stringOf = (value: unknown): string | undefined => (typeof value === "string" ? value : undefined)
+const stringOf = (value: unknown): string | undefined => (typeof value === "string" ? value : undefined);
 
 const positiveInt = (value: unknown): number | undefined =>
-	typeof value === "number" && Number.isFinite(value) && value > 0 ? Math.floor(value) : undefined
+  typeof value === "number" && Number.isFinite(value) && value > 0 ? Math.floor(value) : undefined;
 
 const nonEmptyString = (value: unknown): string | undefined =>
-	typeof value === "string" && value !== "" ? value : undefined
+  typeof value === "string" && value !== "" ? value : undefined;
 
 function sortNulls(raw: unknown): Nulls[] | undefined {
-	if (!Array.isArray(raw)) return undefined
-	const nulls = raw.filter((item): item is Nulls => typeof item === "string" && isNulls(item))
-	return nulls.length > 0 ? nulls : undefined
+  if (!Array.isArray(raw)) return undefined;
+  const nulls = raw.filter((item): item is Nulls => typeof item === "string" && isNulls(item));
+  return nulls.length > 0 ? nulls : undefined;
 }
 
 function sortCollation(raw: unknown): SortBlock["collation"] {
-	return raw === "binary" || raw === "case-insensitive" || raw === "locale" ? raw : undefined
+  return raw === "binary" || raw === "case-insensitive" || raw === "locale" ? raw : undefined;
 }
 
 /** Keeps the defined entries of `pairs`, in order, or `undefined` when none is. */
 function definedEntries<T extends object>(pairs: ReadonlyArray<readonly [keyof T, unknown]>): T | undefined {
-	const out: Record<string, unknown> = {}
-	for (const [key, value] of pairs) if (value !== undefined) out[key as string] = value
-	return Object.keys(out).length > 0 ? (out as T) : undefined
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of pairs) if (value !== undefined) out[key as string] = value;
+  return Object.keys(out).length > 0 ? (out as T) : undefined;
 }
 
 export function parseSortBlock(tag: Tag): QueryCapabilities["sort"] | undefined {
-	const rec: RawOf<SortBlock> = blockOf(tag.sort)
-	const defaultNulls = rec.defaultNulls ?? tag.sortDefaultNulls
-	return definedEntries<SortBlock>([
-		["collation", sortCollation(rec.collation ?? tag.sortCollation)],
-		["defaultNulls", typeof defaultNulls === "string" && isNulls(defaultNulls) ? defaultNulls : undefined],
-		["defaultOrder", nonEmptyString(stringOf(rec.defaultOrder) ?? stringOf(tag.defaultOrder))],
-		["stableTiebreak", nonEmptyString(stringOf(rec.stableTiebreak) ?? stringOf(tag.stableTiebreak))],
-		["nulls", sortNulls(rec.nulls ?? tag.sortNulls)],
-		["maxKeys", positiveInt(rec.maxKeys ?? tag.maxSortKeys)],
-	])
+  const rec: RawOf<SortBlock> = blockOf(tag.sort);
+  const defaultNulls = rec.defaultNulls ?? tag.sortDefaultNulls;
+  return definedEntries<SortBlock>([
+    ["collation", sortCollation(rec.collation ?? tag.sortCollation)],
+    ["defaultNulls", typeof defaultNulls === "string" && isNulls(defaultNulls) ? defaultNulls : undefined],
+    ["defaultOrder", nonEmptyString(stringOf(rec.defaultOrder) ?? stringOf(tag.defaultOrder))],
+    ["stableTiebreak", nonEmptyString(stringOf(rec.stableTiebreak) ?? stringOf(tag.stableTiebreak))],
+    ["nulls", sortNulls(rec.nulls ?? tag.sortNulls)],
+    ["maxKeys", positiveInt(rec.maxKeys ?? tag.maxSortKeys)],
+  ]);
 }
 
 function selectRelations(raw: unknown): SelectRelation[] | undefined {
-	if (!Array.isArray(raw)) return undefined
-	const relations: SelectRelation[] = []
-	for (const item of raw) {
-		if (!isRecord(item)) continue
-		const rel: RawOf<SelectRelation> = item
-		if (typeof rel.name !== "string" || !Array.isArray(rel.fields)) continue
-		relations.push({ fields: rel.fields.filter((v): v is string => typeof v === "string"), name: rel.name })
-	}
-	return relations.length > 0 ? relations : undefined
+  if (!Array.isArray(raw)) return undefined;
+  const relations: SelectRelation[] = [];
+  for (const item of raw) {
+    if (!isRecord(item)) continue;
+    const rel: RawOf<SelectRelation> = item;
+    if (typeof rel.name !== "string" || !Array.isArray(rel.fields)) continue;
+    relations.push({ fields: rel.fields.filter((v): v is string => typeof v === "string"), name: rel.name });
+  }
+  return relations.length > 0 ? relations : undefined;
 }
 
 export function parseSelectBlock(tag: Tag): QueryCapabilities["select"] | undefined {
-	const rec: RawOf<SelectBlock> = blockOf(tag.select)
-	const nested = rec.nested ?? tag.selectNested
-	const unknown = rec.unknown ?? tag.selectUnknown
-	return definedEntries<SelectBlock>([
-		["nested", nested === true || nested === false ? nested : undefined],
-		["unknown", unknown === "reject" || unknown === "ignore" ? unknown : undefined],
-		["relations", selectRelations(rec.relations)],
-	])
+  const rec: RawOf<SelectBlock> = blockOf(tag.select);
+  const nested = rec.nested ?? tag.selectNested;
+  const unknown = rec.unknown ?? tag.selectUnknown;
+  return definedEntries<SelectBlock>([
+    ["nested", nested === true || nested === false ? nested : undefined],
+    ["unknown", unknown === "reject" || unknown === "ignore" ? unknown : undefined],
+    ["relations", selectRelations(rec.relations)],
+  ]);
 }
 
 /** An `operationId` that reads as a route (`GET /x`, `/x`) names the route instead. */
-const ROUTE_LIKE = /^(GET|POST|PUT|PATCH|DELETE)\s+/i
+const ROUTE_LIKE = /^(GET|POST|PUT|PATCH|DELETE)\s+/i;
 
 function harvestTypeMap(raw: unknown): Record<string, FieldType> | undefined {
-	if (!isRecord(raw)) return undefined
-	const typeMap: Record<string, FieldType> = {}
-	for (const [key, value] of Object.entries(raw)) {
-		if (typeof value === "string" && isFieldType(value)) typeMap[key] = value
-	}
-	return typeMap
+  if (!isRecord(raw)) return undefined;
+  const typeMap: Record<string, FieldType> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    if (typeof value === "string" && isFieldType(value)) typeMap[key] = value;
+  }
+  return typeMap;
 }
 
 export function parseFilterableFrom(value: unknown): FilterableFrom | undefined {
-	if (!isRecord(value)) return undefined
-	const raw: RawOf<FilterableFrom> = value
-	const path = nonEmptyString(raw.path)
-	if (path === undefined) return undefined
-	const from: FilterableFrom = { path }
-	const operationId = nonEmptyString(raw.operationId)
-	if (operationId !== undefined) {
-		if (ROUTE_LIKE.test(operationId) || operationId.startsWith("/")) from.route = operationId
-		else from.operationId = operationId
-	}
-	const route = nonEmptyString(raw.route)
-	if (route !== undefined) from.route = route
-	const typePath = nonEmptyString(raw.typePath)
-	if (typePath !== undefined) from.typePath = typePath
-	const typeMap = harvestTypeMap(raw.typeMap)
-	if (typeMap !== undefined) from.typeMap = typeMap
-	return from
+  if (!isRecord(value)) return undefined;
+  const raw: RawOf<FilterableFrom> = value;
+  const path = nonEmptyString(raw.path);
+  if (path === undefined) return undefined;
+  const from: FilterableFrom = { path };
+  const operationId = nonEmptyString(raw.operationId);
+  if (operationId !== undefined) {
+    if (ROUTE_LIKE.test(operationId) || operationId.startsWith("/")) from.route = operationId;
+    else from.operationId = operationId;
+  }
+  const route = nonEmptyString(raw.route);
+  if (route !== undefined) from.route = route;
+  const typePath = nonEmptyString(raw.typePath);
+  if (typePath !== undefined) from.typePath = typePath;
+  const typeMap = harvestTypeMap(raw.typeMap);
+  if (typeMap !== undefined) from.typeMap = typeMap;
+  return from;
 }

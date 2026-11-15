@@ -4,6 +4,6 @@
  * else, an empty string or null included, means no next page.
  */
 export function nextCursorOf(value: unknown): string | undefined {
-	if (typeof value === "string") return value === "" ? undefined : value
-	return typeof value === "number" && Number.isFinite(value) ? String(value) : undefined
+  if (typeof value === "string") return value === "" ? undefined : value;
+  return typeof value === "number" && Number.isFinite(value) ? String(value) : undefined;
 }

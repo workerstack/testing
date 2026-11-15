@@ -1,203 +1,205 @@
-import { readFileSync } from "node:fs"
-import { join } from "node:path"
-import { describe, expect, it } from "vitest"
-import { parse } from "yaml"
-import { GapCollector } from "../extensions/gaps.ts"
-import type { OperationObject } from "../types.ts"
-import { validateTags } from "./validate.ts"
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+import { describe, expect, it } from "vitest";
+import { parse } from "yaml";
+
+import { GapCollector } from "../extensions/gaps.ts";
+import type { OperationObject } from "../types.ts";
+import { validateTags } from "./validate.ts";
 
 const gapsOf = (op: Record<string, unknown>): string[] => {
-	const gaps = new GapCollector()
-	validateTags(op as OperationObject, "op", gaps)
-	return gaps.gaps.map((gap) => `${gap.tag}: ${gap.detail}`)
-}
+  const gaps = new GapCollector();
+  validateTags(op as OperationObject, "op", gaps);
+  return gaps.gaps.map((gap) => `${gap.tag}: ${gap.detail}`);
+};
 
 describe("validateTags", () => {
-	it("records nothing for well-formed tags, or for none", () => {
-		expect(
-			gapsOf({
-				parameters: [
-					{ in: "path", name: "id", "x-root": true },
-					{ in: "query", name: "q" },
-				],
-				"x-async": { poll: "GET /jobs/{id}", pollIntervalMs: 10 },
-				"x-bind": { path: { id: "$.id" } },
-				"x-cleanup": "DELETE /a/{id}",
-				"x-cost": "low",
-				"x-entity": { action: "create", name: "note" },
-				"x-invalidate": ["GET /a"],
-				"x-invite": { accept: "POST /a", invite: "POST /i", revoke: "DELETE /i", tokenFrom: "outOfBand" },
-				"x-rate-limit": { category: "c", rps: 2 },
-				"x-tenant": false,
-				"x-wait": { operationId: "w" },
-			}),
-		).toEqual([])
-		expect(gapsOf({})).toEqual([])
-	})
-})
+  it("records nothing for well-formed tags, or for none", () => {
+    expect(
+      gapsOf({
+        parameters: [
+          { in: "path", name: "id", "x-root": true },
+          { in: "query", name: "q" },
+        ],
+        "x-async": { poll: "GET /jobs/{id}", pollIntervalMs: 10 },
+        "x-bind": { path: { id: "$.id" } },
+        "x-cleanup": "DELETE /a/{id}",
+        "x-cost": "low",
+        "x-entity": { action: "create", name: "note" },
+        "x-invalidate": ["GET /a"],
+        "x-invite": { accept: "POST /a", invite: "POST /i", revoke: "DELETE /i", tokenFrom: "outOfBand" },
+        "x-rate-limit": { category: "c", rps: 2 },
+        "x-tenant": false,
+        "x-wait": { operationId: "w" },
+      }),
+    ).toEqual([]);
+    expect(gapsOf({})).toEqual([]);
+  });
+});
 
 describe("validateTags and an x-query block", () => {
-	it("records a malformed sort, select or searchCase as a gap naming the key", () => {
-		expect(gapsOf({ "x-query": { sort: { maxKeys: -1 } } })).toEqual([
-			'x-query: x-query "sort" "maxKeys" must be a positive integer; the API tester cannot use it',
-		])
-		expect(gapsOf({ "x-query": { searchCase: "loose" } })).toEqual([
-			'x-query: x-query "searchCase" must be one of "sensitive", "insensitive"; the API tester cannot use it',
-		])
-	})
-})
+  it("records a malformed sort, select or searchCase as a gap naming the key", () => {
+    expect(gapsOf({ "x-query": { sort: { maxKeys: -1 } } })).toEqual([
+      'x-query: x-query "sort" "maxKeys" must be a positive integer; the API tester cannot use it',
+    ]);
+    expect(gapsOf({ "x-query": { searchCase: "loose" } })).toEqual([
+      'x-query: x-query "searchCase" must be one of "sensitive", "insensitive"; the API tester cannot use it',
+    ]);
+  });
+});
 
 describe("validateTags malformed tags", () => {
-	it("records every malformed tag, in a fixed order, as one the run cannot use", () => {
-		expect(
-			gapsOf({
-				"x-wait": {},
-				"x-tenant": "",
-				"x-soft-delete": 1,
-				"x-rate-limit": { rps: 1 },
-				"x-query": { maxLimit: 0 },
-				"x-invite": { invite: "POST /i" },
-				"x-invalidate": ["/a"],
-				"x-immutable": "a",
-				"x-idempotent": 1,
-				"x-generated": [1],
-				"x-fresh-principal": "no",
-				"x-feature-gate": "",
-				"x-destructive": "yes",
-				"x-cost": "huge",
-				"x-cleanup": "/a",
-				"x-async": {},
-				"x-bind": { body: { a: 1 } },
-				"x-before": 3,
-			}),
-		).toEqual([
-			"x-before: x-before must be a non-empty string; the API tester cannot use it",
-			'x-bind: x-bind "body" must map names to strings; the API tester cannot use it',
-			'x-async: x-async needs "poll"; the API tester cannot use it',
-			'x-cleanup: x-cleanup must be a route like "GET /path"; the API tester cannot use it',
-			'x-cost: x-cost must be one of "low", "medium", "high"; the API tester cannot use it',
-			"x-destructive: x-destructive must be true or false; the API tester cannot use it",
-			"x-feature-gate: x-feature-gate must be a non-empty string; the API tester cannot use it",
-			"x-fresh-principal: x-fresh-principal must be true or false; the API tester cannot use it",
-			"x-generated: x-generated must be an array of strings; the API tester cannot use it",
-			"x-idempotent: x-idempotent must be true or false; the API tester cannot use it",
-			"x-immutable: x-immutable must be an array of strings; the API tester cannot use it",
-			'x-invalidate: x-invalidate must be an array of routes like "GET /path"; the API tester cannot use it',
-			'x-invite: x-invite needs "accept"; the API tester cannot use it',
-			'x-query: x-query "maxLimit" must be a positive integer; the API tester cannot use it',
-			'x-rate-limit: x-rate-limit needs "category"; the API tester cannot use it',
-			"x-soft-delete: x-soft-delete must be a non-empty string; the API tester cannot use it",
-			"x-tenant: x-tenant must be a path parameter name or false; the API tester cannot use it",
-			'x-wait: x-wait needs "operationId"; the API tester cannot use it',
-		])
-		expect(
-			gapsOf({ "x-invite": { accept: "POST /a", acceptFrom: "email", invite: "POST /i", revoke: "DELETE /i" } }),
-		).toEqual(['x-invite: x-invite "acceptFrom" must be one of "token", "link"; the API tester cannot use it'])
-		for (const revokeStaleness of [0, 1.5, "300s"]) {
-			expect(
-				gapsOf({ "x-invite": { accept: "POST /a", invite: "POST /i", revoke: "DELETE /i", revokeStaleness } }),
-			).toEqual(['x-invite: x-invite "revokeStaleness" must be a positive integer; the API tester cannot use it'])
-		}
-		expect(
-			gapsOf({ "x-invite": { accept: "POST /a", invite: "POST /i", revoke: "DELETE /i", revokeStaleness: 300 } }),
-		).toEqual([])
-		expect(gapsOf({ "x-invalidate": "GET /a" })).toEqual([
-			'x-invalidate: x-invalidate must be an array of routes like "GET /path"; the API tester cannot use it',
-		])
-	})
-})
+  it("records every malformed tag, in a fixed order, as one the run cannot use", () => {
+    expect(
+      gapsOf({
+        "x-wait": {},
+        "x-tenant": "",
+        "x-soft-delete": 1,
+        "x-rate-limit": { rps: 1 },
+        "x-query": { maxLimit: 0 },
+        "x-invite": { invite: "POST /i" },
+        "x-invalidate": ["/a"],
+        "x-immutable": "a",
+        "x-idempotent": 1,
+        "x-generated": [1],
+        "x-fresh-principal": "no",
+        "x-feature-gate": "",
+        "x-destructive": "yes",
+        "x-cost": "huge",
+        "x-cleanup": "/a",
+        "x-async": {},
+        "x-bind": { body: { a: 1 } },
+        "x-before": 3,
+      }),
+    ).toEqual([
+      "x-before: x-before must be a non-empty string; the API tester cannot use it",
+      'x-bind: x-bind "body" must map names to strings; the API tester cannot use it',
+      'x-async: x-async needs "poll"; the API tester cannot use it',
+      'x-cleanup: x-cleanup must be a route like "GET /path"; the API tester cannot use it',
+      'x-cost: x-cost must be one of "low", "medium", "high"; the API tester cannot use it',
+      "x-destructive: x-destructive must be true or false; the API tester cannot use it",
+      "x-feature-gate: x-feature-gate must be a non-empty string; the API tester cannot use it",
+      "x-fresh-principal: x-fresh-principal must be true or false; the API tester cannot use it",
+      "x-generated: x-generated must be an array of strings; the API tester cannot use it",
+      "x-idempotent: x-idempotent must be true or false; the API tester cannot use it",
+      "x-immutable: x-immutable must be an array of strings; the API tester cannot use it",
+      'x-invalidate: x-invalidate must be an array of routes like "GET /path"; the API tester cannot use it',
+      'x-invite: x-invite needs "accept"; the API tester cannot use it',
+      'x-query: x-query "maxLimit" must be a positive integer; the API tester cannot use it',
+      'x-rate-limit: x-rate-limit needs "category"; the API tester cannot use it',
+      "x-soft-delete: x-soft-delete must be a non-empty string; the API tester cannot use it",
+      "x-tenant: x-tenant must be a path parameter name or false; the API tester cannot use it",
+      'x-wait: x-wait needs "operationId"; the API tester cannot use it',
+    ]);
+    expect(
+      gapsOf({ "x-invite": { accept: "POST /a", acceptFrom: "email", invite: "POST /i", revoke: "DELETE /i" } }),
+    ).toEqual(['x-invite: x-invite "acceptFrom" must be one of "token", "link"; the API tester cannot use it']);
+    for (const revokeStaleness of [0, 1.5, "300s"]) {
+      expect(
+        gapsOf({ "x-invite": { accept: "POST /a", invite: "POST /i", revoke: "DELETE /i", revokeStaleness } }),
+      ).toEqual(['x-invite: x-invite "revokeStaleness" must be a positive integer; the API tester cannot use it']);
+    }
+    expect(
+      gapsOf({ "x-invite": { accept: "POST /a", invite: "POST /i", revoke: "DELETE /i", revokeStaleness: 300 } }),
+    ).toEqual([]);
+    expect(gapsOf({ "x-invalidate": "GET /a" })).toEqual([
+      'x-invalidate: x-invalidate must be an array of routes like "GET /path"; the API tester cannot use it',
+    ]);
+  });
+});
 
 describe("validateTags x-entity and x-root", () => {
-	it("needs both a name and an action to name an entity, unless the tag only locates the record", () => {
-		expect(gapsOf({ "x-entity": { recordPath: "$.data" } })).toEqual([])
-		expect(gapsOf({ "x-entity": { createdIdFrom: "$.id" } })).toEqual([])
-		expect(gapsOf({ "x-entity": { credentialFrom: "$.access_token" } })).toEqual([])
-		expect(gapsOf({ "x-entity": { action: "create", credentialFrom: "$.access_token", name: "org" } })).toEqual([])
-		expect(gapsOf({ "x-entity": { credentialFrom: 1 } })).toEqual([
-			'x-entity: x-entity "credentialFrom" must be a non-empty string; the API tester cannot use it',
-		])
-		expect(gapsOf({ "x-entity": { action: "read", recordPath: "$.data" } })).toEqual([
-			'x-entity: x-entity needs "name"; the API tester cannot use it',
-		])
-		expect(gapsOf({ "x-entity": { name: "note", recordPath: "$.data" } })).toEqual([
-			'x-entity: x-entity needs "action"; the API tester cannot use it',
-		])
-		expect(gapsOf({ "x-entity": {} })).toEqual(['x-entity: x-entity needs "name"; the API tester cannot use it'])
-		expect(gapsOf({ "x-entity": { action: "rename", name: "n" } })).toEqual([
-			'x-entity: x-entity "action" must be one of "create", "list", "read", "update", "delete", "action"; the API tester cannot use it',
-		])
-	})
+  it("needs both a name and an action to name an entity, unless the tag only locates the record", () => {
+    expect(gapsOf({ "x-entity": { recordPath: "$.data" } })).toEqual([]);
+    expect(gapsOf({ "x-entity": { createdIdFrom: "$.id" } })).toEqual([]);
+    expect(gapsOf({ "x-entity": { credentialFrom: "$.access_token" } })).toEqual([]);
+    expect(gapsOf({ "x-entity": { action: "create", credentialFrom: "$.access_token", name: "org" } })).toEqual([]);
+    expect(gapsOf({ "x-entity": { credentialFrom: 1 } })).toEqual([
+      'x-entity: x-entity "credentialFrom" must be a non-empty string; the API tester cannot use it',
+    ]);
+    expect(gapsOf({ "x-entity": { action: "read", recordPath: "$.data" } })).toEqual([
+      'x-entity: x-entity needs "name"; the API tester cannot use it',
+    ]);
+    expect(gapsOf({ "x-entity": { name: "note", recordPath: "$.data" } })).toEqual([
+      'x-entity: x-entity needs "action"; the API tester cannot use it',
+    ]);
+    expect(gapsOf({ "x-entity": {} })).toEqual(['x-entity: x-entity needs "name"; the API tester cannot use it']);
+    expect(gapsOf({ "x-entity": { action: "rename", name: "n" } })).toEqual([
+      'x-entity: x-entity "action" must be one of "create", "list", "read", "update", "delete", "action"; the API tester cannot use it',
+    ]);
+  });
 
-	it("takes a recordPath the API tester can read, and names one it cannot", () => {
-		for (const recordPath of ["$.data", "data.item", "/data", "$.data[*]", "$.hits[*].document", "$.hits[*].a.b"]) {
-			expect(gapsOf({ "x-entity": { recordPath } })).toEqual([])
-		}
-		const cannot =
-			'x-entity: x-entity "recordPath" may hold [*] only right after a top-level key, as in ' +
-			'"$.hits[*].document"; the API tester cannot use it'
-		for (const recordPath of ["$.a.b[*].c", "$.hits[*]document", "$.hits[*].", "$[*].document", "$.a[*][*]"]) {
-			expect(gapsOf({ "x-entity": { recordPath } })).toEqual([cannot])
-		}
-		expect(gapsOf({ "x-entity": { recordPath: "" } })).toEqual([
-			'x-entity: x-entity "recordPath" must be a non-empty string; the API tester cannot use it',
-		])
-	})
+  it("takes a recordPath the API tester can read, and names one it cannot", () => {
+    for (const recordPath of ["$.data", "data.item", "/data", "$.data[*]", "$.hits[*].document", "$.hits[*].a.b"]) {
+      expect(gapsOf({ "x-entity": { recordPath } })).toEqual([]);
+    }
+    const cannot =
+      'x-entity: x-entity "recordPath" may hold [*] only right after a top-level key, as in ' +
+      '"$.hits[*].document"; the API tester cannot use it';
+    for (const recordPath of ["$.a.b[*].c", "$.hits[*]document", "$.hits[*].", "$[*].document", "$.a[*][*]"]) {
+      expect(gapsOf({ "x-entity": { recordPath } })).toEqual([cannot]);
+    }
+    expect(gapsOf({ "x-entity": { recordPath: "" } })).toEqual([
+      'x-entity: x-entity "recordPath" must be a non-empty string; the API tester cannot use it',
+    ]);
+  });
 
-	it("records a parameter's x-root that is not a boolean", () => {
-		expect(gapsOf({ parameters: [{ in: "path", name: "org", "x-root": "yes" }] })).toEqual([
-			'x-root: x-root on "org" must be true or false; the API tester cannot use it',
-		])
-	})
-})
+  it("records a parameter's x-root that is not a boolean", () => {
+    expect(gapsOf({ parameters: [{ in: "path", name: "org", "x-root": "yes" }] })).toEqual([
+      'x-root: x-root on "org" must be true or false; the API tester cannot use it',
+    ]);
+  });
+});
 
 describe("validateTags x-consistency", () => {
-	it("records a staleness that is not whole seconds and a bypass that is not a header", () => {
-		expect(gapsOf({ "x-consistency": { bypass: "x-fresh: 1", staleness: "30s" } })).toEqual([])
-		expect(gapsOf({ "x-consistency": { staleness: "30" } })).toEqual([
-			'x-consistency: x-consistency "staleness" must be whole seconds like "30s"; the API tester cannot use it',
-		])
-		expect(gapsOf({ "x-consistency": { bypass: "x-fresh" } })).toEqual([
-			'x-consistency: x-consistency "bypass" must be a header like "x-fresh: 1"; the API tester cannot use it',
-		])
-		expect(gapsOf({ "x-consistency": "30s" })).toEqual([
-			"x-consistency: x-consistency must be an object; the API tester cannot use it",
-		])
-	})
-})
+  it("records a staleness that is not whole seconds and a bypass that is not a header", () => {
+    expect(gapsOf({ "x-consistency": { bypass: "x-fresh: 1", staleness: "30s" } })).toEqual([]);
+    expect(gapsOf({ "x-consistency": { staleness: "30" } })).toEqual([
+      'x-consistency: x-consistency "staleness" must be whole seconds like "30s"; the API tester cannot use it',
+    ]);
+    expect(gapsOf({ "x-consistency": { bypass: "x-fresh" } })).toEqual([
+      'x-consistency: x-consistency "bypass" must be a header like "x-fresh: 1"; the API tester cannot use it',
+    ]);
+    expect(gapsOf({ "x-consistency": "30s" })).toEqual([
+      "x-consistency: x-consistency must be an object; the API tester cannot use it",
+    ]);
+  });
+});
 
 /* Every tag block docs/api/tags.md shows, and every value its comments list (`a | b | c`), is one the
  * validator accepts: a documented value that `doctor` reports as malformed fails here, not in a user's CI. */
-const TAGS_DOC = readFileSync(join(import.meta.dirname, "..", "..", "..", "..", "docs", "api", "tags.md"), "utf8")
+const TAGS_DOC = readFileSync(join(import.meta.dirname, "..", "..", "..", "..", "docs", "api", "tags.md"), "utf8");
 const DOC_BLOCKS = [...TAGS_DOC.matchAll(/^```yaml\n([\s\S]*?)^```/gm)]
-	.map((match) => match[1] ?? "")
-	.filter((block) => /^x-[a-z-]+:/m.test(block))
+  .map((match) => match[1] ?? "")
+  .filter((block) => /^x-[a-z-]+:/m.test(block));
 
 /* The bare values a comment lists as `a | b (default) | c`, up to its first `;`, each line a variant of the block. */
 function variants(block: string): string[] {
-	const lines = block.split("\n")
-	return lines.flatMap((line, index) => {
-		const match = /^(\s*[\w-]+:\s*)\S+(\s*)#\s*([^;]*)/.exec(line)
-		const listed = match?.[3]?.split("|") ?? []
-		if (match === null || listed.length < 2) return []
-		return listed
-			.map((value) => value.replace(/\(.*?\)/g, "").trim())
-			.filter((value) => /^[a-z][\w-]*$/i.test(value))
-			.map((value) => lines.with(index, `${match[1]}${value}`).join("\n"))
-	})
+  const lines = block.split("\n");
+  return lines.flatMap((line, index) => {
+    const match = /^(\s*[\w-]+:\s*)\S+(\s*)#\s*([^;]*)/.exec(line);
+    const listed = match?.[3]?.split("|") ?? [];
+    if (match === null || listed.length < 2) return [];
+    return listed
+      .map((value) => value.replace(/\(.*?\)/g, "").trim())
+      .filter((value) => /^[a-z][\w-]*$/i.test(value))
+      .map((value) => lines.with(index, `${match[1]}${value}`).join("\n"));
+  });
 }
 
 describe("validateTags and docs/api/tags.md", () => {
-	it("finds the tag blocks and the listed values to check", () => {
-		expect(DOC_BLOCKS.length).toBeGreaterThan(10)
-		expect(DOC_BLOCKS.flatMap(variants).length).toBeGreaterThan(20)
-	})
+  it("finds the tag blocks and the listed values to check", () => {
+    expect(DOC_BLOCKS.length).toBeGreaterThan(10);
+    expect(DOC_BLOCKS.flatMap(variants).length).toBeGreaterThan(20);
+  });
 
-	it("accepts every tag block as the doc writes it, and every value its comments list", () => {
-		for (const block of [...DOC_BLOCKS, ...DOC_BLOCKS.flatMap(variants)]) {
-			expect({ block, gaps: gapsOf(parse(block, { uniqueKeys: false }) as Record<string, unknown>) }).toEqual({
-				block,
-				gaps: [],
-			})
-		}
-	})
-})
+  it("accepts every tag block as the doc writes it, and every value its comments list", () => {
+    for (const block of [...DOC_BLOCKS, ...DOC_BLOCKS.flatMap(variants)]) {
+      expect({ block, gaps: gapsOf(parse(block, { uniqueKeys: false }) as Record<string, unknown>) }).toEqual({
+        block,
+        gaps: [],
+      });
+    }
+  });
+});

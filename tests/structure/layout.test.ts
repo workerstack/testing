@@ -1,12 +1,14 @@
-import { spawnSync } from "node:child_process"
-import { importGraph } from "../api/support/import-graph.ts"
-import { packedManifests } from "../api/support/npm-pack.ts"
-import { ENTRY_POINTS } from "../api/support/coverage-scope.ts"
-import { unshipped } from "../api/support/shipped.ts"
-import { existsSync, readdirSync, readFileSync } from "node:fs"
-import { join, relative } from "node:path"
-import { parseSync } from "oxc-parser"
-import { describe, expect, it } from "vitest"
+import { spawnSync } from "node:child_process";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join, relative } from "node:path";
+
+import { parseSync } from "oxc-parser";
+import { describe, expect, it } from "vitest";
+
+import { ENTRY_POINTS } from "../api/support/coverage-scope.ts";
+import { importGraph } from "../api/support/import-graph.ts";
+import { packedManifests } from "../api/support/npm-pack.ts";
+import { unshipped } from "../api/support/shipped.ts";
 
 /*
  * The flare/honey layout: a unit test sits beside its module and opens no socket; servers and
@@ -14,111 +16,111 @@ import { describe, expect, it } from "vitest"
  * a file that declares only types, and a process entry point, which entries.test.ts proves thin.
  */
 
-const ROOT = join(import.meta.dirname, "..", "..")
+const ROOT = join(import.meta.dirname, "..", "..");
 
 function filesUnder(dir: string): string[] {
-	return readdirSync(join(ROOT, dir), { recursive: true, withFileTypes: true })
-		.filter((entry) => entry.isFile())
-		.map((entry) => relative(ROOT, join(entry.parentPath, entry.name)))
-		.toSorted()
+  return readdirSync(join(ROOT, dir), { recursive: true, withFileTypes: true })
+    .filter((entry) => entry.isFile())
+    .map((entry) => relative(ROOT, join(entry.parentPath, entry.name)))
+    .toSorted();
 }
 
-const SOCKETS = /from "node:(?:http|https|net|tls|dgram)"|reference\/http\.ts"|\bcreateServer\(|\.listen\(|\bfetch\(/
+const SOCKETS = /from "node:(?:http|https|net|tls|dgram)"|reference\/http\.ts"|\bcreateServer\(|\.listen\(|\bfetch\(/;
 
-const TYPE_ONLY = new Set(["TSInterfaceDeclaration", "TSTypeAliasDeclaration"])
+const TYPE_ONLY = new Set(["TSInterfaceDeclaration", "TSTypeAliasDeclaration"]);
 
 /* A file whose every statement is a type: an interface, an alias, or a type-only import or export. */
 function declaresOnlyTypes(file: string): boolean {
-	const { program } = parseSync(file, readFileSync(join(ROOT, file), "utf8"))
-	return program.body.every((statement) => {
-		if (TYPE_ONLY.has(statement.type)) return true
-		if (statement.type === "ImportDeclaration") return statement.importKind === "type"
-		if (statement.type === "ExportNamedDeclaration") {
-			return statement.exportKind === "type" || TYPE_ONLY.has(statement.declaration?.type ?? "")
-		}
-		return false
-	})
+  const { program } = parseSync(file, readFileSync(join(ROOT, file), "utf8"));
+  return program.body.every((statement) => {
+    if (TYPE_ONLY.has(statement.type)) return true;
+    if (statement.type === "ImportDeclaration") return statement.importKind === "type";
+    if (statement.type === "ExportNamedDeclaration") {
+      return statement.exportKind === "type" || TYPE_ONLY.has(statement.declaration?.type ?? "");
+    }
+    return false;
+  });
 }
 
-const isTest = (file: string): boolean => file.endsWith(".test.ts")
+const isTest = (file: string): boolean => file.endsWith(".test.ts");
 const isModule = (file: string): boolean =>
-	file.endsWith(".ts") && !isTest(file) && !file.includes("/__fixtures__/") && !file.endsWith(".d.ts")
+  file.endsWith(".ts") && !isTest(file) && !file.includes("/__fixtures__/") && !file.endsWith(".d.ts");
 
 describe("layout", () => {
-	it("has no test/ directory: tests sit beside their module or under tests/", () => {
-		expect(existsSync(join(ROOT, "test"))).toBe(false)
-	})
+  it("has no test/ directory: tests sit beside their module or under tests/", () => {
+    expect(existsSync(join(ROOT, "test"))).toBe(false);
+  });
 
-	it("keeps colocated tests socket-free", () => {
-		const opening = filesUnder("src")
-			.filter(isTest)
-			.filter((file) => SOCKETS.test(readFileSync(join(ROOT, file), "utf8")))
-		expect(opening).toEqual([])
-	})
+  it("keeps colocated tests socket-free", () => {
+    const opening = filesUnder("src")
+      .filter(isTest)
+      .filter((file) => SOCKETS.test(readFileSync(join(ROOT, file), "utf8")));
+    expect(opening).toEqual([]);
+  });
 
-	it("gives every module a sibling test, except an index, a types-only file and an entry point", () => {
-		const files = new Set(filesUnder("src"))
-		const missing = [...files]
-			.filter(isModule)
-			.filter((file) => !file.endsWith("/index.ts") && !files.has(file.replace(/\.ts$/, ".test.ts")))
-			.filter((file) => !declaresOnlyTypes(file) && !ENTRY_POINTS.includes(file))
-		expect(missing).toEqual([])
-	})
+  it("gives every module a sibling test, except an index, a types-only file and an entry point", () => {
+    const files = new Set(filesUnder("src"));
+    const missing = [...files]
+      .filter(isModule)
+      .filter((file) => !file.endsWith("/index.ts") && !files.has(file.replace(/\.ts$/, ".test.ts")))
+      .filter((file) => !declaresOnlyTypes(file) && !ENTRY_POINTS.includes(file));
+    expect(missing).toEqual([]);
+  });
 
-	it("ships every module the entry points reach, and the entry targets themselves", () => {
-		const manifest = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"))
-		const graph = importGraph(ROOT, "src")
-		expect(unshipped(ROOT, manifest, graph)).toEqual([])
-		/* The list phases 3 to 7.1 shipped with: the check names what it left out. */
-		const narrow = [
-			"bin/testing.js",
-			"dist/api/cli.js",
-			"dist/api/index.js",
-			"dist/api/index.d.ts",
-			"dist/api/config",
-			"dist/api/conformance",
-			"dist/api/reference",
-			"dist/api/report",
-			"dist/api/runtime",
-			"dist/api/spec",
-		]
-		const missing = unshipped(ROOT, { ...manifest, files: narrow }, graph)
-		expect(missing).toEqual(
-			expect.arrayContaining(["dist/api/cli/main.js", "dist/api/errors/message.js", "dist/api/security/redact.js"]),
-		)
-	})
-})
+  it("ships every module the entry points reach, and the entry targets themselves", () => {
+    const manifest = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")) as Parameters<typeof unshipped>[1];
+    const graph = importGraph(ROOT, "src");
+    expect(unshipped(ROOT, manifest, graph)).toEqual([]);
+    /* The list phases 3 to 7.1 shipped with: the check names what it left out. */
+    const narrow = [
+      "bin/testing.js",
+      "dist/api/cli.js",
+      "dist/api/index.js",
+      "dist/api/index.d.ts",
+      "dist/api/config",
+      "dist/api/conformance",
+      "dist/api/reference",
+      "dist/api/report",
+      "dist/api/runtime",
+      "dist/api/spec",
+    ];
+    const missing = unshipped(ROOT, { ...manifest, files: narrow }, graph);
+    expect(missing).toEqual(
+      expect.arrayContaining(["dist/api/cli/main.js", "dist/api/errors/message.js", "dist/api/security/redact.js"]),
+    );
+  });
+});
 
 /* `npm pack` starts npm and walks the package: a loaded host took 24s, past the 20s default. */
-const PACK_TIMEOUT_MS = 120_000
+const PACK_TIMEOUT_MS = 120_000;
 
 describe("the package", () => {
-	it(
-		"ships no test, fixture or tests/ file in the package",
-		() => {
-			const packed = spawnSync("npm", ["pack", "--dry-run", "--json", "--ignore-scripts"], {
-				cwd: ROOT,
-				encoding: "utf8",
-			})
-			const manifests = packedManifests(packed.stdout)
-			expect(manifests).toHaveLength(1)
-			const shipped = manifests.flatMap((manifest) => manifest.files.map((file) => file.path))
-			expect(shipped.length).toBeGreaterThan(0)
-			expect(shipped.filter((path) => /\.test\.|__fixtures__|^tests\/|^lint\/|^\.tmp\//.test(path))).toEqual([])
-			/* A compiled module whose source is gone (a rename the output kept) would ship code nothing builds. */
-			const orphans = shipped
-				.filter((path) => /^dist\/.+\.js$/.test(path))
-				.map((path) => path.replace(/^dist\//, "src/").replace(/\.js$/, ".ts"))
-				.filter((source) => !existsSync(join(ROOT, source)))
-			expect(orphans).toEqual([])
-			/* A source map points at src/api/, which the package does not ship: it would only add size. */
-			expect(shipped.filter((path) => path.endsWith(".map"))).toEqual([])
-			/* Nor may a shipped file name a map it lacks: vite reads the comment and logs ENOENT per module. */
-			const pointing = shipped.filter(
-				(path) => /\.(js|d\.ts)$/.test(path) && readFileSync(join(ROOT, path), "utf8").includes("sourceMappingURL="),
-			)
-			expect(pointing).toEqual([])
-		},
-		PACK_TIMEOUT_MS,
-	)
-})
+  it(
+    "ships no test, fixture or tests/ file in the package",
+    () => {
+      const packed = spawnSync("npm", ["pack", "--dry-run", "--json", "--ignore-scripts"], {
+        cwd: ROOT,
+        encoding: "utf8",
+      });
+      const manifests = packedManifests(packed.stdout);
+      expect(manifests).toHaveLength(1);
+      const shipped = manifests.flatMap((manifest) => manifest.files.map((file) => file.path));
+      expect(shipped.length).toBeGreaterThan(0);
+      expect(shipped.filter((path) => /\.test\.|__fixtures__|^tests\/|^lint\/|^\.tmp\//.test(path))).toEqual([]);
+      /* A compiled module whose source is gone (a rename the output kept) would ship code nothing builds. */
+      const orphans = shipped
+        .filter((path) => /^dist\/.+\.js$/.test(path))
+        .map((path) => path.replace(/^dist\//, "src/").replace(/\.js$/, ".ts"))
+        .filter((source) => !existsSync(join(ROOT, source)));
+      expect(orphans).toEqual([]);
+      /* A source map points at src/api/, which the package does not ship: it would only add size. */
+      expect(shipped.filter((path) => path.endsWith(".map"))).toEqual([]);
+      /* Nor may a shipped file name a map it lacks: vite reads the comment and logs ENOENT per module. */
+      const pointing = shipped.filter(
+        (path) => /\.(js|d\.ts)$/.test(path) && readFileSync(join(ROOT, path), "utf8").includes("sourceMappingURL="),
+      );
+      expect(pointing).toEqual([]);
+    },
+    PACK_TIMEOUT_MS,
+  );
+});

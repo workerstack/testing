@@ -1,58 +1,58 @@
 /** The shapes value generation works in: schemas, cohort variants, options, results and the walk. */
 
-import type { JsonSchema } from "../../spec/types.ts"
+import type { JsonSchema } from "../../spec/types.ts";
 
 export type Variant =
-	| "baseline"
-	| "lexical-first"
-	| "lexical-last"
-	| "null-heavy"
-	| "unicode"
-	| "metacharacter"
-	| "boundary"
+  | "baseline"
+  | "lexical-first"
+  | "lexical-last"
+  | "null-heavy"
+  | "unicode"
+  | "metacharacter"
+  | "boundary";
 
 export interface GenerateOptions {
-	variant?: Variant
-	/** Position in a cohort. Different indexes give different values wherever the schema allows. */
-	index?: number
-	rand?: () => number
-	/** Recursive schemas a document refers to as `testing-defs#/$defs/<name>`. */
-	defs?: Record<string, JsonSchema>
-	/** Per-run token mixed into values that must not collide with an earlier run's. */
-	nonce?: string
-	/** Property names, at the top level, whose values must be distinct across runs too. */
-	distinct?: ReadonlySet<string>
-	/** Optional properties to leave out. A cohort sends them; a probe built on top need not. */
-	optional?: "all" | "none"
-	/**
-	 * Whether a string the pattern or format restricts may be one of the schema's `examples`. Default
-	 * `true`: a pattern is often looser than the set the API takes (a time zone, a country), and a
-	 * documented example is a value it takes.
-	 */
-	examples?: boolean
+  variant?: Variant;
+  /** Position in a cohort. Different indexes give different values wherever the schema allows. */
+  index?: number;
+  rand?: () => number;
+  /** Recursive schemas a document refers to as `testing-defs#/$defs/<name>`. */
+  defs?: Record<string, JsonSchema>;
+  /** Per-run token mixed into values that must not collide with an earlier run's. */
+  nonce?: string;
+  /** Property names, at the top level, whose values must be distinct across runs too. */
+  distinct?: ReadonlySet<string>;
+  /** Optional properties to leave out. A cohort sends them; a probe built on top need not. */
+  optional?: "all" | "none";
+  /**
+   * Whether a string the pattern or format restricts may be one of the schema's `examples`. Default
+   * `true`: a pattern is often looser than the set the API takes (a time zone, a country), and a
+   * documented example is a value it takes.
+   */
+  examples?: boolean;
 }
 
-export type Generated = { ok: true; value: unknown } | { ok: false; reason: string; pointer: string }
+export type Generated = { ok: true; value: unknown } | { ok: false; reason: string; pointer: string };
 
 export interface Context {
-	variant: Variant
-	index: number
-	rand: () => number
-	defs: Record<string, JsonSchema>
-	nonce: string | undefined
-	distinct: ReadonlySet<string>
-	examples: boolean
-	optional: "all" | "none"
-	refs: string[]
-	depth: number
+  variant: Variant;
+  index: number;
+  rand: () => number;
+  defs: Record<string, JsonSchema>;
+  nonce: string | undefined;
+  distinct: ReadonlySet<string>;
+  examples: boolean;
+  optional: "all" | "none";
+  refs: string[];
+  depth: number;
 }
 
 /** Where the walk stands: its context, the JSON pointer it is at, and whether the value must be distinct. */
 export interface At {
-	ctx: Context
-	pointer: string
-	distinct: boolean
+  ctx: Context;
+  pointer: string;
+  distinct: boolean;
 }
 
 /** The walk itself, handed to the parts that recurse so none of them imports it back. */
-export type Walk = (raw: unknown, at: At) => unknown
+export type Walk = (raw: unknown, at: At) => unknown;

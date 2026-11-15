@@ -1,4 +1,4 @@
-import { defineConfig } from "vitest/config"
+import { defineConfig } from "vitest/config";
 
 /*
  * The vitest half of `bun run test:web`. Each project is its own config file, because a project
@@ -6,11 +6,11 @@ import { defineConfig } from "vitest/config"
  * the server in node, and server HTML hydrated in Chromium.
  */
 export default defineConfig({
-	test: {
-		projects: [
-			"tests/web/vitest.browser.config.ts",
-			"tests/web/vitest.solid-server.config.ts",
-			"tests/web/vitest.solid-hydration.config.ts",
-		],
-	},
-})
+  test: {
+    projects: [
+      "tests/web/vitest.browser.config.ts",
+      "tests/web/vitest.solid-server.config.ts",
+      "tests/web/vitest.solid-hydration.config.ts",
+    ],
+  },
+});

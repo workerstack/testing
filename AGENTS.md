@@ -36,7 +36,7 @@ run it again, then the tests the change reaches. A fix without a test that faile
 `references/tdd.md`.
 
 Locally, a commit runs the tests its change reaches. CI on the pushed tip is the full gate: `fmt:check`, `lint`,
-`typecheck`, `test`, `test:integration`, `test:e2e` and `test:web`. After a push, `bun scripts/ci-wait.ts` waits for the run and
+`typecheck`, `test`, `test:integration`, `test:e2e` and `test:web`. After a push, `bun repo ci wait` waits for the run and
 names any failed job and its log. While CI is red, the only work is fixing it. Never use `--no-verify`. A failure is
 never skipped, retried away, or called flaky. Detail: `references/gates.md`.
 
@@ -62,8 +62,9 @@ assume it can.
 
 The linter and `tests/structure/` enforce each of these; a broken one fails a gate.
 
-- **Limits.** At most 300 lines a file (500 for tests and fixtures), 60 lines a function,
-  complexity 15, nesting depth 4, and 3 parameters (pass an object beyond that).
+- **Limits.** At most 200 lines a file, 30 lines a function, complexity 10, nesting depth 4,
+  and 3 parameters (pass an object beyond that). The standards pack sets them; `.repo/lint-baseline.json`
+  holds the files that do not meet them yet, and a count may only go down.
 - **Layout.** Every module has a sibling `*.test.ts`, except an index, a types-only file and an
   entry point. Colocated tests open no socket; tests that need one live under `tests/`. There is
   no `test/` directory, and the package ships no test or fixture.

@@ -1,15 +1,15 @@
-import type { OperationModel } from "../../../spec/graph/types.ts"
-import type { Exchange } from "../../exchange.ts"
-import { fillPath } from "../../fill-path.ts"
-import { privilegedBar } from "../../privileged-create.ts"
-import { type ClientIdCreate, createWithClientId } from "../../world/client-identity.ts"
-import type { WriteContext } from "../core/context.ts"
-import { encodeOpBody, validBody } from "./body.ts"
-import { clientIdentityOf } from "./identity.ts"
-import type { JsonSchema } from "../../../spec/types.ts"
+import type { OperationModel } from "../../../spec/graph/types.ts";
+import type { JsonSchema } from "../../../spec/types.ts";
+import type { Exchange } from "../../exchange.ts";
+import { fillPath } from "../../fill-path.ts";
+import { privilegedBar } from "../../privileged-create.ts";
+import { type ClientIdCreate, createWithClientId } from "../../world/client-identity.ts";
+import type { WriteContext } from "../core/context.ts";
+import { encodeOpBody, validBody } from "./body.ts";
+import { clientIdentityOf } from "./identity.ts";
 
 /** A create sent, the body it carried and why it stopped retrying; or why it was never sent. */
-export type Fresh = ClientIdCreate | { withheld: string }
+export type Fresh = ClientIdCreate | { withheld: string };
 
 /**
  * A create meant to succeed, from `validBody`, sent as `principal`, unless a higher rank alone may
@@ -20,19 +20,19 @@ export type Fresh = ClientIdCreate | { withheld: string }
  * something else, and another body would not cure it.
  */
 export async function createFresh(
-	ctx: WriteContext,
-	createOp: OperationModel,
-	schema: JsonSchema,
-	principal: string,
+  ctx: WriteContext,
+  createOp: OperationModel,
+  schema: JsonSchema,
+  principal: string,
 ): Promise<Fresh> {
-	const sender = ctx.actors.find((actor) => actor.id === principal)
-	const withheld = sender === undefined ? undefined : privilegedBar(createOp, sender, ctx.actors)
-	if (withheld !== undefined) return { withheld }
-	const send = async (body: Record<string, unknown>): Promise<Exchange> =>
-		ctx.client.request("POST", fillPath(createOp.path, ctx.scope), {
-			...(await encodeOpBody(ctx, createOp, body)),
-			as: { principal },
-			operationId: createOp.operationId,
-		})
-	return createWithClientId(validBody(ctx, schema), send, clientIdentityOf(ctx, schema, `f${ctx.nonce ?? ""}`))
+  const sender = ctx.actors.find((actor) => actor.id === principal);
+  const withheld = sender === undefined ? undefined : privilegedBar(createOp, sender, ctx.actors);
+  if (withheld !== undefined) return { withheld };
+  const send = async (body: Record<string, unknown>): Promise<Exchange> =>
+    ctx.client.request("POST", fillPath(createOp.path, ctx.scope), {
+      ...(await encodeOpBody(ctx, createOp, body)),
+      as: { principal },
+      operationId: createOp.operationId,
+    });
+  return createWithClientId(validBody(ctx, schema), send, clientIdentityOf(ctx, schema, `f${ctx.nonce ?? ""}`));
 }

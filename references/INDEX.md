@@ -4,7 +4,15 @@
 - [@workerstack/repo](../node_modules/@workerstack/repo/references/INDEX.md)
 <!-- /repo:stack -->
 
-<!-- repo:refs 60d92b5f -->
+<!-- repo:refs bce4f730 -->
+- `overview.md`: What the API tester finds
+- `getting-started.md`: Install and first run
+- `authentication.md`: Credentials per security scheme
+- `verdicts.md`: Verdicts and exit codes
+- `ci.md`: Running it in CI
+- `limits.md`: What it does not do
+- `docs.md`: The full docs
+- `license.md`: MIT
 - `gates.md`: Gates, push, CI and release
 - `tdd.md`: Red, fix, green
 <!-- /repo:refs -->

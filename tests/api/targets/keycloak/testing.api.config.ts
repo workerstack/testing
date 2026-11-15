@@ -1,4 +1,4 @@
-import { defineConfig, env } from "../../../../src/api/index.ts"
+import { defineConfig, env } from "../../../../src/api/index.ts";
 
 /*
  * Keycloak 26.8.1, Admin REST API (spec vendored from keycloak.org/docs-api/26.8.1/rest-api/openapi.json).
@@ -14,120 +14,120 @@ import { defineConfig, env } from "../../../../src/api/index.ts"
  */
 
 const READS = [
-	"GET /admin/realms/{realm}/users",
-	"GET /admin/realms/{realm}/users/count",
-	"GET /admin/realms/{realm}/users/{user-id}",
-	"GET /admin/realms/{realm}/groups",
-	"GET /admin/realms/{realm}/groups/count",
-	"GET /admin/realms/{realm}/groups/{group-id}",
-	"GET /admin/realms/{realm}/clients",
-	"GET /admin/realms/{realm}/clients/{client-uuid}",
-	"GET /admin/realms/{realm}/roles",
-	"GET /admin/realms/{realm}/roles/{role-name}",
-	"GET /admin/realms/{realm}/client-scopes",
-	"GET /admin/realms/{realm}/client-scopes/{client-scope-id}",
-]
+  "GET /admin/realms/{realm}/users",
+  "GET /admin/realms/{realm}/users/count",
+  "GET /admin/realms/{realm}/users/{user-id}",
+  "GET /admin/realms/{realm}/groups",
+  "GET /admin/realms/{realm}/groups/count",
+  "GET /admin/realms/{realm}/groups/{group-id}",
+  "GET /admin/realms/{realm}/clients",
+  "GET /admin/realms/{realm}/clients/{client-uuid}",
+  "GET /admin/realms/{realm}/roles",
+  "GET /admin/realms/{realm}/roles/{role-name}",
+  "GET /admin/realms/{realm}/client-scopes",
+  "GET /admin/realms/{realm}/client-scopes/{client-scope-id}",
+];
 
 const WRITES = [
-	"POST /admin/realms/{realm}/users",
-	"PUT /admin/realms/{realm}/users/{user-id}",
-	"DELETE /admin/realms/{realm}/users/{user-id}",
-	"POST /admin/realms/{realm}/groups",
-	"PUT /admin/realms/{realm}/groups/{group-id}",
-	"DELETE /admin/realms/{realm}/groups/{group-id}",
-]
+  "POST /admin/realms/{realm}/users",
+  "PUT /admin/realms/{realm}/users/{user-id}",
+  "DELETE /admin/realms/{realm}/users/{user-id}",
+  "POST /admin/realms/{realm}/groups",
+  "PUT /admin/realms/{realm}/groups/{group-id}",
+  "DELETE /admin/realms/{realm}/groups/{group-id}",
+];
 
-const json = (schema: object) => ({ content: { "application/json": { schema } }, required: true })
+const json = (schema: object) => ({ content: { "application/json": { schema } }, required: true });
 
 /* A user a create makes: a lowercase username, an address, enabled. */
 const USER = {
-	type: "object",
-	properties: {
-		username: { type: "string", pattern: "^[a-z][a-z0-9-]{2,20}$" },
-		email: { type: "string", format: "email" },
-		firstName: { type: "string", maxLength: 40 },
-		enabled: { type: "boolean" },
-	},
-	required: ["username", "email", "enabled"],
-}
+  type: "object",
+  properties: {
+    username: { type: "string", pattern: "^[a-z][a-z0-9-]{2,20}$" },
+    email: { type: "string", format: "email" },
+    firstName: { type: "string", maxLength: 40 },
+    enabled: { type: "boolean" },
+  },
+  required: ["username", "email", "enabled"],
+};
 
 /* A top-level group: its name alone. */
 const GROUP = {
-	type: "object",
-	properties: { name: { type: "string", pattern: "^[a-z][a-z0-9-]{2,20}$" } },
-	required: ["name"],
-}
+  type: "object",
+  properties: { name: { type: "string", pattern: "^[a-z][a-z0-9-]{2,20}$" } },
+  required: ["name"],
+};
 
 /* No order, select or free-text parameter on any of these lists. */
-const NO_QUERY = { sortable: [], searchable: [], selectable: [] }
+const NO_QUERY = { sortable: [], searchable: [], selectable: [] };
 
 export default defineConfig({
-	spec: "./openapi.json",
-	baseUrl: env("KEYCLOAK_URL"),
-	overlay: {
-		securitySchemes: {
-			bearer: {
-				type: "oauth2",
-				flows: { clientCredentials: { tokenUrl: "/realms/master/protocol/openid-connect/token", scopes: {} } },
-			},
-		},
-		security: [{ bearer: [] }],
-		/* The document's representations take every field Keycloak has, none of them typed: the
-		 * writes send only what a create needs, an email as an address, and never an id. */
-		operations: {
-			/* A realm holds one user per username and per email: each cohort member needs its own. */
-			"POST /admin/realms/{realm}/users": { requestBody: json(USER), "x-unique": [["username"], ["email"]] },
-			"PUT /admin/realms/{realm}/users/{user-id}": { requestBody: json({ ...USER, required: [] }) },
-			"POST /admin/realms/{realm}/groups": { requestBody: json(GROUP) },
-			"PUT /admin/realms/{realm}/groups/{group-id}": { requestBody: json(GROUP) },
-		},
-	},
-	security: {
-		bearer: {
-			oauth2: { flow: "clientCredentials", clientId: "{principal.clientId}", clientSecret: "{principal.secret}" },
-		},
-	},
-	principals: {
-		alpha: {
-			tenant: "testing-a",
-			scope: { realm: "testing-a" },
-			clientId: env("KEYCLOAK_ALPHA_CLIENT_ID"),
-			secret: env("KEYCLOAK_ALPHA_SECRET"),
-		},
-		beta: {
-			tenant: "testing-b",
-			scope: { realm: "testing-b" },
-			clientId: env("KEYCLOAK_BETA_CLIENT_ID"),
-			secret: env("KEYCLOAK_BETA_SECRET"),
-		},
-		viewer: {
-			tenant: "testing-a",
-			scope: { realm: "testing-a" },
-			readOnly: true,
-			clientId: env("KEYCLOAK_VIEWER_CLIENT_ID"),
-			secret: env("KEYCLOAK_VIEWER_SECRET"),
-		},
-	},
-	allow: [...READS, ...WRITES],
-	ops: [...READS, ...WRITES],
-	entities: {
-		// `username`, `email`, `firstName` and `lastName` match substrings unless `exact=true`, and `q`
-		// searches attributes as `key:value`: only the exact-match parameters are filterable.
-		user: {
-			query: {
-				grammar: "equality",
-				filterable: [
-					{ field: "enabled", type: "boolean", ops: ["eq"] },
-					{ field: "emailVerified", type: "boolean", ops: ["eq"] },
-				],
-				...NO_QUERY,
-			},
-		},
-		group: { query: { filterable: [], ...NO_QUERY } },
-		client: {
-			query: { grammar: "equality", filterable: [{ field: "clientId", type: "string", ops: ["eq"] }], ...NO_QUERY },
-		},
-		role: { query: { filterable: [], ...NO_QUERY } },
-		"client-scope": { query: { filterable: [], ...NO_QUERY } },
-	},
-})
+  spec: "./openapi.json",
+  baseUrl: env("KEYCLOAK_URL"),
+  overlay: {
+    securitySchemes: {
+      bearer: {
+        type: "oauth2",
+        flows: { clientCredentials: { tokenUrl: "/realms/master/protocol/openid-connect/token", scopes: {} } },
+      },
+    },
+    security: [{ bearer: [] }],
+    /* The document's representations take every field Keycloak has, none of them typed: the
+     * writes send only what a create needs, an email as an address, and never an id. */
+    operations: {
+      /* A realm holds one user per username and per email: each cohort member needs its own. */
+      "POST /admin/realms/{realm}/users": { requestBody: json(USER), "x-unique": [["username"], ["email"]] },
+      "PUT /admin/realms/{realm}/users/{user-id}": { requestBody: json({ ...USER, required: [] }) },
+      "POST /admin/realms/{realm}/groups": { requestBody: json(GROUP) },
+      "PUT /admin/realms/{realm}/groups/{group-id}": { requestBody: json(GROUP) },
+    },
+  },
+  security: {
+    bearer: {
+      oauth2: { flow: "clientCredentials", clientId: "{principal.clientId}", clientSecret: "{principal.secret}" },
+    },
+  },
+  principals: {
+    alpha: {
+      tenant: "testing-a",
+      scope: { realm: "testing-a" },
+      clientId: env("KEYCLOAK_ALPHA_CLIENT_ID"),
+      secret: env("KEYCLOAK_ALPHA_SECRET"),
+    },
+    beta: {
+      tenant: "testing-b",
+      scope: { realm: "testing-b" },
+      clientId: env("KEYCLOAK_BETA_CLIENT_ID"),
+      secret: env("KEYCLOAK_BETA_SECRET"),
+    },
+    viewer: {
+      tenant: "testing-a",
+      scope: { realm: "testing-a" },
+      readOnly: true,
+      clientId: env("KEYCLOAK_VIEWER_CLIENT_ID"),
+      secret: env("KEYCLOAK_VIEWER_SECRET"),
+    },
+  },
+  allow: [...READS, ...WRITES],
+  ops: [...READS, ...WRITES],
+  entities: {
+    // `username`, `email`, `firstName` and `lastName` match substrings unless `exact=true`, and `q`
+    // searches attributes as `key:value`: only the exact-match parameters are filterable.
+    user: {
+      query: {
+        grammar: "equality",
+        filterable: [
+          { field: "enabled", type: "boolean", ops: ["eq"] },
+          { field: "emailVerified", type: "boolean", ops: ["eq"] },
+        ],
+        ...NO_QUERY,
+      },
+    },
+    group: { query: { filterable: [], ...NO_QUERY } },
+    client: {
+      query: { grammar: "equality", filterable: [{ field: "clientId", type: "string", ops: ["eq"] }], ...NO_QUERY },
+    },
+    role: { query: { filterable: [], ...NO_QUERY } },
+    "client-scope": { query: { filterable: [], ...NO_QUERY } },
+  },
+});

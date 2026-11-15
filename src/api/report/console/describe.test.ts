@@ -1,111 +1,112 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vitest";
+
 import {
-	adoptingDocument,
-	documentOf,
-	FILTER_TEMPLATE,
-	listOp,
-	modelOf,
-	referenceModel,
-	SORT_TEMPLATE,
-} from "./__fixtures__/models.ts"
+  adoptingDocument,
+  documentOf,
+  FILTER_TEMPLATE,
+  listOp,
+  modelOf,
+  referenceModel,
+  SORT_TEMPLATE,
+} from "./__fixtures__/models.ts";
 import {
-	adoptingCreates,
-	adoptionLine,
-	bar,
-	declaredGrammars,
-	hasInvite,
-	inviteAcceptMode,
-	inviteLine,
-	inviteRevokeBound,
-	lifecycleGlyphs,
-	listOperation,
-	sortedEntities,
-} from "./describe.ts"
+  adoptingCreates,
+  adoptionLine,
+  bar,
+  declaredGrammars,
+  hasInvite,
+  inviteAcceptMode,
+  inviteLine,
+  inviteRevokeBound,
+  lifecycleGlyphs,
+  listOperation,
+  sortedEntities,
+} from "./describe.ts";
 
 describe("bar", () => {
-	it("fills its share of the width, and draws a rule over nothing", () => {
-		expect(bar(1, 2, 4)).toBe("██░░")
-		expect(bar(3, 3)).toBe("█".repeat(24))
-		expect(bar(0, 0, 3)).toBe("───")
-	})
-})
+  it("fills its share of the width, and draws a rule over nothing", () => {
+    expect(bar(1, 2, 4)).toBe("██░░");
+    expect(bar(3, 3)).toBe("█".repeat(24));
+    expect(bar(0, 0, 3)).toBe("───");
+  });
+});
 
 describe("lifecycleGlyphs", () => {
-	it("letters the operations an entity has and dots the rest", async () => {
-		const { model } = await referenceModel()
-		const glyphs = sortedEntities(model).map((entity) => `${entity.name} ${lifecycleGlyphs(entity)}`)
-		expect(glyphs).toContain("table CLRUD")
-		expect(glyphs).toContain("profile ··RUD")
-	})
-})
+  it("letters the operations an entity has and dots the rest", async () => {
+    const { model } = await referenceModel();
+    const glyphs = sortedEntities(model).map((entity) => `${entity.name} ${lifecycleGlyphs(entity)}`);
+    expect(glyphs).toContain("table CLRUD");
+    expect(glyphs).toContain("profile ··RUD");
+  });
+});
 
 describe("invites", () => {
-	it("are accepted by link or by posting the token", async () => {
-		const { model } = await referenceModel()
-		const inviting = sortedEntities(model).filter(hasInvite)
-		expect(inviting.map((entity) => entity.name)).toEqual(["table"])
-		const invite = inviting[0]?.invite
-		expect(invite === undefined ? "" : inviteAcceptMode(invite)).toBe("JSON token → invite.accept")
-		expect(inviteAcceptMode({ ...(invite as NonNullable<typeof invite>), acceptFrom: "link" })).toBe(
-			"GET-link (x-invite.acceptFrom: link)",
-		)
-	})
+  it("are accepted by link or by posting the token", async () => {
+    const { model } = await referenceModel();
+    const inviting = sortedEntities(model).filter(hasInvite);
+    expect(inviting.map((entity) => entity.name)).toEqual(["table"]);
+    const invite = inviting[0]?.invite;
+    expect(invite === undefined ? "" : inviteAcceptMode(invite)).toBe("JSON token → invite.accept");
+    expect(inviteAcceptMode({ ...(invite as NonNullable<typeof invite>), acceptFrom: "link" })).toBe(
+      "GET-link (x-invite.acceptFrom: link)",
+    );
+  });
 
-	it("must be revoked at once unless they declare how long a revoked grant may keep working", async () => {
-		const { model } = await referenceModel()
-		const entity = sortedEntities(model).filter(hasInvite)[0] as Parameters<typeof inviteLine>[0]
-		expect(inviteRevokeBound(entity.invite)).toBe("revoke refused at once")
-		const bounded = { ...entity, invite: { ...entity.invite, revokeStaleness: 300 } }
-		expect(inviteLine(bounded)).toBe(
-			`${"table".padEnd(28)} JSON token → invite.accept; revoke refused within 300s (x-invite.revokeStaleness)`,
-		)
-	})
-})
+  it("must be revoked at once unless they declare how long a revoked grant may keep working", async () => {
+    const { model } = await referenceModel();
+    const entity = sortedEntities(model).filter(hasInvite)[0] as Parameters<typeof inviteLine>[0];
+    expect(inviteRevokeBound(entity.invite)).toBe("revoke refused at once");
+    const bounded = { ...entity, invite: { ...entity.invite, revokeStaleness: 300 } };
+    expect(inviteLine(bounded)).toBe(
+      `${"table".padEnd(28)} JSON token → invite.accept; revoke refused within 300s (x-invite.revokeStaleness)`,
+    );
+  });
+});
 
 describe("adopting creates", () => {
-	it("are the creates that declare credentialFrom by operation id, each with its entity and pointer", () => {
-		const adopting = adoptingCreates(modelOf(adoptingDocument()).model)
-		expect(adopting.map(adoptionLine)).toEqual([
-			`${"org.create".padEnd(28)} ${"organization".padEnd(20)} credential from $.access_token`,
-			`${"workspace.create".padEnd(28)} ${"workspace".padEnd(20)} credential from $.token`,
-		])
-		expect(adoptionLine({ ...(adopting[0] as (typeof adopting)[number]), entity: null })).toBe(
-			`${"org.create".padEnd(28)} ${"—".padEnd(20)} credential from $.access_token`,
-		)
-	})
-})
+  it("are the creates that declare credentialFrom by operation id, each with its entity and pointer", () => {
+    const adopting = adoptingCreates(modelOf(adoptingDocument()).model);
+    expect(adopting.map(adoptionLine)).toEqual([
+      `${"org.create".padEnd(28)} ${"organization".padEnd(20)} credential from $.access_token`,
+      `${"workspace.create".padEnd(28)} ${"workspace".padEnd(20)} credential from $.token`,
+    ]);
+    expect(adoptionLine({ ...(adopting[0] as (typeof adopting)[number]), entity: null })).toBe(
+      `${"org.create".padEnd(28)} ${"—".padEnd(20)} credential from $.access_token`,
+    );
+  });
+});
 
 describe("sortedEntities and listOperation", () => {
-	it("order entities by name and find each list operation", async () => {
-		const { model } = await referenceModel()
-		const names = sortedEntities(model).map((entity) => entity.name)
-		expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)))
-		expect(listOperation(model, "table.list").operationId).toBe("table.list")
-	})
-})
+  it("order entities by name and find each list operation", async () => {
+    const { model } = await referenceModel();
+    const names = sortedEntities(model).map((entity) => entity.name);
+    expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
+    expect(listOperation(model, "table.list").operationId).toBe("table.list");
+  });
+});
 
 describe("declaredGrammars", () => {
-	it("is empty when no list declares a template", async () => {
-		expect(declaredGrammars((await referenceModel()).model)).toEqual([])
-	})
+  it("is empty when no list declares a template", async () => {
+    expect(declaredGrammars((await referenceModel()).model)).toEqual([]);
+  });
 
-	it("describes the filter and sort templates a dialect declares, per listable entity", async () => {
-		const grammars = declaredGrammars((await referenceModel({ dialect: "template" })).model)
-		expect(grammars.map((row) => row.entity)).toEqual(["job", "row", "table"])
-		expect(grammars.every((row) => row.filter !== undefined && row.sort !== undefined)).toBe(true)
-	})
+  it("describes the filter and sort templates a dialect declares, per listable entity", async () => {
+    const grammars = declaredGrammars((await referenceModel({ dialect: "template" })).model);
+    expect(grammars.map((row) => row.entity)).toEqual(["job", "row", "table"]);
+    expect(grammars.every((row) => row.filter !== undefined && row.sort !== undefined)).toBe(true);
+  });
 
-	it("keeps a filter template without a sort one, and the reverse", () => {
-		const doc = documentOf({
-			"/a": { get: listOp("a", "a.list", { "x-query": { grammar: FILTER_TEMPLATE } }) },
-			"/b": { get: listOp("b", "b.list") },
-		})
-		const { model } = modelOf(doc, { entities: { b: { query: { sortGrammar: SORT_TEMPLATE } } } })
-		const grammars = declaredGrammars(model)
-		expect(grammars).toHaveLength(2)
-		expect(grammars[0]).toMatchObject({ entity: "a" })
-		expect(grammars[0]?.sort).toBeUndefined()
-		expect(grammars[1]).toMatchObject({ entity: "b" })
-		expect(grammars[1]?.filter).toBeUndefined()
-	})
-})
+  it("keeps a filter template without a sort one, and the reverse", () => {
+    const doc = documentOf({
+      "/a": { get: listOp("a", "a.list", { "x-query": { grammar: FILTER_TEMPLATE } }) },
+      "/b": { get: listOp("b", "b.list") },
+    });
+    const { model } = modelOf(doc, { entities: { b: { query: { sortGrammar: SORT_TEMPLATE } } } });
+    const grammars = declaredGrammars(model);
+    expect(grammars).toHaveLength(2);
+    expect(grammars[0]).toMatchObject({ entity: "a" });
+    expect(grammars[0]?.sort).toBeUndefined();
+    expect(grammars[1]).toMatchObject({ entity: "b" });
+    expect(grammars[1]?.filter).toBeUndefined();
+  });
+});

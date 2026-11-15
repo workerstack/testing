@@ -6,8 +6,10 @@
  * that wanted the value is unresolved, with this as the reason.
  */
 export class MissingValueError extends Error {
-	override name = "MissingValueError"
-	constructor(readonly where: string) {
-		super(`the API tester had no value for ${where}`)
-	}
+  override name = "MissingValueError";
+  readonly where: string;
+  constructor(where: string) {
+    super(`the API tester had no value for ${where}`);
+    this.where = where;
+  }
 }

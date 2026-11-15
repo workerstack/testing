@@ -1,86 +1,87 @@
-import { describe, expect, it } from "vitest"
-import { rule } from "./no-module-side-effects.ts"
-import { oxlintReports, reportsOf } from "./rule-harness.ts"
+import { describe, expect, it } from "vitest";
 
-const MESSAGE = "module scope runs no code: mark a pure call /* @__PURE__ */ or move it into a function"
+import { rule } from "./no-module-side-effects.ts";
+import { oxlintReports, reportsOf } from "./rule-harness.ts";
+
+const MESSAGE = "module scope runs no code: mark a pure call /* @__PURE__ */ or move it into a function";
 
 const OUTSIDE_SRC = {
-	"src/api/runtime/a.test.ts": "run()\n",
-	"scripts/a.ts": "run()\n",
-	"tests/api/support/a.ts": "run()\n",
-}
+  "src/api/runtime/a.test.ts": "run()\n",
+  "scripts/a.ts": "run()\n",
+  "tests/api/support/a.ts": "run()\n",
+};
 
-const ENTRY_POINTS = { "src/api/cli.ts": "await start()\n", "src/api/conformance/worker.ts": "serve()\n" }
+const ENTRY_POINTS = { "src/api/cli.ts": "await start()\n", "src/api/conformance/worker.ts": "serve()\n" };
 
 describe("testing/no-module-side-effects", () => {
-	it("flags code that runs at import", () => {
-		const fixture = {
-			"src/api/runtime/a.ts": [
-				"validateRegistry(CHECKS)",
-				"export const x = compute()",
-				"const y = new Thing()",
-				"count += 1",
-				"export default register()",
-				"const z = await load()",
-				"for (const a of b) use(a)",
-				"const t = tag`x`",
-				"export const nested = { value: [read()] }",
-			].join("\n"),
-		}
-		expect(reportsOf(rule, fixture).map(({ line }) => line)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9])
-		expect(reportsOf(rule, fixture)[0]?.message).toBe(MESSAGE)
-	})
+  it("flags code that runs at import", () => {
+    const fixture = {
+      "src/api/runtime/a.ts": [
+        "validateRegistry(CHECKS)",
+        "export const x = compute()",
+        "const y = new Thing()",
+        "count += 1",
+        "export default register()",
+        "const z = await load()",
+        "for (const a of b) use(a)",
+        "const t = tag`x`",
+        "export const nested = { value: [read()] }",
+      ].join("\n"),
+    };
+    expect(reportsOf(rule, fixture).map(({ line }) => line)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    expect(reportsOf(rule, fixture)[0]?.message).toBe(MESSAGE);
+  });
 
-	it("allows declarations, deferred code and pure-marked calls", () => {
-		const fixture = {
-			"src/api/runtime/a.ts": [
-				'"use strict"',
-				'import { a } from "./a.ts"',
-				'export { b } from "./b.ts"',
-				'export * as c from "./c.ts"',
-				"export function f() { run() }",
-				"export class K { m() { run() } }",
-				"export const g = () => run()",
-				"export const h = function () { run() }",
-				"export const K2 = class { static s = 1 }",
-				"export const LIMIT = 3",
-				"export const set = /* @__PURE__ */ new Set([1])",
-				"export interface I { a: number }",
-				"export type T = number",
-				"export enum E { A }",
-				"declare function d(): void",
-				";",
-				"export default function main() { run() }",
-				"export default class {}",
-				"export {}",
-			].join("\n"),
-		}
-		expect(reportsOf(rule, fixture)).toEqual([])
-	})
+  it("allows declarations, deferred code and pure-marked calls", () => {
+    const fixture = {
+      "src/api/runtime/a.ts": [
+        '"use strict"',
+        'import { a } from "./a.ts"',
+        'export { b } from "./b.ts"',
+        'export * as c from "./c.ts"',
+        "export function f() { run() }",
+        "export class K { m() { run() } }",
+        "export const g = () => run()",
+        "export const h = function () { run() }",
+        "export const K2 = class { static s = 1 }",
+        "export const LIMIT = 3",
+        "export const set = /* @__PURE__ */ new Set([1])",
+        "export interface I { a: number }",
+        "export type T = number",
+        "export enum E { A }",
+        "declare function d(): void",
+        ";",
+        "export default function main() { run() }",
+        "export default class {}",
+        "export {}",
+      ].join("\n"),
+    };
+    expect(reportsOf(rule, fixture)).toEqual([]);
+  });
 
-	it("leaves tests and code outside src alone", () => {
-		expect(reportsOf(rule, OUTSIDE_SRC)).toEqual([])
-	})
+  it("leaves tests and code outside src alone", () => {
+    expect(reportsOf(rule, OUTSIDE_SRC)).toEqual([]);
+  });
 
-	it("lets a process entry point run its one call, and nothing else that is named like one", () => {
-		expect(reportsOf(rule, ENTRY_POINTS)).toEqual([])
-		expect(reportsOf(rule, { "src/api/cli/cli.ts": "await start()\n" })).toHaveLength(1)
-	})
+  it("lets a process entry point run its one call, and nothing else that is named like one", () => {
+    expect(reportsOf(rule, ENTRY_POINTS)).toEqual([]);
+    expect(reportsOf(rule, { "src/api/cli/cli.ts": "await start()\n" })).toHaveLength(1);
+  });
 
-	it("fails oxlint through the testing plugin entry", () => {
-		expect(oxlintReports("no-module-side-effects", { "src/api/runtime/a.ts": "run()\n" }).length).toBe(1)
-	})
-})
+  it("fails oxlint through the testing plugin entry", () => {
+    expect(oxlintReports("no-module-side-effects", { "src/api/runtime/a.ts": "run()\n" }).length).toBe(1);
+  });
+});
 
 describe("testing/no-module-side-effects definers", () => {
-	it("treats a check definition as pure, and still checks what it is given", () => {
-		const fixture = {
-			"src/api/runtime/checks/families/a.ts": [
-				'export const a = defineCheck({ id: "a", run: () => run() })',
-				"export const b = defineCheck({ id: compute() })",
-				"export const c = other.defineCheck({})",
-			].join("\n"),
-		}
-		expect(reportsOf(rule, fixture).map(({ line }) => line)).toEqual([2, 3])
-	})
-})
+  it("treats a check definition as pure, and still checks what it is given", () => {
+    const fixture = {
+      "src/api/runtime/checks/families/a.ts": [
+        'export const a = defineCheck({ id: "a", run: () => run() })',
+        "export const b = defineCheck({ id: compute() })",
+        "export const c = other.defineCheck({})",
+      ].join("\n"),
+    };
+    expect(reportsOf(rule, fixture).map(({ line }) => line)).toEqual([2, 3]);
+  });
+});

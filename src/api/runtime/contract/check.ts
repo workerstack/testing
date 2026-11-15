@@ -7,17 +7,17 @@
  * guessed is not proof the backend is wrong; that operation needs a scenario.
  */
 
-import type { CheckId } from "../check-ids.ts"
-import type { Check } from "../checks/core/check.ts"
-import { ASSERTED, type Outcome } from "../finding.ts"
+import type { CheckId } from "../check-ids.ts";
+import type { Check } from "../checks/core/check.ts";
+import { ASSERTED, type Outcome } from "../finding.ts";
 
-export const CONTRACT_CHECK_ID: Extract<CheckId, "response.contract-call"> = "response.contract-call"
+export const CONTRACT_CHECK_ID: Extract<CheckId, "response.contract-call"> = "response.contract-call";
 
 export const contractCallCheck: Check = {
-	id: CONTRACT_CHECK_ID,
-	needs: "an operation nothing else graded, with every path parameter resolvable",
-	plan: () => ({ ok: false }),
-	run: (): Promise<Outcome> => Promise.resolve(ASSERTED),
-	/* Runs after every check and scenario, over what they left ungraded. `runContractCalls` does. */
-	subjects: () => [],
-}
+  id: CONTRACT_CHECK_ID,
+  needs: "an operation nothing else graded, with every path parameter resolvable",
+  plan: () => ({ ok: false }),
+  run: (): Promise<Outcome> => Promise.resolve(ASSERTED),
+  /* Runs after every check and scenario, over what they left ungraded. `runContractCalls` does. */
+  subjects: () => [],
+};

@@ -1,10 +1,10 @@
 /** The OpenAPI versions the API tester reads, and the refusal of every other. */
 
-import type { RawOf } from "../../config/types/raw.ts"
-import type { OpenApiDocument } from "../types.ts"
-import { UsageError } from "../../errors/usage-error.ts"
+import type { RawOf } from "../../config/types/raw.ts";
+import { UsageError } from "../../errors/usage-error.ts";
+import type { OpenApiDocument } from "../types.ts";
 
-const READS = "the API tester reads OpenAPI 3.0–3.2 only"
+const READS = "the API tester reads OpenAPI 3.0–3.2 only";
 
 /**
  * Accepts an OpenAPI 3.0, 3.1 or 3.2 document. Swagger 2, an OpenAPI below 3.0 and one newer than
@@ -12,17 +12,17 @@ const READS = "the API tester reads OpenAPI 3.0–3.2 only"
  * its version. A document with no version string is not an OpenAPI document at all.
  */
 /** A parsed document's top-level fields before it is known to be OpenAPI: its own, and Swagger 2's marker. */
-export type RawDocument = RawOf<OpenApiDocument & { swagger: unknown }>
+export type RawDocument = RawOf<OpenApiDocument & { swagger: unknown }>;
 
 export function assertVersion(doc: RawDocument, source: string): void {
-	if (doc.swagger !== undefined) {
-		throw new UsageError(`testing api: ${source} is Swagger ${String(doc.swagger)}; ${READS} — convert it first`)
-	}
-	if (typeof doc.openapi !== "string") {
-		throw new Error(`testing api: ${source} has no "openapi" version field; ${READS}`)
-	}
-	const minor = /^3\.(\d+)/.exec(doc.openapi)?.[1]
-	if (minor === undefined || Number(minor) > 2) {
-		throw new UsageError(`testing api: ${source} is OpenAPI ${doc.openapi}; ${READS}`)
-	}
+  if (doc.swagger !== undefined) {
+    throw new UsageError(`testing api: ${source} is Swagger ${String(doc.swagger)}; ${READS} — convert it first`);
+  }
+  if (typeof doc.openapi !== "string") {
+    throw new Error(`testing api: ${source} has no "openapi" version field; ${READS}`);
+  }
+  const minor = /^3\.(\d+)/.exec(doc.openapi)?.[1];
+  if (minor === undefined || Number(minor) > 2) {
+    throw new UsageError(`testing api: ${source} is OpenAPI ${doc.openapi}; ${READS}`);
+  }
 }

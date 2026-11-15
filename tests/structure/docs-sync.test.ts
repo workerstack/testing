@@ -1,11 +1,13 @@
-import { readdirSync, readFileSync } from "node:fs"
-import { join } from "node:path"
-import { describe, expect, it } from "vitest"
-import { FLAGS } from "../../src/api/cli/flags.ts"
-import { configRules } from "../../src/api/config/validate.ts"
-import { DEFECTS } from "../../src/api/reference/defects/table.ts"
-import { RUN_FINDING_IDS } from "../../src/api/runtime/check-ids.ts"
-import { CHECKS } from "../../src/api/runtime/checks/registry.ts"
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+
+import { describe, expect, it } from "vitest";
+
+import { FLAGS } from "../../src/api/cli/flags.ts";
+import { configRules } from "../../src/api/config/validate.ts";
+import { DEFECTS } from "../../src/api/reference/defects/table.ts";
+import { RUN_FINDING_IDS } from "../../src/api/runtime/check-ids.ts";
+import { CHECKS } from "../../src/api/runtime/checks/registry.ts";
 
 /*
  * Every name a user can meet (a check id, a defect, a CLI flag, a top-level config field, an `x-*`
@@ -13,129 +15,129 @@ import { CHECKS } from "../../src/api/runtime/checks/registry.ts"
  * are listed below; the lists only shrink: documenting one fails the test until it leaves its list.
  */
 
-const ROOT = join(import.meta.dirname, "..", "..")
-const doc = (name: string): string => readFileSync(join(ROOT, "docs", "api", name), "utf8")
+const ROOT = join(import.meta.dirname, "..", "..");
+const doc = (name: string): string => readFileSync(join(ROOT, "docs", "api", name), "utf8");
 
 function sourcesUnder(dir: string): string[] {
-	return readdirSync(join(ROOT, dir), { recursive: true, withFileTypes: true })
-		.filter((entry) => entry.isFile() && entry.name.endsWith(".ts") && !entry.name.endsWith(".test.ts"))
-		.filter((entry) => !entry.parentPath.includes("__fixtures__"))
-		.map((entry) => readFileSync(join(entry.parentPath, entry.name), "utf8"))
+  return readdirSync(join(ROOT, dir), { recursive: true, withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".ts") && !entry.name.endsWith(".test.ts"))
+    .filter((entry) => !entry.parentPath.includes("__fixtures__"))
+    .map((entry) => readFileSync(join(entry.parentPath, entry.name), "utf8"));
 }
 
 /* `x-testing-*` is the API tester's own namespace: keys the loader writes into the working document, never a tag a user writes. */
-const reserved = (tag: string): boolean => tag === "x-testing" || tag.startsWith("x-testing-")
+const reserved = (tag: string): boolean => tag === "x-testing" || tag.startsWith("x-testing-");
 
 /* The tags the API tester reads: every `"x-…"` literal in the spec layer, less the one media type and the reserved namespace. */
 function tagsRead(): string[] {
-	const tags = sourcesUnder("src/api/spec").flatMap((text) =>
-		[...text.matchAll(/"(x-[a-z0-9-]+)"/g)].map((m) => m[1] ?? ""),
-	)
-	return [...new Set(tags)].filter((tag) => tag !== "x-www-form-urlencoded" && !reserved(tag)).toSorted()
+  const tags = sourcesUnder("src/api/spec").flatMap((text) =>
+    [...text.matchAll(/"(x-[a-z0-9-]+)"/g)].map((m) => m[1] ?? ""),
+  );
+  return [...new Set(tags)].filter((tag) => tag !== "x-www-form-urlencoded" && !reserved(tag)).toSorted();
 }
 
 /* The names an entry module exports, values and types alike: `src/api/index.ts` by default. */
 function publicExports(entry: readonly string[] = ["src", "api", "index.ts"]): string[] {
-	const text = readFileSync(join(ROOT, ...entry), "utf8")
-	const names = [...text.matchAll(/export (?:type )?\{([^}]*)\}/g)].flatMap((m) =>
-		(m[1] ?? "")
-			.split(",")
-			.map((part) => part.trim().replace(/^type /, ""))
-			.filter((part) => part !== "")
-			.map((part) => part.split(/\s+as\s+/).at(-1) ?? part),
-	)
-	return [...new Set(names)].toSorted()
+  const text = readFileSync(join(ROOT, ...entry), "utf8");
+  const names = [...text.matchAll(/export (?:type )?\{([^}]*)\}/g)].flatMap((m) =>
+    (m[1] ?? "")
+      .split(",")
+      .map((part) => part.trim().replace(/^type /, ""))
+      .filter((part) => part !== "")
+      .map((part) => part.split(/\s+as\s+/).at(-1) ?? part),
+  );
+  return [...new Set(names)].toSorted();
 }
 
 interface Surface {
-	doc: string
-	names: () => string[]
-	/** How a documented name appears in its doc. */
-	written: (name: string) => string
-	/** Undocumented today. Shrink only. */
-	undocumented: readonly string[]
+  doc: string;
+  names: () => string[];
+  /** How a documented name appears in its doc. */
+  written: (name: string) => string;
+  /** Undocumented today. Shrink only. */
+  undocumented: readonly string[];
 }
 
-const code = (name: string): string => `\`${name}\``
+const code = (name: string): string => `\`${name}\``;
 
 /* `token` as a whole word: `env` is not found inside "environment". */
 const mentions = (text: string, token: string): boolean =>
-	new RegExp(`(?<![\\w-])${token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w-])`).test(text)
+  new RegExp(`(?<![\\w-])${token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w-])`).test(text);
 
 const SURFACES: Readonly<Record<string, Surface>> = {
-	"check ids": {
-		doc: "checks.md",
-		names: () => CHECKS.map((check) => check.id),
-		written: code,
-		undocumented: [],
-	},
-	"run-level finding ids": {
-		doc: "checks.md",
-		names: () => [...RUN_FINDING_IDS],
-		written: code,
-		undocumented: [],
-	},
-	defects: {
-		doc: "reference-defects.md",
-		names: () => Object.keys(DEFECTS),
-		written: code,
-		undocumented: [],
-	},
-	"CLI flags": {
-		doc: "commands.md",
-		names: () => Object.keys(FLAGS),
-		written: (name) => `--${name}`,
-		undocumented: [],
-	},
-	"top-level config fields": {
-		doc: "configuration/reference.md",
-		names: () => Object.keys(configRules()),
-		written: code,
-		undocumented: [],
-	},
-	"x-* tags": {
-		doc: "tags.md",
-		names: tagsRead,
-		written: code,
-		undocumented: [],
-	},
-	"public exports": {
-		doc: "api.md",
-		names: () => publicExports(),
-		/* An export may be named in prose or in an example's code. */
-		written: (name) => name,
-		undocumented: [],
-	},
-	"steps exports": {
-		doc: "steps.md",
-		names: () => publicExports(["src", "api", "steps", "index.ts"]),
-		written: (name) => name,
-		undocumented: [],
-	},
-}
+  "check ids": {
+    doc: "checks.md",
+    names: () => CHECKS.map((check) => check.id),
+    written: code,
+    undocumented: [],
+  },
+  "run-level finding ids": {
+    doc: "checks.md",
+    names: () => [...RUN_FINDING_IDS],
+    written: code,
+    undocumented: [],
+  },
+  defects: {
+    doc: "reference-defects.md",
+    names: () => Object.keys(DEFECTS),
+    written: code,
+    undocumented: [],
+  },
+  "CLI flags": {
+    doc: "commands.md",
+    names: () => Object.keys(FLAGS),
+    written: (name) => `--${name}`,
+    undocumented: [],
+  },
+  "top-level config fields": {
+    doc: "configuration/reference.md",
+    names: () => Object.keys(configRules()),
+    written: code,
+    undocumented: [],
+  },
+  "x-* tags": {
+    doc: "tags.md",
+    names: tagsRead,
+    written: code,
+    undocumented: [],
+  },
+  "public exports": {
+    doc: "api.md",
+    names: () => publicExports(),
+    /* An export may be named in prose or in an example's code. */
+    written: (name) => name,
+    undocumented: [],
+  },
+  "steps exports": {
+    doc: "steps.md",
+    names: () => publicExports(["src", "api", "steps", "index.ts"]),
+    written: (name) => name,
+    undocumented: [],
+  },
+};
 
 describe("docs stay in sync with the code", () => {
-	it.each(Object.entries(SURFACES))("%s", (_name, surface) => {
-		const text = doc(surface.doc)
-		const missing = surface.names().filter((name) => !mentions(text, surface.written(name)))
-		expect(missing.toSorted()).toEqual([...surface.undocumented].toSorted())
-	})
-})
+  it.each(Object.entries(SURFACES))("%s", (_name, surface) => {
+    const text = doc(surface.doc);
+    const missing = surface.names().filter((name) => !mentions(text, surface.written(name)));
+    expect(missing.toSorted()).toEqual([...surface.undocumented].toSorted());
+  });
+});
 
 /* The reverse: a doc that names a check or a tag the code no longer has teaches a shape that does nothing. */
 describe("docs name nothing the code lacks", () => {
-	it("every id in the checks.md tables is a registered check or a run-level finding", () => {
-		const ids = new Set<string>([...CHECKS.map((check) => check.id), ...RUN_FINDING_IDS])
-		const listed = [...doc("checks.md").matchAll(/^\|\s*`([a-z]+\.[a-z0-9.-]+)`/gm)].map((m) => m[1] ?? "")
-		expect(listed.length).toBeGreaterThan(0)
-		expect(listed.filter((id) => !ids.has(id))).toEqual([])
-	})
+  it("every id in the checks.md tables is a registered check or a run-level finding", () => {
+    const ids = new Set<string>([...CHECKS.map((check) => check.id), ...RUN_FINDING_IDS]);
+    const listed = [...doc("checks.md").matchAll(/^\|\s*`([a-z]+\.[a-z0-9.-]+)`/gm)].map((m) => m[1] ?? "");
+    expect(listed.length).toBeGreaterThan(0);
+    expect(listed.filter((id) => !ids.has(id))).toEqual([]);
+  });
 
-	it("every x-* name tags.md mentions is one the API tester reads", () => {
-		const read = new Set(tagsRead())
-		const mentioned = new Set(
-			[...doc("tags.md").matchAll(/(?<![\w-])(x-[a-z0-9]+(?:-[a-z0-9]+)*)/g)].map((m) => m[1] ?? ""),
-		)
-		expect([...mentioned].filter((tag) => !read.has(tag) && !reserved(tag))).toEqual([])
-	})
-})
+  it("every x-* name tags.md mentions is one the API tester reads", () => {
+    const read = new Set(tagsRead());
+    const mentioned = new Set(
+      [...doc("tags.md").matchAll(/(?<![\w-])(x-[a-z0-9]+(?:-[a-z0-9]+)*)/g)].map((m) => m[1] ?? ""),
+    );
+    expect([...mentioned].filter((tag) => !read.has(tag) && !reserved(tag))).toEqual([]);
+  });
+});

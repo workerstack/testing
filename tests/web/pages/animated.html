@@ -1,47 +1,47 @@
 <!doctype html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<title>Animated</title>
-		<style>
-			#grow {
-				width: 100px;
-				height: 20px;
-				background: teal;
-				transition: width 400ms linear;
-			}
-			#grow.wide {
-				width: 300px;
-			}
-			#spin {
-				width: 20px;
-				height: 20px;
-				background: gray;
-				animation: spin 1s linear infinite;
-			}
-			@keyframes spin {
-				to {
-					transform: rotate(360deg);
-				}
-			}
-		</style>
-	</head>
-	<body>
-		<main>
-			<div id="grow"></div>
-			<div id="spin"></div>
-			<div id="cancel"></div>
-		</main>
-		<script>
-			/* A 400 ms transition, an infinite spinner, and a 10 s animation canceled after 100 ms. */
-			requestAnimationFrame(() => {
-				const grow = document.querySelector("#grow")
-				getComputedStyle(grow).width
-				grow.classList.add("wide")
-				const long = document.querySelector("#cancel").animate([{ opacity: 0 }, { opacity: 1 }], 10_000)
-				setTimeout(() => long.cancel(), 100)
-				document.documentElement.dataset.started = ""
-			})
-		</script>
-	</body>
+  <head>
+    <meta charset="utf-8" />
+    <title>Animated</title>
+    <style>
+      #grow {
+        width: 100px;
+        height: 20px;
+        background: teal;
+        transition: width 400ms linear;
+      }
+      #grow.wide {
+        width: 300px;
+      }
+      #spin {
+        width: 20px;
+        height: 20px;
+        background: gray;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div id="grow"></div>
+      <div id="spin"></div>
+      <div id="cancel"></div>
+    </main>
+    <script>
+      /* A 400 ms transition, an infinite spinner, and a 10 s animation canceled after 100 ms. */
+      requestAnimationFrame(() => {
+        const grow = document.querySelector("#grow");
+        getComputedStyle(grow).width;
+        grow.classList.add("wide");
+        const long = document.querySelector("#cancel").animate([{ opacity: 0 }, { opacity: 1 }], 10_000);
+        setTimeout(() => long.cancel(), 100);
+        document.documentElement.dataset.started = "";
+      });
+    </script>
+  </body>
 </html>

@@ -1,23 +1,23 @@
-import { canWriteFilterOp, filterSpec } from "../../../spec/conventions/filter.ts"
-import type { QueryConventions } from "../../../spec/conventions/types.ts"
-import { documentedPage } from "../../../spec/graph/paging.ts"
-import type { EffectiveFilterField, EffectiveQueryCapabilities } from "../../../spec/query/effective.ts"
-import { fieldAllows } from "../../../spec/query/field-ops.ts"
-import { mergeQueryCapabilities } from "../../../spec/query/merge.ts"
-import { FILTER_OPS } from "../../../spec/query/ops.ts"
-import type { SortValue } from "../../../spec/render/sort.ts"
-import type { RequestOptions } from "../../../client/types.ts"
-import type { CheckContext, Listed } from "../core/context.ts"
-import { itemSchemaOf } from "../payloads/item-schema.ts"
-import type { JsonSchema } from "../../../spec/types.ts"
+import type { RequestOptions } from "../../../client/types.ts";
+import { canWriteFilterOp, filterSpec } from "../../../spec/conventions/filter.ts";
+import type { QueryConventions } from "../../../spec/conventions/types.ts";
+import { documentedPage } from "../../../spec/graph/paging.ts";
+import type { EffectiveFilterField, EffectiveQueryCapabilities } from "../../../spec/query/effective.ts";
+import { fieldAllows } from "../../../spec/query/field-ops.ts";
+import { mergeQueryCapabilities } from "../../../spec/query/merge.ts";
+import { FILTER_OPS } from "../../../spec/query/ops.ts";
+import type { SortValue } from "../../../spec/render/sort.ts";
+import type { JsonSchema } from "../../../spec/types.ts";
+import type { CheckContext, Listed } from "../core/context.ts";
+import { itemSchemaOf } from "../payloads/item-schema.ts";
 
 /** The list endpoint's derived conventions — parameter roles and envelope spellings. */
 export function conv(ctx: Listed): QueryConventions {
-	return ctx.listOp.conventions
+  return ctx.listOp.conventions;
 }
 
 /** Query parameters as the client sends them; an array value repeats its parameter. */
-export type Query = NonNullable<RequestOptions["query"]>
+export type Query = NonNullable<RequestOptions["query"]>;
 
 /**
  * Builds a query using whatever this endpoint actually calls each role.
@@ -27,69 +27,69 @@ export type Query = NonNullable<RequestOptions["query"]>
  * the fixture.
  */
 export function q(ctx: Listed, roles: QueryRoles): Query {
-	const c = conv(ctx)
-	const out: QueryOut = {}
-	/* Never above the documented maximum: a backend is right to refuse a request that breaks the
-	 * contract, and reading that refusal as anything about the backend would be the API tester's own fault.
-	 * The one check that probes past the cap on purpose sets the parameter itself. */
-	const size = roles.limit === undefined ? undefined : Math.min(roles.limit, pageSize(ctx))
-	if (size !== undefined && c.limit !== undefined) out[c.limit] = size
-	placePage(out, c, { page: roles.page, size })
-	for (const role of NAMED_ROLES) {
-		const name = c[role]
-		const value = roles[role]
-		if (value !== undefined && name !== undefined) out[name] = value
-	}
-	return out
+  const c = conv(ctx);
+  const out: QueryOut = {};
+  /* Never above the documented maximum: a backend is right to refuse a request that breaks the
+   * contract, and reading that refusal as anything about the backend would be the API tester's own fault.
+   * The one check that probes past the cap on purpose sets the parameter itself. */
+  const size = roles.limit === undefined ? undefined : Math.min(roles.limit, pageSize(ctx));
+  if (size !== undefined && c.limit !== undefined) out[c.limit] = size;
+  placePage(out, c, { page: roles.page, size });
+  for (const role of NAMED_ROLES) {
+    const name = c[role];
+    const value = roles[role];
+    if (value !== undefined && name !== undefined) out[name] = value;
+  }
+  return out;
 }
 
 /** The roles a check asks for, by what they mean rather than what this endpoint calls them. */
 export interface QueryRoles {
-	limit?: number | undefined
-	page?: number | undefined
-	cursor?: string | undefined
-	order?: SortValue | undefined
-	search?: string | undefined
-	searchMode?: string | undefined
-	filter?: string | undefined
+  limit?: number | undefined;
+  page?: number | undefined;
+  cursor?: string | undefined;
+  order?: SortValue | undefined;
+  search?: string | undefined;
+  searchMode?: string | undefined;
+  filter?: string | undefined;
 }
 
-type QueryOut = Record<string, string | number | readonly (string | number)[] | undefined>
+type QueryOut = Record<string, string | number | readonly (string | number)[] | undefined>;
 
 /* The roles written as given under the endpoint's own name for each, in this order. */
-const NAMED_ROLES = ["cursor", "order", "search", "searchMode", "filter"] as const
+const NAMED_ROLES = ["cursor", "order", "search", "searchMode", "filter"] as const;
 
 /** The page a check asks for, and the page size it is counted in. */
 interface PageAsked {
-	page: number | undefined
-	size: number | undefined
+  page: number | undefined;
+  size: number | undefined;
 }
 
 /** Writes the page number, or the offset it stands for where the endpoint skips rows instead. */
 function placePage(out: QueryOut, c: QueryConventions, { page, size }: PageAsked): void {
-	if (page === undefined) return
-	if (c.page !== undefined) out[c.page] = page
-	else if (c.offset !== undefined) {
-		/*
-		 * Offset paging expressed from a page number.
-		 *
-		 * Some APIs count pages, some count rows skipped; the *property* every paging check is
-		 * asserting — that walking forward covers the set without gaps or repeats — is identical
-		 * either way. Translating here means a check says "page 3" once and works against both.
-		 * Without it a page-numbered request against an offset API silently omits the parameter
-		 * and every page comes back as the first one, which reads as a backend that ignores
-		 * pagination rather than a tool that cannot express it.
-		 */
-		/* A page size must be assumed when the caller did not state one; 20 is the common default
-		 * and any consistent value keeps the walk's arithmetic self-consistent, which is what the
-		 * property depends on. */
-		out[c.offset] = Math.max(page - 1, 0) * (size ?? 20)
-	}
+  if (page === undefined) return;
+  if (c.page !== undefined) out[c.page] = page;
+  else if (c.offset !== undefined) {
+    /*
+     * Offset paging expressed from a page number.
+     *
+     * Some APIs count pages, some count rows skipped; the *property* every paging check is
+     * asserting — that walking forward covers the set without gaps or repeats — is identical
+     * either way. Translating here means a check says "page 3" once and works against both.
+     * Without it a page-numbered request against an offset API silently omits the parameter
+     * and every page comes back as the first one, which reads as a backend that ignores
+     * pagination rather than a tool that cannot express it.
+     */
+    /* A page size must be assumed when the caller did not state one; 20 is the common default
+     * and any consistent value keeps the walk's arithmetic self-consistent, which is what the
+     * property depends on. */
+    out[c.offset] = Math.max(page - 1, 0) * (size ?? 20);
+  }
 }
 
 /** The largest page this endpoint documents — see `documentedPage`. */
 export function pageSize(ctx: Listed): number {
-	return documentedPage(ctx.model, ctx.listOp).size
+  return documentedPage(ctx.model, ctx.listOp).size;
 }
 
 /**
@@ -105,55 +105,55 @@ export function pageSize(ctx: Listed): number {
  * no request to send.
  */
 export function filterable(ctx: Listed): boolean {
-	const c = conv(ctx)
-	if (c.filter !== undefined) return true
-	/* Equality-per-field needs a field to attach the predicate to, and the document has to say
-	 * which fields are filterable — otherwise the API tester would be guessing at parameter names. */
-	return filterSpec(c).param === "field" && (ctx.query?.filterable.length ?? 0) > 0
+  const c = conv(ctx);
+  if (c.filter !== undefined) return true;
+  /* Equality-per-field needs a field to attach the predicate to, and the document has to say
+   * which fields are filterable — otherwise the API tester would be guessing at parameter names. */
+  return filterSpec(c).param === "field" && (ctx.query?.filterable.length ?? 0) > 0;
 }
 
 export function resolvedCaps(ctx: Listed): EffectiveQueryCapabilities {
-	if (ctx.capabilities !== undefined) return ctx.capabilities
-	return mergeQueryCapabilities({
-		itemSchema: ctx.listOp.collection?.itemSchema ?? null,
-		tag:
-			ctx.query === null
-				? null
-				: {
-						filterable: ctx.query.filterable,
-						searchable: ctx.query.searchable,
-						selectable: ctx.query.selectable,
-						sortable: ctx.query.sortable,
-						source: ctx.query.source,
-						...(ctx.query.filterableDeclared === undefined ? {} : { filterableDeclared: ctx.query.filterableDeclared }),
-						...(ctx.query.sortableDeclared === undefined ? {} : { sortableDeclared: ctx.query.sortableDeclared }),
-						...(ctx.query.searchableDeclared === undefined ? {} : { searchableDeclared: ctx.query.searchableDeclared }),
-						...(ctx.query.selectableDeclared === undefined ? {} : { selectableDeclared: ctx.query.selectableDeclared }),
-						...(ctx.query.filterFields === undefined ? {} : { filterFields: ctx.query.filterFields }),
-						...(ctx.query.sortableFields === undefined ? {} : { sortableFields: ctx.query.sortableFields }),
-						...(ctx.query.catalog === undefined ? {} : { catalog: ctx.query.catalog }),
-						...(ctx.query.defaultOrder === undefined ? {} : { defaultOrder: ctx.query.defaultOrder }),
-						...(ctx.query.stableTiebreak === undefined ? {} : { stableTiebreak: ctx.query.stableTiebreak }),
-					},
-	})
+  if (ctx.capabilities !== undefined) return ctx.capabilities;
+  return mergeQueryCapabilities({
+    itemSchema: ctx.listOp.collection?.itemSchema ?? null,
+    tag:
+      ctx.query === null
+        ? null
+        : {
+            filterable: ctx.query.filterable,
+            searchable: ctx.query.searchable,
+            selectable: ctx.query.selectable,
+            sortable: ctx.query.sortable,
+            source: ctx.query.source,
+            ...(ctx.query.filterableDeclared === undefined ? {} : { filterableDeclared: ctx.query.filterableDeclared }),
+            ...(ctx.query.sortableDeclared === undefined ? {} : { sortableDeclared: ctx.query.sortableDeclared }),
+            ...(ctx.query.searchableDeclared === undefined ? {} : { searchableDeclared: ctx.query.searchableDeclared }),
+            ...(ctx.query.selectableDeclared === undefined ? {} : { selectableDeclared: ctx.query.selectableDeclared }),
+            ...(ctx.query.filterFields === undefined ? {} : { filterFields: ctx.query.filterFields }),
+            ...(ctx.query.sortableFields === undefined ? {} : { sortableFields: ctx.query.sortableFields }),
+            ...(ctx.query.catalog === undefined ? {} : { catalog: ctx.query.catalog }),
+            ...(ctx.query.defaultOrder === undefined ? {} : { defaultOrder: ctx.query.defaultOrder }),
+            ...(ctx.query.stableTiebreak === undefined ? {} : { stableTiebreak: ctx.query.stableTiebreak }),
+          },
+  });
 }
 
 export function filterableNames(ctx: Listed): string[] {
-	return resolvedCaps(ctx).filterable.map((field) => field.field)
+  return resolvedCaps(ctx).filterable.map((field) => field.field);
 }
 
 /** Filter field for identity predicates when it differs from the JSON identity. */
 export function filterIdentity(ctx: Listed): string {
-	return resolvedCaps(ctx).identityFilter ?? ctx.identity
+  return resolvedCaps(ctx).identityFilter ?? ctx.identity;
 }
 
 export function identityIsFilterable(ctx: Listed): boolean {
-	const names = filterableNames(ctx)
-	return names.includes(filterIdentity(ctx)) || names.includes(ctx.identity)
+  const names = filterableNames(ctx);
+  return names.includes(filterIdentity(ctx)) || names.includes(ctx.identity);
 }
 
 export function canUseOp(ctx: Listed, field: EffectiveFilterField, op: (typeof FILTER_OPS)[number]): boolean {
-	return canWriteFilterOp(conv(ctx), op) && fieldAllows(field, op, resolvedCaps(ctx))
+  return canWriteFilterOp(conv(ctx), op) && fieldAllows(field, op, resolvedCaps(ctx));
 }
 
 /**
@@ -165,45 +165,45 @@ export function canUseOp(ctx: Listed, field: EffectiveFilterField, op: (typeof F
  * meant an offset-paged API silently skipped them, which reads exactly like a clean result.
  */
 export function pageable(ctx: Listed): boolean {
-	const c = conv(ctx)
-	return c.page !== undefined || c.offset !== undefined
+  const c = conv(ctx);
+  return c.page !== undefined || c.offset !== undefined;
 }
 
 export const MOVING_COLLECTION: string =
-	"the collection gained or lost rows between the term reads and the combined read (something wrote " +
-	"to it while the check ran), so the reads cannot be compared"
+  "the collection gained or lost rows between the term reads and the combined read (something wrote " +
+  "to it while the check ran), so the reads cannot be compared";
 
 export const REREAD_REFUSED: string =
-	"the reads disagreed, and reading them again to rule out another writer was refused, so the " +
-	"disagreement cannot be pinned on the backend"
+  "the reads disagreed, and reading them again to rule out another writer was refused, so the " +
+  "disagreement cannot be pinned on the backend";
 
 export const MOVING: string =
-	"the collection gained or lost rows between two reads in the same direction (something wrote to it " +
-	"while the check ran), so the reads cannot be compared"
+  "the collection gained or lost rows between two reads in the same direction (something wrote to it " +
+  "while the check ran), so the reads cannot be compared";
 
 export function asTermValue(value: unknown): string | number {
-	return typeof value === "number" ? value : String(value)
+  return typeof value === "number" ? value : String(value);
 }
 
 export const FOUNDATIONS = [
-	"list.read-after-write",
-	"create.persists-submitted-fields",
-	"pagination.page-walk-covers-set",
-] as const
+  "list.read-after-write",
+  "create.persists-submitted-fields",
+  "pagination.page-walk-covers-set",
+] as const;
 
 /** The JSON type the item schema gives a property, looking through a nullable union. */
 export function schemaType(ctx: CheckContext, field: string): string | undefined {
-	const properties = (itemSchemaOf(ctx)?.properties ?? {}) as Record<string, JsonSchema>
-	const propertySchema = properties[field]
-	if (propertySchema === undefined) return undefined
-	const branches = [propertySchema, ...((propertySchema.oneOf ?? propertySchema.anyOf ?? []) as Array<JsonSchema>)]
-	for (const branch of branches) {
-		const type = branch.type
-		if (typeof type === "string" && type !== "null") return type
-		if (Array.isArray(type)) {
-			const named = type.find((item) => item !== "null")
-			if (typeof named === "string") return named
-		}
-	}
-	return undefined
+  const properties = (itemSchemaOf(ctx)?.properties ?? {}) as Record<string, JsonSchema>;
+  const propertySchema = properties[field];
+  if (propertySchema === undefined) return undefined;
+  const branches = [propertySchema, ...((propertySchema.oneOf ?? propertySchema.anyOf ?? []) as Array<JsonSchema>)];
+  for (const branch of branches) {
+    const type = branch.type;
+    if (typeof type === "string" && type !== "null") return type;
+    if (Array.isArray(type)) {
+      const named = type.find((item) => item !== "null");
+      if (typeof named === "string") return named;
+    }
+  }
+  return undefined;
 }

@@ -1,12 +1,12 @@
 /** The response fields `x-query.envelope` or config `query.envelope` read each paging fact from. */
 
-import type { QueryEnvelopeNames, QueryEnvelopeRole } from "../../config/types/query.ts"
+import type { QueryEnvelopeNames, QueryEnvelopeRole } from "../../config/types/query.ts";
 
 /** The role names an `envelope` object may hold, in the order a message lists them. */
-export const QUERY_ENVELOPE_ROLES: readonly QueryEnvelopeRole[] = ["total", "hasMore", "nextCursor"]
+export const QUERY_ENVELOPE_ROLES: readonly QueryEnvelopeRole[] = ["total", "hasMore", "nextCursor"];
 
 export function isQueryEnvelopeRole(key: string): key is QueryEnvelopeRole {
-	return (QUERY_ENVELOPE_ROLES as readonly string[]).includes(key)
+  return (QUERY_ENVELOPE_ROLES as readonly string[]).includes(key);
 }
 
 /**
@@ -14,10 +14,10 @@ export function isQueryEnvelopeRole(key: string): key is QueryEnvelopeRole {
  * for everything else; this keeps what can be used.
  */
 export function readEnvelopeNames(raw: unknown): QueryEnvelopeNames | undefined {
-	if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return undefined
-	return Object.fromEntries(
-		Object.entries(raw).filter(([role, name]) => isQueryEnvelopeRole(role) && typeof name === "string" && name !== ""),
-	) as QueryEnvelopeNames
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+  return Object.fromEntries(
+    Object.entries(raw).filter(([role, name]) => isQueryEnvelopeRole(role) && typeof name === "string" && name !== ""),
+  ) as QueryEnvelopeNames;
 }
 
 /**
@@ -26,10 +26,10 @@ export function readEnvelopeNames(raw: unknown): QueryEnvelopeNames | undefined 
  * it was written for holds it.
  */
 export function mergeEnvelopeNames(sources: {
-	tag: unknown
-	config?: QueryEnvelopeNames | undefined
-	declared: readonly string[]
+  tag: unknown;
+  config?: QueryEnvelopeNames | undefined;
+  declared: readonly string[];
 }): QueryEnvelopeNames {
-	const applied = Object.entries(sources.config ?? {}).filter(([, name]) => sources.declared.includes(name))
-	return { ...readEnvelopeNames(sources.tag), ...Object.fromEntries(applied) }
+  const applied = Object.entries(sources.config ?? {}).filter(([, name]) => sources.declared.includes(name));
+  return { ...readEnvelopeNames(sources.tag), ...Object.fromEntries(applied) };
 }

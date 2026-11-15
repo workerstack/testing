@@ -1,8 +1,10 @@
-import { existsSync, readFileSync } from "node:fs"
-import { join } from "node:path"
-import { describe, expect, it } from "vitest"
-import { hasHeading } from "../../scripts/changelog-has.ts"
-import { gatesVerdict } from "../../scripts/release-gates.ts"
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+
+import { describe, expect, it } from "vitest";
+
+import { hasHeading } from "../../scripts/changelog-has.ts";
+import { gatesVerdict } from "../../scripts/release-gates.ts";
 
 /*
  * A release publishes only a commit ci.yml passed, and is refused before it publishes anything
@@ -10,124 +12,126 @@ import { gatesVerdict } from "../../scripts/release-gates.ts"
  * its own, so a hung step ends the run instead of holding a runner for six hours.
  */
 
-const ROOT = join(import.meta.dirname, "..", "..")
-const workflow = (name: string): string => readFileSync(join(ROOT, ".github", "workflows", name), "utf8")
-const WORKFLOWS = ["ci.yml", "release.yml", "targets.yml"] as const
+const ROOT = join(import.meta.dirname, "..", "..");
+const workflow = (name: string): string => readFileSync(join(ROOT, ".github", "workflows", name), "utf8");
+const WORKFLOWS = ["ci.yml", "release.yml", "targets.yml"] as const;
 
 /** The workflow's jobs, by id: each job's lines up to the next. */
 function jobs(text: string): Map<string, string> {
-	const body = text.slice(text.indexOf("\njobs:\n") + 7)
-	const out = new Map<string, string>()
-	for (const part of body.split(/\n(?= {2}[a-z][\w-]*:\n)/)) {
-		const id = /^ {2}([a-z][\w-]*):/.exec(part)?.[1]
-		if (id !== undefined) out.set(id, part)
-	}
-	return out
+  const body = text.slice(text.indexOf("\njobs:\n") + 7);
+  const out = new Map<string, string>();
+  for (const part of body.split(/\n(?= {2}[a-z][\w-]*:\n)/)) {
+    const id = /^ {2}([a-z][\w-]*):/.exec(part)?.[1];
+    if (id !== undefined) out.set(id, part);
+  }
+  return out;
 }
 
 describe("hasHeading", () => {
-	it("finds a `## <version>` line, and nothing short of one", () => {
-		const changelog = "# Changelog\n\n## 0.25.0\n\n- a\n\n## 0.24.1\n"
-		expect(hasHeading(changelog, "0.25.0")).toBe(true)
-		expect(hasHeading(changelog, "0.24.1")).toBe(true)
-		expect(hasHeading(changelog, "0.25")).toBe(false)
-		expect(hasHeading("## 0.25.0-rc.1\n", "0.25.0")).toBe(false)
-		expect(hasHeading("text mentioning 0.25.0\n", "0.25.0")).toBe(false)
-	})
-})
+  it("finds a `## [<version>] - <date>` line, and nothing short of one", () => {
+    const changelog = "# Changelog\n\n## [Unreleased]\n\n## [0.25.0] - 2026-10-27\n\n- a\n\n## [0.24.1] - 2026-10-20\n";
+    expect(hasHeading(changelog, "0.25.0")).toBe(true);
+    expect(hasHeading(changelog, "0.24.1")).toBe(true);
+    expect(hasHeading(changelog, "0.25")).toBe(false);
+    expect(hasHeading("## [0.25.0-rc.1] - 2026-10-27\n", "0.25.0")).toBe(false);
+    expect(hasHeading("## [0.25.0]\n", "0.25.0")).toBe(false);
+    expect(hasHeading("## 0.25.0\n", "0.25.0")).toBe(false);
+    expect(hasHeading("text mentioning 0.25.0\n", "0.25.0")).toBe(false);
+  });
+});
 
-const run = (id: number, status: string, conclusion = "") => ({ conclusion, databaseId: id, status })
+const run = (id: number, status: string, conclusion = "") => ({ conclusion, databaseId: id, status });
 
 describe("gatesVerdict", () => {
-	it("passes on any successful ci.yml run of the commit, whatever else ran on it", () => {
-		expect(gatesVerdict([run(1, "completed", "failure"), run(2, "completed", "success")])).toEqual({ kind: "passed" })
-	})
+  it("passes on any successful ci.yml run of the commit, whatever else ran on it", () => {
+    expect(gatesVerdict([run(1, "completed", "failure"), run(2, "completed", "success")])).toEqual({ kind: "passed" });
+  });
 
-	it("waits for the newest run still going before it judges", () => {
-		expect(gatesVerdict([run(3, "in_progress"), run(2, "queued"), run(1, "completed", "cancelled")])).toEqual({
-			id: 3,
-			kind: "wait",
-		})
-	})
+  it("waits for the newest run still going before it judges", () => {
+    expect(gatesVerdict([run(3, "in_progress"), run(2, "queued"), run(1, "completed", "cancelled")])).toEqual({
+      id: 3,
+      kind: "wait",
+    });
+  });
 
-	it("fails on a run that finished red, so a release never outruns a failing gate", () => {
-		for (const conclusion of ["failure", "timed_out", "startup_failure"]) {
-			expect(gatesVerdict([run(1, "completed", conclusion)])).toEqual({ id: 1, kind: "failed" })
-		}
-	})
+  it("fails on a run that finished red, so a release never outruns a failing gate", () => {
+    for (const conclusion of ["failure", "timed_out", "startup_failure"]) {
+      expect(gatesVerdict([run(1, "completed", conclusion)])).toEqual({ id: 1, kind: "failed" });
+    }
+  });
 
-	it("runs the gates on the tag when no run on the commit finished, as when a later push canceled it", () => {
-		expect(gatesVerdict([])).toEqual({ kind: "dispatch" })
-		expect(gatesVerdict([run(1, "completed", "cancelled"), run(2, "completed", "skipped")])).toEqual({
-			kind: "dispatch",
-		})
-	})
-})
+  it("runs the gates on the tag when no run on the commit finished, as when a later push canceled it", () => {
+    expect(gatesVerdict([])).toEqual({ kind: "dispatch" });
+    expect(gatesVerdict([run(1, "completed", "cancelled"), run(2, "completed", "skipped")])).toEqual({
+      kind: "dispatch",
+    });
+  });
+});
 
 describe("the changelog", () => {
-	it("has a heading for the version package.json names, so that version's tag can be released", () => {
-		const { version } = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")) as { version: string }
-		expect(hasHeading(readFileSync(join(ROOT, "CHANGELOG.md"), "utf8"), version)).toBe(true)
-	})
-})
+  it("has a heading for the version package.json names, so that version's tag can be released", () => {
+    const { version } = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")) as { version: string };
+    expect(hasHeading(readFileSync(join(ROOT, "CHANGELOG.md"), "utf8"), version)).toBe(true);
+  });
+});
 
 describe("the workflows", () => {
-	it("give every job that runs on a machine an explicit timeout", () => {
-		for (const name of WORKFLOWS) {
-			const untimed = [...jobs(workflow(name))].filter(
-				([, job]) => job.includes("runs-on:") && !job.includes("timeout-minutes:"),
-			)
-			expect(untimed.map(([id]) => `${name}: ${id}`)).toEqual([])
-		}
-	})
+  it("give every job that runs on a machine an explicit timeout", () => {
+    for (const name of WORKFLOWS) {
+      const untimed = [...jobs(workflow(name))].filter(
+        ([, job]) => job.includes("runs-on:") && !job.includes("timeout-minutes:"),
+      );
+      expect(untimed.map(([id]) => `${name}: ${id}`)).toEqual([]);
+    }
+  });
 
-	it("run the browser tests in ci.yml, with Chromium installed first", () => {
-		const web = jobs(workflow("ci.yml")).get("web") ?? ""
-		expect(web).toContain("bun run test:web")
-		expect(web.indexOf("playwright install")).toBeGreaterThan(-1)
-		expect(web.indexOf("playwright install")).toBeLessThan(web.indexOf("bun run test:web"))
-	})
+  it("run the browser tests in ci.yml, with Chromium installed first", () => {
+    const web = jobs(workflow("ci.yml")).get("web") ?? "";
+    expect(web).toContain("bun run test:web");
+    expect(web.indexOf("playwright install")).toBeGreaterThan(-1);
+    expect(web.indexOf("playwright install")).toBeLessThan(web.indexOf("bun run test:web"));
+  });
 
-	it("hold a release to ci.yml's verdict on the tagged commit, never a second run of the gates", () => {
-		expect(workflow("ci.yml")).not.toContain("workflow_call:")
-		const release = jobs(workflow("release.yml"))
-		expect(release.get("gates")).toContain("bun scripts/release-gates.ts")
-		expect(release.get("gates")).toContain("actions: write")
-		for (const publish of ["npmjs", "gh-pkg"]) {
-			expect(release.get(publish)).toMatch(/needs: \[gates, changelog\]/)
-		}
-	})
+  it("hold a release to ci.yml's verdict on the tagged commit, never a second run of the gates", () => {
+    expect(workflow("ci.yml")).not.toContain("workflow_call:");
+    const release = jobs(workflow("release.yml"));
+    expect(release.get("gates")).toContain("bun scripts/release-gates.ts");
+    expect(release.get("gates")).toContain("actions: write");
+    for (const publish of ["npmjs", "gh-pkg"]) {
+      expect(release.get(publish)).toMatch(/needs: \[gates, changelog\]/);
+    }
+  });
 
-	it("check out the tag a release names, so a dispatch for an existing tag publishes that tag", () => {
-		const release = jobs(workflow("release.yml"))
-		const untagged = [...release].filter(
-			([, job]) => job.includes("actions/checkout@") && !job.includes("ref: ${{ inputs.tag || github.ref }}"),
-		)
-		expect(untagged.map(([id]) => id)).toEqual([])
-	})
+  it("check out the tag a release names, so a dispatch for an existing tag publishes that tag", () => {
+    const release = jobs(workflow("release.yml"));
+    const untagged = [...release].filter(
+      ([, job]) => job.includes("actions/checkout@") && !job.includes("ref: ${{ inputs.tag || github.ref }}"),
+    );
+    expect(untagged.map(([id]) => id)).toEqual([]);
+  });
 
-	/* Run 41596487324: bun 1.4.4 reads the scoped .npmrc setup-node writes, and the job's token cannot read the private dev dependency there. */
-	it("install the GitHub Packages job's dependencies before it points the scope at GitHub Packages", () => {
-		const job = jobs(workflow("release.yml")).get("gh-pkg") ?? ""
-		expect(job.indexOf("bun install --frozen-lockfile")).toBeGreaterThan(-1)
-		expect(job.indexOf("bun install --frozen-lockfile")).toBeLessThan(
-			job.indexOf("registry-url: https://npm.pkg.github.com"),
-		)
-	})
+  /* Run 41596487324: bun 1.4.4 reads the scoped .npmrc setup-node writes, and the job's token cannot read the private dev dependency there. */
+  it("install the GitHub Packages job's dependencies before it points the scope at GitHub Packages", () => {
+    const job = jobs(workflow("release.yml")).get("gh-pkg") ?? "";
+    expect(job.indexOf("bun install --frozen-lockfile")).toBeGreaterThan(-1);
+    expect(job.indexOf("bun install --frozen-lockfile")).toBeLessThan(
+      job.indexOf("registry-url: https://npm.pkg.github.com"),
+    );
+  });
 
-	it("refuse a release whose CHANGELOG.md has no heading for its version, before publishing", () => {
-		const changelog = jobs(workflow("release.yml")).get("changelog") ?? ""
-		expect(changelog).toContain("bun scripts/changelog-has.ts")
-		expect(changelog).toContain("timeout-minutes:")
-	})
+  it("refuse a release whose CHANGELOG.md has no heading for its version, before publishing", () => {
+    const changelog = jobs(workflow("release.yml")).get("changelog") ?? "";
+    expect(changelog).toContain("bun scripts/changelog-has.ts");
+    expect(changelog).toContain("timeout-minutes:");
+  });
 
-	it("run the packed package end to end in CI, and the real-API targets nightly and on demand", () => {
-		expect(jobs(workflow("ci.yml")).get("e2e")).toContain("bun run test:e2e")
-		expect(existsSync(join(ROOT, ".github", "workflows", "targets.yml"))).toBe(true)
-		const targets = workflow("targets.yml")
-		/* Run 40569216175 showed the five stacks fit a standard runner, so the targets run nightly too. */
-		expect(targets).toContain('- cron: "17 3 * * *"')
-		expect(targets).toContain("workflow_dispatch:")
-		expect(targets).toContain("bun run test:targets")
-	})
-})
+  it("run the packed package end to end in CI, and the real-API targets nightly and on demand", () => {
+    expect(jobs(workflow("ci.yml")).get("e2e")).toContain("bun run test:e2e");
+    expect(existsSync(join(ROOT, ".github", "workflows", "targets.yml"))).toBe(true);
+    const targets = workflow("targets.yml");
+    /* Run 40569216175 showed the five stacks fit a standard runner, so the targets run nightly too. */
+    expect(targets).toContain('- cron: "17 3 * * *"');
+    expect(targets).toContain("workflow_dispatch:");
+    expect(targets).toContain("bun run test:targets");
+  });
+});

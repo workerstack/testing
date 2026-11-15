@@ -1,274 +1,275 @@
-import { describe, expect, it } from "vitest"
-import { REDACTED, Redactor } from "./redact.ts"
+import { describe, expect, it } from "vitest";
+
+import { REDACTED, Redactor } from "./redact.ts";
 
 describe("Redactor", () => {
-	it("scrubs an issued credential wherever it appears, bare token included", () => {
-		const redactor = new Redactor()
-		redactor.registerSecret("Bearer tok_live_123456")
-		expect(redactor.json({ message: "rejected tok_live_123456", nested: ["tok_live_123456"], n: 3 })).toEqual({
-			message: `rejected ${REDACTED}`,
-			n: 3,
-			nested: [REDACTED],
-		})
-		expect(redactor.url("https://x.test/a?next=tok_live_123456")).not.toContain("tok_live_123456")
-		expect(redactor.text("Bearer tok_live_123456")).toBe(REDACTED)
-	})
+  it("scrubs an issued credential wherever it appears, bare token included", () => {
+    const redactor = new Redactor();
+    redactor.registerSecret("Bearer tok_live_123456");
+    expect(redactor.json({ message: "rejected tok_live_123456", nested: ["tok_live_123456"], n: 3 })).toEqual({
+      message: `rejected ${REDACTED}`,
+      n: 3,
+      nested: [REDACTED],
+    });
+    expect(redactor.url("https://x.test/a?next=tok_live_123456")).not.toContain("tok_live_123456");
+    expect(redactor.text("Bearer tok_live_123456")).toBe(REDACTED);
+  });
 
-	it("ignores a missing or too-short value", () => {
-		const redactor = new Redactor()
-		redactor.registerSecret(undefined)
-		redactor.registerSecret(" abc ")
-		expect(redactor.text("abc and more")).toBe("abc and more")
-	})
+  it("ignores a missing or too-short value", () => {
+    const redactor = new Redactor();
+    redactor.registerSecret(undefined);
+    redactor.registerSecret(" abc ");
+    expect(redactor.text("abc and more")).toBe("abc and more");
+  });
 
-	it("matches secret keys by family and a principal's own header name", () => {
-		const redactor = new Redactor()
-		redactor.registerHeader("X-Tenant-Credential")
-		expect(redactor.json({ client_secret: "s", refreshToken: "r", sessionId: "q", total: null })).toEqual({
-			client_secret: REDACTED,
-			refreshToken: REDACTED,
-			sessionId: REDACTED,
-			total: null,
-		})
-		expect(redactor.headers({ "x-tenant-credential": "v", accept: "json", authorization: "x" })).toEqual({
-			accept: "json",
-			authorization: REDACTED,
-			"x-tenant-credential": REDACTED,
-		})
-	})
+  it("matches secret keys by family and a principal's own header name", () => {
+    const redactor = new Redactor();
+    redactor.registerHeader("X-Tenant-Credential");
+    expect(redactor.json({ client_secret: "s", refreshToken: "r", sessionId: "q", total: null })).toEqual({
+      client_secret: REDACTED,
+      refreshToken: REDACTED,
+      sessionId: REDACTED,
+      total: null,
+    });
+    expect(redactor.headers({ "x-tenant-credential": "v", accept: "json", authorization: "x" })).toEqual({
+      accept: "json",
+      authorization: REDACTED,
+      "x-tenant-credential": REDACTED,
+    });
+  });
 
-	it("redacts every occurrence of a secret query parameter in place", () => {
-		const params = new URL(new Redactor().url("https://x.test/a?token=one&q=1&token=two")).searchParams
-		expect([...params.keys()]).toEqual(["token", "q", "token"])
-		expect(params.getAll("token")).toEqual([REDACTED, REDACTED])
-		expect(new Redactor().url("https://x.test/a?q=1")).toBe("https://x.test/a?q=1")
-	})
+  it("redacts every occurrence of a secret query parameter in place", () => {
+    const params = new URL(new Redactor().url("https://x.test/a?token=one&q=1&token=two")).searchParams;
+    expect([...params.keys()]).toEqual(["token", "q", "token"]);
+    expect(params.getAll("token")).toEqual([REDACTED, REDACTED]);
+    expect(new Redactor().url("https://x.test/a?q=1")).toBe("https://x.test/a?q=1");
+  });
 
-	it("scrubs text it cannot parse as a URL", () => {
-		const redactor = new Redactor()
-		redactor.registerSecret("sk_secret_value")
-		expect(redactor.url("not a url sk_secret_value")).toBe(`not a url ${REDACTED}`)
-	})
+  it("scrubs text it cannot parse as a URL", () => {
+    const redactor = new Redactor();
+    redactor.registerSecret("sk_secret_value");
+    expect(redactor.url("not a url sk_secret_value")).toBe(`not a url ${REDACTED}`);
+  });
 
-	it("keeps two runs' secrets apart", () => {
-		const first = new Redactor()
-		first.registerSecret("first-run-secret")
-		expect(new Redactor().text("first-run-secret")).toBe("first-run-secret")
-	})
-})
+  it("keeps two runs' secrets apart", () => {
+    const first = new Redactor();
+    first.registerSecret("first-run-secret");
+    expect(new Redactor().text("first-run-secret")).toBe("first-run-secret");
+  });
+});
 
 describe("Redactor, encoded values", () => {
-	it("scrubs a registered value percent-encoded or form-encoded, as a URL or a rewrite writes it", () => {
-		const redactor = new Redactor()
-		redactor.registerSecret("dXNl/cjpwYXNz==")
-		const params = new URL(redactor.url("https://x.test/a?api_key=k&echo=dXNl/cjpwYXNz==")).searchParams
-		expect([...params]).toEqual([
-			["api_key", REDACTED],
-			["echo", REDACTED],
-		])
-		expect(redactor.url("https://x.test/t/dXNl%2FcjpwYXNz%3D%3D?next=dXNl%2FcjpwYXNz%3D%3D")).toBe(
-			`https://x.test/t/${REDACTED}?next=${REDACTED}`,
-		)
-		expect(redactor.holdsSecret("dXNl%2FcjpwYXNz%3D%3D")).toBe(true)
-	})
+  it("scrubs a registered value percent-encoded or form-encoded, as a URL or a rewrite writes it", () => {
+    const redactor = new Redactor();
+    redactor.registerSecret("dXNl/cjpwYXNz==");
+    const params = new URL(redactor.url("https://x.test/a?api_key=k&echo=dXNl/cjpwYXNz==")).searchParams;
+    expect([...params]).toEqual([
+      ["api_key", REDACTED],
+      ["echo", REDACTED],
+    ]);
+    expect(redactor.url("https://x.test/t/dXNl%2FcjpwYXNz%3D%3D?next=dXNl%2FcjpwYXNz%3D%3D")).toBe(
+      `https://x.test/t/${REDACTED}?next=${REDACTED}`,
+    );
+    expect(redactor.holdsSecret("dXNl%2FcjpwYXNz%3D%3D")).toBe(true);
+  });
 
-	it("scrubs a value with marks RFC 3986 reserves in the strict percent form a URL writes them in", () => {
-		const redactor = new Redactor()
-		redactor.registerSecret("p(a)ss*w'd!")
-		expect(redactor.text("sent=p%28a%29ss%2Aw%27d%21 and loose=p(a)ss*w'd!")).toBe(
-			`sent=${REDACTED} and loose=${REDACTED}`,
-		)
-	})
+  it("scrubs a value with marks RFC 3986 reserves in the strict percent form a URL writes them in", () => {
+    const redactor = new Redactor();
+    redactor.registerSecret("p(a)ss*w'd!");
+    expect(redactor.text("sent=p%28a%29ss%2Aw%27d%21 and loose=p(a)ss*w'd!")).toBe(
+      `sent=${REDACTED} and loose=${REDACTED}`,
+    );
+  });
 
-	it("scrubs a value holding a lone surrogate as issued, since no URL can encode it", () => {
-		const redactor = new Redactor()
-		const broken = "secret-\ud800-tail"
-		redactor.registerSecret(broken)
-		expect(redactor.text(`echo ${broken}`)).toBe(`echo ${REDACTED}`)
-	})
-})
+  it("scrubs a value holding a lone surrogate as issued, since no URL can encode it", () => {
+    const redactor = new Redactor();
+    const broken = "secret-\ud800-tail";
+    redactor.registerSecret(broken);
+    expect(redactor.text(`echo ${broken}`)).toBe(`echo ${REDACTED}`);
+  });
+});
 
 describe("Redactor.holdsSecret", () => {
-	it("tells whether a value carries a registered credential, whole or inside it", () => {
-		const redactor = new Redactor()
-		redactor.registerSecret("Bearer tok_live_123456")
-		expect(redactor.holdsSecret("tok_live_123456")).toBe(true)
-		expect(redactor.holdsSecret("Bearer tok_live_123456")).toBe(true)
-		expect(redactor.holdsSecret("id-tok_live_123456-x")).toBe(true)
-		expect(redactor.holdsSecret("tok_live")).toBe(false)
-		expect(redactor.holdsSecret("7")).toBe(false)
-	})
-})
+  it("tells whether a value carries a registered credential, whole or inside it", () => {
+    const redactor = new Redactor();
+    redactor.registerSecret("Bearer tok_live_123456");
+    expect(redactor.holdsSecret("tok_live_123456")).toBe(true);
+    expect(redactor.holdsSecret("Bearer tok_live_123456")).toBe(true);
+    expect(redactor.holdsSecret("id-tok_live_123456-x")).toBe(true);
+    expect(redactor.holdsSecret("tok_live")).toBe(false);
+    expect(redactor.holdsSecret("7")).toBe(false);
+  });
+});
 
 describe("Redactor.textBody", () => {
-	it("redacts a form's secret-named fields, and every registered value, wherever the text holds it", () => {
-		const redactor = new Redactor()
-		redactor.registerSecret("acc+tok/123456")
-		const form = "access_token=acc%2Btok%2F123456&refresh_token=rt-9876543210&scope=read+write&flag"
-		expect(redactor.textBody(form, "application/x-www-form-urlencoded; charset=utf-8")).toBe(
-			`access_token=${REDACTED}&refresh_token=${REDACTED}&scope=read+write&flag`,
-		)
-		expect(redactor.textBody("note=acc%2Btok%2F123456&bad=%E0%A4%A", "application/x-www-form-urlencoded")).toBe(
-			`note=${REDACTED}&bad=%E0%A4%A`,
-		)
-		expect(redactor.textBody("%E0%A4%A=1&refresh_token", "application/x-www-form-urlencoded")).toBe(
-			"%E0%A4%A=1&refresh_token",
-		)
-		expect(redactor.textBody("token acc+tok/123456 issued", "text/plain")).toBe(`token ${REDACTED} issued`)
-		expect(redactor.textBody("refresh_token=rt-9876543210", "text/plain")).toBe("refresh_token=rt-9876543210")
-	})
-})
+  it("redacts a form's secret-named fields, and every registered value, wherever the text holds it", () => {
+    const redactor = new Redactor();
+    redactor.registerSecret("acc+tok/123456");
+    const form = "access_token=acc%2Btok%2F123456&refresh_token=rt-9876543210&scope=read+write&flag";
+    expect(redactor.textBody(form, "application/x-www-form-urlencoded; charset=utf-8")).toBe(
+      `access_token=${REDACTED}&refresh_token=${REDACTED}&scope=read+write&flag`,
+    );
+    expect(redactor.textBody("note=acc%2Btok%2F123456&bad=%E0%A4%A", "application/x-www-form-urlencoded")).toBe(
+      `note=${REDACTED}&bad=%E0%A4%A`,
+    );
+    expect(redactor.textBody("%E0%A4%A=1&refresh_token", "application/x-www-form-urlencoded")).toBe(
+      "%E0%A4%A=1&refresh_token",
+    );
+    expect(redactor.textBody("token acc+tok/123456 issued", "text/plain")).toBe(`token ${REDACTED} issued`);
+    expect(redactor.textBody("refresh_token=rt-9876543210", "text/plain")).toBe("refresh_token=rt-9876543210");
+  });
+});
 
 describe("Redactor.textBody, value scrubbing first", () => {
-	it("scrubs a registered value under a field whose name says nothing secret, as in plain text", () => {
-		const redactor = new Redactor()
-		redactor.registerSecret("acc-9f8e7d6c5b")
-		const form = "session=acc-9f8e7d6c5b&next=%2Fhome&label=held%20acc-9f8e7d6c5b%20here"
-		expect(redactor.textBody(form, "application/x-www-form-urlencoded")).toBe(
-			`session=${REDACTED}&next=%2Fhome&label=held ${REDACTED} here`,
-		)
-		expect(new Redactor().textBody(form, "application/x-www-form-urlencoded")).toBe(form)
-	})
-})
+  it("scrubs a registered value under a field whose name says nothing secret, as in plain text", () => {
+    const redactor = new Redactor();
+    redactor.registerSecret("acc-9f8e7d6c5b");
+    const form = "session=acc-9f8e7d6c5b&next=%2Fhome&label=held%20acc-9f8e7d6c5b%20here";
+    expect(redactor.textBody(form, "application/x-www-form-urlencoded")).toBe(
+      `session=${REDACTED}&next=%2Fhome&label=held ${REDACTED} here`,
+    );
+    expect(new Redactor().textBody(form, "application/x-www-form-urlencoded")).toBe(form);
+  });
+});
 
 describe("Redactor.body", () => {
-	it("redacts text by its media type, and any other body as JSON", () => {
-		const redactor = new Redactor()
-		expect(redactor.body("refresh_token=rt-9876543210", "application/x-www-form-urlencoded")).toBe(
-			`refresh_token=${REDACTED}`,
-		)
-		expect(redactor.body({ refresh_token: "rt-9876543210", n: 1 }, "application/json")).toEqual({
-			n: 1,
-			refresh_token: REDACTED,
-		})
-	})
-})
+  it("redacts text by its media type, and any other body as JSON", () => {
+    const redactor = new Redactor();
+    expect(redactor.body("refresh_token=rt-9876543210", "application/x-www-form-urlencoded")).toBe(
+      `refresh_token=${REDACTED}`,
+    );
+    expect(redactor.body({ refresh_token: "rt-9876543210", n: 1 }, "application/json")).toEqual({
+      n: 1,
+      refresh_token: REDACTED,
+    });
+  });
+});
 
 describe("Redactor, placed credentials", () => {
-	it("keeps an Authorization header's scheme word and scrubs the credential after it", () => {
-		const headers = new Redactor().headers({
-			Authorization: "ApiKey key_alpha_1",
-			"proxy-authorization": "Basic dXNlcjpwYXNz",
-			"x-api-key": "Bearer looks-like-a-scheme",
-			authorization: "bare-token-value",
-		})
-		expect(headers).toEqual({
-			Authorization: `ApiKey ${REDACTED}`,
-			authorization: REDACTED,
-			"proxy-authorization": `Basic ${REDACTED}`,
-			"x-api-key": REDACTED,
-		})
-	})
+  it("keeps an Authorization header's scheme word and scrubs the credential after it", () => {
+    const headers = new Redactor().headers({
+      Authorization: "ApiKey key_alpha_1",
+      "proxy-authorization": "Basic dXNlcjpwYXNz",
+      "x-api-key": "Bearer looks-like-a-scheme",
+      authorization: "bare-token-value",
+    });
+    expect(headers).toEqual({
+      Authorization: `ApiKey ${REDACTED}`,
+      authorization: REDACTED,
+      "proxy-authorization": `Basic ${REDACTED}`,
+      "x-api-key": REDACTED,
+    });
+  });
 
-	it("scrubs a registered query parameter by name, any value, and keeps the URL's shape", () => {
-		const redactor = new Redactor()
-		redactor.registerQuery("key")
-		const url = new URL(redactor.url("https://x.test/a?key=k1&q=1&key=k2"))
-		expect([...url.searchParams]).toEqual([
-			["key", REDACTED],
-			["q", "1"],
-			["key", REDACTED],
-		])
-		expect(redactor.url("https://x.test/a?KEY=k1")).toBe("https://x.test/a?KEY=k1")
-	})
+  it("scrubs a registered query parameter by name, any value, and keeps the URL's shape", () => {
+    const redactor = new Redactor();
+    redactor.registerQuery("key");
+    const url = new URL(redactor.url("https://x.test/a?key=k1&q=1&key=k2"));
+    expect([...url.searchParams]).toEqual([
+      ["key", REDACTED],
+      ["q", "1"],
+      ["key", REDACTED],
+    ]);
+    expect(redactor.url("https://x.test/a?KEY=k1")).toBe("https://x.test/a?KEY=k1");
+  });
 
-	it("scrubs a registered cookie by name wherever a cookie pair is written", () => {
-		const redactor = new Redactor()
-		redactor.registerCookie("sid")
-		expect(redactor.text("theme=dark; sid=abc; lang=en")).toBe(`theme=dark; sid=${REDACTED}; lang=en`)
-		expect(redactor.text("sid=abc")).toBe(`sid=${REDACTED}`)
-		expect(redactor.text("xsid=abc")).toBe("xsid=abc")
-		redactor.registerCookie("a.b")
-		expect(redactor.text("a.b=1;aXb=2")).toBe(`a.b=${REDACTED};aXb=2`)
-	})
-})
+  it("scrubs a registered cookie by name wherever a cookie pair is written", () => {
+    const redactor = new Redactor();
+    redactor.registerCookie("sid");
+    expect(redactor.text("theme=dark; sid=abc; lang=en")).toBe(`theme=dark; sid=${REDACTED}; lang=en`);
+    expect(redactor.text("sid=abc")).toBe(`sid=${REDACTED}`);
+    expect(redactor.text("xsid=abc")).toBe("xsid=abc");
+    redactor.registerCookie("a.b");
+    expect(redactor.text("a.b=1;aXb=2")).toBe(`a.b=${REDACTED};aXb=2`);
+  });
+});
 
 describe("Redactor, placed credentials in bodies", () => {
-	it("scrubs a form field by its name or its value", () => {
-		const redactor = new Redactor()
-		redactor.registerQuery("key")
-		redactor.registerSecret("issued-credential")
-		expect(redactor.field("password", "hunter2")).toBe(REDACTED)
-		expect(redactor.field("key", "anything")).toBe(REDACTED)
-		expect(redactor.field("note", "sent issued-credential")).toBe(`sent ${REDACTED}`)
-		expect(redactor.field("note", "plain")).toBe("plain")
-	})
+  it("scrubs a form field by its name or its value", () => {
+    const redactor = new Redactor();
+    redactor.registerQuery("key");
+    redactor.registerSecret("issued-credential");
+    expect(redactor.field("password", "hunter2")).toBe(REDACTED);
+    expect(redactor.field("key", "anything")).toBe(REDACTED);
+    expect(redactor.field("note", "sent issued-credential")).toBe(`sent ${REDACTED}`);
+    expect(redactor.field("note", "plain")).toBe("plain");
+  });
 
-	it("registers every name and value a placement sends", () => {
-		const redactor = new Redactor()
-		redactor.registerPlacement({
-			cookies: ["sid"],
-			headers: ["X-Tenant-Credential"],
-			query: ["api"],
-			values: ["placed-secret-value"],
-		})
-		expect(redactor.headers({ "x-tenant-credential": "v" })).toEqual({ "x-tenant-credential": REDACTED })
-		expect(redactor.url("https://x.test/?api=v")).toBe(`https://x.test/?api=${encodeURIComponent(REDACTED)}`)
-		expect(redactor.text("sid=v; echo placed-secret-value")).toBe(`sid=${REDACTED}; echo ${REDACTED}`)
-	})
-})
+  it("registers every name and value a placement sends", () => {
+    const redactor = new Redactor();
+    redactor.registerPlacement({
+      cookies: ["sid"],
+      headers: ["X-Tenant-Credential"],
+      query: ["api"],
+      values: ["placed-secret-value"],
+    });
+    expect(redactor.headers({ "x-tenant-credential": "v" })).toEqual({ "x-tenant-credential": REDACTED });
+    expect(redactor.url("https://x.test/?api=v")).toBe(`https://x.test/?api=${encodeURIComponent(REDACTED)}`);
+    expect(redactor.text("sid=v; echo placed-secret-value")).toBe(`sid=${REDACTED}; echo ${REDACTED}`);
+  });
+});
 
 describe("Redactor, a secret the backend issues", () => {
-	/* The RFC 6238 example secret, spaced and lowercase as a setup answer may show it. */
-	const SECRET = "JBSWY3DPEHPK3PXP"
-	const shown = "jbsw y3dp ehpk 3pxp"
+  /* The RFC 6238 example secret, spaced and lowercase as a setup answer may show it. */
+  const SECRET = "JBSWY3DPEHPK3PXP";
+  const shown = "jbsw y3dp ehpk 3pxp";
 
-	it("scrubs a value a response issued under a secret key wherever else it appears, before or after that key", () => {
-		const redactor = new Redactor()
-		const body = { link: `https://example.test/setup?code=${SECRET}`, secret: shown }
-		redactor.learn(body)
-		expect(JSON.stringify(redactor.json(body))).not.toContain(SECRET)
-		expect(redactor.text(`echoed: ${SECRET}`)).toBe(`echoed: ${REDACTED}`)
-		expect(redactor.url(`https://example.test/verify?c=${SECRET}`)).not.toContain(SECRET)
-		expect(redactor.holdsSecret(`x${SECRET}x`)).toBe(true)
-	})
+  it("scrubs a value a response issued under a secret key wherever else it appears, before or after that key", () => {
+    const redactor = new Redactor();
+    const body = { link: `https://example.test/setup?code=${SECRET}`, secret: shown };
+    redactor.learn(body);
+    expect(JSON.stringify(redactor.json(body))).not.toContain(SECRET);
+    expect(redactor.text(`echoed: ${SECRET}`)).toBe(`echoed: ${REDACTED}`);
+    expect(redactor.url(`https://example.test/verify?c=${SECRET}`)).not.toContain(SECRET);
+    expect(redactor.holdsSecret(`x${SECRET}x`)).toBe(true);
+  });
 
-	it("learns nothing from a body it only serializes, such as a request the run itself sent", () => {
-		const redactor = new Redactor()
-		expect(redactor.json({ password: "Quarterly Report 0" })).toEqual({ password: REDACTED })
-		expect(redactor.text("description Quarterly Report 0")).toBe("description Quarterly Report 0")
-	})
+  it("learns nothing from a body it only serializes, such as a request the run itself sent", () => {
+    const redactor = new Redactor();
+    expect(redactor.json({ password: "Quarterly Report 0" })).toEqual({ password: REDACTED });
+    expect(redactor.text("description Quarterly Report 0")).toBe("description Quarterly Report 0");
+  });
 
-	it("learns a letters-only base32 secret of 16 characters", () => {
-		const redactor = new Redactor()
-		redactor.learn({ totp_secret: "ABCDEFGHIJKLMNOP" })
-		expect(redactor.text("ABCDEFGHIJKLMNOP")).toBe(REDACTED)
-	})
+  it("learns a letters-only base32 secret of 16 characters", () => {
+    const redactor = new Redactor();
+    redactor.learn({ totp_secret: "ABCDEFGHIJKLMNOP" });
+    expect(redactor.text("ABCDEFGHIJKLMNOP")).toBe(REDACTED);
+  });
 
-	it("learns 12 to 15 characters only when not letters alone, and nothing shorter", () => {
-		const redactor = new Redactor()
-		redactor.learn({ api_secret: "ab12cd34ef56", token_type: "Bearer", password_hint: "Abcdefghijklm" })
-		expect(redactor.text("ab12cd34ef56")).toBe(REDACTED)
-		expect(redactor.text("Bearer x")).toBe("Bearer x")
-		expect(redactor.text("Abcdefghijklm")).toBe("Abcdefghijklm")
-	})
-})
+  it("learns 12 to 15 characters only when not letters alone, and nothing shorter", () => {
+    const redactor = new Redactor();
+    redactor.learn({ api_secret: "ab12cd34ef56", token_type: "Bearer", password_hint: "Abcdefghijklm" });
+    expect(redactor.text("ab12cd34ef56")).toBe(REDACTED);
+    expect(redactor.text("Bearer x")).toBe("Bearer x");
+    expect(redactor.text("Abcdefghijklm")).toBe("Abcdefghijklm");
+  });
+});
 
 describe("Redactor, an otpauth URI", () => {
-	const uri = "otpauth://totp/testing:ada?secret=GEZDGNBV&issuer=testing&period=30"
+  const uri = "otpauth://totp/testing:ada?secret=GEZDGNBV&issuer=testing&period=30";
 
-	it("redacts its secret by scheme, though nothing was learned, in text, a URL and a JSON body", () => {
-		const redactor = new Redactor()
-		expect(redactor.text(`scan ${uri} now`)).toBe(
-			`scan otpauth://totp/testing:ada?secret=${REDACTED}&issuer=testing&period=30 now`,
-		)
-		expect(JSON.stringify(redactor.json({ otpauth_url: uri }))).not.toContain("GEZDGNBV")
-		const encoded = `https://qr.example.test/?data=${encodeURIComponent(uri)}`
-		expect(redactor.url(encoded)).not.toContain("GEZDGNBV")
-	})
-})
+  it("redacts its secret by scheme, though nothing was learned, in text, a URL and a JSON body", () => {
+    const redactor = new Redactor();
+    expect(redactor.text(`scan ${uri} now`)).toBe(
+      `scan otpauth://totp/testing:ada?secret=${REDACTED}&issuer=testing&period=30 now`,
+    );
+    expect(JSON.stringify(redactor.json({ otpauth_url: uri }))).not.toContain("GEZDGNBV");
+    const encoded = `https://qr.example.test/?data=${encodeURIComponent(uri)}`;
+    expect(redactor.url(encoded)).not.toContain("GEZDGNBV");
+  });
+});
 
 describe("Redactor, an image beside a redacted secret", () => {
-	const png = `data:image/png;base64,${"iVBORw0KGgo".repeat(40)}`
+  const png = `data:image/png;base64,${"iVBORw0KGgo".repeat(40)}`;
 
-	it("redacts a data: image in a body that had something redacted, keeping its key", () => {
-		const redactor = new Redactor()
-		expect(redactor.json({ mfa: { qr_code: png, secret: "GEZDGNBVGY3TQOJQ" } })).toEqual({
-			mfa: { qr_code: REDACTED, secret: REDACTED },
-		})
-	})
+  it("redacts a data: image in a body that had something redacted, keeping its key", () => {
+    const redactor = new Redactor();
+    expect(redactor.json({ mfa: { qr_code: png, secret: "GEZDGNBVGY3TQOJQ" } })).toEqual({
+      mfa: { qr_code: REDACTED, secret: REDACTED },
+    });
+  });
 
-	it("keeps the images of a body with nothing redacted", () => {
-		expect(new Redactor().json({ avatar: png, name: "Ada" })).toEqual({ avatar: png, name: "Ada" })
-	})
-})
+  it("keeps the images of a body with nothing redacted", () => {
+    expect(new Redactor().json({ avatar: png, name: "Ada" })).toEqual({ avatar: png, name: "Ada" });
+  });
+});

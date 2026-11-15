@@ -7,7 +7,7 @@
  *
  * Keys are case names as the suite prints them (`shape:<name>`, `recall:<shape>:<defect>`).
  */
-export const EXPECTED_FAILURES: Readonly<Record<string, string>> = {}
+export const EXPECTED_FAILURES: Readonly<Record<string, string>> = {};
 
 /**
  * Inconclusive verdicts a clean baseline may return, per `backend:dialect`, as `check@entity`.
@@ -15,4 +15,4 @@ export const EXPECTED_FAILURES: Readonly<Record<string, string>> = {}
  * A check that cannot decide against a correct backend has not shown that it passes, so any
  * verdict not listed here fails the baseline. Like the list above, this may only shrink.
  */
-export const EXPECTED_INCONCLUSIVE: Readonly<Record<string, readonly string[]>> = {}
+export const EXPECTED_INCONCLUSIVE: Readonly<Record<string, readonly string[]>> = {};

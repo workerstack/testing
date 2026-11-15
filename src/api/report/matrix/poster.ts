@@ -3,33 +3,33 @@
  * as a loom, and its strips of chips.
  */
 
-import { entityBand } from "./band.ts"
-import { entityCards, forestSummary } from "./cards.ts"
-import { buildMatrixGraph, buildMatrixGraphFromReport } from "./graph.ts"
-import { loomSvg } from "./loom.ts"
-import { focusOf } from "./slice.ts"
-import { stripHtml } from "./strips.ts"
-import { posterStyle } from "./style.ts"
-import { esc } from "./text.ts"
-import type { EntityMatrix, MatrixGraph, MatrixParts, MatrixReport } from "./types.ts"
+import { entityBand } from "./band.ts";
+import { entityCards, forestSummary } from "./cards.ts";
+import { buildMatrixGraph, buildMatrixGraphFromReport } from "./graph.ts";
+import { loomSvg } from "./loom.ts";
+import { focusOf } from "./slice.ts";
+import { stripHtml } from "./strips.ts";
+import { posterStyle } from "./style.ts";
+import { esc } from "./text.ts";
+import type { EntityMatrix, MatrixGraph, MatrixParts, MatrixReport } from "./types.ts";
 
 export function renderMatrixFromParts(parts: MatrixParts): string {
-	return renderPoster(buildMatrixGraph(parts))
+  return renderPoster(buildMatrixGraph(parts));
 }
 
 export function renderMatrixHtml(input: MatrixReport): string {
-	return renderPoster(buildMatrixGraphFromReport(input))
+  return renderPoster(buildMatrixGraphFromReport(input));
 }
 
 /** The poster of a graph built here: one with at least one entity, never compacted. */
 export function renderPoster(graph: MatrixGraph): string {
-	return `${posterHead(graph)}${posterBody(graph)}`
+  return `${posterHead(graph)}${posterBody(graph)}`;
 }
 
 function posterHead(graph: MatrixGraph): string {
-	const names =
-		graph.entities.length <= 8 ? graph.entities.map((e) => e.name).join(", ") : `${graph.entities.length} entities`
-	return `<!DOCTYPE html>
+  const names =
+    graph.entities.length <= 8 ? graph.entities.map((e) => e.name).join(", ") : `${graph.entities.length} entities`;
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -41,15 +41,15 @@ function posterHead(graph: MatrixGraph): string {
 <style>
 ${posterStyle(graph.entities.length)}</style>
 </head>
-`
+`;
 }
 
 function posterBody(graph: MatrixGraph): string {
-	const multi = graph.entities.length > 1
-	const crowded = graph.entities.length > 24
-	const focus = focusOf(graph.entities, graph.invalidate)
-	const surface = focus.readSurface.map((r) => `<code>${esc(r)}</code>`).join("<span> · </span>")
-	return `<body>
+  const multi = graph.entities.length > 1;
+  const crowded = graph.entities.length > 24;
+  const focus = focusOf(graph.entities, graph.invalidate);
+  const surface = focus.readSurface.map((r) => `<code>${esc(r)}</code>`).join("<span> · </span>");
+  return `<body>
 <article class="poster">
   ${headerHtml(graph, multi)}
 
@@ -86,11 +86,11 @@ function posterBody(graph: MatrixGraph): string {
 </article>
 </body>
 </html>
-`
+`;
 }
 
 function headerHtml(graph: MatrixGraph, multi: boolean): string {
-	return `<header>
+  return `<header>
     <div>
       <div class="kicker">${multi ? "many entities · invalidate is an edge" : "same fact · many checks"}</div>
       <h1>${headerTitle(graph)}</h1>
@@ -103,12 +103,12 @@ function headerHtml(graph: MatrixGraph, multi: boolean): string {
       <div class="skipped"><b>${graph.counts.skipped}</b><span>did not apply</span></div>
       ${graph.counts["out-of-scope"] > 0 ? `<div class="skipped"><b>${graph.counts["out-of-scope"]}</b><span>out of scope</span></div>` : ""}
     </div>
-  </header>`
+  </header>`;
 }
 
 function headerTitle(graph: MatrixGraph): string {
-	if (graph.entities.length <= 1)
-		return `${esc((graph.entities[0] as EntityMatrix).name)} was asked<br>through independent projections`
-	const cross = graph.invalidate.filter((l) => l.cross).length
-	return `${graph.entities.length} entities, ${cross} cross-entity claim${cross === 1 ? "" : "s"}`
+  if (graph.entities.length <= 1)
+    return `${esc((graph.entities[0] as EntityMatrix).name)} was asked<br>through independent projections`;
+  const cross = graph.invalidate.filter((l) => l.cross).length;
+  return `${graph.entities.length} entities, ${cross} cross-entity claim${cross === 1 ? "" : "s"}`;
 }

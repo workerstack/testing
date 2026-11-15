@@ -1,214 +1,215 @@
-import { describe, expect, it } from "vitest"
-import { query } from "../__fixtures__/documents.ts"
-import type { CollectionShape } from "../collection/shape.ts"
-import { deriveQueryConventions } from "./derive.ts"
+import { describe, expect, it } from "vitest";
 
-const TEMPLATE = { ops: { eq: "eq" }, term: "{field}[{op}]={value}" }
-const SORT_TEMPLATE = { asc: "a", desc: "d", term: "{field}:{direction}" }
-const int = (name: string) => query(name, { type: "integer" })
+import { query } from "../__fixtures__/documents.ts";
+import type { CollectionShape } from "../collection/shape.ts";
+import { deriveQueryConventions } from "./derive.ts";
+
+const TEMPLATE = { ops: { eq: "eq" }, term: "{field}[{op}]={value}" };
+const SORT_TEMPLATE = { asc: "a", desc: "d", term: "{field}:{direction}" };
+const int = (name: string) => query(name, { type: "integer" });
 
 const paged: CollectionShape = {
-	envelopeKeys: [],
-	itemSchema: null,
-	key: "items",
-	pagination: { countKey: "total", cursorKey: "next", hasMoreKey: "more", limitKey: "per", pageKey: "at" },
-} as unknown as CollectionShape
+  envelopeKeys: [],
+  itemSchema: null,
+  key: "items",
+  pagination: { countKey: "total", cursorKey: "next", hasMoreKey: "more", limitKey: "per", pageKey: "at" },
+} as unknown as CollectionShape;
 
 describe("deriveQueryConventions", () => {
-	it("assumes equality and the dotted sort where a document says nothing", () => {
-		expect(deriveQueryConventions([], null)).toEqual({
-			envelope: {},
-			grammar: "equality",
-			selectGrammar: "csv",
-			sortGrammar: "dotted",
-		})
-	})
+  it("assumes equality and the dotted sort where a document says nothing", () => {
+    expect(deriveQueryConventions([], null)).toEqual({
+      envelope: {},
+      grammar: "equality",
+      selectGrammar: "csv",
+      sortGrammar: "dotted",
+    });
+  });
 
-	it("names every role's parameter, the Link header and the envelope, in a fixed order", () => {
-		const conventions = deriveQueryConventions(
-			[
-				{ in: "header", name: "q" },
-				query("where", { type: "array" }),
-				query("sort"),
-				query("fields"),
-				query("q"),
-				query("mode"),
-				query("after"),
-				int("limit"),
-				int("page"),
-				int("offset"),
-			],
-			paged,
-			{ responseHeaders: ["X-Total", "link"] },
-		)
-		expect(Object.keys(conventions)).toEqual([
-			"envelope",
-			"grammar",
-			"selectGrammar",
-			"sortGrammar",
-			"linkHeader",
-			"filter",
-			"order",
-			"select",
-			"search",
-			"searchMode",
-			"cursor",
-			"limit",
-			"page",
-			"offset",
-		])
-		expect(conventions).toMatchObject({ cursor: "after", filter: "where", linkHeader: "link", searchMode: "mode" })
-		expect(conventions.envelope).toEqual({
-			hasMore: "more",
-			limit: "per",
-			nextCursor: "next",
-			page: "at",
-			total: "total",
-		})
-		expect(Object.keys(conventions.envelope)).toEqual(["total", "hasMore", "nextCursor", "page", "limit"])
-	})
-})
+  it("names every role's parameter, the Link header and the envelope, in a fixed order", () => {
+    const conventions = deriveQueryConventions(
+      [
+        { in: "header", name: "q" },
+        query("where", { type: "array" }),
+        query("sort"),
+        query("fields"),
+        query("q"),
+        query("mode"),
+        query("after"),
+        int("limit"),
+        int("page"),
+        int("offset"),
+      ],
+      paged,
+      { responseHeaders: ["X-Total", "link"] },
+    );
+    expect(Object.keys(conventions)).toEqual([
+      "envelope",
+      "grammar",
+      "selectGrammar",
+      "sortGrammar",
+      "linkHeader",
+      "filter",
+      "order",
+      "select",
+      "search",
+      "searchMode",
+      "cursor",
+      "limit",
+      "page",
+      "offset",
+    ]);
+    expect(conventions).toMatchObject({ cursor: "after", filter: "where", linkHeader: "link", searchMode: "mode" });
+    expect(conventions.envelope).toEqual({
+      hasMore: "more",
+      limit: "per",
+      nextCursor: "next",
+      page: "at",
+      total: "total",
+    });
+    expect(Object.keys(conventions.envelope)).toEqual(["total", "hasMore", "nextCursor", "page", "limit"]);
+  });
+});
 
 describe("deriveQueryConventions roles", () => {
-	it("leaves a bare `mode` alone unless a search parameter is present", () => {
-		expect(deriveQueryConventions([query("mode")], null).searchMode).toBeUndefined()
-		expect(deriveQueryConventions([query("mode")], null, { responseHeaders: ["X-Next"] }).linkHeader).toBeUndefined()
-	})
-})
+  it("leaves a bare `mode` alone unless a search parameter is present", () => {
+    expect(deriveQueryConventions([query("mode")], null).searchMode).toBeUndefined();
+    expect(deriveQueryConventions([query("mode")], null, { responseHeaders: ["X-Next"] }).linkHeader).toBeUndefined();
+  });
+});
 
 describe("deriveQueryConventions filter grammar", () => {
-	it("takes a declared filter grammar, by name or as a template", () => {
-		expect(deriveQueryConventions([], null, { declared: { grammar: "colon" } })).toMatchObject({
-			grammar: "colon",
-			grammarDeclared: true,
-		})
-		const template = deriveQueryConventions([], null, { declared: { grammar: TEMPLATE } })
-		expect(Object.keys(template).slice(0, 4)).toEqual(["envelope", "grammar", "filterGrammar", "grammarDeclared"])
-		expect(template.grammar).toBe("template")
-		expect(template.filterGrammar?.term).toBe(TEMPLATE.term)
-	})
+  it("takes a declared filter grammar, by name or as a template", () => {
+    expect(deriveQueryConventions([], null, { declared: { grammar: "colon" } })).toMatchObject({
+      grammar: "colon",
+      grammarDeclared: true,
+    });
+    const template = deriveQueryConventions([], null, { declared: { grammar: TEMPLATE } });
+    expect(Object.keys(template).slice(0, 4)).toEqual(["envelope", "grammar", "filterGrammar", "grammarDeclared"]);
+    expect(template.grammar).toBe("template");
+    expect(template.filterGrammar?.term).toBe(TEMPLATE.term);
+  });
 
-	it("calls a free-text filter it cannot read unrecognized, and says so only when nothing was declared", () => {
-		const guesses: string[] = []
-		const filter = [query("filter")]
-		expect(deriveQueryConventions(filter, null, { onGuess: (message) => guesses.push(message) }).grammar).toBe(
-			"unrecognized",
-		)
-		expect(guesses).toHaveLength(1)
-		expect(guesses[0]).toMatch(/^parameter "filter" takes a filter expression whose grammar could not be recognized/)
-		expect(deriveQueryConventions(filter, null).grammar).toBe("unrecognized")
-		const declared = deriveQueryConventions(filter, null, {
-			declared: { grammar: { term: 1 } },
-			onGuess: (message) => guesses.push(message),
-		})
-		expect(declared.grammar).toBe("unrecognized")
-		expect(declared.grammarDeclared).toBeUndefined()
-		expect(guesses).toHaveLength(1)
-		expect(deriveQueryConventions([int("filter")], null).grammar).toBe("equality")
-		expect(
-			deriveQueryConventions([query("filter", { type: "string" }, { description: "name.eq.x" })], null).grammar,
-		).toBe("postgrest")
-	})
-})
+  it("calls a free-text filter it cannot read unrecognized, and says so only when nothing was declared", () => {
+    const guesses: string[] = [];
+    const filter = [query("filter")];
+    expect(deriveQueryConventions(filter, null, { onGuess: (message) => guesses.push(message) }).grammar).toBe(
+      "unrecognized",
+    );
+    expect(guesses).toHaveLength(1);
+    expect(guesses[0]).toMatch(/^parameter "filter" takes a filter expression whose grammar could not be recognized/);
+    expect(deriveQueryConventions(filter, null).grammar).toBe("unrecognized");
+    const declared = deriveQueryConventions(filter, null, {
+      declared: { grammar: { term: 1 } },
+      onGuess: (message) => guesses.push(message),
+    });
+    expect(declared.grammar).toBe("unrecognized");
+    expect(declared.grammarDeclared).toBeUndefined();
+    expect(guesses).toHaveLength(1);
+    expect(deriveQueryConventions([int("filter")], null).grammar).toBe("equality");
+    expect(
+      deriveQueryConventions([query("filter", { type: "string" }, { description: "name.eq.x" })], null).grammar,
+    ).toBe("postgrest");
+  });
+});
 
 describe("deriveQueryConventions sort grammar", () => {
-	it("takes a declared sort grammar, by name or as a template, and infers one it cannot read", () => {
-		expect(deriveQueryConventions([], null, { declared: { sortGrammar: "spaced" } })).toMatchObject({
-			sortDeclared: true,
-			sortGrammar: "spaced",
-		})
-		const template = deriveQueryConventions([], null, { declared: { sortGrammar: SORT_TEMPLATE } })
-		expect(template).toMatchObject({ sortDeclared: true, sortGrammar: "template" })
-		expect(template.sortSpec?.term).toBe(SORT_TEMPLATE.term)
-		const order = [query("sort", { type: "string" }, { description: "e.g. -name" })]
-		for (const sortGrammar of ["upward", { term: 1 }, null]) {
-			const inferred = deriveQueryConventions(order, null, { declared: { sortGrammar } })
-			expect(inferred.sortGrammar).toBe("prefixed")
-			expect(inferred.sortDeclared).toBeUndefined()
-		}
-	})
-})
+  it("takes a declared sort grammar, by name or as a template, and infers one it cannot read", () => {
+    expect(deriveQueryConventions([], null, { declared: { sortGrammar: "spaced" } })).toMatchObject({
+      sortDeclared: true,
+      sortGrammar: "spaced",
+    });
+    const template = deriveQueryConventions([], null, { declared: { sortGrammar: SORT_TEMPLATE } });
+    expect(template).toMatchObject({ sortDeclared: true, sortGrammar: "template" });
+    expect(template.sortSpec?.term).toBe(SORT_TEMPLATE.term);
+    const order = [query("sort", { type: "string" }, { description: "e.g. -name" })];
+    for (const sortGrammar of ["upward", { term: 1 }, null]) {
+      const inferred = deriveQueryConventions(order, null, { declared: { sortGrammar } });
+      expect(inferred.sortGrammar).toBe("prefixed");
+      expect(inferred.sortDeclared).toBeUndefined();
+    }
+  });
+});
 
 describe("deriveQueryConventions with named parameters", () => {
-	it("sends the filter in the named parameter and reads its grammar off that parameter", () => {
-		const filterBy = query("filter_by", { type: "string" }, { description: "e.g. name.eq.x" })
-		const conventions = deriveQueryConventions([filterBy, query("where")], null, { params: { filter: "filter_by" } })
-		expect(conventions.filter).toBe("filter_by")
-		expect(conventions.grammar).toBe("postgrest")
-		expect(deriveQueryConventions([filterBy], null).grammar).toBe("equality")
-	})
+  it("sends the filter in the named parameter and reads its grammar off that parameter", () => {
+    const filterBy = query("filter_by", { type: "string" }, { description: "e.g. name.eq.x" });
+    const conventions = deriveQueryConventions([filterBy, query("where")], null, { params: { filter: "filter_by" } });
+    expect(conventions.filter).toBe("filter_by");
+    expect(conventions.grammar).toBe("postgrest");
+    expect(deriveQueryConventions([filterBy], null).grammar).toBe("equality");
+  });
 
-	it("reads the select and sort grammars off the named parameters", () => {
-		const params = [query("pick[articles]"), query("arrange", { type: "string" }, { description: "e.g. -name" })]
-		const conventions = deriveQueryConventions(params, null, { params: { select: "pick[articles]", sort: "arrange" } })
-		expect(conventions).toMatchObject({
-			order: "arrange",
-			select: "pick[articles]",
-			selectGrammar: "bracketed",
-			sortGrammar: "prefixed",
-		})
-		expect(deriveQueryConventions(params, null)).toMatchObject({ selectGrammar: "csv", sortGrammar: "dotted" })
-	})
+  it("reads the select and sort grammars off the named parameters", () => {
+    const params = [query("pick[articles]"), query("arrange", { type: "string" }, { description: "e.g. -name" })];
+    const conventions = deriveQueryConventions(params, null, { params: { select: "pick[articles]", sort: "arrange" } });
+    expect(conventions).toMatchObject({
+      order: "arrange",
+      select: "pick[articles]",
+      selectGrammar: "bracketed",
+      sortGrammar: "prefixed",
+    });
+    expect(deriveQueryConventions(params, null)).toMatchObject({ selectGrammar: "csv", sortGrammar: "dotted" });
+  });
 
-	it("says when a named parameter is not one the operation declares, and falls back to the alias", () => {
-		const told: string[] = []
-		const conventions = deriveQueryConventions([query("where")], null, {
-			onUnmatched: (message) => told.push(message),
-			params: { filter: "filter_by", sort: "arrange" },
-		})
-		expect(conventions.filter).toBe("where")
-		expect(told).toEqual([
-			'params.filter names "filter_by", which the operation does not declare; the API tester finds the filter parameter by its aliases',
-			'params.sort names "arrange", which the operation does not declare; the API tester finds the sort parameter by its aliases',
-		])
-	})
-})
+  it("says when a named parameter is not one the operation declares, and falls back to the alias", () => {
+    const told: string[] = [];
+    const conventions = deriveQueryConventions([query("where")], null, {
+      onUnmatched: (message) => told.push(message),
+      params: { filter: "filter_by", sort: "arrange" },
+    });
+    expect(conventions.filter).toBe("where");
+    expect(told).toEqual([
+      'params.filter names "filter_by", which the operation does not declare; the API tester finds the filter parameter by its aliases',
+      'params.sort names "arrange", which the operation does not declare; the API tester finds the sort parameter by its aliases',
+    ]);
+  });
+});
 
 const shaped = (envelopeKeys: string[], pagination: CollectionShape["pagination"]): CollectionShape => ({
-	envelopeKeys,
-	itemSchema: null,
-	key: "events",
-	pagination,
-	within: [],
-})
+  envelopeKeys,
+  itemSchema: null,
+  key: "events",
+  pagination,
+  within: [],
+});
 
 describe("deriveQueryConventions with named envelope fields", () => {
-	it("reads a named fact from the field the response's envelope holds", () => {
-		const conventions = deriveQueryConventions([int("before")], shaped(["next_before"], {}), {
-			envelope: { nextCursor: "next_before" },
-			params: { cursor: "before" },
-		})
-		expect(conventions.envelope).toEqual({ nextCursor: "next_before" })
-		expect(conventions.cursor).toBe("before")
-	})
+  it("reads a named fact from the field the response's envelope holds", () => {
+    const conventions = deriveQueryConventions([int("before")], shaped(["next_before"], {}), {
+      envelope: { nextCursor: "next_before" },
+      params: { cursor: "before" },
+    });
+    expect(conventions.envelope).toEqual({ nextCursor: "next_before" });
+    expect(conventions.cursor).toBe("before");
+  });
 
-	it("drops an alias-found fact whose field a name claimed, keeping the fixed order", () => {
-		const collection = shaped(["count", "next"], { countKey: "count", cursorKey: "next" })
-		const conventions = deriveQueryConventions([], collection, { envelope: { hasMore: "next" } })
-		expect(conventions.envelope).toEqual({ hasMore: "next", total: "count" })
-		expect(Object.keys(conventions.envelope)).toEqual(["total", "hasMore"])
-	})
+  it("drops an alias-found fact whose field a name claimed, keeping the fixed order", () => {
+    const collection = shaped(["count", "next"], { countKey: "count", cursorKey: "next" });
+    const conventions = deriveQueryConventions([], collection, { envelope: { hasMore: "next" } });
+    expect(conventions.envelope).toEqual({ hasMore: "next", total: "count" });
+    expect(Object.keys(conventions.envelope)).toEqual(["total", "hasMore"]);
+  });
 
-	it("reports a name the envelope does not hold, and reads that fact by its aliases", () => {
-		const told: string[] = []
-		const conventions = deriveQueryConventions([], shaped(["next"], { cursorKey: "next" }), {
-			envelope: { nextCursor: "next_before" },
-			onUnmatched: (message) => told.push(message),
-		})
-		expect(conventions.envelope).toEqual({ nextCursor: "next" })
-		expect(told).toEqual([
-			'envelope.nextCursor names "next_before", which the response envelope does not declare; ' +
-				"the API tester finds the nextCursor field by its aliases",
-		])
-	})
+  it("reports a name the envelope does not hold, and reads that fact by its aliases", () => {
+    const told: string[] = [];
+    const conventions = deriveQueryConventions([], shaped(["next"], { cursorKey: "next" }), {
+      envelope: { nextCursor: "next_before" },
+      onUnmatched: (message) => told.push(message),
+    });
+    expect(conventions.envelope).toEqual({ nextCursor: "next" });
+    expect(told).toEqual([
+      'envelope.nextCursor names "next_before", which the response envelope does not declare; ' +
+        "the API tester finds the nextCursor field by its aliases",
+    ]);
+  });
 
-	it("reports every name where the operation answers no list", () => {
-		const told: string[] = []
-		const conventions = deriveQueryConventions([], null, {
-			envelope: { total: "tally" },
-			onUnmatched: (message) => told.push(message),
-		})
-		expect(conventions.envelope).toEqual({})
-		expect(told).toHaveLength(1)
-	})
-})
+  it("reports every name where the operation answers no list", () => {
+    const told: string[] = [];
+    const conventions = deriveQueryConventions([], null, {
+      envelope: { total: "tally" },
+      onUnmatched: (message) => told.push(message),
+    });
+    expect(conventions.envelope).toEqual({});
+    expect(told).toHaveLength(1);
+  });
+});

@@ -1,24 +1,24 @@
-import { run } from "../harness/counting.ts"
-import { launch, reach, type Via } from "../harness/launch.ts"
-import type { ParserResult } from "../harness/result.ts"
-import { PRINCIPALS, SECURITY } from "../matrix/principals.ts"
+import { run } from "../harness/counting.ts";
+import { launch, reach, type Via } from "../harness/launch.ts";
+import type { ParserResult } from "../harness/result.ts";
+import { PRINCIPALS, SECURITY } from "../matrix/principals.ts";
 
 /** The checks a clean run against the reference runs, with its tags or without them. */
 async function checksRun(untagged: boolean, via: Via): Promise<Set<string>> {
-	const server = await launch({ backend: "memory", dialect: "postgrest", via }, { untagged })
-	try {
-		const result = await run({
-			baseUrl: server.url,
-			principals: PRINCIPALS,
-			security: SECURITY,
-			seed: 42,
-			spec: `${server.url}/v1/openapi/spec`,
-			...reach(server),
-		})
-		return new Set(result.checksRun)
-	} finally {
-		await server.close()
-	}
+  const server = await launch({ backend: "memory", dialect: "postgrest", via }, { untagged });
+  try {
+    const result = await run({
+      baseUrl: server.url,
+      principals: PRINCIPALS,
+      security: SECURITY,
+      seed: 42,
+      spec: `${server.url}/v1/openapi/spec`,
+      ...reach(server),
+    });
+    return new Set(result.checksRun);
+  } finally {
+    await server.close();
+  }
 }
 
 /**
@@ -34,27 +34,27 @@ async function checksRun(untagged: boolean, via: Via): Promise<Set<string>> {
  * two runs this would otherwise make again.
  */
 export async function runTagUnlockSuite(
-	via: Via,
-	baselines?: { tagged: readonly string[]; untagged: readonly string[] },
+  via: Via,
+  baselines?: { tagged: readonly string[]; untagged: readonly string[] },
 ): Promise<ParserResult[]> {
-	const { TAG_UNLOCKS } = await import("../../report/console/tags.ts")
-	const tagged = baselines === undefined ? await checksRun(false, via) : new Set(baselines.tagged)
-	const untagged = baselines === undefined ? await checksRun(true, via) : new Set(baselines.untagged)
-	const lost = [...tagged].filter((id) => !untagged.has(id)).sort()
-	const promised = Object.values(TAG_UNLOCKS).flat().sort()
+  const { TAG_UNLOCKS } = await import("../../report/console/tags.ts");
+  const tagged = baselines === undefined ? await checksRun(false, via) : new Set(baselines.tagged);
+  const untagged = baselines === undefined ? await checksRun(true, via) : new Set(baselines.untagged);
+  const lost = [...tagged].filter((id) => !untagged.has(id)).sort();
+  const promised = Object.values(TAG_UNLOCKS).flat().sort();
 
-	const missing = promised.filter((id) => !lost.includes(id))
-	const unclaimed = lost.filter((id) => !promised.includes(id))
-	const ok = missing.length === 0 && unclaimed.length === 0
+  const missing = promised.filter((id) => !lost.includes(id));
+  const unclaimed = lost.filter((id) => !promised.includes(id));
+  const ok = missing.length === 0 && unclaimed.length === 0;
 
-	return [
-		{
-			detail: ok
-				? `${lost.length} check(s) unlocked by tags, exactly as documented`
-				: `promised-but-not-lost: [${missing.join(", ")}]; lost-but-unclaimed: [${unclaimed.join(", ")}]`,
-			name: "doctor's tag-unlock claims are true",
-			ok,
-			why: "a coverage promise nobody verified is worse than no promise",
-		},
-	]
+  return [
+    {
+      detail: ok
+        ? `${lost.length} check(s) unlocked by tags, exactly as documented`
+        : `promised-but-not-lost: [${missing.join(", ")}]; lost-but-unclaimed: [${unclaimed.join(", ")}]`,
+      name: "doctor's tag-unlock claims are true",
+      ok,
+      why: "a coverage promise nobody verified is worse than no promise",
+    },
+  ];
 }

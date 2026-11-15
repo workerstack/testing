@@ -11,19 +11,21 @@
  */
 
 /** The variable that defers an unset `env()` to its `${NAME}` literal, when it is exactly "1". */
-export const DEFER_ENV = "TESTING_API_DEFER_ENV"
+export const DEFER_ENV = "TESTING_API_DEFER_ENV";
 
 export class MissingEnvError extends Error {
-	override name = "MissingEnvError"
-	constructor(readonly variable: string) {
-		super(`testing api: env ${variable} is not set`)
-	}
+  override name = "MissingEnvError";
+  readonly variable: string;
+  constructor(variable: string) {
+    super(`testing api: env ${variable} is not set`);
+    this.variable = variable;
+  }
 }
 
 /** The value of `name` in the environment; throws when it is unset or empty, unless the load defers it. */
 export function env(name: string, environment: Readonly<Record<string, string | undefined>> = process.env): string {
-	const value = environment[name]
-	if (value !== undefined && value !== "") return value
-	if (environment[DEFER_ENV] === "1") return `\${${name}}`
-	throw new MissingEnvError(name)
+  const value = environment[name];
+  if (value !== undefined && value !== "") return value;
+  if (environment[DEFER_ENV] === "1") return `\${${name}}`;
+  throw new MissingEnvError(name);
 }

@@ -5,107 +5,107 @@
  */
 
 export type FilterOp =
-	| "eq"
-	| "ne"
-	| "neq"
-	| "gt"
-	| "gte"
-	| "lt"
-	| "lte"
-	| "in"
-	| "nin"
-	| "like"
-	| "ilike"
-	| "is"
-	| "contains"
-export type FieldType = "string" | "number" | "boolean" | "date" | "enum" | "array"
-export type SearchMode = string
-export type Nulls = "first" | "last"
+  | "eq"
+  | "ne"
+  | "neq"
+  | "gt"
+  | "gte"
+  | "lt"
+  | "lte"
+  | "in"
+  | "nin"
+  | "like"
+  | "ilike"
+  | "is"
+  | "contains";
+export type FieldType = "string" | "number" | "boolean" | "date" | "enum" | "array";
+export type SearchMode = string;
+export type Nulls = "first" | "last";
 
 export interface FilterableField {
-	field: string
-	type?: FieldType
-	ops?: FilterOp[]
+  field: string;
+  type?: FieldType;
+  ops?: FilterOp[];
 }
 
 export interface SortableField {
-	field: string
-	type?: FieldType
-	nulls?: Nulls[]
+  field: string;
+  type?: FieldType;
+  nulls?: Nulls[];
 }
 
 export interface SelectRelation {
-	name: string
-	fields: string[]
+  name: string;
+  fields: string[];
 }
 
 export interface FilterableFrom {
-	operationId?: string
-	route?: string
-	path: string
-	typePath?: string
-	typeMap?: Record<string, FieldType>
+  operationId?: string;
+  route?: string;
+  path: string;
+  typePath?: string;
+  typeMap?: Record<string, FieldType>;
 }
 
 export interface QueryCapabilities {
-	filterable?: FilterableField[]
-	sortable?: SortableField[]
-	/** `null` is an explicit claim of none. */
-	searchable?: string[] | null
-	selectable?: string[]
-	operators?: FilterOp[]
-	operatorsByType?: Partial<Record<FieldType, FilterOp[]>>
-	aliases?: Partial<Record<FilterOp, FilterOp>>
-	identityFilter?: string
-	emptyIn?: "reject" | "match-none"
-	/** What a page size of 0 or past the maximum gets: refused, or served clamped. Undeclared, either. */
-	limitOutOfRange?: "reject" | "clamp"
-	maxInValues?: number
-	maxFilterConditions?: number
-	searchModes?: SearchMode[]
-	searchEmpty?: "ignore" | "match-all" | "reject"
-	searchCase?: "sensitive" | "insensitive"
-	sort?: {
-		defaultOrder?: string
-		stableTiebreak?: string
-		nulls?: Nulls[]
-		maxKeys?: number
-		/** How text compares in an order. Undeclared, the API tester accepts any consistent one. */
-		collation?: "binary" | "case-insensitive" | "locale"
-		/** Where nulls go in an ascending order with no modifier. Undeclared, either end, consistently. */
-		defaultNulls?: Nulls
-	}
-	select?: {
-		nested?: boolean
-		unknown?: "reject" | "ignore"
-		relations?: SelectRelation[]
-	}
-	filterableFrom?: FilterableFrom
-	sortableFrom?: FilterableFrom
-	searchableFrom?: FilterableFrom
-	selectableFrom?: FilterableFrom
+  filterable?: FilterableField[];
+  sortable?: SortableField[];
+  /** `null` is an explicit claim of none. */
+  searchable?: string[] | null;
+  selectable?: string[];
+  operators?: FilterOp[];
+  operatorsByType?: Partial<Record<FieldType, FilterOp[]>>;
+  aliases?: Partial<Record<FilterOp, FilterOp>>;
+  identityFilter?: string;
+  emptyIn?: "reject" | "match-none";
+  /** What a page size of 0 or past the maximum gets: refused, or served clamped. Undeclared, either. */
+  limitOutOfRange?: "reject" | "clamp";
+  maxInValues?: number;
+  maxFilterConditions?: number;
+  searchModes?: SearchMode[];
+  searchEmpty?: "ignore" | "match-all" | "reject";
+  searchCase?: "sensitive" | "insensitive";
+  sort?: {
+    defaultOrder?: string;
+    stableTiebreak?: string;
+    nulls?: Nulls[];
+    maxKeys?: number;
+    /** How text compares in an order. Undeclared, the API tester accepts any consistent one. */
+    collation?: "binary" | "case-insensitive" | "locale";
+    /** Where nulls go in an ascending order with no modifier. Undeclared, either end, consistently. */
+    defaultNulls?: Nulls;
+  };
+  select?: {
+    nested?: boolean;
+    unknown?: "reject" | "ignore";
+    relations?: SelectRelation[];
+  };
+  filterableFrom?: FilterableFrom;
+  sortableFrom?: FilterableFrom;
+  searchableFrom?: FilterableFrom;
+  selectableFrom?: FilterableFrom;
 }
 
 /** A filter grammar by preset name, or a template object the renderer validates. */
-export type DeclaredFilterGrammar = "postgrest" | "colon" | "equality" | Record<string, unknown>
+export type DeclaredFilterGrammar = "postgrest" | "colon" | "equality" | Record<string, unknown>;
 /** A sort grammar by preset name, or a template object the renderer validates. */
-export type DeclaredSortGrammar = "dotted" | "prefixed" | "colon" | "spaced" | Record<string, unknown>
+export type DeclaredSortGrammar = "dotted" | "prefixed" | "colon" | "spaced" | Record<string, unknown>;
 
 /** A query role, by the name the rest of the vocabulary uses: `sort` as in `sortable`, never `order`. */
 export type QueryParamRole =
-	| "filter"
-	| "sort"
-	| "select"
-	| "search"
-	| "searchMode"
-	| "limit"
-	| "page"
-	| "offset"
-	| "cursor"
+  | "filter"
+  | "sort"
+  | "select"
+  | "search"
+  | "searchMode"
+  | "limit"
+  | "page"
+  | "offset"
+  | "cursor";
 /** The query parameter each role is sent in, for a role whose parameter no alias the API tester knows names. */
-export type QueryParamNames = Partial<Record<QueryParamRole, string>>
+export type QueryParamNames = Partial<Record<QueryParamRole, string>>;
 
 /** A paging fact a walk reads from a list response: the total, the more-pages flag, the next cursor. */
-export type QueryEnvelopeRole = "total" | "hasMore" | "nextCursor"
+export type QueryEnvelopeRole = "total" | "hasMore" | "nextCursor";
 /** The response field each fact is read from, for a fact whose field no alias the API tester knows names. */
-export type QueryEnvelopeNames = Partial<Record<QueryEnvelopeRole, string>>
+export type QueryEnvelopeNames = Partial<Record<QueryEnvelopeRole, string>>;

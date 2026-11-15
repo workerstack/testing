@@ -1,18 +1,18 @@
-import type { Client } from "../../client/client.ts"
-import type { OperationModel, SpecModel } from "../../spec/graph/types.ts"
-import { createdIdOf, createdRecordOf } from "../created-id.ts"
-import type { Exchange } from "../exchange.ts"
-import { confirmSubmitted } from "./confirm.ts"
-import { answersRecord, type CreatedRecord, declaredFields, expectedFields, readBackCreated } from "./read-back.ts"
-import { recordOf } from "./records.ts"
+import type { Client } from "../../client/client.ts";
+import type { OperationModel, SpecModel } from "../../spec/graph/types.ts";
+import { createdIdOf, createdRecordOf } from "../created-id.ts";
+import type { Exchange } from "../exchange.ts";
+import { confirmSubmitted } from "./confirm.ts";
+import { answersRecord, type CreatedRecord, declaredFields, expectedFields, readBackCreated } from "./read-back.ts";
+import { recordOf } from "./records.ts";
 
 function jsonText(sent: unknown): unknown {
-	if (typeof sent !== "string") return sent
-	try {
-		return JSON.parse(sent) as unknown
-	} catch {
-		return sent
-	}
+  if (typeof sent !== "string") return sent;
+  try {
+    return JSON.parse(sent) as unknown;
+  } catch {
+    return sent;
+  }
 }
 
 /**
@@ -27,44 +27,45 @@ function jsonText(sent: unknown): unknown {
  * (`readBackCreated`), unless the caller `wants` only the id: a ledger needs nothing else.
  */
 export async function createdRecord(input: {
-	client: Pick<Client, "get">
-	model: SpecModel
-	createOp: OperationModel
-	exchange: Exchange
-	sent: unknown
-	scope: Record<string, string>
-	/** The principal that created it, which reads it back: `as: { principal }`. */
-	principal: string
-	readable?: (op: OperationModel) => boolean
-	/** `"id"` when only the id matters: an answer that is not the record is then never read back. */
-	wants?: "id"
+  client: Pick<Client, "get">;
+  model: SpecModel;
+  createOp: OperationModel;
+  exchange: Exchange;
+  sent: unknown;
+  scope: Record<string, string>;
+  /** The principal that created it, which reads it back: `as: { principal }`. */
+  principal: string;
+  readable?: (op: OperationModel) => boolean;
+  /** `"id"` when only the id matters: an answer that is not the record is then never read back. */
+  wants?: "id";
 }): Promise<CreatedRecord | null> {
-	const { createOp, model } = input
-	const entity = createOp.entity
-	const identity = (entity === null ? undefined : model.entities.get(entity))?.identity ?? "id"
-	const body = input.exchange.responseBody ?? {}
-	/* A probe may send the body as JSON text under another media type: compare what it said. */
-	const sent = jsonText(input.sent)
-	/* A declared record path wins; without one, the envelope is inferred from what was sent. */
-	const record = createOp.recordPath === null ? createdRecordOf(body, identity, sent) : (recordOf(createOp, body) ?? {})
-	const resolved = createdIdOf({ createOp, exchange: input.exchange, model, sent })
-	if (resolved?.trusted === true) {
-		const answered = { ...record, [identity]: resolved.value }
-		if (input.wants === "id" || answersRecord(answered, expectedFields(model, createOp, sent)))
-			return { acknowledged: false, record: answered }
-		return readBackCreated({ ...input, answered: declaredFields(model, createOp, record), id: resolved, sent })
-	}
-	if (entity === null) return null
-	const confirmed = await confirmSubmitted({
-		client: input.client,
-		entity,
-		identity,
-		model,
-		principal: input.principal,
-		scope: input.scope,
-		sent,
-		...(resolved === undefined ? {} : { id: resolved.id }),
-		...(input.readable === undefined ? {} : { readable: input.readable }),
-	})
-	return confirmed === null ? null : { acknowledged: resolved === undefined, record: confirmed }
+  const { createOp, model } = input;
+  const entity = createOp.entity;
+  const identity = (entity === null ? undefined : model.entities.get(entity))?.identity ?? "id";
+  const body = input.exchange.responseBody ?? {};
+  /* A probe may send the body as JSON text under another media type: compare what it said. */
+  const sent = jsonText(input.sent);
+  /* A declared record path wins; without one, the envelope is inferred from what was sent. */
+  const record =
+    createOp.recordPath === null ? createdRecordOf(body, identity, sent) : (recordOf(createOp, body) ?? {});
+  const resolved = createdIdOf({ createOp, exchange: input.exchange, model, sent });
+  if (resolved?.trusted === true) {
+    const answered = { ...record, [identity]: resolved.value };
+    if (input.wants === "id" || answersRecord(answered, expectedFields(model, createOp, sent)))
+      return { acknowledged: false, record: answered };
+    return readBackCreated({ ...input, answered: declaredFields(model, createOp, record), id: resolved, sent });
+  }
+  if (entity === null) return null;
+  const confirmed = await confirmSubmitted({
+    client: input.client,
+    entity,
+    identity,
+    model,
+    principal: input.principal,
+    scope: input.scope,
+    sent,
+    ...(resolved === undefined ? {} : { id: resolved.id }),
+    ...(input.readable === undefined ? {} : { readable: input.readable }),
+  });
+  return confirmed === null ? null : { acknowledged: resolved === undefined, record: confirmed };
 }

@@ -8,26 +8,26 @@
  * constructors below are the only places allowed to make one (lint rule `testing/proven-id-origin`).
  */
 
-import { findCreatedId } from "./effects/ids.ts"
-import { resolveAsyncId } from "./async.ts"
+import { resolveAsyncId } from "./async.ts";
+import { findCreatedId } from "./effects/ids.ts";
 
-declare const provenBrand: unique symbol
+declare const provenBrand: unique symbol;
 
 /** An id the backend gave back, never one the API tester only sent. */
-export type ProvenId = string & { readonly [provenBrand]: true }
+export type ProvenId = string & { readonly [provenBrand]: true };
 
 function scalar(value: unknown): ProvenId | undefined {
-	return typeof value === "string" || typeof value === "number" ? (String(value) as ProvenId) : undefined
+  return typeof value === "string" || typeof value === "number" ? (String(value) as ProvenId) : undefined;
 }
 
 /** The created record's id as a response carried it, nested envelopes included. */
 export function answeredId(response: { responseBody: unknown }, keys: readonly string[]): ProvenId | undefined {
-	return scalar(findCreatedId(response.responseBody, keys))
+  return scalar(findCreatedId(response.responseBody, keys));
 }
 
 /** The identity of a record the backend returned: a create's answer, a read, a listed row. */
 export function returnedId(record: Record<string, unknown>, identity: string): ProvenId | undefined {
-	return scalar(record[identity])
+  return scalar(record[identity]);
 }
 
 /**
@@ -35,15 +35,15 @@ export function returnedId(record: Record<string, unknown>, identity: string): P
  * top-level one is trusted as it stands; any other is confirmed by a read before it is recorded.
  */
 export function createdId(value: unknown): ProvenId | undefined {
-	return scalar(value)
+  return scalar(value);
 }
 
 /** Ids a listing returned. */
 export function listedIds(ids: readonly string[]): ProvenId[] {
-	return ids.map((id) => id as ProvenId)
+  return ids.map((id) => id as ProvenId);
 }
 
 /** The job id an async start's receipt (its response, or the stream's id frame) names. */
 export function receiptId(receipt: unknown, idFrom: string): ProvenId | undefined {
-	return scalar(resolveAsyncId(receipt, idFrom))
+  return scalar(resolveAsyncId(receipt, idFrom));
 }

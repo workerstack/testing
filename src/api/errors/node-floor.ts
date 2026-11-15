@@ -4,4 +4,4 @@
  * `package.json` `engines.node` is `>=` this `.0`, and every message that names the floor reads it
  * from here (tests/structure/engines.test.ts holds them together).
  */
-export const NODE_FLOOR = "22.18"
+export const NODE_FLOOR = "22.18";

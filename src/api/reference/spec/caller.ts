@@ -1,78 +1,78 @@
 /** Routes about the caller: its profile, its account, its own project, a register and a logout. */
 
-import { PHONE_PATTERN, STRING_GUARD } from "../model/string-guard.ts"
-import { errorResponses } from "./errors.ts"
-import { jsonResponse, ok } from "./operation.ts"
-import type { Json, SpecContext } from "./types.ts"
-import type { JsonSchema } from "../../spec/types.ts"
+import type { JsonSchema } from "../../spec/types.ts";
+import { PHONE_PATTERN, STRING_GUARD } from "../model/string-guard.ts";
+import { errorResponses } from "./errors.ts";
+import { jsonResponse, ok } from "./operation.ts";
+import type { Json, SpecContext } from "./types.ts";
 
 /** The signed-up caller is the record. No list, no create, no path id. */
 /* Under the string guard: the name guarded, and a phone number whose own pattern sits beside the guard. */
 const GUARDED_PROFILE: Readonly<Record<string, JsonSchema>> = {
-	first_name: { maxLength: 64, pattern: STRING_GUARD, type: "string" },
-	phone_number: {
-		anyOf: [
-			{
-				allOf: [{ pattern: PHONE_PATTERN }, { pattern: STRING_GUARD }],
-				maxLength: 15,
-				minLength: 7,
-				type: "string",
-			},
-			{ type: "null" },
-		],
-	},
-}
+  first_name: { maxLength: 64, pattern: STRING_GUARD, type: "string" },
+  phone_number: {
+    anyOf: [
+      {
+        allOf: [{ pattern: PHONE_PATTERN }, { pattern: STRING_GUARD }],
+        maxLength: 15,
+        minLength: 7,
+        type: "string",
+      },
+      { type: "null" },
+    ],
+  },
+};
 
 export function callerProfilePaths(ctx: SpecContext): Json {
-	const schema: JsonSchema = {
-		additionalProperties: false,
-		properties:
-			ctx.shape.stringGuard === true ? { ...GUARDED_PROFILE } : { first_name: { maxLength: 64, type: "string" } },
-		required: ["first_name"],
-		type: "object",
-	}
-	return {
-		"/v1/me": {
-			get: {
-				operationId: "profile.get",
-				responses: {
-					[ok(ctx, 200)]: jsonResponse("The signed-up caller", schema),
-					...errorResponses(ctx, [401]),
-				},
-				summary: "Read the signed-up caller",
-				tags: ["Profile"],
-				"x-entity": { action: "read", identity: "self", name: "profile" },
-			},
-			patch: {
-				operationId: "profile.update",
-				requestBody: {
-					content: { "application/json": { schema } },
-					required: true,
-				},
-				responses: {
-					[ok(ctx, 200)]: jsonResponse("The signed-up caller", schema),
-					...errorResponses(ctx, [400, 401]),
-				},
-				summary: "Update the signed-up caller",
-				tags: ["Profile"],
-				"x-entity": { action: "update", identity: "self", name: "profile" },
-				"x-invalidate": ["GET /v1/me"],
-			},
-			delete: {
-				operationId: "profile.delete",
-				responses: {
-					[ok(ctx, 204)]: { description: "The caller's account is gone" },
-					...errorResponses(ctx, [401]),
-				},
-				summary: "Delete the signed-up caller's own account",
-				tags: ["Profile"],
-				"x-destructive": true,
-				"x-entity": { action: "delete", identity: "self", name: "profile" },
-				"x-invalidate": ["GET /v1/me"],
-			},
-		},
-		...(ctx.shape.totpSetup === true ? { "/v1/me/2fa": { post: totpSetupOperation(ctx) } } : {}),
-	}
+  const schema: JsonSchema = {
+    additionalProperties: false,
+    properties:
+      ctx.shape.stringGuard === true ? { ...GUARDED_PROFILE } : { first_name: { maxLength: 64, type: "string" } },
+    required: ["first_name"],
+    type: "object",
+  };
+  return {
+    "/v1/me": {
+      get: {
+        operationId: "profile.get",
+        responses: {
+          [ok(ctx, 200)]: jsonResponse("The signed-up caller", schema),
+          ...errorResponses(ctx, [401]),
+        },
+        summary: "Read the signed-up caller",
+        tags: ["Profile"],
+        "x-entity": { action: "read", identity: "self", name: "profile" },
+      },
+      patch: {
+        operationId: "profile.update",
+        requestBody: {
+          content: { "application/json": { schema } },
+          required: true,
+        },
+        responses: {
+          [ok(ctx, 200)]: jsonResponse("The signed-up caller", schema),
+          ...errorResponses(ctx, [400, 401]),
+        },
+        summary: "Update the signed-up caller",
+        tags: ["Profile"],
+        "x-entity": { action: "update", identity: "self", name: "profile" },
+        "x-invalidate": ["GET /v1/me"],
+      },
+      delete: {
+        operationId: "profile.delete",
+        responses: {
+          [ok(ctx, 204)]: { description: "The caller's account is gone" },
+          ...errorResponses(ctx, [401]),
+        },
+        summary: "Delete the signed-up caller's own account",
+        tags: ["Profile"],
+        "x-destructive": true,
+        "x-entity": { action: "delete", identity: "self", name: "profile" },
+        "x-invalidate": ["GET /v1/me"],
+      },
+    },
+    ...(ctx.shape.totpSetup === true ? { "/v1/me/2fa": { post: totpSetupOperation(ctx) } } : {}),
+  };
 }
 
 /*
@@ -80,21 +80,21 @@ export function callerProfilePaths(ctx: SpecContext): Json {
  * contract floor is what calls it, and its answer carries the secret three ways.
  */
 function totpSetupOperation(ctx: SpecContext): Json {
-	const text = { type: "string" }
-	return {
-		operationId: "auth.setup2fa",
-		responses: {
-			[ok(ctx, 200)]: jsonResponse("The caller's new TOTP secret, its otpauth URI and a QR image of it", {
-				additionalProperties: false,
-				properties: { otpauth_uri: text, qr_code: text, secret: text },
-				required: ["secret", "otpauth_uri", "qr_code"],
-				type: "object",
-			}),
-			...errorResponses(ctx, [401]),
-		},
-		summary: "Enroll the caller in TOTP",
-		tags: ["Profile"],
-	}
+  const text = { type: "string" };
+  return {
+    operationId: "auth.setup2fa",
+    responses: {
+      [ok(ctx, 200)]: jsonResponse("The caller's new TOTP secret, its otpauth URI and a QR image of it", {
+        additionalProperties: false,
+        properties: { otpauth_uri: text, qr_code: text, secret: text },
+        required: ["secret", "otpauth_uri", "qr_code"],
+        type: "object",
+      }),
+      ...errorResponses(ctx, [401]),
+    },
+    summary: "Enroll the caller in TOTP",
+    tags: ["Profile"],
+  };
 }
 
 /**
@@ -102,161 +102,161 @@ function totpSetupOperation(ctx: SpecContext): Json {
  * as many documents leave such a route: nothing marks it the caller's own but its path.
  */
 function accountUpdateOperation(ctx: SpecContext): Json {
-	return {
-		operationId: "account.update",
-		requestBody: {
-			content: {
-				"application/json": {
-					schema: {
-						additionalProperties: false,
-						properties: {
-							display_name: { maxLength: 64, type: "string" },
-							email: { format: "email", type: "string" },
-							password: { minLength: 8, type: "string" },
-						},
-						type: "object",
-					},
-				},
-			},
-			required: true,
-		},
-		responses: {
-			[ok(ctx, 200)]: jsonResponse("The caller's account", {
-				additionalProperties: false,
-				properties: { display_name: { type: "string" }, email: { type: "string" } },
-				type: "object",
-			}),
-			...errorResponses(ctx, [400, 401]),
-		},
-		summary: "Update the caller's own account",
-		tags: ["Profile"],
-	}
+  return {
+    operationId: "account.update",
+    requestBody: {
+      content: {
+        "application/json": {
+          schema: {
+            additionalProperties: false,
+            properties: {
+              display_name: { maxLength: 64, type: "string" },
+              email: { format: "email", type: "string" },
+              password: { minLength: 8, type: "string" },
+            },
+            type: "object",
+          },
+        },
+      },
+      required: true,
+    },
+    responses: {
+      [ok(ctx, 200)]: jsonResponse("The caller's account", {
+        additionalProperties: false,
+        properties: { display_name: { type: "string" }, email: { type: "string" } },
+        type: "object",
+      }),
+      ...errorResponses(ctx, [400, 401]),
+    },
+    summary: "Update the caller's own account",
+    tags: ["Profile"],
+  };
 }
 
 function logoutOperation(ctx: SpecContext): Json {
-	return {
-		operationId: "auth.logout",
-		responses: {
-			[ok(ctx, 200)]: jsonResponse("Logged out", {
-				additionalProperties: false,
-				properties: { ok: { type: "boolean" } },
-				required: ["ok"],
-				type: "object",
-			}),
-			...errorResponses(ctx, [401]),
-		},
-		summary: "Log out this session",
-		tags: ["Profile"],
-		"x-destructive": true,
-		"x-invalidate": ["GET /v1/me"],
-	}
+  return {
+    operationId: "auth.logout",
+    responses: {
+      [ok(ctx, 200)]: jsonResponse("Logged out", {
+        additionalProperties: false,
+        properties: { ok: { type: "boolean" } },
+        required: ["ok"],
+        type: "object",
+      }),
+      ...errorResponses(ctx, [401]),
+    },
+    summary: "Log out this session",
+    tags: ["Profile"],
+    "x-destructive": true,
+    "x-invalidate": ["GET /v1/me"],
+  };
 }
 
 function overviewOperation(ctx: SpecContext): Json {
-	return {
-		operationId: "project.overview",
-		parameters: [
-			{
-				in: "path",
-				name: "project_id",
-				required: true,
-				schema: { type: "string" },
-			},
-		],
-		responses: {
-			[ok(ctx, 200)]: jsonResponse("The caller's project", {
-				additionalProperties: false,
-				properties: {
-					extractions: { type: "integer" },
-					project_id: { type: "string" },
-				},
-				required: ["extractions", "project_id"],
-				type: "object",
-			}),
-			...errorResponses(ctx, [401]),
-		},
-		summary: "Read the caller's project",
-		tags: ["Profile"],
-		"x-entity": { action: "read", identity: "root", name: "overview" },
-	}
+  return {
+    operationId: "project.overview",
+    parameters: [
+      {
+        in: "path",
+        name: "project_id",
+        required: true,
+        schema: { type: "string" },
+      },
+    ],
+    responses: {
+      [ok(ctx, 200)]: jsonResponse("The caller's project", {
+        additionalProperties: false,
+        properties: {
+          extractions: { type: "integer" },
+          project_id: { type: "string" },
+        },
+        required: ["extractions", "project_id"],
+        type: "object",
+      }),
+      ...errorResponses(ctx, [401]),
+    },
+    summary: "Read the caller's project",
+    tags: ["Profile"],
+    "x-entity": { action: "read", identity: "root", name: "overview" },
+  };
 }
 
 function registerOperation(ctx: SpecContext): Json {
-	return {
-		operationId: "auth.register",
-		requestBody: {
-			content: {
-				"application/json": {
-					schema: {
-						additionalProperties: false,
-						properties: {
-							email: { format: "email", type: "string" },
-							/* Only an operator makes an account staff. */
-							staff: { type: "boolean", "x-privileged": true },
-						},
-						required: ["email"],
-						type: "object",
-					},
-				},
-			},
-			required: true,
-		},
-		responses: {
-			[ok(ctx, 201)]: jsonResponse("A new caller", {
-				additionalProperties: false,
-				properties: { access_token: { type: "string" }, account_id: { type: "string" } },
-				required: ["access_token", "account_id"],
-				type: "object",
-			}),
-		},
-		security: [],
-		summary: "Register a caller",
-		tags: ["Profile"],
-		"x-entity": { action: "create", identity: "account_id", name: "signup" },
-		"x-fresh-principal": true,
-		"x-invalidate": ["GET /v1/signups"],
-	}
+  return {
+    operationId: "auth.register",
+    requestBody: {
+      content: {
+        "application/json": {
+          schema: {
+            additionalProperties: false,
+            properties: {
+              email: { format: "email", type: "string" },
+              /* Only an operator makes an account staff. */
+              staff: { type: "boolean", "x-privileged": true },
+            },
+            required: ["email"],
+            type: "object",
+          },
+        },
+      },
+      required: true,
+    },
+    responses: {
+      [ok(ctx, 201)]: jsonResponse("A new caller", {
+        additionalProperties: false,
+        properties: { access_token: { type: "string" }, account_id: { type: "string" } },
+        required: ["access_token", "account_id"],
+        type: "object",
+      }),
+    },
+    security: [],
+    summary: "Register a caller",
+    tags: ["Profile"],
+    "x-entity": { action: "create", identity: "account_id", name: "signup" },
+    "x-fresh-principal": true,
+    "x-invalidate": ["GET /v1/signups"],
+  };
 }
 
 /** The accounts the register made in the caller's project, each with the staff flag only an operator grants. */
 function signupListOperation(ctx: SpecContext): Json {
-	const row = {
-		additionalProperties: false,
-		properties: { account_id: { type: "string" }, email: { type: "string" }, staff: { type: "boolean" } },
-		required: ["account_id", "email", "staff"],
-		type: "object",
-	}
-	return {
-		operationId: "signup.list",
-		responses: {
-			[ok(ctx, 200)]: jsonResponse("The accounts registered into the caller's project", {
-				additionalProperties: false,
-				properties: { signups: { items: row, type: "array" } },
-				required: ["signups"],
-				type: "object",
-			}),
-			...errorResponses(ctx, [401]),
-		},
-		summary: "List the accounts registered into the caller's project",
-		tags: ["Profile"],
-		"x-entity": { action: "list", identity: "account_id", name: "signup" },
-	}
+  const row = {
+    additionalProperties: false,
+    properties: { account_id: { type: "string" }, email: { type: "string" }, staff: { type: "boolean" } },
+    required: ["account_id", "email", "staff"],
+    type: "object",
+  };
+  return {
+    operationId: "signup.list",
+    responses: {
+      [ok(ctx, 200)]: jsonResponse("The accounts registered into the caller's project", {
+        additionalProperties: false,
+        properties: { signups: { items: row, type: "array" } },
+        required: ["signups"],
+        type: "object",
+      }),
+      ...errorResponses(ctx, [401]),
+    },
+    summary: "List the accounts registered into the caller's project",
+    tags: ["Profile"],
+    "x-entity": { action: "list", identity: "account_id", name: "signup" },
+  };
 }
 
 /** An admin removing an account of its own project by id. */
 function accountDeleteOperation(ctx: SpecContext): Json {
-	return {
-		operationId: "account.delete",
-		parameters: [{ in: "path", name: "account_id", required: true, schema: { type: "string" } }],
-		responses: {
-			[ok(ctx, 204)]: { description: "The account is gone" },
-			...errorResponses(ctx, [401, 403, 404]),
-		},
-		summary: "Delete an account of the caller's project",
-		tags: ["Profile"],
-		"x-entity": { action: "delete", identity: "account_id", name: "signup" },
-		"x-invalidate": ["GET /v1/signups"],
-	}
+  return {
+    operationId: "account.delete",
+    parameters: [{ in: "path", name: "account_id", required: true, schema: { type: "string" } }],
+    responses: {
+      [ok(ctx, 204)]: { description: "The account is gone" },
+      ...errorResponses(ctx, [401, 403, 404]),
+    },
+    summary: "Delete an account of the caller's project",
+    tags: ["Profile"],
+    "x-entity": { action: "delete", identity: "account_id", name: "signup" },
+    "x-invalidate": ["GET /v1/signups"],
+  };
 }
 
 /**
@@ -264,12 +264,12 @@ function accountDeleteOperation(ctx: SpecContext): Json {
  * user, the accounts the register made, and an admin's delete of one.
  */
 export function callerRootPaths(ctx: SpecContext): Json {
-	return {
-		"/v1/signups": { get: signupListOperation(ctx) },
-		"/v1/signups/{account_id}": { delete: accountDeleteOperation(ctx) },
-		"/v1/logout": { post: logoutOperation(ctx) },
-		"/v1/me/account": { put: accountUpdateOperation(ctx) },
-		"/v1/projects/{project_id}/overview": { get: overviewOperation(ctx) },
-		"/v1/register": { post: registerOperation(ctx) },
-	}
+  return {
+    "/v1/signups": { get: signupListOperation(ctx) },
+    "/v1/signups/{account_id}": { delete: accountDeleteOperation(ctx) },
+    "/v1/logout": { post: logoutOperation(ctx) },
+    "/v1/me/account": { put: accountUpdateOperation(ctx) },
+    "/v1/projects/{project_id}/overview": { get: overviewOperation(ctx) },
+    "/v1/register": { post: registerOperation(ctx) },
+  };
 }
