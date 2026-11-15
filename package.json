@@ -26,7 +26,6 @@
 	"files": [
 		"bin/testing.js",
 		"dist",
-		"!dist/**/*.map",
 		"README.md",
 		"docs",
 		"LICENSE",

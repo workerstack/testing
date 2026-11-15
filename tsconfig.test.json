@@ -9,9 +9,7 @@
 		"rootDirs": ["src", "dist"],
 		"declaration": false,
 		/* isolatedDeclarations needs declaration emit, which tests skip; tsconfig.json holds src to it. */
-		"isolatedDeclarations": false,
-		"declarationMap": false,
-		"sourceMap": false
+		"isolatedDeclarations": false
 	},
 	"include": ["src/**/*.ts", "tests/**/*.ts", "lint/**/*.ts", "labs/**/*.ts", "scripts/**/*.ts"],
 	"exclude": ["dist", "node_modules", "src/web", "tests/web"]

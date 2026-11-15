@@ -113,6 +113,11 @@ describe("the package", () => {
 			expect(orphans).toEqual([])
 			/* A source map points at src/api/, which the package does not ship: it would only add size. */
 			expect(shipped.filter((path) => path.endsWith(".map"))).toEqual([])
+			/* Nor may a shipped file name a map it lacks: vite reads the comment and logs ENOENT per module. */
+			const pointing = shipped.filter(
+				(path) => /\.(js|d\.ts)$/.test(path) && readFileSync(join(ROOT, path), "utf8").includes("sourceMappingURL="),
+			)
+			expect(pointing).toEqual([])
 		},
 		PACK_TIMEOUT_MS,
 	)
