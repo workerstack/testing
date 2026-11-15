@@ -50,6 +50,10 @@
 		"./web": {
 			"types": "./dist/web/index.d.ts",
 			"default": "./dist/web/index.js"
+		},
+		"./web/dom": {
+			"types": "./dist/web/dom/index.d.ts",
+			"default": "./dist/web/dom/index.js"
 		}
 	},
 	"publishConfig": {
@@ -112,7 +116,8 @@
 	"peerDependencies": {
 		"@axe-core/playwright": "^4.14.0",
 		"@playwright/test": "^1.64.1",
-		"postgres": "^3.4"
+		"postgres": "^3.4",
+		"vitest": "^5.0.5"
 	},
 	"peerDependenciesMeta": {
 		"@axe-core/playwright": {
@@ -122,6 +127,9 @@
 			"optional": true
 		},
 		"postgres": {
+			"optional": true
+		},
+		"vitest": {
 			"optional": true
 		}
 	},

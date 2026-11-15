@@ -5,6 +5,9 @@ import { rule, webImportAllowed } from "./web-boundaries.ts"
 const MESSAGE =
 	"a web module imports node builtins, web itself and its declared optional peers only (see AGENTS.md: dependency arrows)"
 
+const DOM_MESSAGE =
+	"a web/dom module runs in the page: it imports web/dom itself and vitest only (see AGENTS.md: dependency arrows)"
+
 const PEERS: ReadonlySet<string> = new Set(["@playwright/test", "solid-js"])
 
 const allowed = (from: string, spec: string): boolean => webImportAllowed({ from, peers: PEERS, spec })
@@ -39,6 +42,18 @@ describe("webImportAllowed", () => {
 		expect(allowed("solid/hydrate.ts", "../../api/index.ts")).toBe(false)
 	})
 
+	it("keeps web/dom, which runs in the page, to itself and vitest", () => {
+		const peers = new Set([...PEERS, "vitest"])
+		const dom = (spec: string): boolean => webImportAllowed({ from: "dom/pointer.ts", peers, spec })
+		expect(dom("./gesture.ts")).toBe(true)
+		expect(dom("vitest")).toBe(true)
+		expect(dom("../ready.ts")).toBe(false)
+		expect(dom("../solid/hydrate.ts")).toBe(false)
+		expect(dom("@playwright/test")).toBe(false)
+		expect(dom("node:fs")).toBe(false)
+		expect(allowed("pointer.ts", "./dom/gesture.ts")).toBe(true)
+	})
+
 	it("refuses a path that climbs out of web", () => {
 		expect(allowed("ready.ts", "../../lint/ast.ts")).toBe(false)
 		expect(allowed("ready.ts", "../cli/main.ts")).toBe(false)
@@ -59,6 +74,11 @@ describe("testing/web-boundaries", () => {
 		const reports = reportsOf(rule, fixture)
 		expect(reports.map(({ line }) => line)).toEqual([1, 2, 3])
 		expect(reports[0]?.message).toBe(MESSAGE)
+	})
+
+	it("names what web/dom may import when a dom module breaks it", () => {
+		const reports = reportsOf(rule, { "src/web/dom/pointer.ts": 'import { test } from "@playwright/test"\n' })
+		expect(reports.map(({ message }) => message)).toEqual([DOM_MESSAGE])
 	})
 
 	it("leaves tests, fixtures and code outside src/web alone", () => {

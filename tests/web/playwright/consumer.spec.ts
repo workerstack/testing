@@ -41,6 +41,8 @@ test("a consumer project fails exactly the specs whose page went wrong, with the
 		"an allowed origin answers with its stub, across origins": "passed",
 		"a page.route stub answers before the gate": "passed",
 		"allow refuses a path where an origin belongs": "failed",
+		"a drag reorders the list": "passed",
+		"dragCenterTo lands the item past the last one": "passed",
 	})
 	const message = (title: string): string => found.get(title)?.message ?? ""
 	expect(message("a console error fails the test")).toContain(

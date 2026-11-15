@@ -13,11 +13,12 @@ import { relative } from "node:path"
 import { createA11y, loadAxe, type A11y, type A11yOptions } from "./a11y.ts"
 import { breaches, breachLine, checkGuard, type GuardIgnore, type GuardOptions, type PageEvent } from "./guard.ts"
 import { createNetwork, type Network } from "./network.ts"
+import { createPointer, type PagePointer } from "./pointer.ts"
 import { createReady, type Ready } from "./ready.ts"
 
 /*
  * The fixtures `test` adds to Playwright's: the page a test drives is guarded, every request it
- * makes passes the network gate, and the readiness and a11y helpers act on that page. A consumer
+ * makes passes the network gate, and the readiness, a11y and pointer helpers act on that page. A consumer
  * sets `guard` and `a11yDefaults` with `test.use` per file or per describe.
  */
 
@@ -32,6 +33,8 @@ export interface WebFixtures {
 	a11y: A11y
 	/** Declares the origins the page may reach beyond the app's own. */
 	network: Network
+	/** Drags with the page's mouse, one animation frame per step. */
+	pointer: PagePointer
 }
 
 type TestArgs = PlaywrightTestArgs & PlaywrightTestOptions
@@ -93,4 +96,5 @@ export const fixtures: Fixtures<WebFixtures, object, TestArgs, WorkerArgs> = {
 	a11yDefaults: [{}, { option: true }],
 	a11y: async ({ a11yDefaults, page }, use) => use(createA11y({ builder: buildAxe, defaults: a11yDefaults, page })),
 	network: [guardNetwork, { auto: true }],
+	pointer: async ({ page }, use) => use(createPointer(page)),
 }

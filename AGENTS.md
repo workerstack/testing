@@ -66,7 +66,8 @@ The linter and `tests/structure/` enforce each of these; a broken one fails a ga
   conformance → cli, index. steps (the `@workerstack/testing/api/steps` builders) imports only the step
   types and the errors. The reference backend is its own program: it never imports the client
   or the runtime. web (`src/web`) imports node builtins, its own files and its declared optional peers
-  (Playwright, axe, vitest); web/solid adds Solid. web and the API tester never import each other.
+  (Playwright, axe, vitest); web/solid adds Solid; web/dom runs in the page and imports only itself and vitest.
+  web and the API tester never import each other.
   No import cycles, type-only imports included.
 - **Naming.** A module is named for what it does. No `utils`, `helpers` or `misc` file or
   directory, and no barrel: `export *` appears nowhere, and `src/api/index.ts` names each export.

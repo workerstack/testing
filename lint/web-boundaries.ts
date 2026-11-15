@@ -8,20 +8,32 @@ import { isTestCode, repoPath } from "./paths.ts"
  * The web helpers' arrows. `src/web/` imports node builtins, its own files and the browser stack it
  * is written against; that stack is an optional peer, so an API-only consumer never installs it, and
  * a peer the manifest does not declare would fail in a consumer that has not installed it.
- * `src/web/solid/` adds Solid, so a non-Solid app never loads it. Neither imports the API tester,
+ * `src/web/solid/` adds Solid, so a non-Solid app never loads it. `src/web/dom/` runs in the page
+ * under vitest's browser mode, so it imports only itself and vitest: never Playwright or a builtin. Neither imports the API tester,
  * and the API tester's own rule refuses the reverse.
  */
 const MESSAGE =
 	"a web module imports node builtins, web itself and its declared optional peers only (see AGENTS.md: dependency arrows)"
 
+const DOM_MESSAGE =
+	"a web/dom module runs in the page: it imports web/dom itself and vitest only (see AGENTS.md: dependency arrows)"
+
 const WEB_PACKAGES: ReadonlySet<string> = new Set(["@playwright/test", "@axe-core/playwright", "vitest"])
 const SOLID_PACKAGES: ReadonlySet<string> = new Set(["solid-js", "@solidjs/web"])
 
 const inSolid = (rel: string): boolean => rel.startsWith("solid/")
+const inDom = (rel: string): boolean => rel.startsWith("dom/")
+
+/* A page module: its own folder and vitest, the one peer that runs in the page. */
+function domImportAllowed(from: string, spec: string, peers: ReadonlySet<string>): boolean {
+	if (spec.startsWith(".")) return inDom(posix.join(posix.dirname(from), spec))
+	return packageName(spec) === "vitest" && peers.has("vitest")
+}
 
 /** Whether the module at `from` (relative to `src/web/`) may import `spec`, given the declared peers. */
 export function webImportAllowed(input: { from: string; spec: string; peers: ReadonlySet<string> }): boolean {
 	const { from, peers, spec } = input
+	if (inDom(from)) return domImportAllowed(from, spec, peers)
 	if (spec.startsWith("node:")) return true
 	if (spec.startsWith(".")) {
 		const target = posix.join(posix.dirname(from), spec)
@@ -54,7 +66,9 @@ export const rule: Rule = {
 			const source = node.source
 			if (source?.type !== "Literal" || typeof source.value !== "string") return
 			peers ??= declaredPeers()
-			if (!webImportAllowed({ from, peers, spec: source.value })) context.report({ message: MESSAGE, node })
+			if (!webImportAllowed({ from, peers, spec: source.value })) {
+				context.report({ message: inDom(from) ? DOM_MESSAGE : MESSAGE, node })
+			}
 		}
 		return {
 			ExportAllDeclaration: check,

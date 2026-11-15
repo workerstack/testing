@@ -2,7 +2,9 @@
 
 `@workerstack/testing/web` gives Playwright tests a page that fails the test when it throws or logs
 an error, helpers that wait on the page instead of the clock, an accessibility scan, a network
-gate that fails a request to an origin the test did not declare, and an app server on a free port.
+gate that fails a request to an origin the test did not declare, a `pointer` that drags one
+animation frame per step, and an app server on a free port. Tests that run inside the page use
+[`@workerstack/testing/web/dom`](dom.md).
 
 Install Playwright beside it, and axe if you scan. Both are optional peers, so only a project that
 tests a web app needs them:
@@ -14,7 +16,7 @@ npm install -D @workerstack/testing @playwright/test @axe-core/playwright
 ## `test`
 
 `test` is Playwright's `test` with the `page` guarded, every request gated, the `guard` and
-`a11yDefaults` options, and the `ready`, `a11y` and `network` fixtures.
+`a11yDefaults` options, and the `ready`, `a11y`, `network` and `pointer` fixtures.
 Use it in place of Playwright's, and extend it with your own fixtures the usual way:
 
 ```ts
@@ -153,6 +155,31 @@ What else to know:
   for a blocked request; the network line names it.
 - The gate routes every request, and in Playwright routing turns off the browser's HTTP cache.
 - WebSockets and requests a service worker makes are not gated.
+
+## `pointer`
+
+`pointer` drags with the page's mouse the way a hand does: it presses the handle's center, moves
+6px across the list's axis in 2 steps to pass a drag engine's 5px threshold, walks to the target
+in 16 steps kept 6px off-axis, and releases. It waits one animation frame after every move, so the
+engine sees each one.
+
+```ts
+test("reorders", async ({ page, pointer }) => {
+	const row = page.locator("[data-item=a]")
+	await pointer.drag(row, { to: page.locator("[data-item=c]") })
+	await pointer.drag(row, { to: { x: 120, y: 400 }, axis: "x", steps: 8 })
+	await pointer.dragCenterTo({ handle: row.locator(".grip"), item: row, to: { x: 120, y: 400 } })
+})
+```
+
+- `to` is a locator, whose center the drag ends on, or a spot in the viewport.
+- `dragCenterTo` grips the handle so the item's center, not the handle's, lands on `to`.
+- The handle scrolls into view first, then every box is measured.
+- It is a mouse. A touch gesture runs in the page, with [`pointer.create("touch")`](dom.md).
+
+```console
+Error: pointer: locator('[data-item=x]') has no box; is it visible?
+```
 
 ## `appServer` and `defineWebConfig`
 

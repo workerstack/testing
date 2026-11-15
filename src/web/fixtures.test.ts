@@ -98,6 +98,16 @@ describe("fixtures", () => {
 		})
 		expect(Object.keys(given as object)).toEqual(["goto", "settle"])
 	})
+
+	it("gives each test a mouse pointer on its page", async () => {
+		const { page } = fakePage()
+		const pointer = fixtures.pointer as (args: { page: Page }, use: (value: unknown) => Promise<void>) => Promise<void>
+		let given: unknown
+		await pointer({ page }, async (value) => {
+			given = value
+		})
+		expect(Object.keys(given as object)).toEqual(["drag", "dragCenterTo"])
+	})
 })
 
 type RouteHandler = (route: Route) => Promise<void>

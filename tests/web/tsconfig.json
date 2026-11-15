@@ -4,7 +4,10 @@
 	"compilerOptions": {
 		"lib": ["ES2023", "DOM", "DOM.Iterable"],
 		/* The consumer project imports the package by name, as a consumer does; this check reads the source. */
-		"paths": { "@workerstack/testing/web": ["../../src/web/index.ts"] }
+		"paths": {
+			"@workerstack/testing/web": ["../../src/web/index.ts"],
+			"@workerstack/testing/web/dom": ["../../src/web/dom/index.ts"]
+		}
 	},
 	"include": ["./**/*.ts", "../../src/web/**/*.ts", "../../playwright.config.ts", "../../vitest.web.config.ts"],
 	"exclude": []
