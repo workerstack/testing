@@ -1,6 +1,5 @@
 {
 	"$schema": "./node_modules/oxlint/configuration_schema.json",
-	"extends": ["./oxlint.base.json"],
 	"plugins": ["typescript", "unicorn", "oxc", "vitest"],
 	"jsPlugins": [
 		{
@@ -21,9 +20,13 @@
 		".agents/**",
 		".claude/**",
 		".codex/**",
-		".gemini/**",
 		".grok/**",
-		".rulesync/**"
+		"**/dist/**",
+		"**/coverage/**",
+		"**/_gen/**",
+		".tmp/**",
+		".cursor/**",
+		".repo/**"
 	],
 	"categories": {
 		"correctness": "error",

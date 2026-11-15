@@ -99,7 +99,7 @@ describe("the workflows", () => {
 		expect(untagged.map(([id]) => id)).toEqual([])
 	})
 
-	/* Run 41596487324: bun 1.4.4 reads the scoped .npmrc setup-node writes, and the job's token cannot read grunt there. */
+	/* Run 41596487324: bun 1.4.4 reads the scoped .npmrc setup-node writes, and the job's token cannot read the private dev dependency there. */
 	it("install the GitHub Packages job's dependencies before it points the scope at GitHub Packages", () => {
 		const job = jobs(workflow("release.yml")).get("gh-pkg") ?? ""
 		expect(job.indexOf("bun install --frozen-lockfile")).toBeGreaterThan(-1)

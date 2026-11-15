@@ -1,5 +1,4 @@
 # dependencies
-node_modules/
 .pnp
 .pnp.js
 
@@ -9,7 +8,6 @@ build/
 *.tsbuildinfo
 
 # test / run artifacts
-coverage/
 report.md
 report.json
 repro/
@@ -29,7 +27,6 @@ labs/api/.deploy/
 labs/api/.wrangler/
 
 # editors
-.vscode/
 .idea/
 *.swp
 *.swo
@@ -45,9 +42,28 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 .oatlogs/
-.tmp/
 
 # Third-party files the real-API targets fetch by pinned commit and sha256 (tests/api/targets/*/target.ts).
 tests/api/targets/crapi/keys/
 tests/api/targets/vampi/openapi3.yml
+
+# repo:ignore a280cfb1
+.tmp/
 .worktrees/
+coverage/
+**/.repo/plans/
+**/.repo/plans-fast/
+**/.repo/roadmaps/
+**/.repo/roadmaps-fast/
+**/.repo/handoffs/
+**/.repo/implementations/
+**/.repo/scratch/
+**/.repo/tmp/
+**/.repo/backlog.md
+node_modules/
+.agents/
+.claude/
+.codex/
+.cursor/
+.grok/
+# /repo:ignore

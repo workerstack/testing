@@ -46,7 +46,7 @@ It passes when:
 
 The baseline is the summary of the four full runs before 0.25 (`2026-10-13T19-45-19Z`,
 `2026-10-13T22-57-40Z`, `2026-10-14T00-58-44Z`, `2026-10-14T03-13-42Z`), kept outside the
-repository at `.tmp/grunt/anyrow-baseline.json` because it describes a private API. For the new
+repository at `.tmp/anyrow-baseline.json` because it describes a private API. For the new
 run's `report.json`, compare:
 
 | Measure           | Read from                   | Holds when                                                                              |

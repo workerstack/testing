@@ -19,13 +19,12 @@ describe("the strict TypeScript flags", () => {
 	})
 
 	it("are not fought by a lint rule that turns bracket access back into dots", () => {
-		for (const file of [".oxlintrc.json", "oxlint.base.json"]) {
-			const config = json(file)
-			const overrides = (config["overrides"] ?? []) as Array<{ rules?: Record<string, unknown> }>
-			const rules = [config["rules"] ?? {}, ...overrides.map((override) => override.rules ?? {})].flatMap((set) =>
-				Object.keys(set),
-			)
-			expect(rules.filter((rule) => /(^|\/)dot-notation$/.test(rule))).toEqual([])
-		}
+		const config = json(".oxlintrc.json")
+		const overrides = (config["overrides"] ?? []) as Array<{ rules?: Record<string, unknown> }>
+		const rules = [config["rules"] ?? {}, ...overrides.map((override) => override.rules ?? {})].flatMap((set) =>
+			Object.keys(set),
+		)
+		expect(config["extends"]).toBeUndefined()
+		expect(rules.filter((rule) => /(^|\/)dot-notation$/.test(rule))).toEqual([])
 	})
 })
