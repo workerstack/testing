@@ -12,6 +12,7 @@ import { rule as noModuleSideEffects } from "./no-module-side-effects.ts"
 import { rule as noModuleState } from "./no-module-state.ts"
 import { rule as noV8Ignore } from "./no-v8-ignore.ts"
 import { rule as provenIdOrigin } from "./proven-id-origin.ts"
+import { rule as webBoundaries } from "./web-boundaries.ts"
 
 export default {
 	meta: { name: "testing" },
@@ -29,5 +30,6 @@ export default {
 		"no-module-state": noModuleState,
 		"no-v8-ignore": noV8Ignore,
 		"proven-id-origin": provenIdOrigin,
+		"web-boundaries": webBoundaries,
 	},
 }

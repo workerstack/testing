@@ -1,0 +1,9 @@
+{
+	/* Browser tests and their runner configs: the test config plus the DOM, which the API tester never sees. */
+	"extends": "../../tsconfig.test.json",
+	"compilerOptions": {
+		"lib": ["ES2023", "DOM", "DOM.Iterable"]
+	},
+	"include": ["./**/*.ts", "../../playwright.config.ts", "../../vitest.web.config.ts"],
+	"exclude": []
+}

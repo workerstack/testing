@@ -17,12 +17,12 @@ This repo has these `package.json` scripts. Hooks and CI call only these names, 
 
 ## Where each gate runs
 
-| when       | what                                                                                                               | blocks                |
-| ---------- | ------------------------------------------------------------------------------------------------------------------ | --------------------- |
-| pre-commit | `oxlint --fix`, then `oxfmt` on staged files (restaged); `oxfmt --check` and `oxlint` on them; `bun run typecheck` | the commit            |
-| commit-msg | commitlint (Conventional Commits)                                                                                  | the commit            |
-| pre-push   | `fmt:check`, `lint` on the whole tree                                                                              | the push              |
-| CI         | the full gates on every push to `main`: `fmt:check`, `lint`, `typecheck`, `test`, `test:integration`, `test:e2e`   | new work, until fixed |
+| when       | what                                                                                                                         | blocks                |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| pre-commit | `oxlint --fix`, then `oxfmt` on staged files (restaged); `oxfmt --check` and `oxlint` on them; `bun run typecheck`           | the commit            |
+| commit-msg | commitlint (Conventional Commits)                                                                                            | the commit            |
+| pre-push   | `fmt:check`, `lint` on the whole tree                                                                                        | the push              |
+| CI         | the full gates on every push to `main`: `fmt:check`, `lint`, `typecheck`, `test`, `test:integration`, `test:e2e`, `test:web` | new work, until fixed |
 
 `tests/structure/workflows.test.ts` checks the jobs in `.github/workflows/ci.yml`.
 

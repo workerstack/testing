@@ -158,6 +158,24 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run test:e2e
 
+  # The web helpers in real Chromium: a Playwright project and a vitest browser project, both on
+  # ports the OS picks. Chromium comes from Playwright's own install, at the version it pins.
+  web:
+    name: web
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: bun install --frozen-lockfile
+      - run: bunx playwright install --with-deps chromium
+      - run: bun run test:web
+
   # The self-test as shards (src/api/conformance/shards.ts), each its own job with a timeout of about twice
   # its time, so no single job runs for an hour. Each writes the checks its defects proved; the
   # `conformance` job judges their union, the same verdict one full run gives. The matrix is the

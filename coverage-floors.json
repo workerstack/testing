@@ -15,6 +15,7 @@
 	"lint/nodes.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
 	"lint/paths.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
 	"lint/proven-id-origin.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
+	"lint/web-boundaries.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
 	"src/api/cli/commands/baseline.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
 	"src/api/cli/commands/conformance-matrix.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
 	"src/api/cli/commands/conformance-proven.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },

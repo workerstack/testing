@@ -81,6 +81,13 @@ describe("the workflows", () => {
 		}
 	})
 
+	it("run the browser tests in ci.yml, with Chromium installed first", () => {
+		const web = jobs(workflow("ci.yml")).get("web") ?? ""
+		expect(web).toContain("bun run test:web")
+		expect(web.indexOf("playwright install")).toBeGreaterThan(-1)
+		expect(web.indexOf("playwright install")).toBeLessThan(web.indexOf("bun run test:web"))
+	})
+
 	it("hold a release to ci.yml's verdict on the tagged commit, never a second run of the gates", () => {
 		expect(workflow("ci.yml")).not.toContain("workflow_call:")
 		const release = jobs(workflow("release.yml"))

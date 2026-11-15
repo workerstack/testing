@@ -36,7 +36,7 @@ run it again, then the tests the change reaches. A fix without a test that faile
 `references/tdd.md`.
 
 Locally, a commit runs the tests its change reaches. CI on the pushed tip is the full gate: `fmt:check`, `lint`,
-`typecheck`, `test`, `test:integration` and `test:e2e`. After a push, `bun scripts/ci-wait.ts` waits for the run and
+`typecheck`, `test`, `test:integration`, `test:e2e` and `test:web`. After a push, `bun scripts/ci-wait.ts` waits for the run and
 names any failed job and its log. While CI is red, the only work is fixing it. Never use `--no-verify`. A failure is
 never skipped, retried away, or called flaky. Detail: `references/gates.md`.
 
@@ -65,7 +65,9 @@ The linter and `tests/structure/` enforce each of these; a broken one fails a ga
   client, credentials, reference → runtime (checks included) → runtime/run → config, report,
   conformance → cli, index. steps (the `@workerstack/testing/api/steps` builders) imports only the step
   types and the errors. The reference backend is its own program: it never imports the client
-  or the runtime. No import cycles, type-only imports included.
+  or the runtime. web (`src/web`) imports node builtins, its own files and its declared optional peers
+  (Playwright, axe, vitest); web/solid adds Solid. web and the API tester never import each other.
+  No import cycles, type-only imports included.
 - **Naming.** A module is named for what it does. No `utils`, `helpers` or `misc` file or
   directory, and no barrel: `export *` appears nowhere, and `src/api/index.ts` names each export.
 - **Red first.** Red is a step, not a commit. Write the test, run it and see it fail, then write

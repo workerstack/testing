@@ -54,7 +54,7 @@
 	"scripts": {
 		"bisect": "node labs/api/bisect.mjs",
 		"build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc -p tsconfig.json",
-		"check": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
+		"check": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json && tsc -p tests/web/tsconfig.json",
 		"conformance": "node dist/api/cli.js conformance",
 		"conformance:sharded": "bun scripts/conformance-sharded.ts",
 		"demo": "bun run build && node labs/api/demo.mjs",
@@ -73,6 +73,7 @@
 		"test:integration": "vitest run --project integration",
 		"test:targets": "vitest run -c vitest.targets.config.ts",
 		"test:unit": "vitest run --project unit --coverage",
+		"test:web": "playwright test && vitest run -c vitest.web.config.ts",
 		"typecheck": "bun run check"
 	},
 	"dependencies": {
@@ -85,7 +86,9 @@
 		"@commitlint/cli": "21.2.4",
 		"@commitlint/config-conventional": "21.2.4",
 		"@hono/node-server": "^1.19.0",
+		"@playwright/test": "1.64.1",
 		"@types/node": "^22.10.0",
+		"@vitest/browser-playwright": "5.0.5",
 		"@vitest/coverage-v8": "5.0.5",
 		"@workerstack/repo": "link:../repo",
 		"fast-check": "4.10.2",
@@ -94,6 +97,7 @@
 		"oxc-parser": "0.152.0",
 		"oxfmt": "0.78.0",
 		"oxlint": "1.93.0",
+		"playwright": "1.64.1",
 		"postgres": "^3.4.9",
 		"smol-toml": "^1.8.0",
 		"typescript": "7.0.2",

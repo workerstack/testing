@@ -51,6 +51,7 @@
 		"vitest/no-disabled-tests": "error",
 		"vitest/no-focused-tests": "error",
 		"testing/boundaries": "error",
+		"testing/web-boundaries": "error",
 		"testing/index-purity": "error",
 		"testing/no-console": "error",
 		"testing/no-header-branching": "error",

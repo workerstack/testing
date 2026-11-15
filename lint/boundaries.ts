@@ -116,7 +116,7 @@ function declaredPackages(): Set<string> {
 }
 
 /* `pkg/sub` → `pkg`, `@scope/pkg/sub` → `@scope/pkg`. */
-const packageName = (spec: string): string => spec.split("/", spec.startsWith("@") ? 2 : 1).join("/")
+export const packageName = (spec: string): string => spec.split("/", spec.startsWith("@") ? 2 : 1).join("/")
 
 function allowedBetween(from: Bucket | "unknown", to: Bucket | "unknown"): boolean {
 	if (from === "unknown" || to === "unknown") return false

@@ -67,6 +67,8 @@ describe("the architecture rules", () => {
 		expect(section).toContain(`nesting depth ${limit("max-depth")}`)
 		expect(section).toContain(`${maxParams} parameters`)
 		expect(section).toMatch(/errors, config\/types → security, steps → spec/)
+		expect(section).toContain("web (`src/web`) imports node builtins, its own files and its declared optional peers")
+		expect(section).toContain("web/solid adds Solid")
 		expect(section).toContain("tests/api/targets/anyrow.md")
 	})
 })

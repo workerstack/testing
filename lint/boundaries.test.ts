@@ -82,6 +82,9 @@ const REFUSED: Array<[string, string]> = [
 	["src/api/steps/request.ts", "../runtime/world.ts"],
 	["src/api/steps/request.ts", "../spec/graph.ts"],
 	["src/api/steps/request.ts", "../security/redact.ts"],
+	/* The API tester never reaches the web helpers: they need a browser stack API-only consumers never install. */
+	["src/api/index.ts", "./web/index.ts"],
+	["src/api/runtime/world.ts", "../../web/ready.ts"],
 ]
 
 describe("testing/boundaries", () => {
