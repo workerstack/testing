@@ -82,7 +82,7 @@
 		"lint:fix": "oxlint --fix",
 		"postinstall": "repo sync --postinstall",
 		"prepare": "lefthook install --reset-hooks-path",
-		"prepublishOnly": "bun run build",
+		"prepack": "bun run build",
 		"test": "bun run build && bun run test:unit && bun run test:integration && node dist/api/cli.js conformance",
 		"test:e2e": "bun run build && vitest run -c vitest.e2e.config.ts",
 		"test:integration": "vitest run --project integration",

@@ -142,9 +142,9 @@
       }
     },
     {
-      "label": "prepare",
+      "label": "prepack",
       "type": "shell",
-      "command": "bun run prepare",
+      "command": "bun run prepack",
       "problemMatcher": [],
       "presentation": {
         "panel": "new",
@@ -152,9 +152,9 @@
       }
     },
     {
-      "label": "prepublishOnly",
+      "label": "prepare",
       "type": "shell",
-      "command": "bun run prepublishOnly",
+      "command": "bun run prepare",
       "problemMatcher": [],
       "presentation": {
         "panel": "new",
