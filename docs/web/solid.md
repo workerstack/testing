@@ -80,9 +80,12 @@ back. Call `dispose()` to do that sooner.
 - `warnings`: Solid's mismatch logs, such as
   `Hydration tag mismatch for key "1": expected <i> but found <b _hk="1">`. A mismatch that
   hydration throws is one more warning.
-- `serverWarnings`: what the server render warned.
 - `replaced`: server elements hydration dropped, as `button[data-slot=button]`.
 - `added`: elements hydration made that the server never sent.
+
+What the server render warned is on `server.warnings`, not in `mismatches`. Every file shares the
+plugin's one server, and Solid warns once per kind per process, so only the first render to hit a
+warning sees it. Pin server warnings with `renderServer` in a server test instead.
 
 The plugin's server loads each fixture with Solid compiled for the server. Pass `plugins` to add
 what the app's code needs there, such as path aliases: `solidHydration({ plugins: [paths()] })`.

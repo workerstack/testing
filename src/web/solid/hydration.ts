@@ -17,7 +17,7 @@ export interface ServerRendered {
 }
 
 /** A kind of disagreement between the server's render and hydration. */
-export type MismatchKind = "serverWarnings" | "warnings" | "replaced" | "added"
+export type MismatchKind = "warnings" | "replaced" | "added"
 
 /** Each kind of disagreement that happened, with what it hit; a clean hydration is `{}`. */
 export type Mismatches = Partial<Record<MismatchKind, string[]>>
@@ -130,7 +130,6 @@ async function serverThenHydrate(
 	const mismatches = nonEmpty({
 		added: added().map(label),
 		replaced: before.filter((element) => !element.isConnected).map(label),
-		serverWarnings: server.warnings,
 		warnings: hydrated.warnings,
 	})
 	return { container, dispose: () => close(hydrated.dispose), mismatches, server }

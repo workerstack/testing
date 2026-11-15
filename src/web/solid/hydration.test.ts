@@ -117,7 +117,7 @@ describe("createHydrator", () => {
 		expect(view.mismatches).toEqual({})
 	})
 
-	it("reports each kind of disagreement, labeled, and only the kinds that happened", async () => {
+	it("reports each kind of disagreement, labeled, and only the kinds that happened, and keeps server warnings on server", async () => {
 		const kept = new FakeElement("DIV")
 		const thrown = new FakeElement("BUTTON", { "data-slot": "button" })
 		const page = fakePage([kept, thrown])
@@ -136,11 +136,13 @@ describe("createHydrator", () => {
 		const print = vi.spyOn(console, "warn").mockImplementation(() => undefined)
 		const view = await createHydrator(live, FIXTURE, fixtures)("ButtonFixture")
 		print.mockRestore()
-		expect(view.mismatches).toEqual({
-			added: ["span"],
-			replaced: ["button[data-slot=button]"],
+		expect({ mismatches: view.mismatches, serverWarnings: view.server.warnings }).toStrictEqual({
+			mismatches: {
+				added: ["span"],
+				replaced: ["button[data-slot=button]"],
+				warnings: ['Hydration key miss for "0-1": no server-rendered element carries this key'],
+			},
 			serverWarnings: ["written on the server"],
-			warnings: ['Hydration key miss for "0-1": no server-rendered element carries this key'],
 		})
 	})
 })
