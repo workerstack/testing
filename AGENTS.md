@@ -48,9 +48,9 @@ lands it on `main`; don't create, switch, or delete branches by hand.
 Fine without asking: `status`, `diff`, `log`, `add`, `commit`, and `bun repo push` from the root
 after `finish`.
 
-`@workerstack/repo` is linked by name (`link:@workerstack/repo`), so the main checkout and every
-worktree resolve the same local copy. Register it once per machine: run `bun link` in the `repo`
-checkout, then `bun install` here.
+`@workerstack/repo` is pinned to its npm version, so CI installs it from npm. To work on the local
+`repo` checkout, run `bun repo link @workerstack/repo` in the main checkout and in each worktree, after
+`bun install`. `bun repo unlink @workerstack/repo` puts npm back.
 
 Ask first, and wait, in the main checkout or on `main`: anything that can lose work — `reset --hard`, `checkout` /
 `restore` over uncommitted changes, `clean`, `stash` (any form), `push --force`

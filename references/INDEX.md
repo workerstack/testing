@@ -8,3 +8,8 @@
 - `gates.md`: Gates, push, CI and release
 - `tdd.md`: Red, fix, green
 <!-- /repo:refs -->
+
+<!-- repo:available 6d581136 -->
+- [@workerstack/system](https://www.npmjs.com/package/@workerstack/system): Manage every OS dependency, built-in or custom, from one config
+- [@workerstack/database](https://www.npmjs.com/package/@workerstack/database): Schema, queries and migrations for SQLite, D1 and Postgres
+<!-- /repo:available -->

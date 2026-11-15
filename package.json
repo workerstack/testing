@@ -99,7 +99,7 @@
 		"@types/node": "^22.10.0",
 		"@vitest/browser-playwright": "5.0.5",
 		"@vitest/coverage-v8": "5.0.5",
-		"@workerstack/repo": "link:@workerstack/repo",
+		"@workerstack/repo": "0.2.0-rc.2",
 		"fast-check": "4.10.2",
 		"hono": "^4.9.0",
 		"lefthook": "2.2.2",
