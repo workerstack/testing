@@ -70,7 +70,9 @@ test("a consumer project fails exactly the specs whose page went wrong, with the
   expect(message("a script from an undeclared origin fails the test")).toContain(
     "network: GET https://cdn.example.invalid/x.js from /external.html: origin not declared; call network.allow",
   );
-  expect(message("a script from an undeclared origin fails the test")).not.toContain("guard:");
+  // The gate's line alone: no guard breach rides along. The message also carries a code frame of
+  // the built fixtures, so a bare "guard:" would match source text.
+  expect(message("a script from an undeclared origin fails the test")).not.toMatch(/guard: [\w.]+ at \//);
   expect(message("allow refuses a path where an origin belongs")).toContain(
     'network.allow: "https://tiles.example.invalid/tiles.json" is not an origin; pass scheme://host[:port]',
   );
