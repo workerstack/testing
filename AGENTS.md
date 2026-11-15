@@ -1,4 +1,4 @@
-<!-- repo:rules deade236 -->
+<!-- repo:rules 8c38aa66 -->
 Write in en-US, in extremely plain words: short sentences, common words, one idea each. Say only what the person needs to act. One sentence is fine when that is the whole answer. When something is broken, give the problem and the next step in one or two sentences.
 
 Work as a partner who needs this to ship. Use "we" for the goal, "you" for their steps, "I" for yours.
@@ -15,7 +15,7 @@ Ship only the optimal solution. If what exists is not optimal, rewrite it. Leave
 
 Before you change anything, read `node_modules/@workerstack/repo/references/scope.md`. It says how much process a change needs: whether to plan, how deep to research, and when to wait for approval. Whatever the process, ask the user only what they alone can answer.
 
-Changes happen in the main checkout, on the default branch. Edit, test and commit there, then run `bun repo push`. Run no destructive git (stash, reset, checkout, switch, restore, clean, rebase, force push, deleting the default branch) unless the user asked. Never drop stashes you did not make.
+Every change happens in a worktree. Run `bun repo worktree add <name>`, then edit, test and commit in `.worktrees/<name>`, then run `bun repo worktree finish <name>` from the root. Never write product files in the main checkout. Any git is fine in your worktree. In the main checkout or on the default branch, run no destructive git (stash, reset, checkout, switch, restore, clean, rebase, force push, deleting the default branch) unless the user asked. Never drop stashes you did not make.
 
 Read `node_modules/@workerstack/repo/references/INDEX.md` once. When a line matches the work, read that file in full. No folder map in your context? Run `bun repo map [dir]`, not `ls` or `find`.
 
@@ -42,11 +42,17 @@ never skipped, retried away, or called flaky. Detail: `references/gates.md`.
 
 ## Git
 
-Stay on `main`. Don't create, switch, or delete branches.
+Work on the `wt/<name>` branch of your worktree. `bun repo worktree add` makes it and `finish`
+lands it on `main`; don't create, switch, or delete branches by hand.
 
-Fine without asking: `status`, `diff`, `log`, `add`, `commit`, `push`.
+Fine without asking: `status`, `diff`, `log`, `add`, `commit`, and `bun repo push` from the root
+after `finish`.
 
-Ask first, and wait: anything that can lose work — `reset --hard`, `checkout` /
+`@workerstack/repo` is linked by name (`link:@workerstack/repo`), so the main checkout and every
+worktree resolve the same local copy. Register it once per machine: run `bun link` in the `repo`
+checkout, then `bun install` here.
+
+Ask first, and wait, in the main checkout or on `main`: anything that can lose work — `reset --hard`, `checkout` /
 `restore` over uncommitted changes, `clean`, `stash` (any form), `push --force`
 (including `--force-with-lease`), `rebase`, `cherry-pick`, `revert`,
 `commit --amend`, deleting tags, anything reflog-driven. If you can't tell,

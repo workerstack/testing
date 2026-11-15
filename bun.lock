@@ -19,7 +19,7 @@
         "@types/node": "^22.10.0",
         "@vitest/browser-playwright": "5.0.5",
         "@vitest/coverage-v8": "5.0.5",
-        "@workerstack/repo": "link:../repo",
+        "@workerstack/repo": "link:@workerstack/repo",
         "fast-check": "4.10.2",
         "hono": "^4.9.0",
         "lefthook": "2.2.2",
@@ -336,7 +336,7 @@
 
     "@vitest/utils": ["@vitest/utils@5.0.5", "", { "dependencies": { "@vitest/pretty-format": "5.0.5", "convert-source-map": "^2.0.0", "tinyrainbow": "^3.2.0" } }, "sha512-/rBu7gzLDQI/SC79Tn98b5DwOgaHU/Gt4I9OVeP3YofzNaYtbImRCOJQmT1S6vOJg9gEIlWC+r3QxKkjuSa1nQ=="],
 
-    "@workerstack/repo": ["@workerstack/repo@link:../repo", { "hasInstallScript": true, "bin": { "repo": "./bin/repo.ts" } }],
+    "@workerstack/repo": ["@workerstack/repo@link:@workerstack/repo", { "hasInstallScript": true, "bin": { "repo": "./bin/repo.ts" } }],
 
     "ajv": ["ajv@8.20.0", "", { "dependencies": { "fast-deep-equal": "^3.1.3", "fast-uri": "^3.0.1", "json-schema-traverse": "^1.0.0", "require-from-string": "^2.0.2" } }, "sha512-Thbli+OlOj+iMPYFBVBfJ3OmCAnaSyNn4M1vz9T6Gka5Jt9ba/HIR56joy65tY6kx/FCF5VXNB819Y7/GUrBGA=="],
 
