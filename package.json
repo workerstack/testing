@@ -1,7 +1,7 @@
 {
 	"name": "@workerstack/testing",
 	"version": "0.35.0",
-	"description": "Testing for APIs, web apps and Workers: /api tests a live HTTP API against its OpenAPI document; /web guards and readies Playwright tests",
+	"description": "Testing for APIs, web apps and Workers: /api tests a live HTTP API against its OpenAPI document; /web guards, readies, scans and network-gates Playwright tests",
 	"keywords": [
 		"api",
 		"contract-testing",
@@ -86,6 +86,7 @@
 		"yaml": "^2.9.0"
 	},
 	"devDependencies": {
+		"@axe-core/playwright": "4.14.0",
 		"@clack/prompts": "^0.11.0",
 		"@commitlint/cli": "21.2.4",
 		"@commitlint/config-conventional": "21.2.4",
@@ -109,10 +110,14 @@
 		"vitest": "5.0.5"
 	},
 	"peerDependencies": {
+		"@axe-core/playwright": "^4.14.0",
 		"@playwright/test": "^1.64.1",
 		"postgres": "^3.4"
 	},
 	"peerDependenciesMeta": {
+		"@axe-core/playwright": {
+			"optional": true
+		},
 		"@playwright/test": {
 			"optional": true
 		},

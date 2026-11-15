@@ -1,5 +1,7 @@
 export { expect } from "@playwright/test"
+export type { A11y, A11yDisable, A11yExclude, A11yOptions } from "./a11y.ts"
 export type { GuardIgnore, GuardKind, GuardMatch, GuardOptions } from "./guard.ts"
 export type { WebFixtures } from "./fixtures.ts"
+export type { AllowOptions, Network } from "./network.ts"
 export type { GotoOptions, Ready } from "./ready.ts"
 export { test } from "./test.ts"

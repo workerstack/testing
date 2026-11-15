@@ -61,6 +61,14 @@ test("a consumer project fails exactly the specs whose page went wrong, with the
 		"a marker that never shows fails with the page and the marker": "failed",
 		"goto waits for the marker, so the first click lands": "passed",
 		"settle returns once finite animations end, past an infinite and a canceled one": "passed",
+		"a clean page passes the accessibility scan": "passed",
+		"an image with no alt fails the scan with the rule and the node": "failed",
+		"an excluded image passes when the exclude says why": "passed",
+		"an exclude with a blank reason fails before it scans": "failed",
+		"a script from an undeclared origin fails the test": "failed",
+		"an allowed origin answers with its stub, across origins": "passed",
+		"a page.route stub answers before the gate": "passed",
+		"allow refuses a path where an origin belongs": "failed",
 	})
 	const message = (title: string): string => found.get(title)?.message ?? ""
 	expect(message("a console error fails the test")).toContain(
@@ -74,6 +82,19 @@ test("a consumer project fails exactly the specs whose page went wrong, with the
 	)
 	expect(message("a marker that never shows fails with the page and the marker")).toContain(
 		"ready.goto: /index.html never showed html[data-hydrated] (timeout 500ms)",
+	)
+	expect(message("an image with no alt fails the scan with the rule and the node")).toContain(
+		"a11y: image-alt at img: Images must have alternative text",
+	)
+	expect(message("an exclude with a blank reason fails before it scans")).toContain(
+		'a11y: exclude "img" has no reason; say why it may fail',
+	)
+	expect(message("a script from an undeclared origin fails the test")).toContain(
+		"network: GET https://cdn.example.invalid/x.js from /external.html: origin not declared; call network.allow",
+	)
+	expect(message("a script from an undeclared origin fails the test")).not.toContain("guard:")
+	expect(message("allow refuses a path where an origin belongs")).toContain(
+		'network.allow: "https://tiles.example.invalid/tiles.json" is not an origin; pass scheme://host[:port]',
 	)
 	expect(child.status).toBe(1)
 })

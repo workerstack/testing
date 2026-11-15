@@ -1,17 +1,20 @@
 # Web tests
 
-`@workerstack/testing/web` gives Playwright tests two things: a page that fails the test when it
-throws or logs an error, and helpers that wait on the page instead of the clock.
+`@workerstack/testing/web` gives Playwright tests a page that fails the test when it throws or logs
+an error, helpers that wait on the page instead of the clock, an accessibility scan, and a network
+gate that fails a request to an origin the test did not declare.
 
-Install Playwright beside it. It is an optional peer, so only a project that tests a web app needs it:
+Install Playwright beside it, and axe if you scan. Both are optional peers, so only a project that
+tests a web app needs them:
 
 ```console
-npm install -D @workerstack/testing @playwright/test
+npm install -D @workerstack/testing @playwright/test @axe-core/playwright
 ```
 
 ## `test`
 
-`test` is Playwright's `test` with the `page` guarded, a `guard` option and a `ready` fixture.
+`test` is Playwright's `test` with the `page` guarded, every request gated, the `guard` and
+`a11yDefaults` options, and the `ready`, `a11y` and `network` fixtures.
 Use it in place of Playwright's, and extend it with your own fixtures the usual way:
 
 ```ts
@@ -76,3 +79,77 @@ test("the dialog opens", async ({ page, ready }) => {
 	await expect(page.locator("dialog")).toHaveScreenshot()
 })
 ```
+
+## `a11y`
+
+`a11y.check(options)` scans the page, as it is at that moment, for WCAG 2.2 level AA violations
+(the axe tags `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`, `wcag22aa`). It fails with one line per
+element:
+
+```console
+Error: a11y: image-alt at img.hero: Images must have alternative text
+```
+
+- `include` limits the scan to one selector.
+- `exclude` skips elements, and `disable` skips axe rules by id. Each says why; a blank `reason`
+  fails the call before it scans:
+
+```console
+Error: a11y: exclude "[data-focus-guard]" has no reason; say why it may fail
+Error: a11y: disable "region" has no reason; say why it may fail
+```
+
+`a11yDefaults`, set with `test.use`, comes before each call's own options:
+
+```ts
+test.use({ a11yDefaults: { exclude: [{ selector: "[data-focus-guard]", reason: "inert focus sentinel" }] } })
+test("home", async ({ page, a11y }) => {
+	await page.goto("/")
+	await a11y.check({ include: "main", disable: [{ rule: "region", reason: "a fragment, not a page" }] })
+})
+```
+
+axe loads on the first scan. Without `@axe-core/playwright` installed, the rest of `/web` works,
+and a scan fails with:
+
+```console
+Error: a11y: needs @axe-core/playwright; run npm install -D @axe-core/playwright
+```
+
+## `network`
+
+Every test is gated, whether it names `network` or not. A request reaches the network only when its
+origin is the app's own (the `baseURL` origin) or one the test allowed. Any other request is
+aborted, and the test fails after it runs, one line per request:
+
+```console
+Error: network: GET https://cdn.example.invalid/x.js from /external.html: origin not declared; call network.allow
+```
+
+`network.allow(origin)` lets an origin through. With `fulfill`, it answers every request to that
+origin instead, with what Playwright's `route.fulfill` takes. The stub gets
+`access-control-allow-origin: *` unless its `headers` set one or it passes a whole `response`, so
+the page can read it across origins:
+
+```ts
+test("map", async ({ page, network }) => {
+	network.allow("https://tiles.example.com", { fulfill: { json: { tiles: [] } } })
+	await page.goto("/map")
+})
+```
+
+`allow` takes an origin, `scheme://host[:port]`, and nothing longer:
+
+```console
+Error: network.allow: "https://cdn.example.com/x.js" is not an origin; pass scheme://host[:port]
+```
+
+What else to know:
+
+- With no `baseURL`, each origin the page navigates to becomes the app's own, a redirect too.
+- A test's own `page.route` answers before the gate, so a request it stubs is declared by that stub.
+- `data:`, `blob:` and `about:` URLs never leave the browser and always pass.
+- The guard does not also report Chromium's `Failed to load resource: net::ERR_BLOCKED_BY_CLIENT`
+  for a blocked request; the network line names it.
+- The gate routes every request, and in Playwright routing turns off the browser's HTTP cache.
+- WebSockets and requests a service worker makes are not gated.
