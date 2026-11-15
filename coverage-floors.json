@@ -1740,5 +1740,9 @@
 	"src/api/steps/sender.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
 	"src/api/steps/steps.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
 	"src/api/steps/types.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
-	"src/api/steps/view.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 }
+	"src/api/steps/view.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
+	"src/web/fixtures.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
+	"src/web/guard.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
+	"src/web/ready.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
+	"src/web/test.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 }
 }

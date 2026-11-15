@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<title>Late</title>
+		<script>
+			/* Usable only after 300 ms, as an app is once it hydrates: the click handler and the marker land together. */
+			setTimeout(() => {
+				const button = document.querySelector("button")
+				button.addEventListener("click", () => (button.textContent = "clicked"))
+				document.documentElement.dataset.hydrated = ""
+			}, 300)
+		</script>
+	</head>
+	<body>
+		<main><button type="button">click me</button></main>
+	</body>
+</html>

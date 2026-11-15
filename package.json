@@ -1,7 +1,7 @@
 {
 	"name": "@workerstack/testing",
 	"version": "0.35.0",
-	"description": "Testing for APIs, web apps and Workers: /api tests a live HTTP API against its OpenAPI document",
+	"description": "Testing for APIs, web apps and Workers: /api tests a live HTTP API against its OpenAPI document; /web guards and readies Playwright tests",
 	"keywords": [
 		"api",
 		"contract-testing",
@@ -46,6 +46,10 @@
 		"./api/steps": {
 			"types": "./dist/api/steps/index.d.ts",
 			"default": "./dist/api/steps/index.js"
+		},
+		"./web": {
+			"types": "./dist/web/index.d.ts",
+			"default": "./dist/web/index.js"
 		}
 	},
 	"publishConfig": {
@@ -53,8 +57,8 @@
 	},
 	"scripts": {
 		"bisect": "node labs/api/bisect.mjs",
-		"build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc -p tsconfig.json",
-		"check": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json && tsc -p tests/web/tsconfig.json",
+		"build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc -p tsconfig.json && tsc -p tsconfig.web.json",
+		"check": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.web.json --noEmit && tsc -p tsconfig.test.json && tsc -p tests/web/tsconfig.json",
 		"conformance": "node dist/api/cli.js conformance",
 		"conformance:sharded": "bun scripts/conformance-sharded.ts",
 		"demo": "bun run build && node labs/api/demo.mjs",
@@ -73,7 +77,7 @@
 		"test:integration": "vitest run --project integration",
 		"test:targets": "vitest run -c vitest.targets.config.ts",
 		"test:unit": "vitest run --project unit --coverage",
-		"test:web": "playwright test && vitest run -c vitest.web.config.ts",
+		"test:web": "bun run build && playwright test && vitest run -c vitest.web.config.ts",
 		"typecheck": "bun run check"
 	},
 	"dependencies": {
@@ -105,9 +109,13 @@
 		"vitest": "5.0.5"
 	},
 	"peerDependencies": {
+		"@playwright/test": "^1.64.1",
 		"postgres": "^3.4"
 	},
 	"peerDependenciesMeta": {
+		"@playwright/test": {
+			"optional": true
+		},
 		"postgres": {
 			"optional": true
 		}

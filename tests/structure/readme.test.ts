@@ -65,4 +65,11 @@ describe("the README", () => {
 		expect(read("docs", "api", "model.md")).toContain("## How a run works")
 		expect(read("docs", "api", "model.md")).toContain("**Teardown** everything the run created")
 	})
+
+	it("names both subpaths up front, and links the web doc from its index", () => {
+		const intro = README.slice(0, README.indexOf("\n## "))
+		expect(intro).toContain("`/api`")
+		expect(intro).toContain("`/web`")
+		expect(section("Docs")).toContain("(docs/web/web.md)")
+	})
 })

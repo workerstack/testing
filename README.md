@@ -2,8 +2,8 @@
 
 [![npm](https://img.shields.io/npm/v/@workerstack/testing.svg)](https://www.npmjs.com/package/@workerstack/testing)
 
-Testing for APIs, web apps and Workers. Today it ships `/api`, the API tester: live **matrix testing**
-of a running backend against its own OpenAPI document. The API tester reads the spec, talks to the API, and treats every way to see a record as a cell in a matrix: list,
+Testing for APIs, web apps and Workers. It ships `/api`, the API tester: live **matrix testing**
+of a running backend against its own OpenAPI document. And `/web`: Playwright tests that fail on a page error and wait on the page, not the clock. The API tester reads the spec, talks to the API, and treats every way to see a record as a cell in a matrix: list,
 item, filter, sort, page, cursor, select, search, parent routes, another tenant. Then it checks that
 the cells agree. It never reads your source or assumes your framework.
 
@@ -118,16 +118,16 @@ The full list, with what you see and what to do instead, is in [docs/api/limits.
 
 - [Commands](docs/api/commands.md): `run`, `doctor`, `plan`, `init`, `serve`, `conformance`
 - [Configuration](docs/api/configuration/reference.md): every field; then [principals and security](docs/api/configuration/principals-and-security.md), [hooks](docs/api/configuration/hooks.md), [origins and uploads](docs/api/configuration/origins-and-uploads.md)
-- [Migrating to 0.25](docs/api/migrating-0.25.md): the removed config fields, and relative paths now read from the config's folder
+- [Migrating to 0.25](docs/api/migrating-0.25.md): the removed config fields, and relative paths now read from the config's folder; [from the old name](docs/api/migrating-from-oat.md): every name the rename changed, old to new
 - [How the API tester reads a document](docs/api/model.md): how a run works, entities, seeding, query grammars
 - [OpenAPI tags](docs/api/tags.md): every `x-*` tag and what it unlocks
 - [Checks and verdicts](docs/api/checks.md): what each check needs and asserts
 - [Reports](docs/api/reports.md): `report.json`, `matrix.json`, repro scripts, progress logs
 - [Programmatic API](docs/api/api.md); [step builders](docs/api/steps.md): typed scenario steps from `@workerstack/testing/api/steps`
 - [Assumptions](docs/api/assumptions.md): what the API tester assumes, and how to declare an exception
-- [Migrating](docs/api/migrating-from-oat.md): every name the rename changed, old to new
 - [Limits](docs/api/limits.md): what the API tester cannot do, and what to do instead
 - [Reference defects](docs/api/reference-defects.md): the named lies `testing api serve --defects` can tell
+- [Web tests](docs/web/web.md): `test`, its page `guard` and the `ready` helpers from `@workerstack/testing/web`
 - [Releasing](docs/api/releasing.md): how a tag publishes to npm with provenance, and the steps to cut one
 
 ## License

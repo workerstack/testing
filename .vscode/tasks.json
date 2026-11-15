@@ -212,6 +212,16 @@
       }
     },
     {
+      "label": "test:web",
+      "type": "shell",
+      "command": "bun run test:web",
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "new",
+        "reveal": "always"
+      }
+    },
+    {
       "label": "typecheck",
       "type": "shell",
       "command": "bun run typecheck",
