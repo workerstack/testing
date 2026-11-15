@@ -30,7 +30,9 @@ expect(warnings).toEqual([])
 ```
 
 - `renderServer(code)` runs Solid's `renderToString` and gives the HTML and every `console.warn`
-  and `console.error` it logged. The warnings still print.
+  and `console.error` it logged. The warnings still print. It must run on the app's own Solid:
+  list `@workerstack/testing` in the app's `package.json`, and Solid's vite plugin inlines it by
+  its `solid` export condition.
 - `tags(html, match?)` gives every element in order: its lowercased `name`, its decoded `attrs`
   (a bare attribute is `""`) and its decoded `text`. `match` is a tag name, or attributes that
   must all be present with these values. It parses as a template's content does, so a component

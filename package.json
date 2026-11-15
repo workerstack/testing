@@ -56,6 +56,7 @@
 		},
 		"./web/solid": {
 			"types": "./dist/web/solid/index.d.ts",
+			"solid": "./dist/web/solid/index.js",
 			"default": "./dist/web/solid/index.js"
 		},
 		"./web/solid/vitest": {

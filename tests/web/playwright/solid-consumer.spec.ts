@@ -8,7 +8,7 @@ import { VITEST_TIMEOUT_MS, runVitest } from "../support/child-vitest.ts"
 /*
  * `./web/solid` as an npm user meets it: the packed tarball under the consumer's own node_modules,
  * not this repo's self-reference, so vite loads it as a dependency for the server render and for
- * the browser bundle. The consumer's hydration tests pass, and vite logs no missing source map.
+ * the browser bundle. The consumer's hydration and server tests pass, and vite logs no missing source map.
  */
 
 const ROOT = join(import.meta.dirname, "..", "..", "..")
@@ -32,7 +32,7 @@ function installTarball(): void {
 	}
 }
 
-test("a consumer hydrates its fixtures through the packed package", () => {
+test("a consumer hydrates and server-renders its fixtures through the packed package", () => {
 	test.setTimeout(VITEST_TIMEOUT_MS + 60_000)
 	installTarball()
 	const run = runVitest("tests/web/solid-consumer")
@@ -41,6 +41,7 @@ test("a consumer hydrates its fixtures through the packed package", () => {
 		"a packed consumer hydrates a clean button and reads its server HTML": "passed",
 		"a packed consumer reports the element the server rendered differently": "passed",
 		"a packed consumer rejects with the plugin's line when a fixture has no such export": "passed",
+		"a packed consumer's server test renders a component that reads Solid's owner": "passed",
 	})
 	expect(run.stderr).not.toContain("Failed to load source map")
 	expect(run.code).toBe(0)
