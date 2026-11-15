@@ -47,11 +47,12 @@ pnpm-debug.log*
 tests/api/targets/crapi/keys/
 tests/api/targets/vampi/openapi3.yml
 
-# repo:ignore 50848eed
+# repo:ignore a2521b1c
 .tmp/
 .worktrees/
 coverage/
 .vitest/
+repo.config.local.ts
 **/.repo/plans/
 **/.repo/plans-fast/
 **/.repo/roadmaps/
