@@ -1,6 +1,5 @@
 import { expect, test } from "@playwright/test"
-import { spawnSync } from "node:child_process"
-import { join } from "node:path"
+import { CHILD_TIMEOUT_MS, childEnv, runChild } from "../support/child-run.ts"
 
 /*
  * The package as a consumer meets it: a Playwright project under tests/web/consumer imports
@@ -8,49 +7,22 @@ import { join } from "node:path"
  * fixture pages. Each spec there either passes, or fails with the line a user would read.
  */
 
-const ROOT = join(import.meta.dirname, "..", "..", "..")
-const CHILD_TIMEOUT_MS = 120_000
-
-interface Outcome {
-	status: string
-	message: string
-}
-
-interface Suite {
-	suites?: Suite[]
-	specs?: Array<{
-		title: string
-		tests: Array<{ results: Array<{ status: string; errors: Array<{ message?: string }> }> }>
-	}>
-}
-
-/* Every spec title in the JSON report, with its one result's status and error text. */
-function outcomes(suite: Suite): Array<[string, Outcome]> {
-	const own = (suite.specs ?? []).map((spec): [string, Outcome] => {
-		const result = spec.tests[0]?.results[0]
-		const message = (result?.errors ?? []).map((error) => error.message ?? "").join("\n")
-		return [spec.title, { message, status: result?.status ?? "missing" }]
-	})
-	return [...own, ...(suite.suites ?? []).flatMap(outcomes)]
-}
-
-/* The child is its own Playwright run: none of this run's worker variables leak into it. */
-function childEnv(): NodeJS.ProcessEnv {
-	return Object.fromEntries(
-		Object.entries(process.env).filter(([name]) => !/^(PW_|PLAYWRIGHT_|TEST_)/.test(name)),
-	) as NodeJS.ProcessEnv
-}
+test("a child run gets none of this run's worker or kept-port variables", () => {
+	process.env["WORKERSTACK_WEB_PORT_APP"] = "40001"
+	try {
+		const env = childEnv({ EXTRA: "1" })
+		expect(env["WORKERSTACK_WEB_PORT_APP"]).toBeUndefined()
+		expect(env["TEST_WORKER_INDEX"]).toBeUndefined()
+		expect(env).toMatchObject({ EXTRA: "1", FORCE_COLOR: "0" })
+	} finally {
+		delete process.env["WORKERSTACK_WEB_PORT_APP"]
+	}
+})
 
 test("a consumer project fails exactly the specs whose page went wrong, with the line a user reads", async () => {
 	test.setTimeout(CHILD_TIMEOUT_MS)
-	const child = spawnSync(
-		join(ROOT, "node_modules", ".bin", "playwright"),
-		["test", "-c", "tests/web/consumer/playwright.config.ts", "--reporter=json"],
-		{ cwd: ROOT, encoding: "utf8", env: { ...childEnv(), FORCE_COLOR: "0" }, timeout: CHILD_TIMEOUT_MS },
-	)
-	expect(child.stdout, child.stderr).not.toBe("")
-	const report = JSON.parse(child.stdout) as { suites: Suite[] }
-	const found = new Map(report.suites.flatMap(outcomes))
+	const child = runChild("tests/web/consumer/playwright.config.ts")
+	const found = child.specs
 	const status = Object.fromEntries([...found].map(([title, outcome]) => [title, outcome.status]))
 	expect(status).toEqual({
 		"a clean page passes": "passed",
@@ -96,5 +68,5 @@ test("a consumer project fails exactly the specs whose page went wrong, with the
 	expect(message("allow refuses a path where an origin belongs")).toContain(
 		'network.allow: "https://tiles.example.invalid/tiles.json" is not an origin; pass scheme://host[:port]',
 	)
-	expect(child.status).toBe(1)
+	expect(child.code).toBe(1)
 })

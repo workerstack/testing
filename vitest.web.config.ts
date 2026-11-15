@@ -1,6 +1,6 @@
 import { playwright } from "@vitest/browser-playwright"
 import { defineConfig } from "vitest/config"
-import { freePort } from "./tests/web/support/free-port.ts"
+import { freePort } from "./src/web/port.ts"
 
 /*
  * The vitest half of `bun run test:web`: in-page helpers in real Chromium. The browser server takes

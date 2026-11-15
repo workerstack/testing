@@ -1,8 +1,8 @@
 # Web tests
 
 `@workerstack/testing/web` gives Playwright tests a page that fails the test when it throws or logs
-an error, helpers that wait on the page instead of the clock, an accessibility scan, and a network
-gate that fails a request to an origin the test did not declare.
+an error, helpers that wait on the page instead of the clock, an accessibility scan, a network
+gate that fails a request to an origin the test did not declare, and an app server on a free port.
 
 Install Playwright beside it, and axe if you scan. Both are optional peers, so only a project that
 tests a web app needs them:
@@ -153,3 +153,53 @@ What else to know:
   for a blocked request; the network line names it.
 - The gate routes every request, and in Playwright routing turns off the browser's HTTP cache.
 - WebSockets and requests a service worker makes are not gated.
+
+## `appServer` and `defineWebConfig`
+
+`appServer` starts your app for the run on a port the OS picked, so two runs never fight over a
+port and no retry hides a collision. `defineWebConfig` is Playwright's `defineConfig` with a
+`server` in place of `webServer`:
+
+```ts
+// playwright.config.ts
+import { appServer, defineWebConfig } from "@workerstack/testing/web"
+
+const app = await appServer({ command: "vite preview --port {port} --strictPort" })
+const dev = await appServer({ name: "dev", command: "vite dev --port {port} --strictPort" })
+
+export default defineWebConfig({
+	server: [app, dev],
+	testDir: "e2e",
+	projects: [
+		{ name: "preview", use: { baseURL: app.url } },
+		{ name: "dev", use: { baseURL: dev.url } },
+	],
+})
+```
+
+- `{port}` in `command` and in `env` values is the port. `PORT` holds it too, for an app that
+  reads it.
+- Playwright starts each server before the tests, waits until `url` plus `path` (default `/`)
+  answers, and stops the server and every process it started when the run ends. A server is
+  never reused: if the port already answers, the run fails.
+- `timeout` is how long the app may take to answer, 30000 ms by default. Build the app before
+  the run (`npm run build && playwright test`), not in `command`, so it starts in seconds.
+- `name` labels the server's log lines and defaults to `app`. Two servers need two names.
+- The first server is `use.baseURL` unless you set one. `forbidOnly` is on when `CI` is set.
+- Pass `--strictPort` or your server's flag for it, so a port taken in the meantime fails the run
+  instead of moving the app somewhere the tests do not look.
+
+The config awaits `appServer`, so it must be an ES module (`"type": "module"`, or a `.mts`
+config). Playwright loads the config again in every worker; the port is kept in
+`WORKERSTACK_WEB_PORT_<NAME>`, which each worker inherits, so all of them reach the same server.
+A Playwright run started from inside another inherits that variable too; remove it from the
+inner run's env.
+
+When a server fails:
+
+```console
+Error: Process from config.webServer was not able to start. Exit code: 1
+Error: Timed out waiting 30000ms from config.webServer.
+Error: appServer: name "Dev" must be lowercase letters, digits and dashes
+Error: defineWebConfig: two servers are named "app"; give each its own name
+```

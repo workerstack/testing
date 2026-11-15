@@ -1746,5 +1746,8 @@
 	"src/web/guard.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
 	"src/web/network.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
 	"src/web/ready.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
-	"src/web/test.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 }
+	"src/web/test.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
+	"src/web/config.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
+	"src/web/port.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
+	"src/web/server.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 }
 }
