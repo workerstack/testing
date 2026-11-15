@@ -109,6 +109,10 @@ describe("query.search-and-filter-compose plans", () => {
 		expect(stage(searchAndFilterCompose, { rows: NOTES.slice(0, 2) }).plan()).toEqual({ ok: false })
 	})
 
+	it("stands down when the document declares no x-query, though the filter grammar can write a filter", () => {
+		expect(stage(searchAndFilterCompose, { fields: { query: null } }).plan()).toEqual({ ok: false })
+	})
+
 	it("stands down without a filter value and token that overlap", async () => {
 		const staged = stage(searchAndFilterCompose, { doc: queryDoc({ filterable: ["title"] }) })
 		expect(await staged.run()).toEqual({

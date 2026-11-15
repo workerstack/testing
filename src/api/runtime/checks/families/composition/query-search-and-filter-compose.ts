@@ -26,7 +26,8 @@ export const searchAndFilterCompose: Check<Subset & { token: string }> = defineC
 			when(
 				filterable(ctx) &&
 					conv(ctx).search !== undefined &&
-					(ctx.query?.searchable.length ?? 0) > 0 &&
+					ctx.query !== null &&
+					ctx.query.searchable.length > 0 &&
 					ctx.records.length > 2,
 			),
 			() => overlapPlan(ctx),

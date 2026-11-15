@@ -27,7 +27,8 @@ export const filterSortSelectCompose: Check<
 				filterable(ctx) &&
 					conv(ctx).order !== undefined &&
 					conv(ctx).select !== undefined &&
-					(ctx.query?.sortable.length ?? 0) > 0 &&
+					ctx.query !== null &&
+					ctx.query.sortable.length > 0 &&
 					ctx.records.length > 2,
 			),
 			() =>

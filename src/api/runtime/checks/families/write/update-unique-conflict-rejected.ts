@@ -36,7 +36,7 @@ export const uniqueConflictUpdate: Check<{
 	plan: (ctx) => {
 		const updateOp = ctx.uniqueUpdateOp
 		const [first] = ctx.records
-		if (updateOp === undefined || (ctx.uniqueSets?.length ?? 0) === 0 || first === undefined) return cannot()
+		if (updateOp === undefined || ctx.uniqueSets.length === 0 || first === undefined) return cannot()
 		if (ctx.createOp === undefined) return cannot()
 		const sets = probeableUniqueSets(updateOp, ctx.model, { phase: "update", sets: ctx.uniqueSets })
 		return sets.length === 0 ? cannot() : ready({ first, sets, updateOp })

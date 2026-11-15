@@ -101,6 +101,10 @@ describe("query.filter-sort-select-compose plans", () => {
 		expect(stage(filterSortSelectCompose, { rows: NOTES.slice(0, 2) }).plan()).toEqual({ ok: false })
 	})
 
+	it("stands down when the document declares no x-query, though the filter grammar can write a filter", () => {
+		expect(stage(filterSortSelectCompose, { fields: { query: null } }).plan()).toEqual({ ok: false })
+	})
+
 	it("stands down without a filter value selecting a proper subset", async () => {
 		const staged = stage(filterSortSelectCompose, { doc: queryDoc({ filterable: ["title"] }) })
 		expect(await staged.run()).toEqual({

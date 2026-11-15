@@ -108,8 +108,9 @@ afterAll(() => {
 })
 
 describe("the installed package", () => {
-	it("type-checks a strict consumer config against its declarations", () => {
-		const tsc = sh(process.execPath, [join(ROOT, "node_modules", "typescript", "bin", "tsc"), "-p", "."], CONSUMER)
+	/* The declarations are built with TypeScript 7; a consumer still on 5.9 must read them too. */
+	it.each(["typescript", "typescript-5.9"])("type-checks a strict consumer config with %s", (compiler) => {
+		const tsc = sh(process.execPath, [join(ROOT, "node_modules", compiler, "bin", "tsc"), "-p", "."], CONSUMER)
 		expect(tsc).toMatchObject({ code: 0 })
 	})
 

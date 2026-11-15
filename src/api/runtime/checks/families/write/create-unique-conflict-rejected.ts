@@ -59,7 +59,7 @@ export const uniqueConflictCreate: Check<{
 	plan: (ctx) => {
 		const createOp = ctx.uniqueCreateOp
 		const [first] = ctx.records
-		if (createOp === undefined || (ctx.uniqueSets?.length ?? 0) === 0 || first === undefined) return cannot()
+		if (createOp === undefined || ctx.uniqueSets.length === 0 || first === undefined) return cannot()
 		/* A create with no documented body has no column to collide on. */
 		const schema = requestSchemaOf(ctx, createOp)
 		if (schema === null) return cannot()

@@ -59,11 +59,12 @@ export const projectionsAgree: Check<{
 		 * projections measures timing, not consistency.
 		 */
 		const generated = new Set([...(ctx.createOp?.generated ?? []), ...(ctx.updateOp?.generated ?? [])])
-		const field = (ctx.query?.filterable ?? []).find(
+		const { query } = ctx
+		const field = query?.filterable.find(
 			(name) =>
 				name !== ctx.identity &&
 				!generated.has(name) &&
-				(ctx.query?.sortable ?? []).includes(name) &&
+				query.sortable.includes(name) &&
 				target[name] !== null &&
 				target[name] !== undefined &&
 				typeof target[name] !== "object",

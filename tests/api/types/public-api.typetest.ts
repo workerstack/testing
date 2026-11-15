@@ -79,7 +79,10 @@ expectTypeOf<keyof typeof tester>().toEqualTypeOf<
 >()
 
 /* `RunOptions.transcript`: how much of the transcript stays in memory, and where the encrypted rest is spooled. */
-expectTypeOf<NonNullable<RunOptions["transcript"]>>().toEqualTypeOf<{ memoryBytes?: number; dir?: string }>()
+expectTypeOf<NonNullable<RunOptions["transcript"]>>().toEqualTypeOf<{
+	memoryBytes?: number | undefined
+	dir?: string | undefined
+}>()
 expectTypeOf<{ transcript: { memoryBytes: number; dir: string } }>().toMatchTypeOf<Pick<RunOptions, "transcript">>()
 
 export type PublicTypes = [

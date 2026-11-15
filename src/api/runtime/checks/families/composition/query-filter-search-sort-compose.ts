@@ -25,8 +25,9 @@ export const filterSearchSortCompose: Check<Subset & { token: string; sortField:
 				filterable(ctx) &&
 					conv(ctx).search !== undefined &&
 					conv(ctx).order !== undefined &&
-					(ctx.query?.searchable.length ?? 0) > 0 &&
-					(ctx.query?.sortable.length ?? 0) > 0 &&
+					ctx.query !== null &&
+					ctx.query.searchable.length > 0 &&
+					ctx.query.sortable.length > 0 &&
 					ctx.records.length > 2,
 			),
 			() =>

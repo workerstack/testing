@@ -19,7 +19,7 @@ export const declaredSortableWorks: Check = defineCheck({
 		when(
 			conv(ctx).order !== undefined &&
 				ctx.query?.source === "tag" &&
-				(ctx.query?.sortable.length ?? 0) > 0 &&
+				ctx.query.sortable.length > 0 &&
 				ctx.records.length > 0,
 		),
 	dependsOn: [

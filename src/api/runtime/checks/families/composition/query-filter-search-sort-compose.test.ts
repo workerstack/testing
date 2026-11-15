@@ -70,6 +70,10 @@ describe("query.filter-search-sort-compose plans", () => {
 		})
 	})
 
+	it("stands down when the document declares no x-query, though the filter grammar can write a filter", () => {
+		expect(stage(filterSearchSortCompose, { fields: { query: null } }).plan()).toEqual({ ok: false })
+	})
+
 	it("stands down without a filter, a search, an order, searchable or sortable fields, or three records", async () => {
 		const docs = [
 			queryDoc({}, ["q", "order", "limit"]),

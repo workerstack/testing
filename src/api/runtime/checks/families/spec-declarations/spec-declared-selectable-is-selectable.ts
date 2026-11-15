@@ -19,7 +19,7 @@ export const declaredSelectableWorks: Check = defineCheck({
 		when(
 			conv(ctx).select !== undefined &&
 				ctx.query?.source === "tag" &&
-				(ctx.query?.selectable.length ?? 0) > 0 &&
+				ctx.query.selectable.length > 0 &&
 				ctx.records.length > 0,
 		),
 	dependsOn: [

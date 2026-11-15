@@ -34,7 +34,7 @@ export const declaredFilterableWorks: Check = defineCheck({
 		when(
 			conv(ctx).filter !== undefined &&
 				ctx.query?.source === "tag" &&
-				(ctx.query?.filterable.length ?? 0) > 0 &&
+				ctx.query.filterable.length > 0 &&
 				ctx.records.length > 0,
 		),
 	dependsOn: [
