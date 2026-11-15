@@ -8,7 +8,14 @@ const MESSAGE =
 const DOM_MESSAGE =
 	"a web/dom module runs in the page: it imports web/dom itself and vitest only (see AGENTS.md: dependency arrows)"
 
-const PEERS: ReadonlySet<string> = new Set(["@playwright/test", "solid-js"])
+const PEERS: ReadonlySet<string> = new Set([
+	"@playwright/test",
+	"solid-js",
+	"@solidjs/web",
+	"@solidjs/vite-plugin",
+	"vite",
+	"parse5",
+])
 
 const allowed = (from: string, spec: string): boolean => webImportAllowed({ from, peers: PEERS, spec })
 
@@ -24,6 +31,8 @@ describe("webImportAllowed", () => {
 		expect(allowed("ready.ts", "../api/index.ts")).toBe(false)
 		expect(allowed("ready.ts", "./solid/hydrate.ts")).toBe(false)
 		expect(allowed("ready.ts", "solid-js")).toBe(false)
+		for (const solidOnly of ["@solidjs/web", "@solidjs/vite-plugin", "vite", "parse5"])
+			expect(allowed("ready.ts", solidOnly)).toBe(false)
 	})
 
 	it("refuses a package that is not a web peer, and a web peer the manifest does not declare", () => {
@@ -33,13 +42,15 @@ describe("webImportAllowed", () => {
 		expect(allowed("ready.ts", "fs")).toBe(false)
 	})
 
-	it("lets the Solid layer import plain web and declared Solid, never the API tester", () => {
+	it("lets the Solid layer import plain web, declared Solid, vite and parse5, never the API tester", () => {
 		expect(allowed("solid/hydrate.ts", "../ready.ts")).toBe(true)
 		expect(allowed("solid/hydrate.ts", "./tags.ts")).toBe(true)
 		expect(allowed("solid/hydrate.ts", "solid-js")).toBe(true)
 		expect(allowed("solid/hydrate.ts", "solid-js/web")).toBe(true)
-		expect(allowed("solid/hydrate.ts", "@solidjs/web")).toBe(false)
+		for (const name of ["@solidjs/web", "@solidjs/vite-plugin", "vite", "parse5"])
+			expect(allowed("solid/vitest.ts", name)).toBe(true)
 		expect(allowed("solid/hydrate.ts", "../../api/index.ts")).toBe(false)
+		expect(webImportAllowed({ from: "solid/html.ts", peers: new Set(["solid-js"]), spec: "parse5" })).toBe(false)
 	})
 
 	it("keeps web/dom, which runs in the page, to itself and vitest", () => {

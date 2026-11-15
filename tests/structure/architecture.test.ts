@@ -68,7 +68,7 @@ describe("the architecture rules", () => {
 		expect(section).toContain(`${maxParams} parameters`)
 		expect(section).toMatch(/errors, config\/types → security, steps → spec/)
 		expect(section).toContain("web (`src/web`) imports node builtins, its own files and its declared optional peers")
-		expect(section).toContain("web/solid adds Solid")
+		expect(section).toContain("web/solid adds Solid, vite and parse5")
 		expect(section).toContain("web/dom runs in the page and imports only itself and vitest")
 		expect(section).toContain("tests/api/targets/anyrow.md")
 	})

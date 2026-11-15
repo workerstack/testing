@@ -29,6 +29,7 @@ test("a consumer project fails exactly the specs whose page went wrong, with the
 		"a console error fails the test": "failed",
 		"a page error fails the test": "failed",
 		"noise passes when an ignore says why": "passed",
+		"a Solid hydration mismatch fails the test under solidMismatches": "failed",
 		"an ignore with a blank reason fails before the test runs": "failed",
 		"a marker that never shows fails with the page and the marker": "failed",
 		"goto waits for the marker, so the first click lands": "passed",
@@ -50,6 +51,9 @@ test("a consumer project fails exactly the specs whose page went wrong, with the
 	)
 	expect(message("a page error fails the test")).toMatch(
 		/guard: pageerror at \/page-error\.html: "notDefined is not defined" \(guard\.spec\.ts:\d+\)/,
+	)
+	expect(message("a Solid hydration mismatch fails the test under solidMismatches")).toContain(
+		'guard: console.warning at /hydration-mismatch.html: "Hydration tag mismatch for key \\"1\\"',
 	)
 	expect(message("an ignore with a blank reason fails before the test runs")).toContain(
 		"guard: ignore /ResizeObserver loop/ has no reason; say why the app may log it",

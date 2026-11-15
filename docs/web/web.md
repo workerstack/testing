@@ -39,9 +39,11 @@ Error: guard: pageerror at /page-error.html: "notDefined is not defined" (guard.
 Set `guard` with `test.use`, for a file or a `describe`:
 
 ```ts
+import { solidMismatches } from "@workerstack/testing/web/solid"
+
 test.use({
 	guard: {
-		fail: [{ kind: "warning", text: "Hydration mismatch" }],
+		fail: [...solidMismatches, { kind: "warning", text: "deprecated" }],
 		ignore: [{ text: /ResizeObserver loop/, reason: "browser noise, no app impact" }],
 	},
 })
@@ -50,7 +52,8 @@ test.use({
 - `text` is a string, matched as a substring, or a `RegExp`.
 - `kind` is `pageerror` or a console method such as `error`, `warning` or `log`. A match without
   `kind` matches every kind.
-- `fail` adds what fails the test, on top of page errors and console errors.
+- `fail` adds what fails the test, on top of page errors and console errors. `solidMismatches`
+  from [`/web/solid`](solid.md) fails on every hydration mismatch Solid logs.
 - `ignore` lets a match through, and wins over `fail`. Every ignore says why. A blank `reason`
   fails the test before it runs:
 

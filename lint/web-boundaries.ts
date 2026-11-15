@@ -8,7 +8,7 @@ import { isTestCode, repoPath } from "./paths.ts"
  * The web helpers' arrows. `src/web/` imports node builtins, its own files and the browser stack it
  * is written against; that stack is an optional peer, so an API-only consumer never installs it, and
  * a peer the manifest does not declare would fail in a consumer that has not installed it.
- * `src/web/solid/` adds Solid, so a non-Solid app never loads it. `src/web/dom/` runs in the page
+ * `src/web/solid/` adds Solid, vite and the parse5 dependency, so a non-Solid app never loads them. `src/web/dom/` runs in the page
  * under vitest's browser mode, so it imports only itself and vitest: never Playwright or a builtin. Neither imports the API tester,
  * and the API tester's own rule refuses the reverse.
  */
@@ -19,7 +19,13 @@ const DOM_MESSAGE =
 	"a web/dom module runs in the page: it imports web/dom itself and vitest only (see AGENTS.md: dependency arrows)"
 
 const WEB_PACKAGES: ReadonlySet<string> = new Set(["@playwright/test", "@axe-core/playwright", "vitest"])
-const SOLID_PACKAGES: ReadonlySet<string> = new Set(["solid-js", "@solidjs/web"])
+const SOLID_PACKAGES: ReadonlySet<string> = new Set([
+	"solid-js",
+	"@solidjs/web",
+	"@solidjs/vite-plugin",
+	"vite",
+	"parse5",
+])
 
 const inSolid = (rel: string): boolean => rel.startsWith("solid/")
 const inDom = (rel: string): boolean => rel.startsWith("dom/")
@@ -44,11 +50,13 @@ export function webImportAllowed(input: { from: string; spec: string; peers: Rea
 	return WEB_PACKAGES.has(name) || (SOLID_PACKAGES.has(name) && inSolid(from))
 }
 
+/* What the manifest declares: a peer, or a dependency every install brings. */
 function declaredPeers(): Set<string> {
 	const manifest = JSON.parse(readFileSync(join(import.meta.dirname, "..", "package.json"), "utf8")) as {
+		dependencies: Record<string, string>
 		peerDependencies: Record<string, string>
 	}
-	return new Set(Object.keys(manifest.peerDependencies))
+	return new Set([...Object.keys(manifest.peerDependencies), ...Object.keys(manifest.dependencies)])
 }
 
 interface Importing extends Node {

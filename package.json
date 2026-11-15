@@ -53,6 +53,14 @@
 		"./web/dom": {
 			"types": "./dist/web/dom/index.d.ts",
 			"default": "./dist/web/dom/index.js"
+		},
+		"./web/solid": {
+			"types": "./dist/web/solid/index.d.ts",
+			"default": "./dist/web/solid/index.js"
+		},
+		"./web/solid/vitest": {
+			"types": "./dist/web/solid/vitest.d.ts",
+			"default": "./dist/web/solid/vitest.js"
 		}
 	},
 	"publishConfig": {
@@ -86,6 +94,7 @@
 	"dependencies": {
 		"ajv": "^8.17.1",
 		"ajv-formats": "^3.0.1",
+		"parse5": "^8.1.1",
 		"yaml": "^2.9.0"
 	},
 	"devDependencies": {
@@ -95,6 +104,8 @@
 		"@commitlint/config-conventional": "21.2.4",
 		"@hono/node-server": "^1.19.0",
 		"@playwright/test": "1.64.1",
+		"@solidjs/vite-plugin": "3.0.0-next.55",
+		"@solidjs/web": "2.0.0-rc.20",
 		"@types/node": "^22.10.0",
 		"@vitest/browser-playwright": "5.0.5",
 		"@vitest/coverage-v8": "5.0.5",
@@ -108,14 +119,20 @@
 		"playwright": "1.64.1",
 		"postgres": "^3.4.9",
 		"smol-toml": "^1.8.0",
+		"solid-js": "2.0.0-rc.20",
 		"typescript": "7.0.2",
 		"typescript-5.9": "npm:typescript@5.9.3",
+		"vite": "^8.2.1",
 		"vitest": "5.0.5"
 	},
 	"peerDependencies": {
 		"@axe-core/playwright": "^4.14.0",
 		"@playwright/test": "^1.64.1",
+		"@solidjs/vite-plugin": ">=3.0.0-next.55 <4",
+		"@solidjs/web": ">=2.0.0-rc.20 <3",
 		"postgres": "^3.4",
+		"solid-js": ">=2.0.0-rc.20 <3",
+		"vite": ">=8 <9",
 		"vitest": "^5.0.5"
 	},
 	"peerDependenciesMeta": {
@@ -125,7 +142,19 @@
 		"@playwright/test": {
 			"optional": true
 		},
+		"@solidjs/vite-plugin": {
+			"optional": true
+		},
+		"@solidjs/web": {
+			"optional": true
+		},
 		"postgres": {
+			"optional": true
+		},
+		"solid-js": {
+			"optional": true
+		},
+		"vite": {
 			"optional": true
 		},
 		"vitest": {

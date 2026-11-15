@@ -1754,5 +1754,12 @@
 	"src/web/dom/gesture.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
 	"src/web/dom/pointer.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
 	"src/web/dom/stubs.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
+	"src/web/solid/html.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
+	"src/web/solid/hydrate.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
+	"src/web/solid/hydration.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
+	"src/web/solid/mismatches.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
+	"src/web/solid/server.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
+	"src/web/solid/vitest.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
+	"src/web/solid/warnings.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 },
 	"src/web/pointer.ts": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 }
 }

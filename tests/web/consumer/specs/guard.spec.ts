@@ -1,3 +1,4 @@
+import { solidMismatches } from "@workerstack/testing/web/solid"
 import { expect, test } from "../support.ts"
 
 test("a clean page passes", async ({ page }) => {
@@ -18,6 +19,14 @@ test.describe(() => {
 
 	test("noise passes when an ignore says why", async ({ page }) => {
 		await page.goto("/noise.html")
+	})
+})
+
+test.describe(() => {
+	test.use({ guard: { fail: solidMismatches } })
+
+	test("a Solid hydration mismatch fails the test under solidMismatches", async ({ page }) => {
+		await page.goto("/hydration-mismatch.html")
 	})
 })
 
