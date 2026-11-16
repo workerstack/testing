@@ -1,41 +1,39 @@
 import { isRaw, type RawOf } from "../../config/types/raw.ts";
 import type { OpenApiDocument } from "../types.ts";
 
-/*
- * The security schemes a document declares, read into what the API tester needs to send a credential: where it
- * goes and how it is written. A scheme the API tester cannot send (a TLS client certificate, a digest
- * challenge, a type it does not know, a malformed declaration) is read as unsupported, with why,
- * so an operation that needs one is reported untested instead of sent without it.
- */
+// The security schemes a document declares, read into what the API tester needs to send a credential: where it
+// goes and how it is written. A scheme the API tester cannot send (a TLS client certificate, a digest
+// challenge, a type it does not know, a malformed declaration) is read as unsupported, with why,
+// so an operation that needs one is reported untested instead of sent without it.
 
 export type ApiKeyLocation = "header" | "query" | "cookie";
 
 export type FlowName = "authorizationCode" | "clientCredentials" | "deviceAuthorization" | "implicit" | "password";
 
-interface OAuthFlow {
+type OAuthFlow = {
   authorizationUrl?: string;
   deviceAuthorizationUrl?: string;
   refreshUrl?: string;
   tokenUrl?: string;
   /** The scope names the flow can grant. */
   scopes: string[];
-}
+};
 
-interface SchemeBase {
+type SchemeBase = {
   name: string;
   /** OAS 3.2: the scheme is on its way out; still sent. */
   deprecated: boolean;
-}
+};
 
 export type SecurityScheme = SchemeBase &
   (
     | { kind: "bearer"; bearerFormat?: string }
     | { kind: "basic" }
-    /* An API key's location, and the header, query parameter or cookie it is named. */
+    // An API key's location, and the header, query parameter or cookie it is named.
     | { kind: "apiKey"; in: ApiKeyLocation; param: string }
     | { kind: "oauth2"; flows: Partial<Record<FlowName, OAuthFlow>>; oauth2MetadataUrl?: string }
     | { kind: "openIdConnect"; openIdConnectUrl: string }
-    /* Why the API tester cannot send this scheme. */
+    // Why the API tester cannot send this scheme.
     | { kind: "unsupported"; unsupported: string }
   );
 
@@ -46,6 +44,7 @@ const FLOWS: readonly FlowName[] = [
   "implicit",
   "password",
 ];
+
 const FLOW_URLS = ["authorizationUrl", "deviceAuthorizationUrl", "refreshUrl", "tokenUrl"] as const;
 const LOCATIONS: ReadonlySet<string> = /* @__PURE__ */ new Set(["header", "query", "cookie"]);
 
@@ -62,6 +61,7 @@ type RawScheme = RawOf<{
   oauth2MetadataUrl: unknown;
   openIdConnectUrl: unknown;
 }>;
+
 /** An OAuth Flow Object's fields, each still unread. */
 type RawFlow = RawOf<Record<(typeof FLOW_URLS)[number] | "scopes", unknown>>;
 
@@ -73,21 +73,27 @@ function unsupported(name: string, deprecated: boolean, why: string): SecuritySc
 
 function readHttp(name: string, raw: RawScheme, deprecated: boolean): SecurityScheme {
   const scheme = (text(raw.scheme) ?? "").toLowerCase();
+
   if (scheme === "basic") return { deprecated, kind: "basic", name };
+
   if (scheme === "bearer") {
     const format = text(raw.bearerFormat);
+
     return { deprecated, kind: "bearer", name, ...(format === undefined ? {} : { bearerFormat: format }) };
   }
+
   if (scheme === "digest") return unsupported(name, deprecated, "http digest needs a challenge-response round trip");
+
   return unsupported(name, deprecated, `http scheme "${scheme}" is not one the API tester can send`);
 }
 
 function readApiKey(name: string, raw: RawScheme, deprecated: boolean): SecurityScheme {
   const location = text(raw.in);
   const param = text(raw.name);
-  if (location === undefined || !LOCATIONS.has(location) || param === undefined) {
+
+  if (location === undefined || !LOCATIONS.has(location) || param === undefined)
     return unsupported(name, deprecated, "an apiKey scheme needs `in` (header, query or cookie) and a `name`");
-  }
+
   return { deprecated, in: location as ApiKeyLocation, kind: "apiKey", name, param };
 }
 
@@ -95,18 +101,23 @@ function readFlow(raw: unknown): OAuthFlow {
   const flow: RawFlow = isRaw<RawFlow>(raw) ? raw : {};
   const scopes = flow.scopes !== null && typeof flow.scopes === "object" ? Object.keys(flow.scopes) : [];
   const out: OAuthFlow = { scopes };
+
   for (const key of FLOW_URLS) {
     const url = text(flow[key]);
+
     if (url !== undefined) out[key] = url;
   }
+
   return out;
 }
 
 function readOAuth2(name: string, raw: RawScheme, deprecated: boolean): SecurityScheme {
   const declared: RawOf<Record<FlowName, unknown>> = isRaw<Record<FlowName, unknown>>(raw.flows) ? raw.flows : {};
   const flows: Partial<Record<FlowName, OAuthFlow>> = {};
+
   for (const flow of FLOWS) if (declared[flow] !== undefined) flows[flow] = readFlow(declared[flow]);
   const metadata = text(raw.oauth2MetadataUrl);
+
   return {
     deprecated,
     flows,
@@ -118,7 +129,9 @@ function readOAuth2(name: string, raw: RawScheme, deprecated: boolean): Security
 
 function readOpenIdConnect(name: string, raw: RawScheme, deprecated: boolean): SecurityScheme {
   const url = text(raw.openIdConnectUrl);
+
   if (url === undefined) return unsupported(name, deprecated, "an openIdConnect scheme needs an `openIdConnectUrl`");
+
   return { deprecated, kind: "openIdConnect", name, openIdConnectUrl: url };
 }
 
@@ -126,24 +139,37 @@ function readScheme(name: string, value: unknown): SecurityScheme {
   if (!isRaw<RawScheme>(value)) return unsupported(name, false, "the scheme is not an object");
   const raw: RawScheme = value;
   const deprecated = raw.deprecated === true;
+
   switch (raw.type) {
-    case "http":
+    case "http": {
       return readHttp(name, raw, deprecated);
-    case "apiKey":
+    }
+
+    case "apiKey": {
       return readApiKey(name, raw, deprecated);
-    case "oauth2":
+    }
+
+    case "oauth2": {
       return readOAuth2(name, raw, deprecated);
-    case "openIdConnect":
+    }
+
+    case "openIdConnect": {
       return readOpenIdConnect(name, raw, deprecated);
-    case "mutualTLS":
+    }
+
+    case "mutualTLS": {
       return unsupported(name, deprecated, "mutualTLS is a TLS client certificate, not a request credential");
-    default:
+    }
+
+    default: {
       return unsupported(name, deprecated, `scheme type "${String(raw.type)}" is not one the API tester knows`);
+    }
   }
 }
 
 /** Every scheme under `components.securitySchemes`, by name. */
 export function readSchemes(doc: OpenApiDocument): ReadonlyMap<string, SecurityScheme> {
   const declared = doc.components?.securitySchemes ?? {};
+
   return new Map(Object.entries(declared).map(([name, value]) => [name, readScheme(name, value)]));
 }

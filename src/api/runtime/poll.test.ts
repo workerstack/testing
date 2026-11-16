@@ -43,34 +43,44 @@ describe("outOfBand backoff schedule", () => {
 describe("pollWithBackoff", () => {
   it("returns on the first occupied value and does not sleep", async () => {
     const attempts: number[] = [];
+
     const value = await pollWithBackoff(
       async (attempt) => {
         attempts.push(attempt);
+
         return "ready";
       },
       { attempts: 3, initialMs: 50, maxMs: 50 },
     );
+
     expect(value).toBe("ready");
     expect(attempts).toEqual([1]);
   });
 
   it("retries null and empty string then returns", async () => {
     const seen: Array<string | null> = [];
+
     const value = await pollWithBackoff(
       async (attempt) => {
         if (attempt === 1) {
           seen.push(null);
+
           return null;
         }
+
         if (attempt === 2) {
           seen.push("");
+
           return "";
         }
+
         seen.push("ok");
+
         return "ok";
       },
       { attempts: 4, initialMs: 1, maxMs: 1 },
     );
+
     expect(value).toBe("ok");
     expect(seen).toEqual([null, "", "ok"]);
   });

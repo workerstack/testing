@@ -8,7 +8,7 @@ function finding(overrides: Partial<Finding>): Finding {
   return { check: "c", detail: "d", entity: "row", evidence: [], summary: "s", verdict: "BACKEND_BUG", ...overrides };
 }
 
-/* A baseline of one entry for `check`. */
+// A baseline of one entry for `check`.
 const oneEntry = (check: string) => ({ entries: [{ check, reason: "r" }], version: 1 });
 
 describe("parseBaseline", () => {
@@ -20,6 +20,7 @@ describe("parseBaseline", () => {
       ],
       version: 1,
     };
+
     expect(parseBaseline(raw, "b.json")).toEqual({
       entries: [
         { check: "auth.role-enforced", reason: "r" },
@@ -73,12 +74,14 @@ describe("applyBaseline", () => {
       finding({ check: "d" }),
       finding({ check: "a", verdict: "COVERAGE_GAP" }),
     ];
+
     const entries = [
       { check: "a", reason: "known a" },
       { check: "b", entity: "row", reason: "other entity" },
       { check: "c", operationId: "row.list", reason: "known c" },
       { check: "d", operationId: "row.get", reason: "other operation" },
     ];
+
     const { fixed } = applyBaseline(findings, { entries, version: 1 });
     expect(findings.map((f) => f.known?.reason)).toEqual(["known a", undefined, "known c", undefined, undefined]);
     expect(fixed.map((entry) => entry.reason)).toEqual(["other entity", "other operation"]);
@@ -96,6 +99,7 @@ describe("baselineFrom", () => {
       finding({ check: "a", entity: "job", operations: ["job.get"], summary: "a job get" }),
       finding({ check: "z", verdict: "BLOCKED" }),
     ]);
+
     expect(baseline).toEqual({
       entries: [
         { check: "a", entity: "job", reason: "a job again" },

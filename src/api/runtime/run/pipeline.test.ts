@@ -18,7 +18,7 @@ import { keysApi, keysDoc, MINTED } from "./__fixtures__/keys.ts";
 import { closeOut, run } from "./pipeline.ts";
 import { scopeReport } from "./result.ts";
 
-/* The email login, whose session the login operation itself ends when sent with it. */
+// The email login, whose session the login operation itself ends when sent with it.
 const REVOCABLE_EMAIL: Recipe = {
   login: {
     from: "$.access_token",
@@ -29,10 +29,8 @@ const REVOCABLE_EMAIL: Recipe = {
 
 const ORIGIN = { baseUrl: "http://other.test", id: "other", spec: "http://other.test/openapi.json" };
 
-/*
- * The whole run, stage after stage, against a correct in-memory notes API: what it seeds it
- * removes, what it tests it reports, and the stages run in order.
- */
+// The whole run, stage after stage, against a correct in-memory notes API: what it seeds it
+// removes, what it tests it reports, and the stages run in order.
 
 describe("run and the writer", () => {
   it("acts as the writer the options name, not the first principal, for a library caller too", async () => {
@@ -40,6 +38,7 @@ describe("run and the writer", () => {
       principals: { alpha: {}, beta: { security: { bearer: { static: "beta-key" } } } },
       writer: "beta",
     });
+
     const result = await libraryRun(options);
     expect(result.entitiesTested).toEqual(["note"]);
     const creates = options.seen.filter((request) => request.method === "POST");
@@ -52,11 +51,13 @@ describe("run", () => {
   it("tests a correct API end to end, removing everything it created", async () => {
     const rows: Array<Record<string, unknown>> = [];
     const phases: string[] = [];
+
     const options = optionsFor(notesApi(notesDoc(), rows), {
       onProgress: (snap) => {
         if (phases.at(-1) !== snap.phase) phases.push(snap.phase);
       },
     });
+
     const result = await run(options);
     expect(result.entitiesTested).toEqual(["note"]);
     expect(result.checksRun.length).toBeGreaterThan(10);
@@ -83,8 +84,10 @@ describe("run", () => {
   it("returns at once, with the outage, when the network goes away while signing in", async () => {
     const served = optionsFor(withLogin(), { security: LOGIN });
     const serve = served.network?.fetch as typeof fetch;
+
     const offAfterLoad: typeof fetch = (input, init) =>
       String(input).endsWith("/openapi.json") ? serve(input, init) : unreachable(input, init);
+
     const result = await run({ ...served, network: { ...served.network, fetch: offAfterLoad } });
     expect(result).toMatchObject({ entitiesTested: [], principals: [], teardown: null });
     expect(result.network?.kind).toBe("refused");
@@ -99,6 +102,7 @@ describe("run with secondary origins", () => {
       security: { bearer: "bearer" },
       spec: "http://other.test/openapi.json",
     };
+
     const broken = { covers: [], id: "broken", origin: "other", steps: [{ operationId: "no.such" }] };
     const result = await run(optionsFor(notesApi(), { origins: [origin], scenarios: [broken] as never }));
     expect(result.findings).toContainEqual(
@@ -117,9 +121,10 @@ describe("run with secondary origins", () => {
       security: { bearer: "bearer" },
       spec: "http://other.test/openapi.json",
     };
+
     const options = optionsFor(notesApi(), { origins: [origin], skipPrincipalTeardown: true });
     const result = await run(options);
-    /* Its document is read to plan the run; nothing else is sent to it. */
+    // Its document is read to plan the run; nothing else is sent to it.
     expect(options.seen.filter((request) => request.host === "other.test").map((request) => request.path)).toEqual([
       "/openapi.json",
     ]);
@@ -134,17 +139,24 @@ describe("closeOut", () => {
     const { "/login": login, "/signup": signup } = signupDoc.paths as Record<string, unknown>;
     Object.assign(doc.paths, { "/login": login, "/signup": signup });
     const keys = keysApi();
+
     const respond: Responder = (method, path, request) => {
       if (path === "/openapi.json") return { body: doc, status: 200 };
+
       if (path === "/signup") return { status: 201 };
+
       if (path === "/login" && request.headers?.["authorization" as never] !== undefined)
         events.push("revoke alpha's session");
-      /* Each principal's own session: one shared would be no account's own to remove it with. */
+      // Each principal's own session: one shared would be no account's own to remove it with.
       const email = String((request.body as { email?: unknown } | undefined)?.email);
+
       if (path === "/login") return { body: { access_token: `session-${email}` }, status: 200 };
+
       if (method === "DELETE") events.push(`revoke ${path}`);
+
       return keys(method, path, request);
     };
+
     const ctx = await contextOf(
       optionsFor(respond, {
         hooks: { teardownPrincipal: async (address) => void events.push(`teardown ${address}`) },
@@ -156,11 +168,14 @@ describe("closeOut", () => {
         security: { bearer: REVOCABLE_EMAIL, key: MINTED["key"] as Recipe },
       }),
     );
+
     await ctx.client.request("GET", "/secure", { as: { principal: "fresh" } });
+
     const runOrigin = async (): Promise<never> => {
       events.push("origin");
       throw new Error("origin done");
     };
+
     await closeOut(ctx, { coverage: scopeReport(ctx), runOrigin });
     const email = String(ctx.principals.byId.get("fresh")?.identity["email"]);
     expect(events).toEqual([

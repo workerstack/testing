@@ -6,11 +6,9 @@ import { afterEach, describe, expect, it } from "vitest";
 import { run } from "../../../src/api/runtime/run/index.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 
-/*
- * One operation that never answers, on a host that answers everything else, is that operation
- * failing, not the network going away. The run goes on and fails the operation; only a host that
- * stops answering altogether is a network outage.
- */
+// One operation that never answers, on a host that answers everything else, is that operation
+// failing, not the network going away. The run goes on and fails the operation; only a host that
+// stops answering altogether is a network outage.
 
 const closers: Array<() => Promise<void>> = [];
 
@@ -19,6 +17,7 @@ afterEach(async () => {
 });
 
 const ok = { "200": { content: { "application/json": { schema: { type: "object" } } }, description: "ok" } };
+
 const spec: OpenApiDocument = {
   info: { title: "slow", version: "1" },
   openapi: "3.1.0",
@@ -34,6 +33,7 @@ async function serve(): Promise<string> {
     res.writeHead(200, { "content-type": "application/json" });
     res.end(JSON.stringify(req.url === "/openapi.json" ? spec : { ok: true }));
   });
+
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   closers.push(
     () =>
@@ -42,12 +42,14 @@ async function serve(): Promise<string> {
         server.close(() => resolve());
       }),
   );
+
   return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 }
 
 describe("a request that times out on a host that still answers", () => {
   it("fails that operation and lets the run finish", { timeout: 30_000 }, async () => {
     const url = await serve();
+
     const result = await run({
       baseUrl: url,
       network: { requestTimeoutMs: 300, retries: 0, waitMs: 1_000 },
@@ -55,6 +57,7 @@ describe("a request that times out on a host that still answers", () => {
       seed: 1,
       spec: `${url}/openapi.json`,
     });
+
     expect(result.network?.incomplete ?? false).toBe(false);
     expect(result.scope.operations.find((op) => op.operationId === "slow.send")?.status).toBe("failed");
     expect(result.scope.operations.find((op) => op.operationId === "fine.send")?.status).toBe("passed");

@@ -15,7 +15,7 @@ import {
 import { collectionPath, entityByName, itemPath, type Entity, type World } from "./types.ts";
 
 /** One entity's routes and the pieces its operations share. */
-interface Routes {
+type Routes = {
   world: World;
   entity: Entity;
   list: string;
@@ -24,20 +24,23 @@ interface Routes {
   parentRoutes: string[];
   params: Json[];
   itemParams: Json[];
-}
+};
 
 export function buildSpec(world: World): Json {
   const paths: Json = { "/v1/auth/token": { post: authOperation() } };
+
   for (const entity of world.entities) Object.assign(paths, entityPaths(routesOf(world, entity)));
+
   if (world.jobs === true) paths["/v1/orgs/{org_id}/jobs/start"] = { post: jobStartOperation(world) };
-  if (world.entities.some((e) => e.invite === true)) {
+
+  if (world.entities.some((e) => e.invite === true))
     paths["/v1/invites/{token}/accept"] = { post: acceptOperation(world) };
-  }
+
   return {
     info: { title: world.title, version: "1.0" },
     openapi: "3.1.0",
     paths,
-    /* The bearer token auth.token issues, which every other route wants (http.ts `authenticate`). */
+    // The bearer token auth.token issues, which every other route wants (http.ts `authenticate`).
     components: { securitySchemes: { bearer: { scheme: "bearer", type: "http" } } },
     security: [{ bearer: [] }],
   };
@@ -46,6 +49,7 @@ export function buildSpec(world: World): Json {
 function routesOf(world: World, entity: Entity): Routes {
   const list = collectionPath(world, entity);
   const item = itemPath(world, entity);
+
   return {
     entity,
     item,
@@ -60,14 +64,17 @@ function routesOf(world: World, entity: Entity): Routes {
 
 function entityPaths(routes: Routes): Json {
   const { entity, item, list } = routes;
+
   const paths: Json = {
     [list]: { get: listOperation(routes), post: createOperation(routes) },
     [item]: { delete: deleteOperation(routes), get: readOperation(routes), patch: updateOperation(routes) },
   };
+
   if (entity.invite === true) {
     paths[`${item}/invites`] = { post: inviteOperation(routes) };
     paths[`${item}/grants/{grant_id}`] = { delete: revokeOperation(routes) };
   }
+
   return paths;
 }
 
@@ -103,6 +110,7 @@ function listOperation({ entity, params, world }: Routes): Json {
     },
     [entity.plural, "count", "hasMore"],
   );
+
   return {
     operationId: `${entity.name}.list`,
     parameters: [...params, ...queryParams(world, entity)],
@@ -224,6 +232,7 @@ function revokeOperation({ entity, itemParams }: Routes): Json {
 
 function jobStartOperation(world: World): Json {
   const job = entityByName(world, "job");
+
   return {
     operationId: "job.start",
     parameters: [pathParam("org_id")],
@@ -272,6 +281,8 @@ function parentInvalidate(world: World, entity: Entity): string[] {
   if (entity.parent === undefined) return [];
   const parent = entityByName(world, entity.parent);
   const derived = (parent.derived ?? []).some((d) => d.from === entity.name);
+
   if (!derived) return [];
+
   return [`GET ${collectionPath(world, parent)}`, `GET ${itemPath(world, parent)}`];
 }

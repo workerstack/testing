@@ -49,10 +49,10 @@ const SESSION: Recipe = {
     claims: { "scope.organization_id": "orgs.0.oid", "scope.project_id": "orgs.0.pids.0", tenant: "orgs.0.oid" },
     from: "cookie:session",
     steps: [
-      /* Raw paths rather than operationIds: an API document like this commonly contains no
-       * auth operations at all, so there is nothing in the spec to reference. `testing api doctor`
-       * reports that as a gap — a document describing a protected API should describe how
-       * to authenticate to it. */
+      // Raw paths rather than operationIds: an API document like this commonly contains no
+      // auth operations at all, so there is nothing in the spec to reference. `testing api doctor`
+      // reports that as a gap — a document describing a protected API should describe how
+      // to authenticate to it.
       {
         body: { email: "{principal.email}", name: "{principal.name}", password: PASSWORD },
         method: "POST",
@@ -81,20 +81,18 @@ const SESSION: Recipe = {
   },
 };
 
-/*
- * Token string → POST verify. Valid when that POST *is* the user path. Do not use it to
- * stand in for a mailed GET the human actually clicks.
- *
- *   { outOfBand: { address: email, as: "verifyToken", kind: "email-verify" } },
- *   {
- *     body: { token: "{verifyToken}" },
- *     method: "POST",
- *     path: "/v1/auth/email/verify",
- *     saveAs: { credential: "$.access_token", refreshToken: "$.refresh_token" },
- *   }
- *
- * with the login's `from: "credential"`, so its claims are read from that access token.
- */
+// Token string → POST verify. Valid when that POST *is* the user path. Do not use it to
+// stand in for a mailed GET the human actually clicks.
+//
+//   { outOfBand: { address: email, as: "verifyToken", kind: "email-verify" } },
+//   {
+//     body: { token: "{verifyToken}" },
+//     method: "POST",
+//     path: "/v1/auth/email/verify",
+//     saveAs: { credential: "$.access_token", refreshToken: "$.refresh_token" },
+//   }
+//
+// with the login's `from: "credential"`, so its claims are read from that access token.
 
 /**
  * Reads a link this deployment stashes for test traffic. Every backend does this differently —
@@ -109,19 +107,25 @@ async function resolveOutOfBand({ address, kind, scope }: OutOfBandRequest): Pro
   url.searchParams.set("email", address);
   url.searchParams.set("type", kind);
   const headers: Record<string, string> = { "x-testing-tester-key": TESTER_KEY };
-  if (scope["credential"] !== undefined && scope["credential"] !== "") {
+
+  if (scope["credential"] !== undefined && scope["credential"] !== "")
     headers["authorization"] = `Bearer ${scope["credential"]}`;
-  }
+
   const response = await fetch(url, { headers });
+
   if (!response.ok) return null;
   const body = (await response.json()) as { link?: unknown; token?: unknown };
+
   if (typeof body.link === "string" && body.link !== "") return body.link;
-  /* Some stashes still return a bare token — compose the consume URL the human would click. */
+
+  // Some stashes still return a bare token — compose the consume URL the human would click.
   if (typeof body.token === "string" && body.token !== "") {
     const consume = new URL("/verify", APP);
     consume.searchParams.set("token", body.token);
+
     return consume.toString();
   }
+
   return null;
 }
 
@@ -130,21 +134,22 @@ async function teardownPrincipal(_address: string, { sends }: TeardownPrincipalC
   const cookie = Object.entries(sends.cookies)
     .map(([name, value]) => `${name}=${value}`)
     .join("; ");
+
   await fetch(`${API}/v1/auth/account`, { headers: { ...sends.headers, cookie }, method: "DELETE" });
 }
 
 export default defineConfig({
   baseUrl: API,
-  /* Sent on every request. Opaque to the API tester — it never inspects these, and never carries a credential. */
+  // Sent on every request. Opaque to the API tester — it never inspects these, and never carries a credential.
   globalHeaders: { "x-testing-tester-key": TESTER_KEY },
   hooks: { resolveOutOfBand, teardownPrincipal },
   principals: {
-    /* The login registers each account through a route the document does not mark
-     * x-fresh-principal, so `created` says the run made it and teardown removes it by its email. */
+    // The login registers each account through a route the document does not mark
+    // x-fresh-principal, so `created` says the run made it and teardown removes it by its email.
     alpha: { created: true, email: freshEmail("alpha"), name: "the API tester alpha" },
     beta: { created: true, email: freshEmail("beta"), name: "the API tester beta" },
   },
-  /* The tester key is a secret, not a credential: scrubbed from reports and repro scripts. */
+  // The tester key is a secret, not a credential: scrubbed from reports and repro scripts.
   redact: { headers: ["x-testing-tester-key"] },
   security: { session: SESSION },
   seed: 42,

@@ -7,12 +7,14 @@ import { FULL_LIST, notesBackend, notesDoc, servePage } from "./__fixtures__/not
 import { readAfterWrite } from "./list-read-after-write.ts";
 
 const created = { id: "n1", status: "open", title: "alpha" };
+
 const others = (count: number): Record_[] =>
   Array.from({ length: count }, (_, index) => ({ id: `o${index}`, status: "open", title: `o${index}` }));
 
 /** A notes context whose seeded record is `created`, served by `respond`. */
 function stage(respond: Responder, fields: Partial<Listed> = {}, doc = notesDoc()) {
   const model = modelOf(doc);
+
   return contextFor(model, "notes.list", {
     respond,
     fields: {
@@ -26,7 +28,9 @@ function stage(respond: Responder, fields: Partial<Listed> = {}, doc = notesDoc(
 
 async function drive(staged: ReturnType<typeof stage>) {
   const planned = readAfterWrite.plan(staged.ctx);
+
   if (!planned.ok) throw new Error(`the plan did not apply: ${planned.needs}`);
+
   return readAfterWrite.run(staged.ctx, planned.value);
 }
 
@@ -36,6 +40,7 @@ function staleList(snapshot: Record_[], pageSizeShows?: number): Responder {
     if (path !== "/notes") return notesBackend([created, ...snapshot])(method, path, options);
     const query = options.query ?? {};
     const rows = Number(query["limit"]) === pageSizeShows ? [created, ...snapshot] : snapshot;
+
     return { body: servePage(rows, query), status: 200 };
   };
 }
@@ -64,7 +69,7 @@ describe("list.read-after-write lost writes", () => {
     const staged = stage(notesBackend([...others(7), created]));
     expect(await drive(staged)).toEqual({ kind: "asserted" });
     expect(staged.sent.every((sent) => sent.path === "/notes")).toBe(true);
-    /* Walked unsorted, at the largest documented page. */
+    // Walked unsorted, at the largest documented page.
     expect(staged.sent[0]?.options.query).toEqual({ limit: 5, page: 1 });
   });
 
@@ -81,7 +86,7 @@ describe("list.read-after-write lost writes", () => {
       expect.stringContaining("http://api.test/notes"),
       "http://api.test/notes/n1",
     ]);
-    /* The repeat walks, then one at a smaller page size to move the page boundaries. */
+    // The repeat walks, then one at a smaller page size to move the page boundaries.
     expect(listPaths(staged).some((sent) => sent.options.query?.["limit"] === 4)).toBe(true);
   });
 
@@ -139,21 +144,23 @@ describe("list.read-after-write unresolved walks", () => {
     });
   });
 
-  /*
-   * Bug: the two repeat walks call `collectSet` with the same request and no write between
-   * them, so `readSet`'s memo hands back the first walk instead of reading the list again. A
-   * record an unstable default order hid from one walk is then reported as a lost write.
-   */
+  // Bug: the two repeat walks call `collectSet` with the same request and no write between
+  // them, so `readSet`'s memo hands back the first walk instead of reading the list again. A
+  // record an unstable default order hid from one walk is then reported as a lost write.
   it("asserts when a repeat walk of the default listing finds the record", async () => {
     let walks = 0;
+
     const respond: Responder = (method, path, options) => {
       if (path !== "/notes") return notesBackend([created])(method, path, options);
-      /* Only the default-size walk counts and recovers; the smaller-page walk never shows it. */
+      // Only the default-size walk counts and recovers; the smaller-page walk never shows it.
       const repeat = options.query?.["limit"] === 5;
+
       if (repeat && options.query?.["page"] === 1) walks += 1;
       const rows = repeat && walks >= 2 ? [created] : [];
+
       return { body: servePage(rows, options.query), status: 200 };
     };
+
     const staged = stage(respond, { readOp: undefined });
     expect(await drive(staged)).toEqual({ kind: "asserted" });
   });

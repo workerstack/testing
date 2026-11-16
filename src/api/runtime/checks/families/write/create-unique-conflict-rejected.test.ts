@@ -7,36 +7,37 @@ import { runCheck } from "../../core/run.ts";
 import { GATED, type Note, notesContext, notesModel, notesServer, type NotesServer } from "./__fixtures__/notes.ts";
 import { uniqueConflictCreate } from "./create-unique-conflict-rejected.ts";
 
-/*
- * A create that repeats a documented unique column set must be refused with 409, and the refusal
- * must not have stored the row anyway. Defect: unique-not-enforced — the duplicate is accepted.
- */
+// A create that repeats a documented unique column set must be refused with 409, and the refusal
+// must not have stored the row anyway. Defect: unique-not-enforced — the duplicate is accepted.
 
 const MODEL = notesModel({ unique: [["name"], ["code"]] });
 const SEED: Note = { code: "c0", id: "n0", name: "taken", title: "t" };
 
 type Override = (server: NotesServer) => Responder;
 
-/* The unique column a body repeats, if any. */
+// The unique column a body repeats, if any.
 function repeats(server: NotesServer, body: Note): boolean {
   return [...server.records.values()].some((row) => row["name"] === body["name"] || row["code"] === body["code"]);
 }
 
-/* A backend that refuses a duplicate with 409, as it should. */
+// A backend that refuses a duplicate with 409, as it should.
 const enforces: Override = (server) => (method, _path, options) =>
   method === "POST" && repeats(server, options.body as Note) ? { status: 409 } : undefined;
 
 function backend(override: Override = enforces, fields = {}) {
   const server = notesServer([{ ...SEED }]);
   const first = override(server);
+
   const respond: Responder = (method, path, options) =>
     first(method, path, options) ?? server.respond(method, path, options);
+
   const stage = notesContext(MODEL, respond, {
     records: [SEED],
     uniqueCreateOp: op(MODEL, "note.create"),
     uniqueSets: [["name"], ["code"]],
     ...fields,
   });
+
   return { server, ...stage };
 }
 
@@ -49,26 +50,29 @@ const answerPosts =
   (method) =>
     method === "POST" ? answer : undefined;
 
-/* A 409 that stored the row all the same. */
+// A 409 that stored the row all the same.
 const storesAnyway: Override = (server) => (method, path, options) => {
-  if (method !== "POST") return undefined;
+  if (method !== "POST") return;
   server.respond(method, path, options);
+
   return { status: 409 };
 };
 
-/* A 409, while another lane's entity adds a row of its own to the same collection: it grows, nothing collides. */
+// A 409, while another lane's entity adds a row of its own to the same collection: it grows, nothing collides.
 const elsewhere: Override = (server) => (method, path, options) => {
-  if (method !== "POST" || !repeats(server, options.body as Note)) return undefined;
+  if (method !== "POST" || !repeats(server, options.body as Note)) return;
   server.respond("POST", path, { body: { code: "other", name: "other", title: "t" } });
+
   return { status: 409 };
 };
 
-/* A backend whose deletes throw `error`. */
+// A backend whose deletes throw `error`.
 const failing =
   (error: Error): Override =>
   (server) =>
   (method, path, options) => {
     if (method === "DELETE") throw error;
+
     return server.respond(method, path, options);
   };
 
@@ -79,7 +83,7 @@ describe("create.unique-conflict-rejected verdicts", () => {
     expect(findings.findings).toEqual([]);
     expect(findings.inconclusive).toEqual([]);
     const [byName, byCode] = posts(sent);
-    /* Each probe collides on its own set and no other. */
+    // Each probe collides on its own set and no other.
     expect(byName?.["name"]).toBe("taken");
     expect(byName?.["code"]).not.toBe("c0");
     expect(byCode?.["code"]).toBe("c0");
@@ -88,7 +92,7 @@ describe("create.unique-conflict-rejected verdicts", () => {
   });
 
   it("fails a backend that accepts a duplicate, and removes what it made", async () => {
-    const { ctx, findings, sent } = backend(() => () => undefined);
+    const { ctx, findings, sent } = backend(() => () => {});
     expect(await runCheck(uniqueConflictCreate, ctx)).toEqual({ kind: "asserted" });
     expect(findings.findings.map((f) => f.summary)).toEqual([
       "a duplicate unique-set create was accepted",
@@ -141,14 +145,17 @@ describe("create.unique-conflict-rejected growth evidence", () => {
   it("does not judge growth when either listing is incomplete", async () => {
     const crowd = Array.from({ length: 500 }, (_, index) => ({ id: `x${index}` }));
     let reads = 0;
+
     const first: Override = (server) => (method, path, options) =>
       method === "GET" && path === "/notes" && ++reads === 1
         ? { body: crowd, status: 200 }
         : storesAnyway(server)(method, path, options);
+
     const later: Override = (server) => (method, path, options) =>
       method === "GET" && path === "/notes" && reads++ > 0
         ? { status: 500 }
         : storesAnyway(server)(method, path, options);
+
     for (const override of [first, later]) {
       reads = 0;
       const { ctx, findings } = backend(override);
@@ -167,10 +174,10 @@ describe("create.unique-conflict-rejected collisions", () => {
   });
 
   it("tears an accepted duplicate down through the model's delete, or leaves it when there is none", async () => {
-    const viaModel = backend(() => () => undefined, { deleteOp: undefined });
+    const viaModel = backend(() => () => {}, { deleteOp: undefined });
     await runCheck(uniqueConflictCreate, viaModel.ctx);
     expect(viaModel.sent.filter((s) => s.method === "DELETE")).toHaveLength(2);
-    const unknown = backend(() => () => undefined, { deleteOp: undefined, entityName: "ghost" });
+    const unknown = backend(() => () => {}, { deleteOp: undefined, entityName: "ghost" });
     await runCheck(uniqueConflictCreate, unknown.ctx);
     expect(unknown.sent.filter((s) => s.method === "DELETE")).toEqual([]);
   });
@@ -178,7 +185,7 @@ describe("create.unique-conflict-rejected collisions", () => {
   it("cannot tear down a duplicate whose id it cannot read", async () => {
     for (const fields of [{ createOp: undefined }, {}]) {
       const blank = Object.keys(fields).length === 0;
-      const { ctx, sent, findings } = backend(blank ? answerPosts({ status: 201 }) : () => () => undefined, fields);
+      const { ctx, sent, findings } = backend(blank ? answerPosts({ status: 201 }) : () => () => {}, fields);
       await runCheck(uniqueConflictCreate, ctx);
       expect(sent.filter((s) => s.method === "DELETE")).toEqual([]);
       expect(findings.findings[0]?.summary).toBe("a duplicate unique-set create was accepted");

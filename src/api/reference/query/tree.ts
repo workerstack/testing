@@ -3,8 +3,11 @@ import type { FilterNode } from "../query-types.ts";
 /** The conjunction of the predicates given, `null`s skipped: one alone is itself, none matches everything. */
 export function and(...nodes: Array<FilterNode | null>): FilterNode {
   const children = nodes.filter((node): node is FilterNode => node !== null);
+
   if (children.length === 0) return { kind: "const", value: true };
+
   if (children.length === 1) return children[0] as FilterNode;
+
   return { children, kind: "and" };
 }
 
@@ -12,13 +15,20 @@ export function and(...nodes: Array<FilterNode | null>): FilterNode {
 export function fieldsIn(node: FilterNode): string[] {
   switch (node.kind) {
     case "and":
-    case "or":
+    case "or": {
       return node.children.flatMap(fieldsIn);
-    case "const":
+    }
+
+    case "const": {
       return [];
-    case "search":
+    }
+
+    case "search": {
       return node.fields;
-    default:
+    }
+
+    default: {
       return [node.field];
+    }
   }
 }

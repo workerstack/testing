@@ -9,7 +9,7 @@ import type { TeardownReport } from "../../runtime/teardown/types.ts";
 import type { SpecModel } from "../../spec/graph/types.ts";
 
 /** A finished run as every report renderer reads it. */
-export interface ReportInput {
+export type ReportInput = {
   findings: Finding[];
   /** What the unwind removed and left, record by record. Absent when nothing was torn down. */
   teardown?: TeardownReport | null;
@@ -54,4 +54,4 @@ export interface ReportInput {
   baseline?: { fixed: BaselineEntry[] };
   /** The build this run tested, or why it could not be read. */
   targetVersion?: TargetVersion;
-}
+};

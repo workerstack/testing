@@ -131,9 +131,9 @@ import { updatePersistsFields } from "./families/write/update-persists-submitted
 import { uniqueConflictUpdate } from "./families/write/update-unique-conflict-rejected.ts";
 
 export const CHECKS: readonly RegisteredCheck[] = [
-  /* foundations — did the write land, is it visible, and do the paging primitives work at all.
-   * Everything below assumes these hold, so they must be evaluated first for cascade
-   * suppression to have anything to consult. */
+  // foundations — did the write land, is it visible, and do the paging primitives work at all.
+  // Everything below assumes these hold, so they must be evaluated first for cascade
+  // suppression to have anything to consult.
   createKeepsSubmittedIdentity,
   readAfterWrite,
   listedRowIsTheGet,
@@ -143,25 +143,25 @@ export const CHECKS: readonly RegisteredCheck[] = [
   limitBoundsPageSize,
   limitRespectsMax,
   hasMoreIsAccurate,
-  /* Ordering and the page walk are foundations too, not query niceties: the set-algebra checks
-   * below gather their sets *across pages*, so a broken walk would corrupt the very sets they
-   * compare. Establishing paging first is what lets those failures be suppressed as cascades
-   * rather than re-reported once per predicate. */
+  // Ordering and the page walk are foundations too, not query niceties: the set-algebra checks
+  // below gather their sets *across pages*, so a broken walk would corrupt the very sets they
+  // compare. Establishing paging first is what lets those failures be suppressed as cascades
+  // rather than re-reported once per predicate.
   orderChangesResult,
   pageWalkCoversSet,
   cursorAgreesWithPage,
-  /* Where the filter is applied relative to paging: every filtered read below relies on it. */
+  // Where the filter is applied relative to paging: every filtered read below relies on it.
   filterAndPagingCompose,
   paginationBoundsHandled,
   sortNumericOrderIsNumeric,
   sortStableTiebreak,
-  /* These read whole sets in both directions, so they come after the walk they rely on. */
+  // These read whole sets in both directions, so they come after the walk they rely on.
   sortReverseSymmetry,
   sortNullsFirstLast,
   sortMultiKeyTiebreak,
   sortDefaultOrderApplied,
 
-  /* query semantics */
+  // query semantics
   unknownFilterRejected,
   malformedFilterNot5xx,
   sortUnknownFieldRejected,
@@ -195,11 +195,11 @@ export const CHECKS: readonly RegisteredCheck[] = [
   filterLteIsLtOrEq,
   filterOrderedTriplePartitions,
 
-  /* write semantics */
+  // write semantics
   uniqueConflictCreate,
   uniqueConflictUpdate,
-  /* After the paging checks, so its scratch record never shifts a page boundary they walk; before
-   * every check that writes a field, so they all pick around what the update drops. */
+  // After the paging checks, so its scratch record never shifts a page boundary they walk; before
+  // every check that writes a field, so they all pick around what the update drops.
   updatePersistsFields,
   patchMinimality,
   immutableRejected,
@@ -233,13 +233,13 @@ export const CHECKS: readonly RegisteredCheck[] = [
   deleteMissingIs404,
   softDeleteHidden,
 
-  /* input validation */
+  // input validation
   enumValidated,
   maxLengthValidated,
   requiredValidated,
   contentTypeEnforced,
 
-  /* security: planned per operation by the security stage, not by the entity lanes */
+  // security: planned per operation by the security stage, not by the entity lanes
   missingCredentialRefused,
   invalidCredentialRefused,
   wrongSchemeRefused,
@@ -252,11 +252,11 @@ export const CHECKS: readonly RegisteredCheck[] = [
   crossTenantKeyRefused,
   privilegedFieldIgnored,
   loginThrottled,
-  /* input validation of every other write, planned per operation by the same stage, after the
-   * security probes so none of theirs moves */
+  // input validation of every other write, planned per operation by the same stage, after the
+  // security probes so none of theirs moves
   invalidBodyRefused,
 
-  /* isolation */
+  // isolation
   crossTenantItemRead,
   crossTenantItemWrite,
   foreignParentRejected,
@@ -272,21 +272,21 @@ export const CHECKS: readonly RegisteredCheck[] = [
   contractCallCheck,
   serverErrorCheck,
 
-  /* declared side effects and async lifecycles, last: both invoke operations that change the
-   * world, and both are meaningless if the read surface above is already known broken */
+  // declared side effects and async lifecycles, last: both invoke operations that change the
+  // world, and both are meaningless if the read surface above is already known broken
   declaredEffectsOccur,
   sideEffectArrives,
   asyncReachesTerminalState,
   asyncReceiptIsResolvable,
-  /* Freshness writes scratch records late, so registering them moved no earlier check's bodies; the
-   * judges after them still see their exchanges. */
+  // Freshness writes scratch records late, so registering them moved no earlier check's bodies; the
+  // judges after them still see their exchanges.
   stalenessWithinBound,
   bypassIsFresh,
-  /* The last writer, right before the judges, so they see its 412. Only the judges come after it,
-   * and they draw no salt, so registering it moved no other check's bodies. */
+  // The last writer, right before the judges, so they see its 412. Only the judges come after it,
+  // and they draw no salt, so registering it moved no other check's bodies.
   ifMatchEnforced,
-  /* After every other check has written to the transcript — create is owned by
-   * create.status-matches-document. */
+  // After every other check has written to the transcript — create is owned by
+  // create.status-matches-document.
   documentedStatusHonored,
   errorSchemaHonored,
   readSchemaHonored,

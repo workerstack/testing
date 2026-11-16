@@ -36,7 +36,7 @@ const AS_WRITTEN = [
 ] as const satisfies ReadonlyArray<keyof ApiConfig & keyof RunOptions>;
 
 /** What the command decided around the config: where it writes, how it reports, how it stops. */
-export interface RunSetting {
+export type RunSetting = {
   configPath: string;
   baseline: BaselineFile | undefined;
   signal: AbortSignal;
@@ -46,15 +46,15 @@ export interface RunSetting {
   exchangeDir: string | undefined;
   /** Where the run keeps its account ledger: `accounts.json` in the run folder. */
   accountsFile?: string;
-}
+};
 
 /** The flags that override the config, as the run reads them. */
-export interface Overrides {
+export type Overrides = {
   baseUrl: string;
   only: string[] | undefined;
   ops: string[] | undefined;
   profile: string | undefined;
-}
+};
 
 /** The flags over the config: a flag says what the config would, for this run only. */
 export function overridesOf(config: ApiConfig, flags: Args["flags"]): Overrides {
@@ -70,6 +70,7 @@ export function overridesOf(config: ApiConfig, flags: Args["flags"]): Overrides 
 export function runOptionsOf(config: ApiConfig, flags: Args["flags"], setting: RunSetting): RunOptions {
   const { baseUrl, only, ops, profile } = overridesOf(config, flags);
   const seed = str(flags, "seed");
+
   return {
     ...asWritten(config),
     baseUrl,
@@ -90,7 +91,7 @@ export function runOptionsOf(config: ApiConfig, flags: Args["flags"], setting: R
   };
 }
 
-/* What the command set up that a run takes only when it is set: a baseline, and where to journal. */
+// What the command set up that a run takes only when it is set: a baseline, and where to journal.
 function setUp(setting: RunSetting): Partial<RunOptions> {
   return {
     ...(setting.baseline === undefined ? {} : { baseline: setting.baseline }),
@@ -101,8 +102,8 @@ function setUp(setting: RunSetting): Partial<RunOptions> {
 
 function asWritten(config: ApiConfig): Partial<RunOptions> {
   const picked: Record<string, unknown> = {};
-  for (const key of AS_WRITTEN) {
-    if (config[key] !== undefined) picked[key] = config[key];
-  }
+
+  for (const key of AS_WRITTEN) if (config[key] !== undefined) picked[key] = config[key];
+
   return picked as Partial<RunOptions>;
 }

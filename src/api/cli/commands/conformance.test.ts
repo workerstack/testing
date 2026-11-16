@@ -9,16 +9,15 @@ import type { Flags } from "../flags.ts";
 import { bufferWriter } from "../writer.ts";
 import { commandConformance } from "./conformance.ts";
 
-/*
- * The self-test's front: selectors checked before anything runs; then the legs — everything on a
- * full run, the suites and passes for a selected backend, dialect or defect, exactly the `--legs`
- * asked for — or the precision or fuzz question in place of the matrix.
- */
+// The self-test's front: selectors checked before anything runs; then the legs — everything on a
+// full run, the suites and passes for a selected backend, dialect or defect, exactly the `--legs`
+// asked for — or the precision or fuzz question in place of the matrix.
 
 async function conformance(flags: Flags, options: ToolkitOptions = {}) {
   const { toolkit, log } = fakeToolkit(options);
   const writer = bufferWriter();
   const code = await commandConformance(writer, flags, async () => toolkit);
+
   return { code, log, text: writer.text() };
 }
 
@@ -60,6 +59,7 @@ describe("commandConformance refusals", () => {
         "testing api: --precision runs on a local engine — expected memory, sqlite, postgres\n",
       ],
     ];
+
     for (const [flags, said] of refusals) {
       const { code, log, text } = await conformance(flags, { shapes: [{ label: "shape:prefix", problems: [] }] });
       expect([code, text, log]).toEqual([2, said, []]);

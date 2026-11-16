@@ -6,24 +6,23 @@ import { describe, expect, it } from "vitest";
 
 import { POSTGRES_RANGE } from "../../src/api/reference/stores/postgres-driver.ts";
 
-/*
- * `postgres` is an optional peer: a published install without it must start every command, so no
- * module the CLI or the package entry loads up front may import it. Only `import()` on the
- * Postgres backend's path reaches it, and the range the CLI asks for is the one package.json declares.
- */
+// `postgres` is an optional peer: a published install without it must start every command, so no
+// module the CLI or the package entry loads up front may import it. Only `import()` on the
+// Postgres backend's path reaches it, and the range the CLI asks for is the one package.json declares.
 
 const ROOT = join(import.meta.dirname, "..", "..");
 
-interface Node {
+type Node = {
   type: string;
   importKind?: string;
   exportKind?: string;
   source?: { value?: unknown } | null;
-}
+};
 
-/* The modules `file` loads when it loads: value imports and re-exports, not types, not `import()`. */
+// The modules `file` loads when it loads: value imports and re-exports, not types, not `import()`.
 function staticImports(file: string): string[] {
   const { program } = parseSync(file, readFileSync(join(ROOT, file), "utf8"));
+
   return (program.body as Node[])
     .filter((node) => ["ImportDeclaration", "ExportNamedDeclaration", "ExportAllDeclaration"].includes(node.type))
     .filter((node) => node.importKind !== "type" && node.exportKind !== "type")
@@ -35,6 +34,7 @@ function staticImports(file: string): string[] {
 function loadedWith(entry: string): Map<string, string[]> {
   const loaded = new Map<string, string[]>();
   const pending = [entry];
+
   for (let file = pending.pop(); file !== undefined; file = pending.pop()) {
     if (loaded.has(file)) continue;
     const sources = staticImports(file);
@@ -42,9 +42,11 @@ function loadedWith(entry: string): Map<string, string[]> {
       file,
       sources.filter((source) => !source.startsWith(".")),
     );
+
     for (const source of sources.filter((spec) => spec.startsWith(".")))
       pending.push(normalize(join(dirname(file), source)));
   }
+
   return loaded;
 }
 
@@ -64,6 +66,7 @@ describe("the postgres driver", () => {
       devDependencies: Record<string, string>;
       dependencies?: Record<string, string>;
     };
+
     expect(manifest.peerDependencies?.["postgres"]).toBe(POSTGRES_RANGE);
     expect(manifest.peerDependenciesMeta?.["postgres"]?.optional).toBe(true);
     expect(manifest.dependencies?.["postgres"]).toBeUndefined();

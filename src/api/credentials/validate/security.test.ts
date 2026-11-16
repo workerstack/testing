@@ -7,6 +7,7 @@ import { assertSecurity, securityMapProblems, securityProblems, specView, type S
 
 const view = (doc: typeof anyrow): SpecView => {
   const model = buildModel(doc);
+
   return { authFlows: false, operations: model.operations, schemes: model.schemes };
 };
 
@@ -14,7 +15,7 @@ const ANYROW = view(anyrow);
 const login = { from: "$.token", steps: [{ body: { email: "{principal.email}" }, operationId: "auth.login" }] };
 const alpha = { email: "a@x.test", tenant: "t1" };
 
-/* The problems one config has against anyrow's document. */
+// The problems one config has against anyrow's document.
 const problems = (config: Record<string, unknown>, spec: SpecView = ANYROW, origins = {}): string[] =>
   securityProblems({ principals: { alpha }, security: { jwt: { login } }, ...config }, spec, origins);
 
@@ -30,6 +31,7 @@ describe("security recipes", () => {
       },
       jwt: { expiresIn: { from: "$.expires_in" }, login },
     };
+
     expect(problems({ security })).toEqual([]);
   });
 
@@ -127,6 +129,7 @@ describe("security recipe options", () => {
         securitySchemes: { o: { flows: { clientCredentials: { scopes: { a: "" }, tokenUrl: "/t" } }, type: "oauth2" } },
       },
     });
+
     const oauth2 = { clientId: "c", flow: "clientCredentials", scopes: ["a"] };
     expect(problems({ security: { o: { holds: ["a"], oauth2 } } }, oauthDoc)).toEqual([
       "security.o.holds is not for an oauth2 recipe: it holds the oauth2.scopes it asks for",
@@ -210,6 +213,7 @@ describe("secondary origins", () => {
       principals: { alpha: { ...alpha, security: { cfToken: { static: "mine" } } } },
       security: { cfToken: { static: "t" }, jwt: { login } },
     };
+
     expect(problems(config, ANYROW, { cf: view(cloudflare) })).toEqual([]);
   });
 
@@ -220,10 +224,12 @@ describe("secondary origins", () => {
       problems({ origins, security: { cfKey: { oauth2 }, jwt: { login } } }, ANYROW, { cf: view(cloudflare) }),
     ).toEqual(["security.cfKey.oauth2 needs an oauth2 scheme; api_key is apiKey"]);
     const mint = { body: { scopes: "{scopes}" }, from: "$.k", operationId: "zones.list", with: "api_token" };
+
     const scoped = {
       origins: [{ id: "rows", security: { apiKey: "rowKey" } }],
       security: { api_token: { static: "t" }, rowKey: { mint } },
     };
+
     expect(problems(scoped, view(cloudflare), { rows: view({ ...anyrow, security: [] }) })).toEqual([]);
   });
 
@@ -244,10 +250,12 @@ describe("security, at the edges", () => {
     expect(problems({ security: { jwt: { login, placements: {} } } })).toEqual([
       "security.jwt.placements must be a list",
     ]);
+
     const placements = [
       { in: "query", name: "k" },
       { in: "cookie", name: "c", template: "v={credential}" },
     ];
+
     expect(problems({ security: { jwt: { login, placements } } })).toEqual([]);
   });
 
@@ -317,6 +325,7 @@ describe("specView", () => {
         "x-fresh-principal": true,
       },
     };
+
     const bare = { post: { ...signup.post, operationId: "auth.bare", requestBody: undefined } };
     const doc = { ...anyrow, paths: { ...anyrow.paths, "/v1/signup": signup } } as typeof anyrow;
     expect(specView(buildModel(doc), doc).fresh).toEqual({
@@ -348,10 +357,12 @@ describe("globalHeaders, against where credentials go", () => {
     expect(problems({ globalHeaders: { "X-Auth-Key": "k" } }, ANYROW, { cf: view(cloudflare) })).toEqual([
       'globalHeaders.X-Auth-Key is where origins.cf scheme "api_key" places its credential; remove it and map the scheme with origins[].security',
     ]);
+
     const placements = [
       { in: "query", name: "x-tenant" },
       { in: "header", name: "X-Tenant", template: "T {credential}" },
     ];
+
     expect(problems({ ...jwtWith({ placements }), globalHeaders: { "x-tenant": "t" } })).toEqual([
       "globalHeaders.x-tenant is where security.jwt.placements[1] places its credential; remove it",
     ]);

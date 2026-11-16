@@ -7,13 +7,11 @@ import { runSecondaryOrigins } from "./origins.ts";
 import { scopeReport } from "./result.ts";
 import type { RunOptions, RunResult } from "./types.ts";
 
-/*
- * Secondary origins (one transport answers both hosts here): each has a client over its own document,
- * and each runs as a run of its own over the primary's store, with the principals that signed in.
- * What it finds joins the primary's result, named by origin.
- */
+// Secondary origins (one transport answers both hosts here): each has a client over its own document,
+// and each runs as a run of its own over the primary's store, with the principals that signed in.
+// What it finds joins the primary's result, named by origin.
 
-/* The other host serves the notes document too, so its bearer scheme sends the primary's. */
+// The other host serves the notes document too, so its bearer scheme sends the primary's.
 const OTHER = {
   baseUrl: "http://other.test",
   id: "other",
@@ -27,6 +25,7 @@ const OPEN = { baseUrl: "http://open.test", id: "open", spec: "http://open.test/
 /** A secondary run's result, as `run` would give it. */
 function originResult(ctx: RunContext): RunResult {
   const scope = scopeReport(ctx);
+
   return {
     checkNotes: [],
     checkTimings: [],
@@ -57,11 +56,13 @@ function originResult(ctx: RunContext): RunResult {
 describe("loadOriginClients", () => {
   it("gives each origin a client over its own document, paced and fenced like the primary", async () => {
     const asked: string[] = [];
+
     const ctx = await contextOf(
       optionsFor(notesApi(), {
         hooks: {
           beforeRequest: (request) => {
             asked.push(request.url);
+
             return { allow: true };
           },
           resolveHeaders: async () => ({ "x-from": "hook" }),
@@ -72,6 +73,7 @@ describe("loadOriginClients", () => {
         ],
       }),
     );
+
     const other = ctx.originClients.get("other");
     expect(other?.model.entities.has("note")).toBe(true);
     await other?.client.get("/notes", { as: { principal: "alpha" } });
@@ -85,7 +87,7 @@ describe("runSecondaryOrigins", () => {
     const ctx = await contextOf(
       optionsFor(notesApi(), {
         cohortSize: 2,
-        hooks: { teardownPrincipal: async () => undefined },
+        hooks: { teardownPrincipal: async () => {} },
         origins: [{ ...OTHER, maxRps: 5 }],
         principals: {
           alpha: { fresh: false, rank: 2, scope: { org_id: "o1" } },
@@ -95,12 +97,14 @@ describe("runSecondaryOrigins", () => {
         scenarios: [{ covers: [], id: "s-other", origin: "other", steps: [] } as never],
       }),
     );
+
     const coverage = scopeReport(ctx);
     const asked: RunOptions[] = [];
     await runSecondaryOrigins(ctx, {
       coverage,
       runOrigin: async (options) => {
         asked.push(options);
+
         return originResult(ctx);
       },
     });
@@ -116,7 +120,7 @@ describe("runSecondaryOrigins", () => {
     });
     expect(asked[0]?.hooks).toEqual({});
     expect(asked[0]?.scenarios).toEqual([{ covers: [], id: "s-other", steps: [] }]);
-    /* Signed in already, none signed up again, and the BLOCKED one left out. */
+    // Signed in already, none signed up again, and the BLOCKED one left out.
     expect(asked[0]?.principals).toEqual({ alpha: { rank: 2, scope: { org_id: "o1" } } });
     expect(ctx.findings.findings.map((finding) => [finding.origin, finding.check])).toEqual([
       [undefined, "auth.blocked"],
@@ -141,6 +145,7 @@ describe("runSecondaryOrigins externals", () => {
       coverage: scopeReport(ctx),
       runOrigin: async (options) => {
         asked.push(options);
+
         return originResult(ctx);
       },
     });
@@ -165,6 +170,7 @@ describe("runSecondaryOrigins without", () => {
       coverage: scopeReport(ctx),
       runOrigin: async (options) => {
         asked.push(options);
+
         return originResult(ctx);
       },
     });
@@ -181,6 +187,7 @@ describe("runSecondaryOrigins without", () => {
       coverage: scopeReport(ctx),
       runOrigin: async (options) => {
         asked.push(options);
+
         return originResult(ctx);
       },
     });
@@ -197,6 +204,7 @@ describe("runSecondaryOrigins targeted", () => {
       coverage,
       runOrigin: async (options) => {
         asked.push(options);
+
         return originResult(ctx);
       },
     });
@@ -211,6 +219,7 @@ describe("runSecondaryOrigins targeted", () => {
       coverage: scopeReport(ctx),
       runOrigin: async (options) => {
         asked.push(options);
+
         return originResult(ctx);
       },
     });

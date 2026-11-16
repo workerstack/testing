@@ -9,7 +9,7 @@ import { confirmDeletes } from "./deletes.ts";
 const item = { properties: { deleted_at: { type: "string" }, id: { type: "string" } }, type: "object" };
 const CHECK = "delete.absent-record-returns-404";
 
-/* Notes with an item read and delete, a soft-deleting archive, a bin emptied as a whole, and a delete with no read. */
+// Notes with an item read and delete, a soft-deleting archive, a bin emptied as a whole, and a delete with no read.
 const notes = doc({
   "/notes/{note_id}": {
     delete: {
@@ -51,15 +51,18 @@ const notes = doc({
 /** A stage where every delete already answered 204, and reads answer `reads` by path. */
 function deleted(reads: Record<string, Answer>, fields: Parameters<typeof stage>[2] = {}) {
   const staged = stage(notes, (method, path) => (method === "GET" ? reads[path] : undefined), fields);
+
   const done = (operationId: string, path: string) =>
     staged.input.client.transcript.push(
       exchangeOf({ method: "DELETE", options: { as: { principal: "alpha" }, operationId }, path }, { status: 204 }),
     );
+
   done("notes.delete", "/notes/n1");
   done("archive.delete", "/archive/n2");
   done("bin.empty", "/bin");
   done("flat.empty", "/flat");
   done("orphans.delete", "/orphans/o1");
+
   return staged;
 }
 
@@ -71,6 +74,7 @@ describe("confirmDeletes", () => {
       "/flat": { body: [], status: 200 },
       "/notes/n1": { status: 404 },
     });
+
     await confirmDeletes(input);
     expect(sent.map((request) => `${request.method} ${request.path} ${String(request.options.operationId)}`)).toEqual([
       "GET /notes/n1 notes.get",
@@ -96,6 +100,7 @@ describe("confirmDeletes", () => {
       "/flat": { body: "not a list", status: 200 },
       "/notes/n1": { body: { id: "n1" }, status: 200 },
     });
+
     await confirmDeletes(input);
     expect(input.findings.findings.map((finding) => `${finding.check} ${finding.entity} ${finding.verdict}`)).toEqual([
       `${CHECK} note BACKEND_BUG`,
@@ -115,6 +120,7 @@ describe("confirmDeletes on refusals and skips", () => {
       "/flat": { body: null, status: 200 },
       "/notes/n1": { status: 403 },
     });
+
     await confirmDeletes(input);
     expect(input.findings.inconclusive.map((entry) => entry.reason)).toEqual([
       "notes.get answered 403 when reading /notes/n1 back after notes.delete, so whether the record is gone was not seen",
@@ -149,16 +155,21 @@ describe("confirmDeletes on refusals and skips", () => {
 describe("confirmDeletes when a read-back cannot be sent", () => {
   it("reports a read-back whose credential is BLOCKED, or unsatisfied, and confirms the rest", async () => {
     const blocked = "refresh for alpha/jwt: the refresh answered 401";
+
     const { input } = deleted({
       "/archive/n2": { body: { deleted_at: "2026-01-01", id: "n2" }, status: 200 },
       "/flat": { body: [], status: 200 },
     });
+
     const respond = input.client.request.bind(input.client);
     input.client.request = async (method, path, options) => {
       if (path === "/notes/n1") throw new UnsatisfiedSecurity("blocked", blocked);
+
       if (path === "/bin") throw new UnsatisfiedSecurity("unsatisfied", "no credential for apiKey");
+
       return respond(method, path, options);
     };
+
     await confirmDeletes(input);
     expect(input.findings.findings.map((finding) => [finding.check, finding.entity, finding.verdict])).toEqual([
       ["auth.blocked", "note", "BLOCKED"],
@@ -176,15 +187,15 @@ describe("confirmDeletes when a read-back cannot be sent", () => {
     input.client.request = async () => {
       throw new Error("socket hang up");
     };
+
     await expect(confirmDeletes(input)).rejects.toThrow("socket hang up");
   });
 });
 
-/*
- * A delete of a whole collection (forget every trusted device) has no item to read back. The read
- * on its path is the list, and the list it leaves empty is the proof.
- */
+// A delete of a whole collection (forget every trusted device) has no item to read back. The read
+// on its path is the list, and the list it leaves empty is the proof.
 const device = { properties: { id: { type: "string" } }, required: ["id"], type: "object" };
+
 const devices = doc({
   "/v1/devices": {
     delete: { operationId: "devices.forgetAll", responses: { "200": { description: "forgotten" } } },
@@ -202,12 +213,16 @@ const devices = doc({
 /** Forgets every device, keeping them when `keeps`, then confirms the delete. */
 async function forgetAll(keeps: boolean) {
   const rows = [{ id: "d1" }, { id: "d2" }];
+
   const { input } = stage(devices, (method) => {
     if (method === "DELETE" && !keeps) rows.splice(0);
+
     return { body: method === "DELETE" ? { forgotten: 2 } : { devices: rows }, status: 200 };
   });
+
   await input.client.request("DELETE", "/v1/devices", { as: { principal: "alpha" }, operationId: "devices.forgetAll" });
   await confirmDeletes(input);
+
   return { evidence: input.grades.evidence.get("devices.forgetAll"), findings: input.findings.findings };
 }
 

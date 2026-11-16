@@ -9,13 +9,13 @@ import { delivered, keep, type Lineage, referenced, type ScenarioAccounts, selfD
 const entry = (n: number): AccountEntry => ({ identity: {}, n, operationId: "auth.register", status: "created" });
 const [one, two] = [entry(1), entry(2)];
 
-/* A step whose body sends each of `names` as `{name}`. */
+// A step whose body sends each of `names` as `{name}`.
 const sending = (...names: string[]): ScenarioRequestStep => ({
   body: Object.fromEntries(names.map((name) => [name, `{${name}}`])),
   operationId: "op",
 });
 
-/* A self delete's answer, as the client records it. */
+// A self delete's answer, as the client records it.
 const answered = (status: number, operationId = "auth.deleteAccount"): Exchange => ({
   ...exchange("DELETE", "/account", { status }),
   operationId,
@@ -31,6 +31,7 @@ describe("referenced", () => {
       path: "/orgs/{org}/notes",
       query: { q: "{c}" },
     } as ScenarioRequestStep;
+
     expect([...referenced(step)].sort()).toEqual(["a", "b", "c", "noteId", "org", "session"]);
   });
 });
@@ -59,11 +60,13 @@ describe("tagOf", () => {
 describe("keep", () => {
   it("tags every name the step saved, its claims included, and untags a name rebound with none", () => {
     const lineage: Lineage = new Map([["kept", two]]);
+
     const saving: ScenarioRequestStep = {
       operationId: "op",
       saveAs: { kept: "$.a", token: "$.b" },
       saveClaimsFrom: { bind: { sub: "sub" }, token: "token" },
     };
+
     keep(lineage, saving, one);
     expect(Object.fromEntries(lineage)).toEqual({ kept: one, sub: one, token: one });
     keep(lineage, { operationId: "op", saveAs: { kept: "$.c" } }, undefined);
@@ -71,12 +74,12 @@ describe("keep", () => {
   });
 });
 
-/* A ledger port whose every address names `addressed`. */
+// A ledger port whose every address names `addressed`.
 const addressing = (addressed: AccountEntry | undefined): ScenarioAccounts => ({
   addressedTo: () => addressed,
-  deletedItself: () => undefined,
-  keepAccount: () => undefined,
-  madeBy: () => undefined,
+  deletedItself: () => {},
+  keepAccount: () => {},
+  madeBy: () => {},
 });
 
 describe("delivered", () => {
@@ -91,6 +94,7 @@ describe("delivered", () => {
       ["code", one],
       ["link", two],
     ]);
+
     delivered(lineage, { accounts: addressing(undefined), address: "x@b.test", as: "code" });
     delivered(lineage, { accounts: undefined, address: "u2@b.test", as: "link" });
     expect(lineage.size).toBe(0);
@@ -99,21 +103,26 @@ describe("delivered", () => {
 
 describe("selfDeleted", () => {
   const lineage: Lineage = new Map([["session", one]]);
+
   const deleting: ScenarioRequestStep = {
     anonymous: true,
     headers: { authorization: "Bearer {session}" },
     operationId: "auth.deleteAccount",
   };
+
   const settled = (step: ScenarioRequestStep, sent: Exchange, deleteSelf: string | null = "auth.deleteAccount") => {
     const deleted: AccountEntry[] = [];
+
     const port: ScenarioAccounts = {
       ...(deleteSelf === null ? {} : { deleteSelf }),
-      addressedTo: () => undefined,
+      addressedTo: () => {},
       deletedItself: (gone) => deleted.push(gone),
-      keepAccount: () => undefined,
-      madeBy: () => undefined,
+      keepAccount: () => {},
+      madeBy: () => {},
     };
+
     selfDeleted(lineage, { accounts: port, exchange: sent, step });
+
     return deleted;
   };
 

@@ -15,12 +15,10 @@ import type { RunContext } from "./context.ts";
 import { runReadSecurity, runWriteSecurity } from "./security.ts";
 import { trackCreates } from "./teardown.ts";
 
-/*
- * The stage schedules each probe, a check on one operation, by its placement: a collection read
- * before the lanes, concurrently; a read of one record after them, concurrently; a write, or any probe
- * of a check that changes a credential, after them alone and in order, on a record the run created.
- * The backend here applies every write.
- */
+// The stage schedules each probe, a check on one operation, by its placement: a collection read
+// before the lanes, concurrently; a read of one record after them, concurrently; a write, or any probe
+// of a check that changes a credential, after them alone and in order, on a record the run created.
+// The backend here applies every write.
 
 const AS_ALPHA = { as: { principal: "alpha" } };
 
@@ -35,6 +33,7 @@ function reader(
     plan: (ctx) => ready(ctx.operation.operationId),
     run: async (ctx) => {
       await run(ctx);
+
       return ASSERTED;
     },
     subject: "operation",
@@ -50,6 +49,7 @@ function writer(id: CheckId, run: (ctx: OperationWriteContext) => unknown): Oper
     plan: (ctx) => ready(ctx.operation.operationId),
     run: async (ctx) => {
       await run(ctx);
+
       return ASSERTED;
     },
     subject: "operation",
@@ -61,9 +61,12 @@ async function running(rows: Record_[], count: number): Promise<RunContext> {
   const ctx = await contextOf(
     optionsFor(notesApi(notesDoc(), rows), { ops: ["notes.update", "notes.get", "notes.list"] }),
   );
+
   const ids = Array.from({ length: count }, (_, n) => `run-${n + 1}`);
+
   for (const [n, id] of ids.entries()) rows.push({ id, title: `t${n + 1}` });
   ledgerNotes(ctx, ids);
+
   return ctx;
 }
 
@@ -82,9 +85,11 @@ describe("the security stage: where each probe runs", () => {
   it("plans one check's collection GET before the lanes and its item read and write after, reads first", async () => {
     const ctx = await running([], 1);
     const order: string[] = [];
+
     const check = writer("response.status-is-documented", (c) => {
       order.push(`${c.operation.operationId} ${c.placement} ${c.target?.id ?? "-"}`);
     });
+
     await runReadSecurity(ctx, [check]);
     expect(order).toEqual(["notes.list read -"]);
     await runWriteSecurity(ctx, [check]);
@@ -94,9 +99,11 @@ describe("the security stage: where each probe runs", () => {
   it("runs every probe of a check that changes a credential after the lanes, a collection read among them", async () => {
     const ctx = await running([], 1);
     const ran: string[] = [];
+
     const revoking = reader("response.no-server-error", (c) => ran.push(`${c.operation.operationId} ${c.placement}`), {
       mutatesCredentials: true,
     });
+
     await runReadSecurity(ctx, [revoking]);
     expect(ran).toEqual([]);
     await runWriteSecurity(ctx, [revoking]);
@@ -109,17 +116,23 @@ describe("the security stage: concurrency", () => {
     const ctx = await running([], 1);
     const events: string[] = [];
     let release!: () => void;
+
     const bothStarted = new Promise<void>((resolve) => {
       release = resolve;
     });
+
     let started = 0;
+
     const waiting = (id: CheckId): OperationCheck =>
       writer(id, async (c) => {
         events.push(`start ${c.operation.operationId}`);
+
         if (c.placement === "item-read" && ++started === 2) release();
+
         if (c.placement === "item-read") await bothStarted;
         events.push(`end ${c.operation.operationId}`);
       });
+
     await runWriteSecurity(ctx, [waiting("response.no-server-error"), waiting("response.status-is-documented")]);
     expect(events).toEqual([
       "start notes.get",
@@ -156,16 +169,19 @@ describe("the security stage: targets", () => {
   it("stands an item read and a write down with the reason when the run created no record for them", async () => {
     const ctx = await running([], 0);
     const ran: string[] = [];
+
     const targeted = defineCheck({
       id: "response.status-is-documented",
       mutates: true,
       plan: targetPlan,
       run: async (c) => {
         ran.push(c.subject);
+
         return ASSERTED;
       },
       subject: "operation",
     });
+
     await runWriteSecurity(ctx, [targeted]);
     expect(ran).toEqual([]);
     expect(ctx.state.checksSkipped.map((skipped) => skipped.needs)).toEqual([
@@ -180,16 +196,19 @@ describe("the security stage: a target its creator's BLOCKED credential cannot r
     const ctx = await running([], 1);
     ctx.store.block({ principal: "alpha", scheme: "bearer" }, "the new credential is refused");
     const ran: string[] = [];
+
     const targeted = defineCheck({
       id: "response.status-is-documented",
       mutates: true,
       plan: targetPlan,
       run: async (c) => {
         ran.push(c.subject);
+
         return ASSERTED;
       },
       subject: "operation",
     });
+
     await runWriteSecurity(ctx, [targeted]);
     expect(ran).toEqual([]);
     expect(ctx.state.checksSkipped).toEqual([]);
@@ -203,16 +222,19 @@ describe("the security stage: a target its creator's BLOCKED credential cannot r
   it("reports it by the cause the plan carries, not its words: a reworded stand-down is still stopped", async () => {
     const ctx = await running([], 1);
     ctx.store.block({ principal: "alpha", scheme: "bearer" }, "the new credential is refused");
+
     const reworded = defineCheck({
       id: "response.status-is-documented",
       mutates: true,
       plan: (c) => {
         const target = targetPlan(c);
+
         return target.ok ? target : { ...target, needs: "a record of my own to write to" };
       },
       run: async () => ASSERTED,
       subject: "operation",
     });
+
     await runWriteSecurity(ctx, [reworded]);
     expect(ctx.state.checksSkipped).toEqual([]);
     expect(ctx.findings.findings.map((finding) => finding.summary)).toEqual([
@@ -228,16 +250,19 @@ describe("the security stage: a DELETE probe's target", () => {
     const ctx = await contextOf(optionsFor(notesApi(notesDoc(), rows), { ops: ["notes.delete"] }));
     trackCreates(ctx);
     const targeted: string[] = [];
+
     const deleting = defineCheck({
       id: "response.status-is-documented",
       mutates: true,
       plan: targetPlan,
       run: async (_c, target) => {
         targeted.push(target.id);
+
         return ASSERTED;
       },
       subject: "operation",
     });
+
     await runWriteSecurity(ctx, [deleting]);
     rows.push({ id: "run-1", title: "t1" });
     ledgerNotes(ctx, ["run-1"]);
@@ -274,12 +299,14 @@ describe("the security stage: planning and outcomes", () => {
 
   it("records an assertion's note, and maps an unsatisfied credential to untested and any other throw to a gap", async () => {
     const ctx = await running([], 1);
+
     const noted = defineCheck({
       id: "response.no-server-error",
       plan: () => ready(1),
       run: async () => asserted("the backend 404s cleanly"),
       subject: "operation",
     });
+
     await runReadSecurity(ctx, [noted]);
     expect(ctx.state.checkNotes).toEqual([
       { check: "response.no-server-error", entity: "notes.list", note: "the backend 404s cleanly" },
@@ -305,7 +332,7 @@ describe("the security stage: planning and outcomes", () => {
 describe("the security stage: grades and stops", () => {
   it("grades each operation as probed, so the contract floor still calls it", async () => {
     const ctx = await running([], 1);
-    await runReadSecurity(ctx, [reader("response.no-server-error", () => undefined)]);
+    await runReadSecurity(ctx, [reader("response.no-server-error", () => {})]);
     expect([...(ctx.grades.ran.get("notes.list") ?? [])]).toEqual(["response.no-server-error"]);
     expect(ctx.grades.judged("notes.list")).toBe(false);
   });
@@ -356,6 +383,7 @@ const optedIn = (ran: string[]): OperationCheck =>
     plan: (ctx) => ready(ctx.subject),
     run: async (ctx) => {
       ran.push(ctx.subject);
+
       return ASSERTED;
     },
     subject: "operation",
@@ -386,7 +414,7 @@ describe("the security stage: opt-in checks", () => {
   });
 });
 
-/* The stage's read-backs of a run-created record: `purpose: "probe"` GETs, no check's own. */
+// The stage's read-backs of a run-created record: `purpose: "probe"` GETs, no check's own.
 const targetReadsOf = (ctx: RunContext): string[] =>
   ctx.client.transcript
     .filter((exchange) => exchange.purpose === "probe" && exchange.method === "GET")
@@ -409,13 +437,16 @@ describe("the security stage: target reads", () => {
   it("reads the record afresh for a write probe after another probe kind's write to it went through", async () => {
     const ctx = await running([], 1);
     const bodies: unknown[] = [];
+
     const patching = writer("response.no-server-error", async (c) => {
       if (c.placement !== "write" || c.target === undefined) return;
       await c.client.request("PATCH", c.target.path, { ...AS_ALPHA, body: { title: "changed" } });
     });
+
     const reading = writer("response.status-is-documented", (c) => {
       if (c.placement === "write") bodies.push(c.target?.current);
     });
+
     await runWriteSecurity(ctx, [patching, reading]);
     expect(bodies).toEqual([{ id: "run-1", title: "changed" }]);
     expect(targetReadsOf(ctx)).toEqual(["/notes/run-1", "/notes/run-1"]);
@@ -428,11 +459,13 @@ describe("the security stage: volume", () => {
     await runReadSecurity(ctx);
     await runWriteSecurity(ctx);
     const targets = new Map<string, Set<string>>();
+
     for (const exchange of ctx.client.transcript) {
       if (exchange.check === undefined || !exchange.check.startsWith("auth.")) continue;
       const key = `${exchange.check} ${String(exchange.operationId)}`;
       targets.set(key, (targets.get(key) ?? new Set()).add(ctx.client.relativePath(exchange.url)));
     }
+
     expect(targets.size).toBeGreaterThan(0);
     expect([...targets].filter(([, paths]) => paths.size > 1)).toEqual([]);
   });

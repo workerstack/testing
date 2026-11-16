@@ -19,11 +19,9 @@ import {
 } from "./__fixtures__/api.ts";
 import { disposeClients } from "./client-setup.ts";
 
-/*
- * The run's client and what watches it: every answer is journaled under its own check and shown
- * as the last one, every client of the run — origins included — scrubs with one redactor, and each
- * resolves its actors over the run's one store against its own document.
- */
+// The run's client and what watches it: every answer is journaled under its own check and shown
+// as the last one, every client of the run — origins included — scrubs with one redactor, and each
+// resolves its actors over the run's one store against its own document.
 
 const AS_ALPHA = { as: { principal: "alpha" } };
 const ORIGIN = { baseUrl: "http://other.test", id: "other", spec: "http://other.test/openapi.json" };
@@ -65,16 +63,19 @@ describe("connect", () => {
 describe("connect wiring", () => {
   it("sends the resolved headers, asks the fence, and paces by the configured rate", async () => {
     const asked: string[] = [];
+
     const options = optionsFor(notesApi(), {
       hooks: {
         beforeRequest: (request) => {
           asked.push(`${request.method} ${request.url}`);
+
           return { allow: true };
         },
         resolveHeaders: async () => ({ "x-captcha": "solved" }),
       },
       maxRps: 1_000,
     });
+
     const run = await connected(options);
     await run.client.get("/notes", AS_ALPHA);
     expect(asked.at(-1)).toBe(`GET ${BASE}/notes`);
@@ -116,9 +117,11 @@ describe("connect: the store", () => {
 
   it("resolves a secondary origin's run over the primary's store, by the origin's mapping", async () => {
     const primary = await connected(optionsFor(notesApi()));
+
     const options = optionsFor(notesApi(), {
       sharedCredentials: { mapping: { bearer: "bearer" }, originOnly: new Set(), store: primary.store },
     });
+
     const run = await connected(options);
     await run.client.get("/notes", AS_ALPHA);
     expect(options.seen.at(-1)?.headers["authorization"]).toBe(`Bearer ${ALPHA_KEY}`);
@@ -143,6 +146,7 @@ describe("connect: secondary origins", () => {
       components: { securitySchemes: Record<string, unknown> };
       security: unknown;
     };
+
     doc.components.securitySchemes = { originKey: { in: "header", name: "x-origin-key", type: "apiKey" } };
     doc.security = [{ originKey: [] }];
     const run = await connected(servingAt(optionsFor(notesApi(), { origins: [ORIGIN] }), ORIGIN.spec, doc as never));
@@ -153,12 +157,15 @@ describe("connect: secondary origins", () => {
 describe("disposeClients", () => {
   it("removes every client's transcript spool, each origin's as well as the primary's", async () => {
     const dir = scratch();
+
     const options = optionsFor(notesApi(), {
       origins: [{ ...ORIGIN, security: { bearer: "bearer" } }],
       transcript: { dir, memoryBytes: 1 },
     });
+
     const run = await connected(options);
     const origin = run.originClients.get("other")?.client;
+
     for (const client of [run.client, origin, run.client, origin]) await client?.get("/notes", AS_ALPHA);
     expect(readdirSync(dir)).toHaveLength(2);
     await disposeClients(run);

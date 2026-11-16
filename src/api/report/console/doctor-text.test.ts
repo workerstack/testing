@@ -7,7 +7,7 @@ import { block, declarationLines, entityLines, summaryLines, tagLines } from "./
 const idParam = [{ in: "path", name: "id", required: true, schema: { type: "string" } }];
 const body = { content: { "application/json": { schema: { type: "object" } } } };
 
-/* An entity no one can read back, one with no identity, and one read only through what its update invalidates. */
+// An entity no one can read back, one with no identity, and one read only through what its update invalidates.
 const EDGES = documentOf({
   "/c": {
     post: {
@@ -47,7 +47,7 @@ describe("block", () => {
 describe("summaryLines", () => {
   it("draws how many entities a run can test and list", async () => {
     const facts = doctorFacts((await referenceModel()).model);
-    /* With no recipe minting API keys, api-key is an entity of its own, tested through its creates. */
+    // With no recipe minting API keys, api-key is an entity of its own, tested through its creates.
     expect(summaryLines(facts)).toEqual([
       "",
       `  testable   ${"█".repeat(24)}  8/8 entities a run can seed and check`,
@@ -111,7 +111,8 @@ describe("entityLines", () => {
     expect(reference).toContain("  no list — query, pagination and count checks will not run");
     expect(reference).toContain(`    ${"api-key".padEnd(20)} apiKey.get`);
     expect(reference).toContain(`    ${"profile".padEnd(20)} profile.get`);
-    /* The caller with an update and no read is read where its update says it changes. */
+
+    // The caller with an update and no read is read where its update says it changes.
     const caller = modelOf(
       documentOf({
         "/me": {
@@ -125,6 +126,7 @@ describe("entityLines", () => {
         },
       }),
     ).model;
+
     expect(entityLines(doctorFacts(caller))).toContain(`    ${"me".padEnd(20)} GET /me`);
     expect(reference).toContain("  roots required in config (no create operation in this document)");
     expect(reference).toContain(

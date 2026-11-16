@@ -14,16 +14,18 @@ describe("requestUrl", () => {
     const url = requestUrl(BASE, "/rows?keep=1", { query: { f: ["a", 2], g: "c", n: 3, none: undefined } });
     expect(url.search).toBe("?keep=1&f=a&f=2&g=c&n=3");
     expect(requestUrl(BASE, "/rows?g=old&keep=1", { query: { g: "c" } }).search).toBe("?keep=1&g=c");
-    /* The path's own pairs stay as written when one of them is replaced. */
+    // The path's own pairs stay as written when one of them is replaced.
     expect(requestUrl(BASE, "/rows?a=x%20y&g=old&p=/q:r", { query: { g: "c" } }).search).toBe("?a=x%20y&p=/q:r&g=c");
   });
 
   it("writes each value in the style the operation declares, percent-encoded per RFC 3986", () => {
     const styles = { ids: { explode: false, style: "pipeDelimited" }, range: { style: "deepObject" } };
+
     const url = requestUrl(BASE, "/styles", {
       query: { ids: ["a", "b"], q: "a b*~", range: { max: 5, min: 1 } },
       styles,
     });
+
     expect(url.search).toBe("?ids=a|b&q=a%20b%2A~&range[max]=5&range[min]=1");
     expect(url.searchParams.get("range[min]")).toBe("1");
   });

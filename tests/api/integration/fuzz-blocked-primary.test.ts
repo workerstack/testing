@@ -7,13 +7,11 @@ import type { DefectName } from "../../../src/api/reference/defects/table.ts";
 import { createMemoryServer } from "../../../src/api/reference/http/engines.ts";
 import { run } from "../../../src/api/runtime/run/index.ts";
 
-/*
- * Combination fuzzing, CI seed 40807199544, combination 585000. DISPOSABLE_KILLS_CALLER's logout
- * revokes the suite caller and refuses every fresh sign-in, so auth.privileged-field-ignored cannot
- * send its signup: the API tester signs the caller in again, is refused, and reports the check BLOCKED, naming
- * it. That is the check saying why it could not conclude, not the API tester going quiet, and the fuzz must
- * read it so: PRIVILEGED_FIELD_WRITABLE is unresolved there, never missed.
- */
+// Combination fuzzing, CI seed 40807199544, combination 585000. DISPOSABLE_KILLS_CALLER's logout
+// revokes the suite caller and refuses every fresh sign-in, so auth.privileged-field-ignored cannot
+// send its signup: the API tester signs the caller in again, is refused, and reports the check BLOCKED, naming
+// it. That is the check saying why it could not conclude, not the API tester going quiet, and the fuzz must
+// read it so: PRIVILEGED_FIELD_WRITABLE is unresolved there, never missed.
 const COMBINATION_585000: DefectName[] = [
   "PRIVILEGED_FIELD_WRITABLE",
   "FILTER_AFTER_PAGINATION",
@@ -27,6 +25,7 @@ describe("a fuzz case whose primary check is BLOCKED", () => {
   it("reads the check BLOCKED by another defect as unresolved, and misses nothing (seed 40807199544, case 585000)", async () => {
     const optIn = optInFor(COMBINATION_585000);
     const server = await createMemoryServer({ defects: COMBINATION_585000, ...optIn.reference });
+
     try {
       const result = await run({
         ...optIn.run,
@@ -36,6 +35,7 @@ describe("a fuzz case whose primary check is BLOCKED", () => {
         seed: 42,
         spec: `${server.url}/v1/openapi/spec`,
       });
+
       const diagnosis = diagnose(COMBINATION_585000, result);
       expect(diagnosis.missed).toEqual([]);
       expect(diagnosis.unresolved).toContainEqual({

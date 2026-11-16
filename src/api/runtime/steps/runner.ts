@@ -1,8 +1,6 @@
-/*
- * The credentials StepRunner port, served by the step engine. `credentials` sits below the runtime
- * and cannot import it, so `runtime/run` builds this runner and hands it down: a login or refresh
- * recipe runs its steps through it and reads the credential out of the answer itself.
- */
+// The credentials StepRunner port, served by the step engine. `credentials` sits below the runtime
+// and cannot import it, so `runtime/run` builds this runner and hands it down: a login or refresh
+// recipe runs its steps through it and reads the credential out of the answer itself.
 
 import type { StepRunner } from "../../credentials/ports.ts";
 import { runSteps } from "./engine.ts";
@@ -13,11 +11,13 @@ export function stepRunner(ctx: Omit<StepContext, "principalId">): StepRunner {
   return {
     run: async (steps, { principal, probe, scope }) => {
       const out = await runSteps({ ...ctx, principalId: principal }, steps, { scope, ...(probe ? { probe } : {}) });
+
       if (out.last === undefined) {
         throw new Error(
           `testing api: principal "${principal}" ran its steps without sending a request, so there is no answer to read`,
         );
       }
+
       return { answer: out.last, scope: out.scope };
     },
   };

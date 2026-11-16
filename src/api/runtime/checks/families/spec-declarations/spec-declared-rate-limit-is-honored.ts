@@ -30,16 +30,20 @@ export const declaredRateLimitHonored: Check = defineCheck({
   subjects: (entity, model) => ownOps(entity, model, (op) => op.rateLimit !== null && op.rateLimit.rps !== null),
   async run(ctx): Promise<Outcome> {
     const byCategory = new Map<string, Exchange[]>();
-    /* Only a route something actually sent was paced and judged. Claiming the rest would mark
-     * them graded with no request behind them, and the contract tier never calls a graded one. */
+    // Only a route something actually sent was paced and judged. Claiming the rest would mark
+    // them graded with no request behind them, and the contract tier never calls a graded one.
     const observed = new Set<string>();
+
     for (const exchange of ctx.client.exchangesForEntity(ctx.entityName)) {
       const paced = declaredRateOp(ctx, exchange);
+
       if (paced !== undefined) observed.add(paced);
+
       if (!refusedUnderDeclaredRate(exchange)) continue;
       const category = exchange.rateLimitCategory ?? "unknown";
       byCategory.set(category, [...(byCategory.get(category) ?? []), exchange]);
     }
+
     for (const [category, exchanges] of byCategory) {
       ctx.findings.spec(this.id, ctx.entityName, {
         summary: `the declared "${category}" rate limit is not honored`,
@@ -52,7 +56,9 @@ export const declaredRateLimitHonored: Check = defineCheck({
         evidence: exchanges.slice(0, 3),
       });
     }
+
     ctx.judged?.([...observed]);
+
     return ASSERTED;
   },
 });
@@ -60,7 +66,9 @@ export const declaredRateLimitHonored: Check = defineCheck({
 /** The operation `exchange` was sent to, when the document declares a rate for it. */
 function declaredRateOp(ctx: CheckContext, exchange: Exchange): string | undefined {
   const op = exchange.operationId === undefined ? undefined : ctx.model.byOperationId.get(exchange.operationId);
+
   if (op?.rateLimit?.rps !== null && op?.rateLimit?.rps !== undefined) return op.operationId;
+
   return undefined;
 }
 

@@ -1,4 +1,5 @@
 export type { Axis, Box, Spot } from "./gesture.ts";
+
 export {
   pointer,
   type CenterDrag,
@@ -9,4 +10,5 @@ export {
   type PointerKind,
   type Surface,
 } from "./pointer.ts";
+
 export { stubs, type Restore } from "./stubs.ts";

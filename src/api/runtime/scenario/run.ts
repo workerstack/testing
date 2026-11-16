@@ -15,40 +15,46 @@ import { scenarioCheckId, stepOperation } from "./validate.ts";
 
 export async function runScenarios(input: ScenarioInput): Promise<void> {
   const sleep = input.sleep ?? wait;
+
   for (const scenario of input.scenarios) {
     if (input.stopped?.() === true) return;
     const graded = scenario.covers.filter((id) => input.mode === "full" || input.inScope(id));
     const reaches = touches(input, scenario);
+
     if (graded.length === 0 && !reaches) continue;
     const check = scenarioCheckId(scenario);
     input.checksRun.add(check);
+
     if (skippedBy(input, scenario, graded) || blockedBy(input, scenario, { check, graded })) continue;
     const run = startScenario(input, scenario, sleep);
     const ended = await runSteps(run);
-    /* Stopped from outside: what completed is graded; nothing unreached is a verdict. */
+
+    // Stopped from outside: what completed is graded; nothing unreached is a verdict.
     if (ended === "stopped") {
       proveCalled(run, graded, check);
+
       return;
     }
+
     gradeScenario(run, graded, ended);
   }
 }
 
-/* A scenario the profile leaves out is not run: a gap with the reason, and what it covers stays ungraded. */
+// A scenario the profile leaves out is not run: a gap with the reason, and what it covers stays ungraded.
 function skippedBy(input: ScenarioInput, scenario: Scenario, graded: readonly string[]): boolean {
   const reason = input.skipped?.(scenario) ?? null;
+
   if (reason === null) return false;
   input.findings.attributed([...graded]).gap("profile.skip" satisfies RunFindingId, scenario.id, {
     detail: `${reason}. What it covers stays ungraded under this profile.`,
     summary: `scenario "${scenario.id}" skipped by the profile`,
   });
+
   return true;
 }
 
-/*
- * A scenario that sends as a principal BLOCKED at sign-in, itself or in a step, is not run: it is
- * BLOCKED by that principal, and what it covers stays ungraded. True when it was.
- */
+// A scenario that sends as a principal BLOCKED at sign-in, itself or in a step, is not run: it is
+// BLOCKED by that principal, and what it covers stays ungraded. True when it was.
 function blockedBy(
   input: ScenarioInput,
   scenario: Scenario,
@@ -58,7 +64,9 @@ function blockedBy(
     scenario.principal,
     ...scenario.steps.map((step) => ("principal" in step ? step.principal : undefined)),
   ];
+
   const principal = named.find((id) => id !== undefined && input.blocked.has(id));
+
   if (principal === undefined) return false;
   const cause = `principal "${principal}" is BLOCKED: ${input.blocked.get(principal) as string}`;
   input.findings
@@ -68,6 +76,7 @@ function blockedBy(
       cause,
       summary: `scenario "${scenario.id}" sends as a principal that is BLOCKED`,
     });
+
   return true;
 }
 
@@ -75,6 +84,7 @@ function blockedBy(
 function touches(input: ScenarioInput, scenario: Scenario): boolean {
   return scenario.steps.some((step) => {
     const id = stepOperation(step);
+
     return id !== undefined && input.inScope(id);
   });
 }
@@ -87,8 +97,10 @@ async function runSteps(run: ScenarioRun): Promise<Stop | "stopped" | null> {
       await runStep(run, step, index);
     } catch (error) {
       if (error instanceof ScenarioStopped) return "stopped";
+
       return { failure: failureOf(error), index };
     }
   }
+
   return null;
 }

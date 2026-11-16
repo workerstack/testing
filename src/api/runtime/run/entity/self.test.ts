@@ -5,9 +5,10 @@ import type { Responder } from "../../checks/__fixtures__/harness.ts";
 import { contextOf, optionsFor, secured } from "../__fixtures__/api.ts";
 import { selfIdentity } from "./self.ts";
 
-/* An entity that is the caller: its read of itself is its test. */
+// An entity that is the caller: its read of itself is its test.
 
 const profile = { properties: { id: { type: "string" }, name: { type: "string" } }, type: "object" };
+
 const doc = secured({
   info: { title: "me", version: "1" },
   openapi: "3.1.0",
@@ -35,6 +36,7 @@ describe("selfIdentity", () => {
       const options = optionsFor(me, { hooks: hooks as never });
       const ctx = await contextOf(options);
       const entity = ctx.model.entities.get("profile");
+
       if (entity === undefined) throw new Error("no profile entity");
       await selfIdentity(ctx, entity);
       expect(options.seen.some((request) => request.path === "/me")).toBe(true);

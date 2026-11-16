@@ -21,6 +21,7 @@ const target: WriteTarget = {
 describe("isReadMethod", () => {
   it("reads GET, HEAD and QUERY as reads, whatever their case, and every other method as a write", () => {
     for (const method of ["GET", "head", "QUERY"]) expect(isReadMethod(op(method))).toBe(true);
+
     for (const method of ["POST", "PUT", "PATCH", "DELETE"]) expect(isReadMethod(op(method))).toBe(false);
   });
 });

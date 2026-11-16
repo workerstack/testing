@@ -18,14 +18,18 @@ export const filterConditionCapRejected: Check<{ max: number; overCap: FilterQue
   plan: (ctx) => {
     const max = resolvedCaps(ctx).maxFilterConditions;
     const conventions = conv(ctx);
+
     if (max === undefined || conventions.filter === undefined) return cannot();
+
     if (!canGroupAnd(filterSpec(conventions)) || !identityIsFilterable(ctx)) return cannot();
     const term = { field: filterIdentity(ctx), op: "eq", value: "testing-cap" } as const;
+
     const overCap = renderAnd(
       filterSpec(conventions),
       conventions.filter,
       Array.from({ length: max + 1 }, () => term),
     );
+
     return overCap === null ? cannot() : ready({ max, overCap });
   },
   dependsOn: [...FOUNDATIONS, "error.malformed-filter-not-5xx"],
@@ -36,7 +40,9 @@ export const filterConditionCapRejected: Check<{ max: number; overCap: FilterQue
   async run(ctx, { max, overCap }): Promise<Outcome> {
     const result = await list(asProbe(ctx), { ...q(ctx, { limit: 5 }), ...overCap });
     const refused = judgeRefusal(ctx, this.id, ["validation"], result.exchange);
+
     if (refused !== null) return refused;
+
     return ctx.findings.backend(this.id, ctx.entityName, {
       summary: "an over-limit filter expression was accepted",
       detail: `maxFilterConditions=${max} but ${max + 1} eq terms returned ${result.exchange.status}.`,

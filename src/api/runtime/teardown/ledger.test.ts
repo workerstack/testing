@@ -6,10 +6,12 @@ import { notesClient, notesModel, owner, store } from "./__fixtures__/notes.ts";
 import { Ledger } from "./ledger.ts";
 import { NEVER_SEEN } from "./never-seen.ts";
 
-/* An id as a listing gave it back. */
+// An id as a listing gave it back.
 function id(value: string): ProvenId {
   const [proven] = listedIds([value]);
+
   if (proven === undefined) throw new Error(`no id from ${value}`);
+
   return proven;
 }
 

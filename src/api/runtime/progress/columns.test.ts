@@ -13,8 +13,8 @@ describe("progress columns", () => {
     const lines = PROGRESS_GLOSSARY.split("\n");
     expect(lines.every((line) => line.startsWith("# "))).toBe(true);
     expect(lines[0]).toBe("# logfmt — one event per line, full values, no truncation");
-    for (const column of ["status", "phase", "req_id", "last_ms", "idle_ms", "elapsed_ms"]) {
+
+    for (const column of ["status", "phase", "req_id", "last_ms", "idle_ms", "elapsed_ms"])
       expect(PROGRESS_GLOSSARY).toContain(`# ${column}`);
-    }
   });
 });

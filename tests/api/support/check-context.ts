@@ -2,11 +2,9 @@ import { type CheckContext, checkMemo, type Listed } from "../../../src/api/runt
 import { SchemaValidator } from "../../../src/api/runtime/validate.ts";
 import type { OperationModel } from "../../../src/api/spec/graph/types.ts";
 
-/*
- * A complete `CheckContext` for tests that drive one check directly. Every field `run()` would
- * set has a neutral default here, so a field added to the context breaks this one place instead of
- * every hand-written fake — and those fakes are type-checked, so they cannot silently fall behind.
- */
+// A complete `CheckContext` for tests that drive one check directly. Every field `run()` would
+// set has a neutral default here, so a field added to the context breaks this one place instead of
+// every hand-written fake — and those fakes are type-checked, so they cannot silently fall behind.
 
 type Required_ = "client" | "entityName" | "findings" | "model";
 

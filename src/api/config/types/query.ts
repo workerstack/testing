@@ -1,8 +1,6 @@
-/*
- * What a list endpoint can be asked: the filter, sort, search and select capabilities an API
- * declares on `x-query` or a config states for it. Declared, never inferred: a capability nobody
- * declared is a check that does not apply.
- */
+// What a list endpoint can be asked: the filter, sort, search and select capabilities an API
+// declares on `x-query` or a config states for it. Declared, never inferred: a capability nobody
+// declared is a check that does not apply.
 
 export type FilterOp =
   | "eq"
@@ -18,36 +16,39 @@ export type FilterOp =
   | "ilike"
   | "is"
   | "contains";
+
 export type FieldType = "string" | "number" | "boolean" | "date" | "enum" | "array";
+
 export type SearchMode = string;
+
 export type Nulls = "first" | "last";
 
-export interface FilterableField {
+export type FilterableField = {
   field: string;
   type?: FieldType;
   ops?: FilterOp[];
-}
+};
 
-export interface SortableField {
+export type SortableField = {
   field: string;
   type?: FieldType;
   nulls?: Nulls[];
-}
+};
 
-export interface SelectRelation {
+export type SelectRelation = {
   name: string;
   fields: string[];
-}
+};
 
-export interface FilterableFrom {
+export type FilterableFrom = {
   operationId?: string;
   route?: string;
   path: string;
   typePath?: string;
   typeMap?: Record<string, FieldType>;
-}
+};
 
-export interface QueryCapabilities {
+export type QueryCapabilities = {
   filterable?: FilterableField[];
   sortable?: SortableField[];
   /** `null` is an explicit claim of none. */
@@ -84,10 +85,11 @@ export interface QueryCapabilities {
   sortableFrom?: FilterableFrom;
   searchableFrom?: FilterableFrom;
   selectableFrom?: FilterableFrom;
-}
+};
 
 /** A filter grammar by preset name, or a template object the renderer validates. */
 export type DeclaredFilterGrammar = "postgrest" | "colon" | "equality" | Record<string, unknown>;
+
 /** A sort grammar by preset name, or a template object the renderer validates. */
 export type DeclaredSortGrammar = "dotted" | "prefixed" | "colon" | "spaced" | Record<string, unknown>;
 
@@ -102,10 +104,12 @@ export type QueryParamRole =
   | "page"
   | "offset"
   | "cursor";
+
 /** The query parameter each role is sent in, for a role whose parameter no alias the API tester knows names. */
 export type QueryParamNames = Partial<Record<QueryParamRole, string>>;
 
 /** A paging fact a walk reads from a list response: the total, the more-pages flag, the next cursor. */
 export type QueryEnvelopeRole = "total" | "hasMore" | "nextCursor";
+
 /** The response field each fact is read from, for a fact whose field no alias the API tester knows names. */
 export type QueryEnvelopeNames = Partial<Record<QueryEnvelopeRole, string>>;

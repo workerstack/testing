@@ -25,7 +25,9 @@ function without(
   ...keys: Array<"order" | "search" | "select" | "searchMode">
 ): QueryConventions {
   const copy = { ...conventions };
+
   for (const key of keys) delete copy[key];
+
   return copy;
 }
 
@@ -66,16 +68,17 @@ const EVERY_CHECK = [
   "query.filter-search-sort-select-compose",
 ];
 
-/* PostgREST writes every operator and composes and/or; the template dialect writes fewer. */
+// PostgREST writes every operator and composes and/or; the template dialect writes fewer.
 async function conventionsOf(dialect?: string): Promise<QueryConventions> {
   const { model } = await referenceModel(dialect === undefined ? {} : { dialect });
+
   return listOperation(model, "table.list").conventions;
 }
 
 describe("catalogCheckPreview with all or nothing declared", () => {
   it("applies nothing with no capabilities beyond what the parameters alone allow", async () => {
     const conventions = await conventionsOf();
-    /* An order parameter alone lets the API tester ask for a field that is not there. */
+    // An order parameter alone lets the API tester ask for a field that is not there.
     expect(catalogCheckPreview(caps(), { conventions }, "config")).toEqual(["sort.unknown-field-rejected"]);
     const bare = without(conventions, "order", "search", "select");
     expect(catalogCheckPreview(caps({ sortable: [{ field: "a" }] }), { conventions: bare }, "config")).toEqual([]);
@@ -83,6 +86,7 @@ describe("catalogCheckPreview with all or nothing declared", () => {
 
   it("applies every check when every capability is declared and the grammar writes it all, in catalog order", async () => {
     const conventions = await conventionsOf();
+
     const full = caps({
       aliases: { neq: "ne" },
       emptyIn: "reject",
@@ -103,6 +107,7 @@ describe("catalogCheckPreview with all or nothing declared", () => {
         { field: "b", type: "string" },
       ],
     });
+
     expect(catalogCheckPreview(full, { conventions: { ...conventions, searchMode: "mode" } }, "tag")).toEqual(
       EVERY_CHECK,
     );
@@ -115,6 +120,7 @@ describe("catalogCheckPreview with all or nothing declared", () => {
 describe("catalogCheckPreview with some capabilities held back", () => {
   it("holds back what the grammar cannot write, or what one field alone cannot exercise", async () => {
     const conventions = await conventionsOf("template");
+
     const preview = catalogCheckPreview(
       caps({
         emptyIn: "reject",
@@ -125,6 +131,7 @@ describe("catalogCheckPreview with some capabilities held back", () => {
       { conventions },
       "config",
     );
+
     expect(preview).toContain("filter.in-is-union-of-eq");
     expect(preview).not.toContain("filter.nin-complements-in");
     expect(preview).not.toContain("filter.nested-and-or-distributes");
@@ -134,6 +141,7 @@ describe("catalogCheckPreview with some capabilities held back", () => {
 
   it("leaves out the limits nobody declared, and the in-list ones when `in` cannot be sent", async () => {
     const conventions = await conventionsOf();
+
     const preview = catalogCheckPreview(
       caps({
         emptyIn: "reject",
@@ -151,6 +159,7 @@ describe("catalogCheckPreview with some capabilities held back", () => {
       { conventions },
       "heuristic",
     );
+
     expect(preview).toEqual([
       "filter.illegal-op-rejected",
       "sort.unknown-field-rejected",

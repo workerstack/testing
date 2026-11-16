@@ -14,6 +14,7 @@ describe("testing/no-module-state: what is state", () => {
       "src/api/spec/b.ts":
         "export const map = new Map() as Map<string, number>\nconst set = (new Set())\nconst typed: Set<string> = new Set()\n",
     };
+
     expect(reportsOf(rule, fixture).map(({ file, line }) => `${file}:${line}`)).toEqual([
       "src/api/runtime/a.ts:1",
       "src/api/runtime/a.ts:2",
@@ -39,6 +40,7 @@ describe("testing/no-module-state: what is state", () => {
         "export const other = new Set() /* per-process-constant: compiled-schema */",
       ].join("\n"),
     };
+
     expect(reportsOf(rule, fixture)).toEqual([]);
   });
 });
@@ -55,6 +57,7 @@ describe("testing/no-module-state: reasons and scope", () => {
         "let c = 0",
       ].join("\n"),
     };
+
     expect(reportsOf(rule, fixture).map(({ line }) => line)).toEqual([2, 3, 6]);
   });
 
@@ -65,6 +68,7 @@ describe("testing/no-module-state: reasons and scope", () => {
       "tests/api/integration/a.test.ts": "let x = 0\n",
       "labs/api/demo.ts": "let x = 0\n",
     };
+
     expect(reportsOf(rule, fixture)).toEqual([]);
   });
 

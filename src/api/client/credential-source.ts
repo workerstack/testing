@@ -38,20 +38,20 @@ export type Actor =
   | { principal: string; scheme: string; value: string };
 
 /** What the client knows about a request when it resolves its credential. */
-export interface CredentialRequest {
+export type CredentialRequest = {
   operationId?: string;
   /** `<METHOD> <path>`, the path below the base, or origin and path for another origin: what a refusal names. */
   route: string;
   actor: Actor;
   /** The request expects a refusal: it is never refreshed and never retried on a 401. */
   probe?: boolean;
-}
+};
 
 /** What a request sends, by scheme, in the order its alternative names them. */
 export type SendsByScheme = Readonly<Record<string, Sends>>;
 
 /** A principal's credentials for the alternative it satisfies, placed and ready to send. */
-export interface Sending {
+export type Sending = {
   kind: "sends";
   principal: string;
   schemes: string[];
@@ -66,25 +66,25 @@ export interface Sending {
   lapsed(): boolean;
   /** BLOCKS every scheme this resolution sent, for the rest of the run, with `reason`. */
   block(reason: string): void;
-}
+};
 
 /** A forged value, placed like the scheme's credential. Redacted only when derived from a real one. */
-interface Forged {
+type Forged = {
   kind: "forged";
   schemes: [string];
   sends: SendsByScheme;
   /** What a derived value places, for the run's redactor: absent for garbage, which is no secret. */
   secrets?: PlacedSecrets;
-}
+};
 
 /** A value a principal holds, sent as given: a real exchange of that principal's, never renewed. */
-interface HeldValue {
+type HeldValue = {
   kind: "held";
   principal: string;
   schemes: [string];
   sends: SendsByScheme;
   secrets: PlacedSecrets;
-}
+};
 
 export type Resolution =
   /** The operation's security is `[]` or `{}`, or the actor is anonymous: send nothing. */
@@ -100,9 +100,9 @@ export type Resolution =
   | HeldValue
   | Forged;
 
-export interface CredentialSource {
+export type CredentialSource = {
   resolve(request: CredentialRequest): Promise<Resolution>;
-}
+};
 
 /** A request whose security cannot be met, raised before anything is sent. Callers report it untested or BLOCKED. */
 export class UnsatisfiedSecurity extends Error {

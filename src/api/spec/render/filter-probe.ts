@@ -7,16 +7,17 @@ import { fill, scalar } from "./filter-term.ts";
 import type { FilterGrammarSpec } from "./filter-types.ts";
 
 /** A term to write under a grammar: its filter parameter, field and value. */
-export interface ProbeTerm {
+export type ProbeTerm = {
   spec: FilterGrammarSpec;
   filterParam: string | undefined;
   field: string;
   value: string;
-}
+};
 
 /** The pieces a term template fills. A template the API tester writes holds no placeholder beyond these. */
 function filled(template: string, pieces: Record<string, string>, spec: FilterGrammarSpec): string {
   const conj = spec.conj?.and;
+
   return fill(template, { ...pieces, ...(conj === undefined ? {} : { conj }) }) as string;
 }
 
@@ -26,9 +27,12 @@ function filled(template: string, pieces: Record<string, string>, spec: FilterGr
  */
 export function renderUnknownOp(term: ProbeTerm, token: string): Record<string, string> | null {
   const { spec, filterParam, field, value } = term;
+
   if (spec.param !== "filter" || filterParam === undefined || !spec.term.includes("{op}")) return null;
   const spelled = scalar(spec, value);
+
   if (spelled === null) return null;
+
   return { [filterParam]: filled(spec.term, { field, op: token, value: spelled }, spec) };
 }
 
@@ -40,9 +44,10 @@ function withoutPiece(term: string, piece: string): string {
   const at = term.indexOf(piece);
   const before = term.slice(0, at);
   const after = term.slice(at + piece.length);
-  /* Both patterns match, if only the empty string. */
+  // Both patterns match, if only the empty string.
   const trailing = (/^[^{]*/.exec(after) as RegExpExecArray)[0];
   const leading = (/[^}]*$/.exec(before) as RegExpExecArray)[0];
+
   return after.length > trailing.length || before.length === 0
     ? before + after.slice(trailing.length)
     : before.slice(0, before.length - leading.length) + after;
@@ -55,11 +60,15 @@ function withoutPiece(term: string, piece: string): string {
  */
 export function renderMalformed(term: ProbeTerm): Record<string, string> | null {
   const { spec, filterParam, field, value } = term;
+
   if (spec.param !== "filter" || filterParam === undefined) return null;
   const piece = spec.term.includes("{conj}") ? "{conj}" : spec.term.includes("{op}") ? "{op}" : null;
+
   if (piece === null) return null;
   const spelled = scalar(spec, value);
+
   if (spelled === null) return null;
   const template = withoutPiece(spec.term, piece);
+
   return { [filterParam]: filled(template, { field, op: spec.ops.eq ?? "eq", value: spelled }, spec) };
 }

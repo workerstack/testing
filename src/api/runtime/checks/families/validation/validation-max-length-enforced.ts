@@ -19,6 +19,7 @@ export const maxLengthValidated: Check<CreateBody & { target: ConstrainedField }
         create.schema,
         (s) => typeof s.maxLength === "number" && (s.maxLength as number) < 4096,
       );
+
       return target === null ? cannot("a request field that declares a maxLength") : ready({ ...create, target });
     }),
   mutates: true,
@@ -28,16 +29,20 @@ export const maxLengthValidated: Check<CreateBody & { target: ConstrainedField }
   async run(ctx, { createOp, schema, target }): Promise<Outcome> {
     const max = target.schema.maxLength as number;
     const over = overMaxLength(target.schema);
+
     if (!over.ok) return standDown(over.reason);
     const value = over.value as string;
     const body = { ...validBody(ctx, schema), [target.name]: value };
+
     const exchange = await asProbe(ctx).client.request("POST", fillPath(createOp.path, ctx.scope), {
       ...(await encodeOpBody(ctx, createOp, body)),
       as: { principal: ctx.actor.id },
     });
+
     if (standDownForFeatureGate(ctx, createOp, exchange, this.id))
       return standDown("a documented feature gate refused the request");
     const refused = judgeRefusal(ctx, this.id, ["validation"], exchange);
+
     if (refused !== null) return refused;
 
     return ctx.findings.backend(this.id, ctx.entityName, {

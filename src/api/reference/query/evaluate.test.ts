@@ -8,7 +8,9 @@ const ROWS = [
   { amount: 9, label: "beta", note: "Gamma", tags: ["redwood"] },
   { amount: null, label: null, tags: "red" },
 ];
+
 const matches = (node: FilterNode): boolean[] => ROWS.map((row) => evaluate(node, row));
+
 const cmp = (op: ComparisonOp, value: number | string, extra: object = {}): FilterNode =>
   ({ asText: false, field: "amount", kind: "cmp", nullsMatch: false, op, value, ...extra }) as FilterNode;
 

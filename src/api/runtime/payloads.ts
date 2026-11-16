@@ -8,11 +8,11 @@
 
 export const UNICODE_COHORT_STRING = "äöüß čćžšđ 日本語 中文 한글 привет مرحبا 🙂";
 
-export interface StringPayload {
+export type StringPayload = {
   id: string;
   value: string;
   why: string;
-}
+};
 
 export function codePointCount(text: string): number {
   return [...text].length;
@@ -20,13 +20,17 @@ export function codePointCount(text: string): number {
 
 export function sliceCodePoints(text: string, max: number): string {
   if (codePointCount(text) <= max) return text;
+
   return [...text].slice(0, max).join("");
 }
 
 export function payloadFits(value: string, maxLength: number | undefined, minLength: number | undefined): boolean {
   const n = codePointCount(value);
+
   if (maxLength !== undefined && n > maxLength) return false;
+
   if (minLength !== undefined && n < minLength) return false;
+
   return true;
 }
 
@@ -226,7 +230,7 @@ export const REQUIRED_IDS = [
   "html-script",
 ] as const;
 
-/* A sample of each script the unicode cohort member must carry, and the script's name. */
+// A sample of each script the unicode cohort member must carry, and the script's name.
 const COHORT_SCRIPTS: readonly (readonly [sample: string, script: string])[] = [
   ["äöüß", "German"],
   ["čćžšđ", "Croatian"],
@@ -235,18 +239,20 @@ const COHORT_SCRIPTS: readonly (readonly [sample: string, script: string])[] = [
   ["🙂", "emoji"],
 ];
 
-/*
- * A surrogate standing alone. Under the `u` flag a well-formed pair reads as one astral code point,
- * so only an unpaired half matches.
- */
+// A surrogate standing alone. Under the `u` flag a well-formed pair reads as one astral code point,
+// so only an unpaired half matches.
 const LONE_SURROGATE = /[\uD800-\uDFFF]/u;
 
 /** What is wrong with one payload: what the JSON wire or a column could not carry. */
 function payloadProblems({ id, value }: StringPayload): string[] {
   const problems: string[] = [];
+
   if (value.includes("\u0000")) problems.push(`${id} contains NUL`);
+
   if (codePointCount(value) > 128) problems.push(`${id} exceeds 128 code points`);
+
   if (LONE_SURROGATE.test(value)) problems.push(`${id} contains a lone surrogate`);
+
   return problems;
 }
 
@@ -260,16 +266,17 @@ export function catalogProblems(
 ): string[] {
   const problems: string[] = [];
   const seen = new Set<string>();
+
   for (const payload of payloads) {
     if (seen.has(payload.id)) problems.push(`duplicate id ${payload.id}`);
     seen.add(payload.id);
     problems.push(...payloadProblems(payload));
   }
-  for (const id of REQUIRED_IDS) {
-    if (!seen.has(id)) problems.push(`missing required family ${id}`);
-  }
-  for (const [sample, script] of COHORT_SCRIPTS) {
+
+  for (const id of REQUIRED_IDS) if (!seen.has(id)) problems.push(`missing required family ${id}`);
+
+  for (const [sample, script] of COHORT_SCRIPTS)
     if (!cohort.includes(sample)) problems.push(`cohort missing ${script}`);
-  }
+
   return problems;
 }

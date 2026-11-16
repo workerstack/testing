@@ -9,7 +9,9 @@ const COHORT = [
   { id: "w-1", name: "alpha" },
   { id: "w-2", name: "beta" },
 ];
+
 const DOC = { xQuery: { filterable: ["status", "name"], searchable: ["name"] } };
+
 /** LIKE_UNESCAPED: `%` interpolated into the pattern as a wildcard. */
 const UNESCAPED = { ops: { like: (value: unknown, arg: string) => typeof value === "string" && arg === "%" } };
 
@@ -33,14 +35,17 @@ describe("filter.like-metacharacters-escaped: run", () => {
       doc: DOC,
       records: COHORT,
     });
+
     expect(await runCheck(check, refused.ctx)).toMatchObject({
       reason: "the like probe was rejected with 400, so escaping was never exercised",
     });
+
     const baselineRefused = stage({
       behavior: { status: (query) => (query["filter"] === undefined ? 400 : undefined) },
       doc: DOC,
       records: COHORT,
     });
+
     expect(await runCheck(check, baselineRefused.ctx)).toMatchObject({
       reason: "the sets are larger than a read covers",
     });

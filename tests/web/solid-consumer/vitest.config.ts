@@ -5,12 +5,10 @@ import { playwright } from "@vitest/browser-playwright";
 import { solidHydration } from "@workerstack/testing/web/solid/vitest";
 import { defineConfig } from "vitest/config";
 
-/*
- * An app's two Solid projects, run as a child by tests/web/playwright/solid-consumer.spec.ts with
- * the packed package in its own node_modules. Hydration: one Solid plugin compiles for the browser,
- * and `solidHydration` renders the same fixtures on the server. Server: components compile for SSR
- * and `renderServer` renders them in node, on the app's own Solid.
- */
+// An app's two Solid projects, run as a child by tests/web/playwright/solid-consumer.spec.ts with
+// the packed package in its own node_modules. Hydration: one Solid plugin compiles for the browser,
+// and `solidHydration` renders the same fixtures on the server. Server: components compile for SSR
+// and `renderServer` renders them in node, on the app's own Solid.
 
 const port = await new Promise<number>((resolve) => {
   const server = createServer().listen(0, () => {

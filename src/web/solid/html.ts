@@ -1,35 +1,36 @@
 import { type DefaultTreeAdapterMap, parseFragment } from "parse5";
 
-/*
- * Server HTML read the way a browser reads it: parse5 is the HTML standard's parser, so every
- * entity is decoded and a `>` inside an attribute value stays in the value. It parses as a
- * template's content does, so a component that renders only a table row keeps its cells.
- */
+// Server HTML read the way a browser reads it: parse5 is the HTML standard's parser, so every
+// entity is decoded and a `>` inside an attribute value stays in the value. It parses as a
+// template's content does, so a component that renders only a table row keeps its cells.
 
 type Node = DefaultTreeAdapterMap["node"];
+
 type Element = DefaultTreeAdapterMap["element"];
 
 /** One element: its lowercased name, its decoded attributes (a bare one is ""), and its text. */
-export interface Tag {
+export type Tag = {
   name: string;
   attrs: Record<string, string>;
   text: string;
-}
+};
 
 /** A tag name, or attributes that must all be present with these values. */
 export type TagMatch = string | Readonly<Record<string, string>>;
 
 const isElement = (node: Node): node is Element => "tagName" in node;
 
-/* A template's children live in its content fragment, as in the DOM. */
+// A template's children live in its content fragment, as in the DOM.
 function childrenOf(node: Node): Node[] {
   if (isElement(node) && node.tagName === "template")
     return (node as DefaultTreeAdapterMap["template"]).content.childNodes;
+
   return "childNodes" in node ? node.childNodes : [];
 }
 
 function textOf(node: Node): string {
   if (node.nodeName === "#text") return (node as DefaultTreeAdapterMap["textNode"]).value;
+
   return childrenOf(node).map(textOf).join("");
 }
 
@@ -47,21 +48,24 @@ const toTag = (element: Element): Tag => ({
 
 function matches(found: Tag, match: TagMatch): boolean {
   if (typeof match === "string") return found.name === match.toLowerCase();
+
   return Object.entries(match).every(([name, value]) => found.attrs[name] === value);
 }
 
 /** Every element in the HTML, in document order; with `match`, only those it matches. */
 export function tags(html: string, match?: TagMatch): Tag[] {
   const found = elementsUnder(parseFragment(html)).map(toTag);
+
   return match === undefined ? found : found.filter((one) => matches(one, match));
 }
 
 const quoted = (value: string): string => `"${value.replaceAll('"', "&quot;")}"`;
 
-/* The match as a tag a reader recognizes: `<button>`, or `<* data-slot="button">`. */
+// The match as a tag a reader recognizes: `<button>`, or `<* data-slot="button">`.
 function describe(match: TagMatch): string {
   if (typeof match === "string") return `<${match.toLowerCase()}>`;
   const attrs = Object.entries(match).map(([name, value]) => `${name}=${quoted(value)}`);
+
   return `<* ${attrs.join(" ")}>`;
 }
 
@@ -69,9 +73,10 @@ function describe(match: TagMatch): string {
 export function tag(html: string, match: TagMatch): Tag {
   const found = tags(html, match);
   const [only] = found;
-  if (only === undefined || found.length > 1) {
+
+  if (only === undefined || found.length > 1)
     throw new Error(`tag: expected one ${describe(match)}, found ${found.length} in: ${html}`);
-  }
+
   return only;
 }
 

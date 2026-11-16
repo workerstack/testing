@@ -10,9 +10,11 @@ const withHealth = notesDoc({
 describe("publicGets", () => {
   it("reads each GET that needs no auth and no fixture, once, before the entities", async () => {
     const notes = notesApi(withHealth);
+
     const options = optionsFor((method, path, request) =>
       path === "/health" ? { body: { ok: true }, status: 200 } : notes(method, path, request),
     );
+
     const ctx = await contextOf(options);
     await publicGets(ctx);
     expect(ctx.state.checksRun.has("response.public-get-returns-success")).toBe(true);
@@ -21,12 +23,14 @@ describe("publicGets", () => {
 
   it("reads only the targeted ones in a targeted run", async () => {
     const notes = notesApi(withHealth);
+
     const options = optionsFor(
       (method, path, request) => (path === "/health" ? { body: {}, status: 200 } : notes(method, path, request)),
       {
         ops: ["notes.list"],
       },
     );
+
     await publicGets(await contextOf(options));
     expect(options.seen.some((request) => request.path === "/health")).toBe(false);
   });

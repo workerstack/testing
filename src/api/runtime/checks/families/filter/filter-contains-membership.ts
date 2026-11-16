@@ -36,21 +36,27 @@ export const filterContainsMembership: Check<{
 }>({
   plan: (ctx) => {
     const unverified = storedFieldsUnknown(ctx);
+
     if (unverified !== undefined) return unverified;
     const field = containsField(ctx);
+
     if (field === undefined) return cannot();
-    /* The most telling element is one that also occurs inside another element's text: an
-     * implementation matching the serialized array instead of its members over-selects there. */
+
+    // The most telling element is one that also occurs inside another element's text: an
+    // implementation matching the serialized array instead of its members over-selects there.
     const elements = [
       ...new Set(
         ctx.records.flatMap((row) => (Array.isArray(row[field.field]) ? (row[field.field] as unknown[]) : [])),
       ),
     ].map(String);
-    /* `containsField` found a record holding an element, so there is a first one. */
+
+    // `containsField` found a record holding an element, so there is a first one.
     const element =
       elements.find((candidate) => elements.some((other) => other !== candidate && other.includes(candidate))) ??
       (elements[0] as string);
+
     const term = filterTerm(conv(ctx), { field: field.field, op: "contains", value: asTermValue(element) });
+
     return term === null ? cannot("a filter grammar with a contains operator") : ready({ element, field, term });
   },
   dependsOn: [...FOUNDATIONS, "query.filter-selects-from-whole-set"],
@@ -60,12 +66,12 @@ export const filterContainsMembership: Check<{
   subjects: subjectsOf.list,
   async run(ctx, { element, field, term }): Promise<Outcome> {
     const result = await collectSet(ctx, pageSize(ctx), term);
-    if (result === null) {
-      return ctx.findings.unresolved(this.id, ctx.entityName, "contains probe was rejected");
-    }
-    if (!result.complete) {
+
+    if (result === null) return ctx.findings.unresolved(this.id, ctx.entityName, "contains probe was rejected");
+
+    if (!result.complete)
       return ctx.findings.unresolved(this.id, ctx.entityName, "the collection is larger than the walk covers");
-    }
+
     const expected = new Set(
       ctx.records
         .filter(
@@ -75,8 +81,11 @@ export const filterContainsMembership: Check<{
         )
         .flatMap((row) => idOf(row, ctx.identity) ?? []),
     );
+
     const got = knownHits(result.items, ctx);
+
     if (sameSet(expected, got)) return ASSERTED;
+
     return ctx.findings.backend(this.id, ctx.entityName, {
       summary: "contains does not select membership of the given element",
       detail: `${field.field}.contains.${String(element)} returned ${got.size}; ${expected.size} records hold that element.`,

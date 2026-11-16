@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { scenarioPlaceholderProblems } from "./scenario-placeholders.ts";
 
-/* One scenario with `steps`, sent as alpha unless it names another, under the given principals and security. */
+// One scenario with `steps`, sent as alpha unless it names another, under the given principals and security.
 function problems(steps: unknown[], extra: Record<string, unknown> = {}): string[] {
   return scenarioPlaceholderProblems({
     principals: { alpha: { scope: { project_id: "p1" } }, beta: { scope: { team_id: "t1" } } },
@@ -29,6 +29,7 @@ describe("scenarioPlaceholderProblems: what fills a placeholder", () => {
       { as: "consented", external: "consent", input: { code: "{mailed}" } },
       { body: { a: "{saved}", b: "{claimed}", c: "{mailed}", d: "{consented}" }, operationId: "a.use" },
     ];
+
     expect(problems(steps)).toEqual([]);
   });
 
@@ -69,11 +70,13 @@ describe("scenarioPlaceholderProblems: the principal's scope", () => {
       principals: { alpha: { "scope.workspace_id": "w1" } },
       scenarios: [{ covers: [], id: "flow", steps: [{ operationId: "a.get", query: { w: "{workspace_id}" } }] }],
     };
+
     expect(scenarioPlaceholderProblems(config)).toEqual([]);
   });
 
   it("passes a scope.<param> claim the principal's own recipe override binds", () => {
     const own = { security: { jwt: { login: { claims: { "scope.orgId": "$.org" } } } } };
+
     const config = {
       principals: { alpha: own, beta: {} },
       scenarios: [
@@ -81,6 +84,7 @@ describe("scenarioPlaceholderProblems: the principal's scope", () => {
         { covers: [], id: "other", principal: "beta", steps: [{ operationId: "a.get", query: { o: "{orgId}" } }] },
       ],
     };
+
     expect(scenarioPlaceholderProblems(config)).toEqual([
       "scenarios.other.steps[0] reads {orgId}, which no earlier step, the principal's scope or a login claim provides",
     ]);
@@ -118,11 +122,13 @@ describe("scenarioPlaceholderProblems: a config it cannot read", () => {
     expect(scenarioPlaceholderProblems({ scenarios: "x" })).toEqual([]);
     expect(scenarioPlaceholderProblems({ scenarios: ["x", { id: "a", steps: "x" }] })).toEqual([]);
     expect(scenarioPlaceholderProblems({ scenarios: [{ id: "a", steps: ["x", { operationId: "a.b" }] }] })).toEqual([]);
+
     const odd = {
       principals: { alpha: "x" },
       scenarios: [{ id: "a", steps: [] }],
       security: { jwt: "x", k: { login: "x" } },
     };
+
     expect(scenarioPlaceholderProblems(odd)).toEqual([]);
   });
 
@@ -131,6 +137,7 @@ describe("scenarioPlaceholderProblems: a config it cannot read", () => {
       principals: { alpha: {} },
       scenarios: [{ id: "flow", principal: "gamma", steps: [{ operationId: "a.get", query: { p: "{nope}" } }] }],
     };
+
     expect(scenarioPlaceholderProblems(config)).toEqual([]);
   });
 
@@ -140,7 +147,7 @@ describe("scenarioPlaceholderProblems: a config it cannot read", () => {
   });
 });
 
-/* `{name}` read by a scenario that names no principal, under alpha and beta with beta the writer. */
+// `{name}` read by a scenario that names no principal, under alpha and beta with beta the writer.
 const readAsWriter = (name: string): string[] =>
   scenarioPlaceholderProblems({
     principals: { alpha: { scope: { project_id: "p1" } }, beta: { scope: { team_id: "t1" } } },

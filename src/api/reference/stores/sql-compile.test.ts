@@ -11,25 +11,29 @@ import { parseOrder } from "../query/order.ts";
 import { parseSearch } from "../query/search.ts";
 import { compileOrder, compileWhere, globText, likeText, type SqlFlavor, type SqlParam } from "./sql-compile.ts";
 
-/* An engine whose spelling is plain to read: each flavor hook names itself in the SQL it writes. */
+// An engine whose spelling is plain to read: each flavor hook names itself in the SQL it writes.
 const plain: SqlFlavor = {
   binary: (expr) => `${expr} BINARY`,
   bind: (args, value) => {
     args.push(value);
+
     return "?";
   },
   bool: (value) => (value ? 1 : 0),
   column: (_entity, field) => field,
   hasElement: (expr, element, args) => {
     args.push(element);
+
     return `HAS(${expr}, ?)`;
   },
   like: (expr, { insensitive, segments }, args) => {
     args.push(likeText(segments));
+
     return `${expr} ${insensitive ? "ILIKE" : "LIKE"} ?`;
   },
   position: (expr, { caseSensitive, text }, args) => {
     args.push(text);
+
     return `${caseSensitive ? "POS" : "IPOS"}(${expr}, ?)`;
   },
   random: "RANDOM()",
@@ -39,6 +43,7 @@ const plain: SqlFlavor = {
 function where(expression: string, defects: DefectName[] = []): { sql: string; args: SqlParam[] } {
   const args: SqlParam[] = [];
   const sql = compileWhere(parseFilter(expression, context(defects, {}, ROW)), { args, entity: ROW, flavor: plain });
+
   return { args, sql };
 }
 
@@ -46,11 +51,13 @@ function search(q: string, mode: "contains" | "prefix", defects: DefectName[] = 
   const args: SqlParam[] = [];
   const node = parseSearch(q, mode, { defects: new DefectSet(defects), entity: ROW });
   const sql = node === null ? "" : compileWhere(node, { args, entity: ROW, flavor: plain });
+
   return { args, sql };
 }
 
 function order(expression: string, plan: Partial<SelectPlan> = {}, defects: DefectName[] = []): string {
   const terms = expression === "" ? [] : parseOrder(expression, context(defects, {}, ROW));
+
   return compileOrder({ collation: "binary", order: terms, shuffleTies: false, ...plan }, ROW, plain);
 }
 
@@ -133,14 +140,13 @@ describe("compileOrder", () => {
     );
   });
 
-  /* A collation on a bigint, double precision or boolean column is an error in Postgres, so
-   * only text columns may carry one — under either collation, including the one
-   * COLLATION_INCONSISTENT switches cursor resolution to. */
+  // A collation on a bigint, double precision or boolean column is an error in Postgres, so
+  // only text columns may carry one — under either collation, including the one
+  // COLLATION_INCONSISTENT switches cursor resolution to.
   for (const collation of ["binary", "insensitive"] as const) {
     it(`leaves non-text columns bare under ${collation} collation`, () => {
-      for (const field of ["amount", "active"]) {
+      for (const field of ["amount", "active"])
         expect(order(`${field}.nullslast`, { collation })).toBe(` ORDER BY ${field} IS NULL ASC, ${field} ASC`);
-      }
     });
   }
 

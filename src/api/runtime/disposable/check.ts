@@ -24,7 +24,7 @@ export const disposableCheck: Check = {
   needs: "x-destructive, a way to sign up a second user, and a caller read",
   plan: () => ({ ok: false }),
   run: (): Promise<Outcome> => Promise.resolve(ASSERTED),
-  /* Destructive routes have no entity. `runDisposableOps` grades them after the entity loop. */
+  // Destructive routes have no entity. `runDisposableOps` grades them after the entity loop.
   subjects: () => [],
 };
 

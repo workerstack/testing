@@ -9,13 +9,12 @@ import { run } from "../../../src/api/runtime/run/index.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 import { Listeners, reply, serve } from "../support/effects-fixtures.ts";
 
-/*
- * A multipart upload through a run: the file part carries a pool file, one request per `each` file,
- * what `resolveUpload` returns, or a dummy of the declared type when nothing is configured. The
- * reference has no upload route, so a small document over a server that parses each form stands in.
- */
+// A multipart upload through a run: the file part carries a pool file, one request per `each` file,
+// what `resolveUpload` returns, or a dummy of the declared type when nothing is configured. The
+// reference has no upload route, so a small document over a server that parses each form stands in.
 
 const listeners = new Listeners();
+
 afterEach(() => listeners.closeAll());
 
 const DOCUMENT = { properties: { id: { type: "string" }, title: { type: "string" } }, type: "object" };
@@ -67,46 +66,55 @@ const SPEC = {
 } as unknown as OpenApiDocument;
 
 /** One upload as the server parsed it: the file part's name, type and text, and the title. */
-interface Received {
+type Received = {
   filename: string;
   type: string;
   text: string;
   title: string;
-}
+};
 
 async function uploadApi(): Promise<{ received: Received[]; url: string }> {
   const received: Received[] = [];
+
   const server = await serve(listeners, SPEC, [
     ({ method, res, url }) => {
       if (url.pathname !== "/v1/documents" || method !== "GET") return false;
       const documents = received.map((upload, i) => ({ id: `doc_${i + 1}`, title: upload.title }));
+
       return reply(res, 200, { documents });
     },
     async ({ method, req, res, url }) => {
       if (url.pathname !== "/v1/documents" || method !== "POST") return false;
       const chunks: Buffer[] = [];
+
       for await (const chunk of req) chunks.push(chunk as Buffer);
       const headers = { "content-type": req.headers["content-type"] ?? "" };
       const form = await new Response(Buffer.concat(chunks), { headers }).formData().catch(() => null);
       const file = form?.get("file");
       const title = form?.get("title");
+
       if (!(file instanceof File) || typeof title !== "string") return reply(res, 400, { error: "file and title" });
       received.push({ filename: file.name, text: await file.text(), title, type: file.type });
+
       return reply(res, 201, { id: `doc_${received.length}`, title });
     },
   ]);
+
   return { received, url: server.url };
 }
 
-/* A temp directory holding a small PDF per name, each marked with its own name. */
+// A temp directory holding a small PDF per name, each marked with its own name.
 async function pdfs(...names: string[]): Promise<string> {
   const dir = await mkdtemp(join(tmpdir(), "testing-uploads-"));
+
   for (const name of names) await writeFile(join(dir, name), `%PDF-1.4\n${name}\n%%EOF\n`);
+
   return dir;
 }
 
 async function uploadRun(options: { dir?: string; uploads?: Uploads; hooks?: Hooks }) {
   const { received, url } = await uploadApi();
+
   const result = await run({
     baseUrl: url,
     principals: { alpha: {} },
@@ -116,7 +124,9 @@ async function uploadRun(options: { dir?: string; uploads?: Uploads; hooks?: Hoo
     ...(options.uploads === undefined ? {} : { uploads: options.uploads }),
     ...(options.hooks === undefined ? {} : { hooks: options.hooks }),
   });
+
   const status = result.scope.operations.find((op) => op.operationId === "document.upload")?.status;
+
   return { received, result, status };
 }
 
@@ -139,12 +149,14 @@ describe("an upload", () => {
 
   it("sends the file and fields resolveUpload returns", async () => {
     const bytes = new TextEncoder().encode("%PDF-1.4\nfrom the hook\n%%EOF\n");
+
     const hooks: Hooks = {
       resolveUpload: () =>
         Promise.resolve({
           fields: { file: { bytes, filename: "hooked.pdf", mediaType: "application/pdf" }, title: "Q3" },
         }),
     };
+
     const { received, status } = await uploadRun({ hooks });
     expect(status).toBe("passed");
     expect(received[0]).toEqual({

@@ -39,9 +39,11 @@ describe("buildRateLimitRules from config", () => {
       ["items.read", 3, "config"],
       ["items.read", 3, "config"],
     ]);
+
     const joined = buildRateLimitRules(rateLimitedModel(), [
       { category: "items.read", match: "GET /v1/items/*", rps: 1 },
     ]);
+
     expect(summary(joined)).toEqual([
       ["items.read", 1, "config"],
       ["items.read", 10, "tag"],

@@ -9,11 +9,9 @@ import type { RunOptions } from "../types.ts";
 import { checkContext } from "./check-context.ts";
 import type { World } from "./state.ts";
 
-/*
- * What every check on an entity is given: write routes withdrawn where the API tester has no oracle or the
- * profile excludes them, the operations that declare async, effects or waits, and the tenant to
- * cross into.
- */
+// What every check on an entity is given: write routes withdrawn where the API tester has no oracle or the
+// profile excludes them, the operations that declare async, effects or waits, and the tenant to
+// cross into.
 
 type Json = Record<string, unknown>;
 
@@ -24,6 +22,7 @@ const fresh: World = {
   scope: { created: [], values: { a: "1" } },
   uniqueAdopted: false,
 };
+
 const actor = (id: string, org: string): Actor => ({
   id,
   inviteAs: undefined,
@@ -36,11 +35,13 @@ const actor = (id: string, org: string): Actor => ({
 function tagged(edit: (paths: Record<string, Record<string, Json>>) => void): OpenApiDocument {
   const doc = structuredClone(notesDoc()) as unknown as { paths: Record<string, Record<string, Json>> };
   edit(doc.paths);
+
   return doc as unknown as OpenApiDocument;
 }
 
 async function contextFor(doc: OpenApiDocument, world: World, extra: Partial<RunOptions> = {}) {
   const ctx = await contextOf(optionsFor(notesApi(doc), extra));
+
   return { checks: await checkContext(entityRunOf(ctx), world, [actor("alpha", "o1")]), ctx };
 }
 
@@ -65,7 +66,7 @@ describe("checkContext", () => {
     expect(checks.inScope?.(ctx.model.byOperationId.get("notes.list") as never)).toBe(true);
     expect(checks).not.toHaveProperty("peer");
     expect(checks).not.toHaveProperty("recordsUnverified");
-    /* An invite's delegate holds what the accept issued, in the run's own store. */
+    // An invite's delegate holds what the accept issued, in the run's own store.
     expect(checks.credentials).toBe(ctx.store);
   });
 
@@ -79,15 +80,18 @@ describe("checkContext", () => {
     const unique = tagged((paths) => {
       operationAt({ paths }, "/notes", "post")["x-unique"] = ["title"];
     });
+
     const adopted = await contextFor(unique, { ...fresh, degraded: true, uniqueAdopted: true });
     expect([adopted.checks.uniqueCreateOp?.operationId, adopted.checks.uniqueUpdateOp?.operationId]).toEqual([
       "notes.create",
       "notes.update",
     ]);
+
     const excluded = await contextFor(unique, fresh, {
       profile: "p",
       profiles: { p: { exclude: ["notes.update", "notes.get", "notes.delete"] } },
     });
+
     expect([
       excluded.checks.uniqueUpdateOp,
       excluded.checks.updateOp,
@@ -113,6 +117,7 @@ describe("checkContext declared operations", () => {
       const post = paths["/notes"]?.["post"] as Json;
       post["x-async"] = { idFrom: "$.id", poll: "notes.get", successWhen: "title.eq.x", until: "title.eq.x" };
     });
+
     const { checks } = await contextFor(doc, fresh);
     expect(checks.asyncOps.map((op) => op.operationId)).toEqual(["notes.create"]);
     expect(checks.effectOps.map((op) => op.operationId)).toEqual(["notes.delete"]);
@@ -153,6 +158,7 @@ describe("checkContext extras", () => {
         revoke: "notes.delete",
       };
     });
+
     const kept = await contextFor(invited, fresh);
     expect(kept.checks.invite?.invite).toBe("notes.update");
     const excluded = await contextFor(invited, fresh, { profile: "p", profiles: { p: { exclude: ["notes.update"] } } });
@@ -175,11 +181,13 @@ describe("checkContext extras", () => {
         },
       },
     } as unknown as OpenApiDocument;
+
     const ctx = await contextOf(
       optionsFor((_, path) => (path === "/openapi.json" ? { body: doc, status: 200 } : { body: {}, status: 200 }), {
         security: {},
       }),
     );
+
     const checks = await checkContext(entityRunOf(ctx), fresh, [actor("alpha", "o1")]);
     expect([checks.readOp, checks.updateOp, checks.deleteOp, checks.collectionKey]).toEqual([
       undefined,

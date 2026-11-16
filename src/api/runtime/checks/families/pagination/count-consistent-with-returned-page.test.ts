@@ -26,6 +26,7 @@ describe("count.consistent-with-returned-page", () => {
       pagedBackend(rows, (body) => ({ body: { ...body, total: 0 }, status: 200 })),
       rows,
     );
+
     expect(await runCheck(countIsConsistentWithPage, ctx)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     expect(findings.findings[0]?.summary).toBe("reported count is smaller than the number of records returned");
     expect(findings.findings[0]?.detail).toMatch(

@@ -12,19 +12,19 @@ import { baselineFrom, parseBaseline } from "../../../src/api/runtime/baseline.t
 import { EXIT, exitCode } from "../../../src/api/runtime/exit.ts";
 import { run } from "../../../src/api/runtime/run/index.ts";
 
-/*
- * A backend with defects nobody will fix this week still needs a gate that fails on the next one.
- * A baseline names the known findings: they are reported as known and leave the exit code alone;
- * anything else still fails; a known entry nothing matches any more is reported as fixed.
- */
+// A backend with defects nobody will fix this week still needs a gate that fails on the next one.
+// A baseline names the known findings: they are reported as known and leave the exit code alone;
+// anything else still fails; a known entry nothing matches any more is reported as fixed.
 
 const dirs: string[] = [];
+
 afterAll(async () => {
   await Promise.all(dirs.map((dir) => rm(dir, { force: true, recursive: true })));
 });
 
 async function runWith(defects: string[], baseline?: ReturnType<typeof parseBaseline>) {
   const server = await createMemoryServer({ defects });
+
   try {
     return await run({
       baseUrl: server.url,
@@ -43,6 +43,7 @@ describe("a known-findings baseline", () => {
   it("keeps known findings out of the verdict, fails on a new one, and names fixed entries", async () => {
     const first = await runWith(["FILTER_IGNORED"]);
     expect(exitCode(first)).toBe(EXIT.defects);
+
     const baseline = parseBaseline(
       {
         ...baselineFrom(first.findings),
@@ -80,13 +81,17 @@ describe("a known-findings baseline", () => {
 async function cli(argv: string[]): Promise<{ code: number; out: string }> {
   const saved = process.argv;
   const chunks: string[] = [];
+
   const capture = (chunk: string | Uint8Array): boolean => {
     chunks.push(String(chunk));
+
     return true;
   };
+
   const write = vi.spyOn(process.stdout, "write").mockImplementation(capture);
   const err = vi.spyOn(process.stderr, "write").mockImplementation(capture);
   process.argv = ["node", "testing", ...argv];
+
   try {
     return { code: await main(), out: chunks.join("") };
   } finally {
@@ -152,6 +157,7 @@ describe("testing api doctor with a baseline", () => {
     const server = await createMemoryServer({});
     const dir = await mkdtemp(join(tmpdir(), "testing-baseline-doctor-"));
     dirs.push(dir);
+
     try {
       const config = join(dir, "testing.api.config.json");
       await writeFile(config, JSON.stringify({ baseline: "missing.json", spec: `${server.url}/v1/openapi/spec` }));

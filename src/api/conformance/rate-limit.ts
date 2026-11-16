@@ -23,12 +23,12 @@ type Push = (result: ParserResult) => void;
  * Cases run against one backend. A case that throws is reported once under the group's first
  * name, after whatever its earlier cases already pushed.
  */
-interface HostedCases {
+type HostedCases = {
   name: string;
   why: string;
   backend: () => Handle;
   probe: (hosted: Hosted, push: Push) => Promise<void>;
-}
+};
 
 /** A run of the API tester against `hosted`, on its entities `only`. */
 function runOptions(hosted: Hosted, only: string[]): RunOptions {
@@ -74,7 +74,7 @@ const HOSTED: readonly HostedCases[] = [
     name: RETRIES,
     probe: async (hosted, push) => {
       const options = runOptions(hosted, ["thing"]);
-      /* No network retries, as with no network options at all: only the 429 is retried. */
+      // No network retries, as with no network options at all: only the 429 is retried.
       const network = { ...transportOpt(options), retries: 0 };
       const client = new Client({ baseUrl: hosted.url, network, redactor: new Redactor() });
       const first = await client.request("POST", "/v1/things", { as: { anonymous: true }, body: { name: "n" } });
@@ -102,9 +102,11 @@ const HOSTED: readonly HostedCases[] = [
     probe: async (hosted, push) => {
       const result = await run(runOptions(hosted, ["table", "row"]));
       const rowBlocked = result.findings.some((f) => f.verdict === "BLOCKED" && f.entity === "row");
+
       const invented = result.client.transcript.some(
         (e) => e.method === "POST" && new URL(e.url).pathname === "/v1/tables" && e.status < 300,
       );
+
       const backend402 = result.findings.some((f) => f.verdict === "BACKEND_BUG" && f.detail.includes("402"));
       push({
         detail: `blocked=${rowBlocked} invented=${invented} backend402=${backend402} tested=${result.entitiesTested.join(",")}`,
@@ -119,7 +121,7 @@ const HOSTED: readonly HostedCases[] = [
     backend: dayLimitedThings,
     name: OVER_LIMIT,
     probe: async (hosted, push) => {
-      /* The run's own transport when it has one (in-process), else the global fetch. */
+      // The run's own transport when it has one (in-process), else the global fetch.
       const transport = Object.assign({ fetchImpl: fetch }, transportOpt(runOptions(hosted, ["thing"]))).fetchImpl;
       let requests = 0;
       const counted: typeof fetch = (input, init) => ((requests += 1), transport(input, init));
@@ -143,9 +145,11 @@ const HOSTED: readonly HostedCases[] = [
 export async function runRateLimitSuite(via: Via = listening): Promise<ParserResult[]> {
   const results = pureCases();
   const push: Push = (result) => results.push(result);
+
   for (const { backend, name, probe, why } of HOSTED) {
     try {
       const hosted = await via.host(backend());
+
       try {
         await probe(hosted, push);
       } finally {
@@ -155,5 +159,6 @@ export async function runRateLimitSuite(via: Via = listening): Promise<ParserRes
       push({ detail: messageOf(error), name, ok: false, why });
     }
   }
+
   return results;
 }

@@ -39,10 +39,12 @@ export const declaredInvalidationHappens: Check<{
 }>({
   plan: (ctx) => {
     const createOp = ctx.createOp;
+
     if (createOp === undefined) return cannot();
-    /* A graded create is judged through every route it declares; a graded route alone is
-     * judged only itself, with the create as support. */
+    // A graded create is judged through every route it declares; a graded route alone is
+    // judged only itself, with the create as support.
     const createGraded = graded(ctx, createOp);
+
     const foreign = createOp.invalidates
       .map((route) => ctx.model.byRoute.get(route))
       .filter(
@@ -52,8 +54,10 @@ export const declaredInvalidationHappens: Check<{
           op.method.toUpperCase() === "GET" &&
           (createGraded || graded(ctx, op)),
       );
+
     if (foreign.length === 0) return cannot();
     const schema = requestSchemaOf(ctx, createOp);
+
     return schema === null ? cannot("a create operation with a request body") : ready({ createOp, foreign, schema });
   },
   dependsOn: ["pagination.page-walk-covers-set", "list.read-after-write", "create.persists-submitted-fields"],
@@ -63,6 +67,7 @@ export const declaredInvalidationHappens: Check<{
   subjects: subjectsOf.createAndForeignReads,
   async run(ctx, { createOp, foreign, schema }): Promise<Outcome> {
     const probes = fillableProbes(ctx, foreign);
+
     if (probes.length === 0) {
       return ctx.findings.unresolved(
         this.id,
@@ -70,7 +75,9 @@ export const declaredInvalidationHappens: Check<{
         "the declared routes need identifiers outside this entity's scope, so they cannot be read",
       );
     }
+
     const before = await snapshotsBefore(ctx, probes);
+
     if (before.size === 0) {
       return ctx.findings.unresolved(
         this.id,
@@ -80,10 +87,13 @@ export const declaredInvalidationHappens: Check<{
     }
 
     const fresh = await createFresh(ctx, createOp, schema, ctx.actor.id);
+
     if ("withheld" in fresh) return standDown(fresh.withheld);
     const { exchange: created, exhausted } = fresh;
+
     if (standDownForFeatureGate(ctx, createOp, created, this.id))
       return standDown("a documented feature gate refused the request");
+
     if (created.status >= 300) {
       return ctx.findings.unresolved(
         this.id,
@@ -93,7 +103,9 @@ export const declaredInvalidationHappens: Check<{
     }
 
     const stale = await firstUnchanged(ctx, probes, before);
+
     if (stale === undefined) return ASSERTED;
+
     return ctx.findings
       .attributed([
         ...(graded(ctx, createOp) ? [createOp.operationId] : []),
@@ -113,38 +125,45 @@ export const declaredInvalidationHappens: Check<{
 });
 
 /** A declared route and the path that reads it in this entity's scope. */
-interface Probe {
+type Probe = {
   op: OperationModel;
   path: string;
-}
+};
 
-/* Only routes whose path can be filled from this entity's scope are probed: a route
- * needing an identifier the API tester does not hold cannot be read at all. */
+// Only routes whose path can be filled from this entity's scope are probed: a route
+// needing an identifier the API tester does not hold cannot be read at all.
 function fillableProbes(ctx: CheckContext, foreign: readonly OperationModel[]): Probe[] {
   return foreign
     .filter((op) => pathParameterNames(op.path).every((name) => ctx.scope[name] !== undefined))
     .map((op) => ({ op, path: fillPath(op.path, ctx.scope) }));
 }
 
-/* What a route serves, as a comparable snapshot: a collection read whole, since the record
- * the write changed may sit on any page of it. `undefined` when it cannot be read whole. */
+// What a route serves, as a comparable snapshot: a collection read whole, since the record
+// the write changed may sit on any page of it. `undefined` when it cannot be read whole.
 async function snapshot(ctx: CheckContext, probe: Probe): Promise<{ text: string; exchange: Exchange } | undefined> {
   if (probe.op.collection !== null) {
     const read = await readSet(forList(ctx, probe.op), {}, { fresh: true });
+
     if (read.status !== "ok" || !read.complete) return undefined;
+
     return { exchange: read.last.exchange, text: JSON.stringify(read.items) };
   }
+
   const exchange = await ctx.client.get(probe.path, { as: { principal: ctx.actor.id } });
+
   return exchange.status >= 400 ? undefined : { exchange, text: JSON.stringify(exchange.responseBody) };
 }
 
 /** Each readable route's snapshot before the write, by path. */
 async function snapshotsBefore(ctx: CheckContext, probes: readonly Probe[]): Promise<Map<string, string>> {
   const before = new Map<string, string>();
+
   for (const probe of probes) {
     const taken = await snapshot(ctx, probe);
+
     if (taken !== undefined) before.set(probe.path, taken.text);
   }
+
   return before;
 }
 
@@ -156,11 +175,16 @@ async function firstUnchanged(
 ): Promise<{ probe: Probe; after: Exchange } | undefined> {
   for (const probe of probes) {
     const prior = before.get(probe.path);
+
     if (prior === undefined) continue;
     const taken = await snapshot(ctx, probe);
+
     if (taken === undefined) continue;
+
     if (taken.text !== prior) continue;
+
     return { after: taken.exchange, probe };
   }
+
   return undefined;
 }

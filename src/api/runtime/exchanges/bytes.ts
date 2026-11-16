@@ -13,8 +13,12 @@ export function utf8Encode(text: string): Uint8Array {
 /** The bytes of a binary body (bytes, a buffer or a view of one, a Blob); `undefined` for anything else. */
 export async function bytesOf(value: unknown): Promise<Uint8Array | undefined> {
   if (value instanceof Uint8Array) return value;
+
   if (value instanceof ArrayBuffer) return new Uint8Array(value);
+
   if (ArrayBuffer.isView(value)) return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+
   if (value instanceof Blob) return new Uint8Array(await value.arrayBuffer());
+
   return undefined;
 }

@@ -1,20 +1,20 @@
 import type { Writer } from "../writer.ts";
 
 /** How the run is stopped from outside, and which signal did it. */
-export interface RunStop {
+export type RunStop = {
   signal: AbortSignal;
   /** The signal that stopped the run, when one did. */
   by(): NodeJS.Signals | undefined;
   /** Stops listening; the run is over. */
   dispose(): void;
-}
+};
 
 /** What a process signal does: here, the process itself; in a test, a stand-in. */
-export interface SignalSource {
+export type SignalSource = {
   on(signal: NodeJS.Signals, listener: (signal: NodeJS.Signals) => void): unknown;
   off(signal: NodeJS.Signals, listener: (signal: NodeJS.Signals) => void): unknown;
   exit(code: number): never;
-}
+};
 
 /**
  * Ctrl-C stops testing, not the run: what the API tester created is still removed and the partial report is
@@ -23,17 +23,21 @@ export interface SignalSource {
 export function stopOnSignal(writer: Writer, source: SignalSource = process): RunStop {
   const stop = new AbortController();
   let first: NodeJS.Signals | undefined;
+
   const onSignal = (signal: NodeJS.Signals): void => {
     if (stop.signal.aborted) {
       writer.err(`\ntesting api: ${signal} again — exiting without teardown\n`);
       source.exit(130);
     }
+
     writer.err(`\ntesting api: ${signal} — stopping, removing what this run created (again to exit now)\n`);
     first = signal;
     stop.abort();
   };
+
   source.on("SIGINT", onSignal);
   source.on("SIGTERM", onSignal);
+
   return {
     by: () => first,
     dispose: () => {

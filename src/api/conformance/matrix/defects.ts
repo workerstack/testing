@@ -10,24 +10,24 @@ import type { Backend } from "./engines.ts";
  */
 export const SQL_ONLY: ReadonlySet<DefectName> = /* @__PURE__ */ new Set<DefectName>(["COLUMN_NAME_MISMATCH"]);
 
-/* Only a create that takes the client's id can ignore or overwrite it: the client-ids shape runs these. */
+// Only a create that takes the client's id can ignore or overwrite it: the client-ids shape runs these.
 export const CLIENT_ID_ONLY: ReadonlySet<DefectName> = /* @__PURE__ */ new Set<DefectName>([
   "CLIENT_ID_IGNORED",
   "CLIENT_ID_OVERWRITES",
 ]);
 
-/* Only a listed, tenant-owned key can be revoked across tenants: the key-lifecycle shape runs these. */
+// Only a listed, tenant-owned key can be revoked across tenants: the key-lifecycle shape runs these.
 export const KEY_LIFECYCLE_ONLY: ReadonlySet<DefectName> = /* @__PURE__ */ new Set<DefectName>([
   "KEY_DELETE_CROSS_TENANT",
 ]);
 
-/* Only a cached read can be stale past its bound or ignore its bypass: the cached-reads shape runs these. */
+// Only a cached read can be stale past its bound or ignore its bypass: the cached-reads shape runs these.
 export const CACHED_READS_ONLY: ReadonlySet<DefectName> = /* @__PURE__ */ new Set<DefectName>([
   "STALE_PAST_BOUND",
   "BYPASS_IGNORED",
 ]);
 
-/* Only a record with a write-only field can leak one: the write-only-field shape runs these. */
+// Only a record with a write-only field can leak one: the write-only-field shape runs these.
 export const WRITE_ONLY_FIELD_ONLY: ReadonlySet<DefectName> = /* @__PURE__ */ new Set<DefectName>([
   "WRITE_ONLY_LEAKED",
 ]);
@@ -93,20 +93,20 @@ export const DIALECTS_WITH_FILTER_EXPRESSION: ReadonlySet<string> = /* @__PURE__
 /** Defects that need a filter expression language to exist at all. */
 export const EXPRESSION_ONLY: ReadonlySet<DefectName> = /* @__PURE__ */ new Set<DefectName>([
   "ERROR_500_ON_BAD_FILTER",
-  /* Per-field equality has no declared filter *expression* to overclaim: an unrecognized
-   * parameter is simply ignored, which is conventional rather than a broken promise. */
+  // Per-field equality has no declared filter *expression* to overclaim: an unrecognized
+  // parameter is simply ignored, which is conventional rather than a broken promise.
   "SPEC_OVERCLAIMS_FILTERABLE",
   "FILTER_IGNORED",
   "LIKE_UNESCAPED",
   "NEQ_DROPS_NULLS",
   "NUMERIC_COMPARED_AS_TEXT",
   "FILTER_ILLEGAL_OP_IGNORED",
-  /* Per-field equality has no operator or conjunction to leave out of a term. */
+  // Per-field equality has no operator or conjunction to leave out of a term.
   "IGNORES_MALFORMED_FILTER",
   "FILTER_GTE_IS_GT",
   "FILTER_LTE_IS_LT",
   "FILTER_LT_IS_LTE",
-  /* The overclaimed operator is `like`, which per-field equality cannot write. */
+  // The overclaimed operator is `like`, which per-field equality cannot write.
   "SPEC_OVERCLAIMS_FILTER_OP",
 ]);
 
@@ -122,10 +122,10 @@ export const POSTGREST_OP_ONLY: ReadonlySet<DefectName> = /* @__PURE__ */ new Se
   "FILTER_IN_CAP_IGNORED",
   "FILTER_NIN_FIRST_ONLY",
   "CONTAINS_MATCHES_SUBSTRING",
-  /* The alias is `ne`, which only the postgrest-shaped writer spells. */
+  // The alias is `ne`, which only the postgrest-shaped writer spells.
   "FILTER_ALIAS_MISMAPPED",
-  /* Grouping — nested and()/or(), and enough terms in one expression to pass a cap — exists
-   * only in the postgrest-shaped grammar. */
+  // Grouping — nested and()/or(), and enough terms in one expression to pass a cap — exists
+  // only in the postgrest-shaped grammar.
   "FILTER_CONDITION_CAP_IGNORED",
   "FILTER_NESTED_COMBINATOR_LEAKS",
 ]);
@@ -217,7 +217,7 @@ const ONE_ENGINE: ReadonlySet<DefectName> = /* @__PURE__ */ new Set<DefectName>(
   "DISCRIMINATOR_BRANCH_WRONG",
   "ACTION_CRASHES",
   "LISTED_GET_DIFFERS",
-  /* The register keeps its accounts in the auth state, never the store. */
+  // The register keeps its accounts in the auth state, never the store.
   "PRIVILEGED_FIELD_ON_SIGNUP",
 ]);
 
@@ -226,10 +226,10 @@ export function defectsFor(backend: Backend, dialect: string, filter?: readonly 
   return (
     (Object.keys(DEFECTS) as DefectName[])
       .filter((name) => filter === undefined || filter.length === 0 || filter.includes(name))
-      /* A defect the backend structurally cannot exhibit is not a miss: the in-memory store has
-       * no physical column names, so a DDL/read mismatch has nowhere to happen. */
+      // A defect the backend structurally cannot exhibit is not a miss: the in-memory store has
+      // no physical column names, so a DDL/read mismatch has nowhere to happen.
       .filter((name) => backend !== "memory" || !SQL_ONLY.has(name))
-      /* Shape-only defects run in the recall pass of the shape that names them. */
+      // Shape-only defects run in the recall pass of the shape that names them.
       .filter(
         (name) =>
           !CLIENT_ID_ONLY.has(name) &&
@@ -237,25 +237,25 @@ export function defectsFor(backend: Backend, dialect: string, filter?: readonly 
           !KEY_LIFECYCLE_ONLY.has(name) &&
           !CACHED_READS_ONLY.has(name),
       )
-      /* Likewise a dialect that has no cursor cannot drift one. */
+      // Likewise a dialect that has no cursor cannot drift one.
       .filter((name) => DIALECTS_WITH_CURSOR.has(dialect) || !CURSOR_ONLY.has(name))
-      /* Likewise a shape with no total cannot report a wrong one. */
+      // Likewise a shape with no total cannot report a wrong one.
       .filter((name) => DIALECTS_WITH_TOTAL.has(dialect) || !COUNT_ONLY.has(name))
-      /* And a shape with no filter *expression* cannot malform one. */
+      // And a shape with no filter *expression* cannot malform one.
       .filter((name) => DIALECTS_WITH_FILTER_EXPRESSION.has(dialect) || !EXPRESSION_ONLY.has(name))
       .filter((name) => DIALECTS_WITH_POSTGREST_FILTER.has(dialect) || !POSTGREST_OP_ONLY.has(name))
       .filter((name) => DIALECTS[dialect]?.params.searchMode !== undefined || !SEARCH_MODE_ONLY.has(name))
       .filter((name) => DIALECTS[dialect]?.sortTemplate !== undefined || !DECLARED_SORT_ONLY.has(name))
-      /* A dialect that pages by offset has no page number to ask past the end. */
+      // A dialect that pages by offset has no page number to ask past the end.
       .filter((name) => DIALECTS[dialect]?.params.page !== undefined || !PAGE_NUMBER_ONLY.has(name))
       .filter((name) => (DIALECTS[dialect]?.sortGrammar ?? "dotted") === "dotted" || !NULLS_TOKEN_ONLY.has(name))
-      /* A fault in writes, auth or validation reads the same under every dialect; the extra
-       * dialect passes are for how a listing is asked for and answered. */
+      // A fault in writes, auth or validation reads the same under every dialect; the extra
+      // dialect passes are for how a listing is asked for and answered.
       .filter((name) => dialect === "postgrest" || !DIALECT_INSENSITIVE.has(name))
-      /* A store-independent race, timed with a sleep: one engine shows it as well as three. */
+      // A store-independent race, timed with a sleep: one engine shows it as well as three.
       .filter((name) => backend === "memory" || !ONE_ENGINE.has(name))
-      /* D1 is a network round trip per statement. Restricting it to the engine-sensitive set
-       * keeps a run to minutes rather than an hour, and drops nothing D1 could uniquely show. */
+      // D1 is a network round trip per statement. Restricting it to the engine-sensitive set
+      // keeps a run to minutes rather than an hour, and drops nothing D1 could uniquely show.
       .filter((name) => backend !== "d1" || ENGINE_SENSITIVE.has(name))
   );
 }

@@ -9,6 +9,7 @@ import { resolveTargetScope } from "./target.ts";
 const graded = (): GradeLedger => {
   const ledger = new GradeLedger();
   ledger.graded(["pay.start"], "spec.declared-rate-limit-is-honored");
+
   return ledger;
 };
 
@@ -50,11 +51,13 @@ describe("a pass needs a call", () => {
 describe("buildScopeReport", () => {
   it("covers every operation in a full run, with no support", () => {
     const model = referenceModel();
+
     const report = buildScopeReport({
       ...coverageInput({}),
       model,
       scope: resolveTargetScope(model, {}),
     });
+
     expect(report.mode).toBe("full");
     expect(report.operations).toHaveLength(model.operations.length);
     expect(report.support).toEqual([]);
@@ -63,6 +66,7 @@ describe("buildScopeReport", () => {
 
   it("counts the calls a targeted run made to what it did not target", () => {
     const model = referenceModel();
+
     const transcript = [
       call({ method: "GET", operationId: "table.list", status: 200, url: "http://api.test/v1/projects/p/tables" }),
       call({ method: "POST", status: 500, requestId: "r2", url: "http://api.test/v1/projects/p/tables" }),
@@ -72,12 +76,14 @@ describe("buildScopeReport", () => {
       call({ method: "GET", operationId: "gone", status: 200, url: "http://api.test/v1/projects/p/tables/t" }),
       call({ method: "GET", status: 101, url: "http://api.test/v1/projects/p/tables" }),
     ];
+
     const report = buildScopeReport({
       ...coverageInput({}),
       model,
       scope: resolveTargetScope(model, { ops: ["table.get"] }),
       transcript,
     });
+
     expect(report.support).toEqual([
       { calls: 2, firstFailure: { requestId: "r2", status: 500 }, non2xx: 2, operationId: "table.create" },
       { calls: 2, firstFailure: { requestId: "r1", status: 101 }, non2xx: 1, operationId: "table.list" },

@@ -1,6 +1,6 @@
 import { NetworkError, type NetworkKind } from "../../../src/api/errors/network.ts";
 
-/* Network failures as Node / undici raise them, for the network tests. */
+// Network failures as Node / undici raise them, for the network tests.
 
 export { failing, net } from "../../../src/api/runtime/network/__fixtures__/failures.ts";
 

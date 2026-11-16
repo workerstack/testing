@@ -1,4 +1,3 @@
-import type { ReadClient } from "../../../client/client.ts";
 import type { Exchange } from "../../exchange.ts";
 import { ASSERTED, type Outcome } from "../../finding.ts";
 import type { CheckContext } from "../core/context.ts";
@@ -26,8 +25,11 @@ export function judgeRefusal(
   exchange: Exchange,
 ): Outcome | null {
   const status = exchange.status;
+
   if (status > 0 && status < 400) return null;
+
   if (reasons.some((reason) => REFUSED_FOR[reason].includes(status))) return ASSERTED;
+
   if (status >= 500) {
     return ctx.findings.backend(check, ctx.entityName, {
       summary: "a request that should be refused drew a server error",
@@ -37,6 +39,7 @@ export function judgeRefusal(
       evidence: [exchange],
     });
   }
+
   return ctx.findings.unresolved(
     check,
     ctx.entityName,
@@ -49,7 +52,7 @@ export function judgeRefusal(
  * probes, so a status the document leaves out for deliberately invalid input is reported apart
  * from what ordinary traffic got.
  */
-export function asProbe<X extends CheckContext<ReadClient>>(ctx: X): X {
-  /* What a probe the server accepts anyway creates is ledgered like any other create. */
+export function asProbe<X extends CheckContext>(ctx: X): X {
+  // What a probe the server accepts anyway creates is ledgered like any other create.
   return { ...ctx, client: ctx.client.view({ purpose: "probe" }) as X["client"] };
 }

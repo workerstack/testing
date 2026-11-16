@@ -23,7 +23,7 @@ const GATE_SCHEMA = {
   type: "object",
 };
 
-export interface SpecOptions {
+export type SpecOptions = {
   tag?: unknown;
   omitTag?: boolean;
   generated?: string[];
@@ -31,7 +31,7 @@ export interface SpecOptions {
   idempotencyRequired?: boolean;
   featureGate?: string;
   updateBody?: string[];
-}
+};
 
 /** The tags both writes carry: the unique sets, unless omitted, and the feature gate, when asked. */
 function writeTags(options: SpecOptions): Record<string, unknown> {
@@ -88,8 +88,10 @@ function createOperation(options: SpecOptions): Record<string, unknown> {
 function updateOperation(options: SpecOptions): Record<string, unknown> {
   const known = createBody();
   const properties: Record<string, unknown> = {};
+
   for (const name of options.updateBody ?? ["email", "name", "slug"])
     properties[name] = known[name] ?? { type: "string" };
+
   return {
     operationId: "widget.update",
     parameters: itemParams(),

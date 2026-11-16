@@ -1,12 +1,10 @@
-/*
- * A write to the principal's own record never changes how it signs in. The record is its own when
- * the operation is the self-identity resource (`x-entity.identity: self`), when an update or removal
- * names no record at all (`PUT /users/me`: the caller is the record), or when a path value is one of
- * its identity values (its own user id). There, a field is protected when its name is a credential's
- * (`password`, `api_key`) or one its sign-in reads (`email` where the login sends
- * `{principal.email}`, and the field it sends it under). A run that changed one would lock the
- * principal out of every later run.
- */
+// A write to the principal's own record never changes how it signs in. The record is its own when
+// the operation is the self-identity resource (`x-entity.identity: self`), when an update or removal
+// names no record at all (`PUT /users/me`: the caller is the record), or when a path value is one of
+// its identity values (its own user id). There, a field is protected when its name is a credential's
+// (`password`, `api_key`) or one its sign-in reads (`email` where the login sends
+// `{principal.email}`, and the field it sends it under). A run that changed one would lock the
+// principal out of every later run.
 
 import type { Client } from "../client/client.ts";
 import type { RequestOptions } from "../client/types.ts";
@@ -20,7 +18,7 @@ import { type CredentialRecord, heldCredential } from "./credential-records.ts";
 import type { Exchange } from "./exchange.ts";
 
 /** What the run knows to guard its principals' own records with. */
-export interface OwnRecords {
+export type OwnRecords = {
   /** Every identity key a principal's sign-in reads, and each field it sends one under (`signInFields`). */
   signIn: ReadonlySet<string>;
   /**
@@ -34,12 +32,10 @@ export interface OwnRecords {
   learn?: (principal: string, answer: unknown) => void;
   /** Every record holding a live credential the run depends on, every principal's (`mintedRecords`). */
   credentials?: () => readonly CredentialRecord[];
-}
+};
 
-/*
- * The fields of a self read that name the caller's own record: its id, or its login name. A foreign
- * key (`project_id`, `org_id`) names another record, the tenant the caller belongs to, never its own.
- */
+// The fields of a self read that name the caller's own record: its id, or its login name. A foreign
+// key (`project_id`, `org_id`) names another record, the tenant the caller belongs to, never its own.
 const IDENTIFIER = /^(id|uuid|guid|username|login|handle|user_?id|userId|account_?id|accountId)$/;
 
 /**
@@ -49,10 +45,12 @@ const IDENTIFIER = /^(id|uuid|guid|username|login|handle|user_?id|userId|account
  */
 export function ownRecordsFrom(base: Omit<OwnRecords, "learn">): OwnRecords {
   const learned = new Map<string, Record<string, unknown>>();
+
   return {
     ...base,
     identityOf: (principal) => {
       const configured = base.identityOf(principal);
+
       return configured === undefined ? undefined : { ...configured, ...learned.get(probeOwner(principal)) };
     },
     learn: (principal, answer) => {
@@ -80,25 +78,30 @@ export class HeldRecordError extends ProtectedWriteError {
 /** Why `operationId` is not sent as `principal`'s with `fields`: the reason a stand-down gives. */
 export function protectedReason(operationId: string, principal: string, fields: readonly string[]): string {
   const owner = probeOwner(principal);
+
   return `${operationId} would change ${fields.join(", ")} on ${owner}'s own record, which ${owner} signs in with: the API tester never sends that`;
 }
 
 /** A write about to be sent: its operation, the path values it fills, and the identity of who sends it. */
-export interface Write {
+export type Write = {
   op: Pick<OperationModel, "identity" | "method" | "pathParams">;
   path: Readonly<Record<string, string>>;
   identity: Readonly<Record<string, unknown>>;
-}
+};
 
 /** Whether `write` changes the principal's own record. */
 export function ownRecord(write: Write): boolean {
   const { op } = write;
   const method = op.method.toUpperCase();
+
   if (SAFE.has(method)) return false;
+
   if (op.identity === SELF_IDENTITY) return true;
-  /* A create names no record either: it makes one. */
+
+  // A create names no record either: it makes one.
   if (op.pathParams.length === 0) return method !== "POST";
   const own = new Set(Object.values(write.identity).flatMap(scalarText));
+
   return Object.values(write.path).some((value) => own.has(value));
 }
 
@@ -109,6 +112,7 @@ export function ownRecord(write: Write): boolean {
 export function protectedFields(signIn: ReadonlySet<string>, write: Write, names: Iterable<string>): Set<string> {
   if (!ownRecord(write)) return new Set();
   const lowered = new Set([...signIn].map((name) => name.toLowerCase()));
+
   return new Set([...names].filter((name) => isSecretJsonKey(name) || lowered.has(name.toLowerCase())));
 }
 
@@ -130,31 +134,35 @@ export function guardWrite(
   const dropped: string[] = [];
   const needs: string[] = [];
   const body = without(sent.body, { at: [], dropped, fields, needs, schema: sent.schema });
+
   return needs.length > 0 ? { needs } : { body, dropped };
 }
 
-interface Walk {
+type Walk = {
   at: string[];
   fields: ReadonlySet<string>;
   schema: unknown;
   dropped: string[];
   needs: string[];
-}
+};
 
 function without(body: Record<string, unknown>, walk: Walk): Record<string, unknown> {
   const schema = isPlain(walk.schema) ? walk.schema : {};
   const required = Array.isArray(schema["required"]) ? (schema["required"] as unknown[]) : [];
   const properties = isPlain(schema["properties"]) ? schema["properties"] : {};
   const kept: Record<string, unknown> = {};
+
   for (const [key, value] of Object.entries(body)) {
     const at = [...walk.at, key];
+
     if (walk.fields.has(key)) (required.includes(key) ? walk.needs : walk.dropped).push(at.join("."));
     else kept[key] = isPlain(value) ? without(value, { ...walk, at, schema: properties[key] }) : value;
   }
+
   return kept;
 }
 
-/* Every key of a body, deep through plain objects. */
+// Every key of a body, deep through plain objects.
 function keysOf(body: Record<string, unknown>): string[] {
   return Object.entries(body).flatMap(([key, value]) => [key, ...(isPlain(value) ? keysOf(value) : [])]);
 }
@@ -175,32 +183,36 @@ function refuse(
 ): void {
   if (!SAFE.has(sent.method.toUpperCase())) refuseHeld(records, write, sent);
   const { identity, op } = write;
+
   if (identity === undefined || !isPlain(sent.body)) return;
-  /* Deep, as guardWrite drops: `{ user: { password } }` changes the password as surely as `{ password }`. */
+  // Deep, as guardWrite drops: `{ user: { password } }` changes the password as surely as `{ password }`.
   const fields = [...protectedFields(records.signIn, { ...write, identity }, keysOf(sent.body))];
+
   if (fields.length > 0)
     throw new ProtectedWriteError(protectedReason(op.operationId, sent.principal as string, fields));
 }
 
-/*
- * A write the run must never send, whoever sends it: one that changes or removes a record holding a
- * credential the run depends on. And one a configured principal sends to remove or replace its own
- * record, which would end the account every later check signs in as.
- */
+// A write the run must never send, whoever sends it: one that changes or removes a record holding a
+// credential the run depends on. And one a configured principal sends to remove or replace its own
+// record, which would end the account every later check signs in as.
 function refuseHeld(
   records: OwnRecords,
   write: { identity: Readonly<Record<string, unknown>> | undefined; op: OperationModel; path: Record<string, string> },
   sent: { method: string; principal: string | undefined },
 ): void {
   const held = heldCredential(write.op, write.path, records.credentials?.() ?? []);
+
   if (held !== undefined) {
     throw new HeldRecordError(
       `${write.op.operationId} would change ${held.entity} ${held.id}, a credential the run holds ` +
         `(minted by ${held.operationId}): the API tester never sends that`,
     );
   }
+
   const replaces = sent.method.toUpperCase() === "DELETE" || sent.method.toUpperCase() === "PUT";
+
   if (write.identity === undefined || !replaces) return;
+
   if (!ownRecord({ identity: write.identity, op: write.op, path: write.path })) return;
   const owner = probeOwner(sent.principal as string);
   const op = write.op.operationId;
@@ -218,27 +230,32 @@ function refuseHeld(
  */
 export function guardedClient(client: Client, records: OwnRecords, model: SpecModel): Client {
   const resolve = operationResolver(model);
+
   const request = async (method: string, path: string, options: RequestOptions): Promise<Exchange> => {
     const principal = "principal" in options.as ? options.as.principal : undefined;
     const identity = principal === undefined ? undefined : records.identityOf(principal);
     const writes = !SAFE.has(method.toUpperCase());
     const resolved = identity === undefined && !writes ? null : resolve(method, path);
     const op = resolved === null ? undefined : model.byOperationId.get(resolved.operationId);
-    if (op !== undefined && resolved !== null) {
+
+    if (op !== undefined && resolved !== null)
       refuse(records, { identity, op, path: resolved.pathParams }, { body: options.body, method, principal });
-    }
+
     const exchange = await client.request(method, path, options);
-    if (op?.identity === SELF_IDENTITY && SAFE.has(method.toUpperCase()) && exchange.status < 300) {
+
+    if (op?.identity === SELF_IDENTITY && SAFE.has(method.toUpperCase()) && exchange.status < 300)
       records.learn?.(principal as string, exchange.responseBody);
-    }
+
     return exchange;
   };
+
   return new Proxy(client, {
     get(target, property, receiver) {
       if (property === "request") return request;
-      if (property === "view") {
+
+      if (property === "view")
         return (...args: Parameters<Client["view"]>) => guardedClient(target.view(...args), records, model);
-      }
+
       return Reflect.get(target, property, receiver);
     },
   });

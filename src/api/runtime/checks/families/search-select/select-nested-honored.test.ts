@@ -9,22 +9,22 @@ import { selectNestedHonored } from "./select-nested-honored.ts";
 const RELATION = { fields: ["name"], name: "author" };
 const NESTED = { doc: queryDoc({ select: { nested: true, relations: [RELATION] } }) };
 
-/* Every listed record's author replaced by `author`. */
+// Every listed record's author replaced by `author`.
 const authoredBy =
   (author: unknown): Responder =>
   () => ({ body: NOTES.map((row) => ({ author, id: row["id"] })), status: 200 });
 
-/* The projection, with each author turned into a to-many list of itself. */
+// The projection, with each author turned into a to-many list of itself.
 const toMany: Responder = projecting((row: Record_) => ({
   ...row,
   author: row["author"] === null ? [] : [row["author"]],
 }));
 
-/* Whether the check plans against a document declaring `select` and `params`. */
+// Whether the check plans against a document declaring `select` and `params`.
 const declared = (select: unknown, params: readonly string[] = PARAMS): boolean =>
   stage(selectNestedHonored, { doc: queryDoc({ select }, params) }).plan().ok;
 
-/* An empty listing, whatever is asked. */
+// An empty listing, whatever is asked.
 const empty: Responder = () => ({ body: [], status: 200 });
 
 describe("select.nested-honored judges", () => {

@@ -10,12 +10,10 @@ import {
   type Spot,
 } from "./gesture.ts";
 
-/*
- * Pointer input for tests that run in the page. Vitest's user events have no press, move and
- * release, so this sends the events a real mouse or touchscreen sends, at real coordinates, to the
- * element under the point, one animation frame after each move. A drag walks the same path the
- * Playwright `pointer` fixture walks.
- */
+// Pointer input for tests that run in the page. Vitest's user events have no press, move and
+// release, so this sends the events a real mouse or touchscreen sends, at real coordinates, to the
+// element under the point, one animation frame after each move. A drag walks the same path the
+// Playwright `pointer` fixture walks.
 
 /** Which pointer drives a gesture. */
 export type PointerKind = "mouse" | "touch";
@@ -24,7 +22,7 @@ export type PointerKind = "mouse" | "touch";
 export type GestureEvent = "pointerdown" | "pointermove" | "pointerup" | "click";
 
 /** What an event carries; a click carries only where it happened. */
-export interface GestureInit {
+export type GestureInit = {
   clientX: number;
   clientY: number;
   button?: number;
@@ -32,10 +30,10 @@ export interface GestureInit {
   pointerId?: number;
   pointerType?: PointerKind;
   isPrimary?: boolean;
-}
+};
 
 /** Where a gesture lands: the page by default, or a stand-in a test passes. */
-export interface Surface {
+export type Surface = {
   /** The element under `spot`. */
   hit(spot: Spot): Element;
   /** Builds the event and sends it to `target`. */
@@ -44,10 +42,10 @@ export interface Surface {
   frame(): Promise<void>;
   /** Keeps pointer `id`'s capture from its press until the release. */
   hold(id: number): Capture;
-}
+};
 
 /** A pointer that presses, moves and releases like a real one. */
-export interface Pointer {
+export type Pointer = {
   readonly kind: PointerKind;
   /** Where it is now; set it to place the next `fire`. */
   at: Spot;
@@ -63,10 +61,10 @@ export interface Pointer {
   up(): void;
   /** Presses at `from` and moves 6px across `axis` in two steps, past a drag engine's 5px threshold. */
   lift(from: Spot, axis?: Axis): Promise<void>;
-}
+};
 
 /** A drag's target and pace. */
-export interface DragOptions {
+export type DragOptions = {
   /** An element, whose center the drag ends on, or a spot. */
   to: Element | Spot;
   /** The list's main axis. @default "y" */
@@ -75,23 +73,26 @@ export interface DragOptions {
   steps?: number;
   /** Where the drag lands. @default the page */
   surface?: Surface;
-}
+};
 
 /** A drag by a handle until its item's center sits on `to`, since a handle is rarely centered. */
-export interface CenterDrag {
+export type CenterDrag = {
   handle: Element;
   item: Element;
   to: Spot;
   axis?: Axis;
   surface?: Surface;
-}
+};
 
 /** Frames that pass with nothing to show, for asserting that nothing happens. */
 const QUIET_FRAMES = 6;
+
 /** A mouse and a touch never share a pointer id. */
 const POINTER_ID: Record<PointerKind, number> = { mouse: 1, touch: 2 };
+
 /** The buttons held during each event: none once released. */
 const BUTTONS = { pointerdown: 1, pointermove: 1, pointerup: 0 } as const;
+
 /** The button each event reports; a move changes none, which is -1. */
 const BUTTON = { pointerdown: 0, pointermove: -1, pointerup: 0 } as const;
 const FLAGS = { bubbles: true, cancelable: true, composed: true } as const;
@@ -112,7 +113,9 @@ const PAGE: Surface = {
 /** The nearest element that holds both `a` and `b`. */
 function commonAncestor(a: Element, b: Element): Element | null {
   let common: Element | null = a;
+
   while (common !== null && !common.contains(b)) common = common.parentElement;
+
   return common;
 }
 
@@ -121,6 +124,7 @@ function create(kind: PointerKind = "mouse", surface: Surface = PAGE): Pointer {
   const id = POINTER_ID[kind];
   let pressed: Element | null = null;
   let capture: Capture | null = null;
+
   const self: Pointer = {
     at: { x: 0, y: 0 },
     down: (spot) => {
@@ -133,6 +137,7 @@ function create(kind: PointerKind = "mouse", surface: Surface = PAGE): Pointer {
       const target = capture?.captor() ?? surface.hit(self.at);
       const init = { button: BUTTON[type], buttons: BUTTONS[type], isPrimary: true, pointerId: id };
       surface.send(target, type, { ...init, clientX: self.at.x, clientY: self.at.y, pointerType: kind });
+
       return target;
     },
     kind,
@@ -147,15 +152,18 @@ function create(kind: PointerKind = "mouse", surface: Surface = PAGE): Pointer {
     up: () => {
       const released = self.fire("pointerup");
       const held = pressed;
-      /* A browser lets go of a capture on release, after the pointerup. */
+      // A browser lets go of a capture on release, after the pointerup.
       capture?.end();
       capture = null;
       pressed = null;
+
       if (kind !== "mouse" || held === null) return;
       const common = commonAncestor(released, held);
+
       if (common !== null) surface.send(common, "click", { clientX: self.at.x, clientY: self.at.y });
     },
   };
+
   async function walk(path: Spot[]): Promise<void> {
     for (const spot of path) {
       self.at = spot;
@@ -163,6 +171,7 @@ function create(kind: PointerKind = "mouse", surface: Surface = PAGE): Pointer {
       await surface.frame();
     }
   }
+
   return self;
 }
 
@@ -177,13 +186,16 @@ async function drag(handle: Element, options: DragOptions): Promise<void> {
   const { axis = "y", steps, surface, to } = options;
   const mouse = create("mouse", surface);
   const target = "getBoundingClientRect" in to ? centerOf(to) : to;
+
   const { path, press } = dragPath({
     axis,
     from: centerOf(handle),
     to: target,
     ...(steps === undefined ? {} : { steps }),
   });
+
   mouse.down(press);
+
   try {
     for (const spot of path) await mouse.move(spot);
   } finally {

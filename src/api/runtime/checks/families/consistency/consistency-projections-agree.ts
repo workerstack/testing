@@ -48,18 +48,18 @@ export const projectionsAgree: Check<{
   plan: (ctx) => {
     const target = ctx.records[0];
     const readOp = ctx.readOp;
+
     if (target === undefined || readOp === undefined) return cannot();
-    /*
-     * A filterable, sortable, non-null, *client-owned* field.
-     *
-     * Server-generated fields are excluded deliberately: a progress counter, a derived row
-     * count or a status the backend advances can legitimately differ between two reads taken
-     * moments apart, and since the API tester tests entities concurrently a derived value may move
-     * mid-check for reasons no read path is responsible for. Comparing those across
-     * projections measures timing, not consistency.
-     */
+    // A filterable, sortable, non-null, *client-owned* field.
+    //
+    // Server-generated fields are excluded deliberately: a progress counter, a derived row
+    // count or a status the backend advances can legitimately differ between two reads taken
+    // moments apart, and since the API tester tests entities concurrently a derived value may move
+    // mid-check for reasons no read path is responsible for. Comparing those across
+    // projections measures timing, not consistency.
     const generated = new Set([...(ctx.createOp?.generated ?? []), ...(ctx.updateOp?.generated ?? [])]);
     const { query } = ctx;
+
     const field = query?.filterable.find(
       (name) =>
         name !== ctx.identity &&
@@ -69,8 +69,10 @@ export const projectionsAgree: Check<{
         target[name] !== undefined &&
         typeof target[name] !== "object",
     );
+
     if (field === undefined) return cannot("a client-owned field that is filterable, sortable and set on a record");
     const id = idOf(target, ctx.identity);
+
     return id === undefined ? cannot(NO_IDENTITY) : ready({ field, id, readOp, target });
   },
   dependsOn: [
@@ -78,8 +80,8 @@ export const projectionsAgree: Check<{
     "pagination.page-walk-covers-set",
     "list.read-after-write",
     "create.persists-submitted-fields",
-    /* Each projection is exercised elsewhere. When one is already known broken, its
-     * disagreement here is that same defect seen a second time. */
+    // Each projection is exercised elsewhere. When one is already known broken, its
+    // disagreement here is that same defect seen a second time.
     "filter.equality-selects-exactly-one",
     "select.projection-honored",
     "select.requested-fields-present",
@@ -93,6 +95,7 @@ export const projectionsAgree: Check<{
     const detail = await ctx.client.get(fillPath(readOp.path, { ...ctx.scope, ...itemParamFor(ctx, id) }), {
       as: { principal: ctx.actor.id },
     });
+
     if (detail.status >= 300) {
       return ctx.findings.unresolved(
         this.id,
@@ -100,17 +103,17 @@ export const projectionsAgree: Check<{
         `the item route returned ${detail.status}, leaving no reference value to compare against`,
       );
     }
-    /*
-     * The item route read *now* is the reference, not the value the API tester submitted at seed time.
-     * A backend is entitled to normalize what it stores — trimming, case-folding, rounding —
-     * and holding every projection to the submitted value would report that as inconsistency.
-     * The claim being tested is that the read paths agree with each other, which is exactly
-     * what anchoring on one of them and comparing the rest establishes.
-     */
+
+    // The item route read *now* is the reference, not the value the API tester submitted at seed time.
+    // A backend is entitled to normalize what it stores — trimming, case-folding, rounding —
+    // and holding every projection to the submitted value would report that as inconsistency.
+    // The claim being tested is that the read paths agree with each other, which is exactly
+    // what anchoring on one of them and comparing the rest establishes.
     const value = readRecord(readOp, detail)?.[field];
     const { plain, seen } = await readProjections(ctx, field, id);
 
     const disagreeing = seen.filter((entry) => JSON.stringify(entry.value) !== JSON.stringify(value));
+
     if (disagreeing.length > 0) {
       return ctx.findings.backend(this.id, ctx.entityName, {
         summary: "the same record carries different values depending on how it is read",
@@ -123,15 +126,16 @@ export const projectionsAgree: Check<{
         evidence: [detail, plain.exchange],
       });
     }
+
     return filterMembership(ctx, this.id, { detail, field, id, value });
   },
 });
 
 /** What one projection returned for the field. */
-interface Seen {
+type Seen = {
   projection: string;
   value: unknown;
-}
+};
 
 /**
  * The field as the collection, a sparse fieldset and a sorted page each return it. A projection
@@ -140,26 +144,32 @@ interface Seen {
 async function readProjections(ctx: Listed, field: string, id: string): Promise<{ plain: ListResult; seen: Seen[] }> {
   const limit = pageSize(ctx);
   const seen: Seen[] = [];
+
   const record = (result: ListResult): Record_ | undefined =>
     result.items.find((item) => idOf(item, ctx.identity) === id);
 
   const plain = await list(ctx, q(ctx, { limit }));
   const inList = record(plain);
+
   if (inList !== undefined) seen.push({ projection: "collection", value: inList[field] });
 
   const conventions = conv(ctx);
-  /* `null` exactly when the endpoint has no sparse-fieldset parameter. */
+  // `null` exactly when the endpoint has no sparse-fieldset parameter.
   const projection = selectTerm(conventions, [ctx.identity, field], ctx.entityName);
+
   if (projection !== null) {
     const row = record(await list(ctx, { ...q(ctx, { limit }), ...projection }));
+
     if (row !== undefined) seen.push({ projection: "sparse fieldset", value: row[field] });
   }
 
   if (conventions.order !== undefined) {
     const sorted = await list(ctx, q(ctx, { limit, order: sortTerm(conv(ctx), { direction: "asc", field }) }));
     const row = record(sorted);
+
     if (row !== undefined) seen.push({ projection: "sorted page", value: row[field] });
   }
+
   return { plain, seen };
 }
 
@@ -170,10 +180,11 @@ async function filterMembership(
   probe: { detail: Exchange; field: string; id: string; value: unknown },
 ): Promise<Outcome> {
   const { detail, field, id, value } = probe;
-  /* Membership is a projection too: a filter that matches the value must return the record,
-   * its negation must not, and both are read off the same fact just proven consistent.
-   * Equality says nothing about null — whether `eq` matches a null is the backend's
-   * convention, not a contract — so a null value has no membership to test. */
+
+  // Membership is a projection too: a filter that matches the value must return the record,
+  // its negation must not, and both are read off the same fact just proven consistent.
+  // Equality says nothing about null — whether `eq` matches a null is the backend's
+  // convention, not a contract — so a null value has no membership to test.
   if (value === null || value === undefined) {
     return ctx.findings.unresolved(
       check,
@@ -181,14 +192,17 @@ async function filterMembership(
       `"${field}" is null on the item route, and equality is not defined for null`,
     );
   }
+
   const matching = filterTerm(conv(ctx), { field, op: "eq", value: String(value) });
+
   if (matching === null) return standDown("the filter grammar cannot express this probe");
-  /* The whole filtered set, not its first page: absence from one page proves nothing. */
+  // The whole filtered set, not its first page: absence from one page proves nothing.
   const included = await collectSet(ctx, pageSize(ctx), matching);
-  if (included === null) {
-    return ctx.findings.unresolved(check, ctx.entityName, `filtering on "${field}" was rejected`);
-  }
+
+  if (included === null) return ctx.findings.unresolved(check, ctx.entityName, `filtering on "${field}" was rejected`);
+
   if (included.items.some((item) => idOf(item, ctx.identity) === id)) return ASSERTED;
+
   if (!included.complete) {
     return ctx.findings.unresolved(
       check,

@@ -1,4 +1,4 @@
-/* What an operation check runs against: one operation, the principals, and the run's probe credentials. */
+// What an operation check runs against: one operation, the principals, and the run's probe credentials.
 
 import type { Client, ReadClient } from "../../../client/client.ts";
 import type { UnsatisfiedSecurity } from "../../../client/credential-source.ts";
@@ -15,7 +15,7 @@ import type { Actor } from "./context.ts";
  * mutating check's client refuses a write to any other path. Its body should be harmless if the
  * backend applied it: the record's `current` state, or the lane's own valid update.
  */
-export interface WriteTarget {
+export type WriteTarget = {
   entity: string;
   id: string;
   /** The principal that created it. */
@@ -26,25 +26,25 @@ export interface WriteTarget {
   path: string;
   /** The record as its creator just read it. */
   current: unknown;
-}
+};
 
 /** How a dedicated credential's reused refresh went: refused, as it must be, or accepted. */
 export type Replayed = { accepted: true } | { accepted: false; reason: string };
 
 /** A dedicated session after its recipe's refresh rotated it. */
-export interface Rotation {
+export type Rotation = {
   /** The value the rotation issued, which the actor now sends. */
   value: string;
   /** Runs the refresh again from before the rotation: the rotated refresh token, reused. */
   replay(): Promise<Replayed>;
-}
+};
 
 /**
  * A credential acquired for a probe alone: a second login, a fresh mint, a new token grant. Never the
  * principal's own session, so revoking or rotating it leaves the run's principals untouched. It is
  * revoked at teardown when its recipe declares how.
  */
-export interface DedicatedCredential {
+export type DedicatedCredential = {
   /** Sends it: `as: actor`. The principal is `<owner>#probe-<n>`; never name it in a finding. */
   actor: { principal: string };
   /** The principal it was acquired for, the one a finding names. */
@@ -55,7 +55,7 @@ export interface DedicatedCredential {
   revoke?: () => Promise<void>;
   /** Rotates it by the recipe's declared refresh; absent without one. */
   rotate?: () => Promise<Rotation>;
-}
+};
 
 /**
  * A credential or a target a probe asked for, or why it cannot have one: the check is untested with that
@@ -64,7 +64,7 @@ export interface DedicatedCredential {
 export type Probed<T> = T | { untested: string; blocked?: UnsatisfiedSecurity };
 
 /** What a probe asks for: whose credential, for which scheme, carrying which scopes. */
-export interface ProbeRequest {
+export type ProbeRequest = {
   principal: string;
   scheme: string;
   scopes?: readonly string[];
@@ -73,10 +73,10 @@ export interface ProbeRequest {
    * scope set serves every such probe of the run. A probe that spends it asks without this.
    */
   reusable?: true;
-}
+};
 
 /** The credentials an operation check may probe with, beyond sending `as` a principal. */
-export interface ProbeCredentials {
+export type ProbeCredentials = {
   /** A credential of the principal's own for a probe alone. Static and hook recipes cannot issue one. */
   dedicated(request: ProbeRequest): Promise<Probed<DedicatedCredential>>;
   /**
@@ -90,10 +90,10 @@ export interface ProbeCredentials {
    * can anchor on it: a probe of issuing, revoking or refreshing runs once per scheme, there.
    */
   recipe(request: { principal: string; scheme: string }): Probed<RecipeAnchors>;
-}
+};
 
 /** The accounts a check's own sign-up made, as the run's ledger holds them. */
-export interface CheckAccounts {
+export type CheckAccounts = {
   /**
    * The account the sign-up answered by `signUp` made, held as a principal of its own the way
    * teardown holds it, to send `read` as that account: its id, or why it cannot be. A credential
@@ -101,7 +101,7 @@ export interface CheckAccounts {
    * would answer for whoever owns it.
    */
   signIn(signUp: Exchange, read: OperationModel): Promise<Probed<{ principal: string }>>;
-}
+};
 
 /** Where a probe runs: see `placementOf`. */
 export type ProbePlacement = "read" | "item-read" | "write";
@@ -110,7 +110,7 @@ export type ProbePlacement = "read" | "item-read" | "write";
  * What an operation check runs against, for one probe. A `read` or `item-read` probe gets a client
  * that cannot write; a `write` probe one that can.
  */
-export interface OperationContext<C extends ReadClient = ReadClient> {
+export type OperationContext<C extends ReadClient = ReadClient> = {
   operation: OperationModel;
   model: SpecModel;
   client: C;
@@ -149,7 +149,7 @@ export interface OperationContext<C extends ReadClient = ReadClient> {
   untargeted?: string;
   /** The BLOCKED credential behind `untargeted`, when that is why: a check it stops could not complete. */
   untargetedBy?: UnsatisfiedSecurity;
-}
+};
 
 /** The context of an operation check that changes server state or a credential. */
 export type OperationWriteContext = OperationContext<Client>;

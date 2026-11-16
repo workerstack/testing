@@ -53,6 +53,7 @@ describe("headLines on a run with everything to say", () => {
       },
       [exchange({ check: "a", durationMs: 40, requestBytes: 100, responseBytes: 2048 }), exchange({ durationMs: 10 })],
     );
+
     const lines = headLines(input, clean, coverageByCheck(input));
     expect(lines).toContain("- **Target version**: 1.2.3");
     expect(lines).toContain("- **Interrupted**: stopped by a signal; teardown ran");
@@ -76,6 +77,7 @@ describe("headLines on a run with everything to say", () => {
       network: { attempts: 1, incomplete: false, kind: "reset", url: "http://h.test", waitedMs: 0 },
       targetVersion: { error: "no version header" },
     });
+
     const lines = headLines(input, clean, coverageByCheck(input));
     expect(lines).toContain("- **Target version**: unknown — no version header");
     expect(lines).toContain("- **Network**: reset after 1 attempt(s)");

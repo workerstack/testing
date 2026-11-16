@@ -11,6 +11,7 @@ import { keptCredentials, loadPersistedPrincipals, parsePersistedPrincipals, sna
 const sends = { cookies: {}, headers: { Authorization: "Bearer secret-1" }, query: {} };
 const secrets = { cookies: [], headers: ["Authorization"], query: [], values: ["secret-1"] };
 const NONE = new Redactor();
+
 const HELD: HeldCredential[] = [
   { credential: { expiresAt: 5000, secrets, sends, value: "secret-1" }, principal: "alpha", scheme: "jwt", scopes: [] },
   {
@@ -35,6 +36,7 @@ describe("snapshotPrincipal", () => {
       },
       { held: HELD, redactor: NONE },
     );
+
     expect(snap).toEqual({
       credentials: [
         { expiresAt: 5000, scheme: "jwt", scopes: [] },
@@ -82,6 +84,7 @@ describe("snapshotPrincipal identity", () => {
   it("drops every credential-named identity key and every value the run holds as a secret", () => {
     const redactor = new Redactor();
     redactor.registerSecret("pin-123456");
+
     const identity = {
       api_key: "k-1",
       apiKey: "k-2",
@@ -94,6 +97,7 @@ describe("snapshotPrincipal identity", () => {
       secret: "s-2",
       token: "t-1",
     };
+
     const snap = snapshotPrincipal({ id: "alpha", identity, rank: 0, scope: {} }, { held: [], redactor });
     expect(snap.identity).toEqual({ email: "a@x.test", name: "Alpha", profile: { team: "red" } });
     expect(JSON.stringify(snap)).not.toMatch(/alpha-password|pin-123456|k-1|k-2|s-1|s-2|r-1|t-1/);
@@ -137,6 +141,7 @@ describe("parsePersistedPrincipals", () => {
         ],
       }),
     );
+
     expect(one).toEqual({
       a: { email: "a@x.test", inviteAs: "b@x.test", key: "key_a", rank: 2, scope: { project_id: "1" }, tenant: "t1" },
     });
@@ -152,6 +157,7 @@ describe("parsePersistedPrincipals", () => {
         },
       ]),
     );
+
     expect(parsed).toEqual({ a: { scope: {} } });
   });
 
@@ -165,6 +171,7 @@ describe("parsePersistedPrincipals", () => {
         { id: "c", identity: [1], inviteAs: 1, rank: "2", scope: [], tenant: 7 },
       ]),
     );
+
     expect(parsed).toEqual({ c: { scope: {} } });
   });
 

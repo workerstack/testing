@@ -3,14 +3,12 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-/*
- * The README is the front page: what the API tester is, how to start, how auth is declared, what a run's
- * verdicts and exit codes mean, a CI sketch, the limits that matter most, and where every other doc
- * is. `bun repo sync` generates it from references/: a title, the package description, a contents list, then
- * each reference under its own `## ` heading, the user's first and the contributors' (Gates onward) last.
- * The user's part stays about 120 lines; the full limits live in docs/api/limits.md and the run
- * walkthrough in docs/api/model.md, so nothing the README drops is lost.
- */
+// The README is the front page: what the API tester is, how to start, how auth is declared, what a run's
+// verdicts and exit codes mean, a CI sketch, the limits that matter most, and where every other doc
+// is. `bun repo sync` generates it from references/: a title, the package description, a contents list, then
+// each reference under its own `## ` heading, the user's first and the contributors' (Gates onward) last.
+// The user's part stays about 120 lines; the full limits live in docs/api/limits.md and the run
+// walkthrough in docs/api/model.md, so nothing the README drops is lost.
 
 const ROOT = join(import.meta.dirname, "..", "..");
 const README = readFileSync(join(ROOT, "README.md"), "utf8");
@@ -19,8 +17,10 @@ const read = (...path: string[]): string => readFileSync(join(ROOT, ...path), "u
 /** A `## ` or `### ` heading's text, up to the next `## `. */
 function section(heading: string): string {
   const start = [`\n## ${heading}\n`, `\n### ${heading}\n`].map((line) => README.indexOf(line)).find((at) => at !== -1);
+
   if (start === undefined) return "";
   const next = README.indexOf("\n## ", start + 1);
+
   return next === -1 ? README.slice(start) : README.slice(start, next);
 }
 
@@ -46,13 +46,16 @@ describe("the README", () => {
   it("shows a bearer config and the auth recipe kinds", () => {
     const auth = section("Authentication");
     expect(auth).toContain("security: { bearer: { static:");
+
     for (const kind of ["login", "mint", "static", "hook", "oauth2"]) expect(auth).toContain(`\`${kind}`);
   });
 
   it("names every verdict and every exit code from 0 to 4, saying any non-zero fails CI", () => {
     const verdicts = section("Verdicts and exit codes");
+
     for (const verdict of ["BACKEND_BUG", "SPEC_BUG", "SECURITY", "AMBIGUITY", "COVERAGE_GAP", "BLOCKED"])
       expect(verdicts).toContain(`\`${verdict}\``);
+
     for (const code of [0, 1, 2, 3, 4]) expect(verdicts).toMatch(new RegExp(`\\| \`${code}\` +\\|`));
     expect(verdicts).toMatch(/any non-zero exit fails/i);
     expect(section("CI")).toContain("testing api run --config");

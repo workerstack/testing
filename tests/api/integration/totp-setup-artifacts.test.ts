@@ -9,11 +9,9 @@ import { PRINCIPALS, SECURITY } from "../../../src/api/conformance/matrix/princi
 import { createMemoryServer } from "../../../src/api/reference/http/engines.ts";
 import type { ReferenceServer } from "../../../src/api/reference/http/server.ts";
 
-/*
- * Behind the totp-setup shape the caller's TOTP enrollment answers its secret, the otpauth URI that
- * carries it, and a QR image of that URI. A run saves exchanges, reports and repros; none of them may
- * show a secret the server issued, in any form, nor the image that draws it.
- */
+// Behind the totp-setup shape the caller's TOTP enrollment answers its secret, the otpauth URI that
+// carries it, and a QR image of that URI. A run saves exchanges, reports and repros; none of them may
+// show a secret the server issued, in any form, nor the image that draws it.
 
 let dir = "";
 let server: ReferenceServer;
@@ -28,7 +26,7 @@ afterAll(async () => {
   await rm(dir, { force: true, recursive: true });
 });
 
-/* Swallows the CLI's output. */
+// Swallows the CLI's output.
 function quiet(): boolean {
   return true;
 }
@@ -38,6 +36,7 @@ async function cli(argv: string[]): Promise<number> {
   const out = vi.spyOn(process.stdout, "write").mockImplementation(quiet);
   const err = vi.spyOn(process.stderr, "write").mockImplementation(quiet);
   process.argv = ["node", "testing", ...argv];
+
   try {
     return await main();
   } finally {
@@ -47,16 +46,18 @@ async function cli(argv: string[]): Promise<number> {
   }
 }
 
-/* Every file under `root`, as text. */
+// Every file under `root`, as text.
 async function savedText(root: string): Promise<string> {
   const entries = await readdir(root, { recursive: true, withFileTypes: true });
   const files = entries.filter((entry) => entry.isFile()).map((entry) => join(entry.parentPath, entry.name));
+
   return (await Promise.all(files.map((file) => readFile(file, "utf8")))).join("\n");
 }
 
 describe("a run behind the totp-setup shape", () => {
   it("calls the enrollment and saves no issued secret, in any form, nor its QR image", async () => {
     const config = join(dir, "config.json");
+
     const body = {
       baseUrl: server.url,
       principals: PRINCIPALS,
@@ -64,6 +65,7 @@ describe("a run behind the totp-setup shape", () => {
       seed: 42,
       spec: `${server.url}/v1/openapi/spec`,
     };
+
     await writeFile(config, JSON.stringify(body));
     const out = join(dir, "run");
     await cli(["run", "--config", config, "--ops", "auth.setup2fa", "--save-exchanges", "--out", out, "--quiet"]);

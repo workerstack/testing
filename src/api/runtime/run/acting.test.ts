@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { contextOf, notesApi, optionsFor } from "./__fixtures__/api.ts";
 import { actingOf } from "./acting.ts";
 
-/* Who a principal is, and what it would send on an operation: what a hook is told in place of headers. */
+// Who a principal is, and what it would send on an operation: what a hook is told in place of headers.
 
 describe("actingOf", () => {
   it("resolves the bearer credential and its placement a jwt-secured operation would carry", async () => {

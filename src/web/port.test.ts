@@ -3,9 +3,10 @@ import { describe, expect, it } from "vitest";
 import { freePort } from "./port.ts";
 
 type Create = NonNullable<Parameters<typeof freePort>[0]>;
+
 type Server = ReturnType<Create>;
 
-/* A server that records where it was asked to bind, and is bound to `port` or fails with `error`. */
+// A server that records where it was asked to bind, and is bound to `port` or fails with `error`.
 function fakeServer({ port, error }: { port?: number | null; error?: Error }): {
   create: Create;
   calls: string[];
@@ -14,6 +15,7 @@ function fakeServer({ port, error }: { port?: number | null; error?: Error }): {
   const calls: string[] = [];
   const bound: unknown[] = [];
   const handlers = new Map<string, (error: Error) => void>();
+
   const server = {
     address: () => (port === null ? null : { address: "::1", family: "IPv6", port }),
     close: (done: () => void) => {
@@ -23,11 +25,13 @@ function fakeServer({ port, error }: { port?: number | null; error?: Error }): {
     listen: (options: unknown, done: () => void) => {
       bound.push(options);
       calls.push("listen");
+
       if (error === undefined) done();
       else handlers.get("error")?.(error);
     },
     once: (event: string, handler: (error: Error) => void) => handlers.set(event, handler),
   };
+
   return { bound, calls, create: () => server as unknown as Server };
 }
 

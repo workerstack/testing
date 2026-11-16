@@ -3,6 +3,7 @@ import type { ParserResult } from "../harness/result.ts";
 
 export function runPayloadCatalogSuite(): ParserResult[] {
   const problems = catalogProblems();
+
   return [
     {
       detail: problems.join("; ") || `${STRING_PAYLOADS.length} cases, JSON-stable, no NUL`,

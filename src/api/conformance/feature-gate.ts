@@ -21,13 +21,13 @@ import type { ParserResult } from "./harness/result.ts";
 type Outcome = Pick<ParserResult, "ok" | "detail">;
 
 /** A run against one harness, judged into the results it names, in order. */
-interface GateCase {
+type GateCase = {
   harness: HarnessOptions;
   only: string[];
   /** Name and why of each result, the first of which carries the error when the run throws. */
   names: Array<Pick<ParserResult, "name" | "why">>;
   judge: (findings: Finding[]) => Outcome[];
-}
+};
 
 const PRINCIPALS: PrincipalsConfig = { alpha: { scope: { org_id: "org_1" }, tenant: "org_1" } };
 const SECURITY: SecurityConfig = { bearer: { static: GATE_TOKEN } };
@@ -52,6 +52,7 @@ const verdicts = (findings: Finding[]): string => listed(findings.map((f) => `${
 /** A seed that must stay an error: BLOCKED, not excused as a gate. */
 function blockedSeed(findings: Finding[]): Outcome[] {
   const seed = seedOf(findings, "webhook");
+
   return [{ detail: `seed=${seed?.verdict ?? "none"} ${seed?.detail ?? ""}`, ok: seed?.verdict === "BLOCKED" }];
 }
 
@@ -63,6 +64,7 @@ const CASES: readonly GateCase[] = [
       const invite = seedOf(findings, "invite");
       const real = defects(findings);
       const namesTag = seed?.detail.includes(TAG) === true;
+
       return [
         {
           detail: `seed=${seed?.verdict ?? "none"} detail=${seed?.detail ?? "—"} defects=${listed(real.map((f) => f.check))}`,
@@ -96,10 +98,13 @@ const CASES: readonly GateCase[] = [
     harness: { create: "created", specTag: "webhooks", update: "gate-match" },
     judge: (findings) => {
       const seed = seedOf(findings, "webhook");
+
       const writeGaps = findings.filter(
         (f) => f.verdict === "COVERAGE_GAP" && f.detail.includes(TAG) && f.check !== "world.seed",
       );
+
       const real = defects(findings);
+
       return [
         {
           detail: `seed=${seed?.verdict ?? "none"} writeGaps=${listed(writeGaps.map((f) => f.check))} defects=${verdicts(real)}`,
@@ -120,6 +125,7 @@ const CASES: readonly GateCase[] = [
     judge: (findings) => {
       const seed = seedOf(findings, "webhook");
       const real = defects(findings);
+
       return [
         {
           detail: `seed=${seed?.verdict ?? "none"} defects=${verdicts(real)}`,
@@ -140,6 +146,7 @@ const CASES: readonly GateCase[] = [
 /** The API tester's findings against a fresh harness, reached through `via`. */
 async function against(via: Via, gate: GateCase): Promise<Finding[]> {
   const hosted = await via.host(featureGateHarness(gate.harness));
+
   try {
     const result = await run({
       baseUrl: hosted.url,
@@ -150,6 +157,7 @@ async function against(via: Via, gate: GateCase): Promise<Finding[]> {
       spec: `${hosted.url}/v1/openapi/spec`,
       ...reach(hosted),
     });
+
     return result.findings;
   } finally {
     await hosted.close();
@@ -159,6 +167,7 @@ async function against(via: Via, gate: GateCase): Promise<Finding[]> {
 /** One case's results; a run that throws fails the first with its message and the rest as "harness threw". */
 async function judged(via: Via, gate: GateCase): Promise<ParserResult[]> {
   let outcomes: Outcome[];
+
   try {
     outcomes = gate.judge(await against(via, gate));
   } catch (error) {
@@ -167,6 +176,7 @@ async function judged(via: Via, gate: GateCase): Promise<ParserResult[]> {
       ok: false,
     }));
   }
+
   return gate.names.map((named, index) => ({ ...named, ...(outcomes[index] as Outcome) }));
 }
 
@@ -186,7 +196,9 @@ function defensiveCase(): ParserResult {
       },
     },
   } as OpenApiDocument);
+
   const featureGate = buildModel(doc).byOperationId.get("thing.create")?.featureGate;
+
   return {
     detail: `featureGate=${String(featureGate)}`,
     name: "non-string x-feature-gate is null",
@@ -200,6 +212,7 @@ export function shownCases(tagged: SpecModel): ParserResult[] {
   const plan = report.plan(tagged, false).includes(TAG);
   const doctor = report.doctor(tagged).text.includes(TAG);
   const why = "doctor / plan should show the tag";
+
   return [
     {
       detail: plan ? "shown" : "missing from plan",
@@ -213,6 +226,8 @@ export function shownCases(tagged: SpecModel): ParserResult[] {
 
 export async function runFeatureGateSuite(via: Via = listening): Promise<ParserResult[]> {
   const results = [defensiveCase(), ...shownCases(buildModel(webhookSpec("webhooks")))];
+
   for (const gate of CASES) results.push(...(await judged(via, gate)));
+
   return results;
 }

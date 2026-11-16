@@ -2,10 +2,10 @@
 
 import type { Collection, Principal } from "../state.ts";
 
-export interface EntityCall extends Collection {
+export type EntityCall = Collection & {
   principal: Principal;
-}
+};
 
-export interface ItemCall extends EntityCall {
+export type ItemCall = EntityCall & {
   itemId: string | number;
-}
+};

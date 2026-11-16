@@ -3,7 +3,7 @@ import type { AddressInfo } from "node:net";
 
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 
-/* The invite world of tests/api/integration/invite-accept.test.ts: its spec and a route-table server. */
+// The invite world of tests/api/integration/invite-accept.test.ts: its spec and a route-table server.
 
 const MEMBER = {
   properties: { email: { format: "email", type: "string" }, id: { type: "string" } },
@@ -33,6 +33,7 @@ function acceptPath(accept: "body" | "path"): Record<string, unknown> {
       },
     };
   }
+
   return {
     "/v1/invites/{token}": {
       post: {
@@ -58,6 +59,7 @@ function revokePath(revoke: "body" | "path"): Record<string, unknown> {
       },
     };
   }
+
   return {
     "/v1/orgs/{org_id}/grants/{grant_id}": {
       delete: {
@@ -154,6 +156,7 @@ export function inviteSpecWith(extra: Record<string, unknown>): OpenApiDocument 
   const spec = inviteSpec("body");
   const invite = spec.paths?.["/v1/orgs/{org_id}/members"]?.["post"] as Record<string, unknown>;
   invite["x-invite"] = { ...(invite["x-invite"] as Record<string, unknown>), ...extra };
+
   return spec;
 }
 
@@ -165,10 +168,13 @@ export function readJson(req: IncomingMessage): Promise<unknown> {
     });
     req.on("end", () => {
       const text = Buffer.concat(chunks).toString("utf8");
+
       if (text === "") {
         resolve(undefined);
+
         return;
       }
+
       try {
         resolve(JSON.parse(text) as unknown);
       } catch (error) {
@@ -183,8 +189,10 @@ export function send(res: ServerResponse, status: number, body?: unknown): void 
   if (body === undefined) {
     res.writeHead(status);
     res.end();
+
     return;
   }
+
   const text = JSON.stringify(body);
   res.writeHead(status, { "content-length": String(Buffer.byteLength(text)), "content-type": "application/json" });
   res.end(text);
@@ -199,6 +207,7 @@ export async function listen(handler: (req: IncomingMessage, res: ServerResponse
     server.listen(0, "127.0.0.1", resolve);
   });
   const addr = server.address() as AddressInfo;
+
   return {
     close: () =>
       new Promise((resolve, reject) => {
@@ -209,6 +218,7 @@ export async function listen(handler: (req: IncomingMessage, res: ServerResponse
 }
 
 export type Handler = (req: IncomingMessage, res: ServerResponse, url: URL) => unknown;
+
 /** One route of a fake world: method, exact pathname, and its handler. */
 export type Route = readonly [method: string, path: string, handle: Handler];
 
@@ -216,6 +226,7 @@ export async function dispatch(routes: readonly Route[], req: IncomingMessage, r
   const url = new URL(req.url ?? "/", "http://127.0.0.1");
   const method = (req.method ?? "GET").toUpperCase();
   const route = routes.find(([m, path]) => m === method && path === url.pathname);
+
   if (route === undefined) return send(res, 404);
   await route[2](req, res, url);
 }

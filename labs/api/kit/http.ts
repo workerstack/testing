@@ -2,14 +2,14 @@ import type { Row, WorldStore } from "./store.ts";
 import type { Entity, World } from "./types.ts";
 import { hasDefect, parentIdField } from "./types.ts";
 
-/* The request side of a world app: principals, guards, and reading the request. */
+// The request side of a world app: principals, guards, and reading the request.
 
 export type Role = "owner" | "member" | "viewer";
 
-export interface Variables {
+export type Variables = {
   orgId: string;
   role: Role;
-}
+};
 
 export const KEYS: Record<string, { orgId: string; token: string; role: Role }> = {
   key_alpha: { orgId: "org_alpha", role: "owner", token: "tok_alpha" },
@@ -21,6 +21,7 @@ export const KEYS: Record<string, { orgId: string; token: string; role: Role }> 
 const TOKENS = new Map(Object.values(KEYS).map((p) => [p.token, p] as const));
 
 type Headers = { req: { header: (n: string) => string | undefined } };
+
 type Tenant = { req: { param: (n: string) => string | undefined }; get: (k: "orgId") => string };
 
 export class HttpError extends Error {
@@ -39,6 +40,7 @@ export const authenticate = async (
 ): Promise<void> => {
   const token = (c.req.header("authorization") ?? "").replace(/^Bearer\s+/i, "");
   const principal = TOKENS.get(token);
+
   if (principal === undefined) throw new HttpError(401, "unauthorized", "missing or unknown token");
   c.set("orgId", principal.orgId);
   c.set("role", principal.role);
@@ -48,31 +50,32 @@ export const authenticate = async (
 export function scopeOf(c: Tenant, entity: Entity): Record<string, string> {
   const scope: Record<string, string> = { org_id: c.get("orgId") };
   const parent = parentIdField(entity);
+
   if (parent !== null) scope[parent] = c.req.param(parent) as string;
+
   return scope;
 }
 
 export function honoPath(path: string): string {
-  return path.replace(/\{([^}]+)\}/g, ":$1");
+  return path.replaceAll(/\{([^}]+)\}/g, ":$1");
 }
 
 export function keyOf(c: Headers): string {
   const token = (c.req.header("authorization") ?? "").replace(/^Bearer\s+/i, "");
   const found = Object.entries(KEYS).find(([, principal]) => principal.token === token);
+
   return found?.[0] ?? "";
 }
 
 export function assertWrite(role: Role, kind: "create" | "update" | "delete"): void {
   if (kind === "delete" && role !== "owner") throw new HttpError(403, "forbidden", "role cannot delete");
-  if ((kind === "create" || kind === "update") && role === "viewer") {
+
+  if ((kind === "create" || kind === "update") && role === "viewer")
     throw new HttpError(403, "forbidden", "role cannot write");
-  }
 }
 
 export function assertTenant(c: Tenant): void {
-  if (c.req.param("org_id") !== c.get("orgId")) {
-    throw new HttpError(404, "not_found", "no route for this organization");
-  }
+  if (c.req.param("org_id") !== c.get("orgId")) throw new HttpError(404, "not_found", "no route for this organization");
 }
 
 /** The error for an id this org cannot see: 404, or 403 under the oracle defect when another org has it. */
@@ -83,9 +86,10 @@ export async function deny(
 ): Promise<HttpError> {
   const { entity, store, world } = mount;
   const exists = await store.existsElsewhere(entity, id, orgId);
-  if (hasDefect(world, "oracle-status") && exists) {
+
+  if (hasDefect(world, "oracle-status") && exists)
     return new HttpError(403, "forbidden", `${entity.name} ${id} forbidden`);
-  }
+
   return new HttpError(404, "not_found", `${entity.name} ${id} not found`);
 }
 
@@ -101,16 +105,19 @@ export async function readJson(c: { req: { json: () => Promise<unknown> } }): Pr
   const body = await c.req.json().catch(() => {
     throw new HttpError(400, "invalid_input", "request body must be a JSON object");
   });
-  if (body === null || typeof body !== "object" || Array.isArray(body)) {
+
+  if (body === null || typeof body !== "object" || Array.isArray(body))
     throw new HttpError(400, "invalid_input", "request body must be a JSON object");
-  }
+
   return body as Row;
 }
 
 export function intQuery(raw: string | undefined): number | undefined {
   if (raw === undefined) return undefined;
   const n = Number(raw);
+
   if (!Number.isFinite(n)) throw new HttpError(400, "invalid_input", "query parameter must be numeric");
+
   return n;
 }
 

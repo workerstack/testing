@@ -22,6 +22,7 @@ describe("readQueryParams", () => {
       select: "pick",
       sort: "arrange",
     };
+
     expect(readQueryParams(all)).toEqual(all);
   });
 

@@ -22,7 +22,7 @@ const source = () =>
     { components: { schemas: { Note: { properties: { id: { type: "string" } }, required: ["id"] } } } },
   );
 
-/* One operation of a patched document. */
+// One operation of a patched document.
 const opAt = (out: OpenApiDocument, path: string, method: string): Record<string, unknown> =>
   (out.paths as Record<string, Record<string, Record<string, unknown>>>)[path]?.[method] ?? {};
 
@@ -31,17 +31,20 @@ describe("applyOverlay", () => {
     const out = applyOverlay(doc({ "/search": { query: { operationId: "search" } } }), {
       operations: { search: { "x-cost": "low" } },
     });
+
     expect(opAt(out, "/search", "query")).toEqual({ operationId: "search", "x-cost": "low" });
   });
 
   it("merges objects, replaces arrays and scalars, and deletes on null, on a copy", () => {
     const original = source();
+
     const out = applyOverlay(original, {
       operations: {
         "notes.list": { tags: ["b"], "x-cost": null, "x-query": { maxLimit: 50, sortable: ["b"] } },
       },
       schemas: { Note: { properties: { name: { type: "string" } }, required: null } },
     });
+
     expect(opAt(out, "/notes", "get")).toEqual({
       operationId: "notes.list",
       tags: ["b"],
@@ -110,6 +113,7 @@ describe("applyOverlay on security", () => {
       security: [{ bearer: [] }],
       securitySchemes: { bearer: { scheme: "bearer", type: "http" } },
     });
+
     const model = buildModel(dereference(out).doc);
     expect(model.schemes.get("bearer")?.kind).toBe("bearer");
     expect(model.operations.map((op) => op.security.alternatives)).toEqual([[[{ scheme: "bearer", scopes: [] }]]]);
@@ -121,6 +125,7 @@ describe("applyOverlay on security", () => {
       security: [{ apiKey: [] }],
       securitySchemes: { apiKey: { description: null }, jwt: null },
     });
+
     expect(out.components?.securitySchemes).toEqual({
       apiKey: { in: "header", name: "Authorization", type: "apiKey" },
     });

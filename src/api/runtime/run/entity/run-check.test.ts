@@ -12,10 +12,8 @@ import { checkOf, loopOf } from "../__fixtures__/checks.ts";
 import type { CheckSpec } from "../__fixtures__/checks.ts";
 import { runCheck, saltIndex, withLostVariants } from "./run-check.ts";
 
-/*
- * One check on one entity: it runs with a view of its own, its outcome is what it reported, an
- * error is mapped to what it means, and its subjects are graded by how it ended.
- */
+// One check on one entity: it runs with a view of its own, its outcome is what it reported, an
+// error is mapped to what it means, and its subjects are graded by how it ended.
 
 const GRADED = ["notes.list", "notes.get"];
 
@@ -23,6 +21,7 @@ async function ran(spec: CheckSpec, graded = GRADED) {
   const ctx = await contextOf(optionsFor(notesApi()));
   const loop = await loopOf(ctx);
   await runCheck(loop, { check: checkOf(spec), graded });
+
   return { ctx, loop, outcome: loop.outcomes.get(spec.id) };
 }
 
@@ -36,6 +35,7 @@ const write = (path: string) => async (view: { client: unknown }) => {
     as: { principal: "alpha" },
     body: { password: "x", title: "t" },
   });
+
   return { kind: "asserted" } as const;
 };
 
@@ -55,9 +55,11 @@ describe("runCheck outcomes", () => {
       id: "c.narrow",
       run: async (view) => {
         view.judged?.(["notes.get"]);
+
         return { kind: "asserted" };
       },
     });
+
     expect(ctx.grades.ran.has("notes.list")).toBe(false);
     expect(ctx.grades.ran.has("notes.get")).toBe(true);
   });
@@ -67,9 +69,11 @@ describe("runCheck outcomes", () => {
       id: "c.noted",
       run: async (view) => {
         view.findings.backend("c.noted", "note", { summary: "s", detail: "d", evidence: [] });
+
         return { kind: "asserted", note: "one answer was not judged" };
       },
     });
+
     expect(outcome).toEqual({ kind: "finding", note: "one answer was not judged", verdict: "BACKEND_BUG" });
     expect(ctx.state.checkNotes).toEqual([{ check: "c.noted", entity: "note", note: "one answer was not judged" }]);
   });
@@ -79,9 +83,11 @@ describe("runCheck outcomes", () => {
       id: "c.reported",
       run: async (view) => {
         view.findings.backend("c.reported", "note", { summary: "s", detail: "d", evidence: [] });
+
         return { kind: "asserted" };
       },
     });
+
     expect(outcome).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     expect(ctx.findings.findings[0]?.operations).toEqual(GRADED);
   });
@@ -108,9 +114,11 @@ describe("runCheck clients", () => {
           as: { principal: "alpha" },
           body: { title: "x" },
         });
+
         return { kind: "asserted" };
       },
     });
+
     expect(outcome?.kind).toBe("stood-down");
     expect(ctx.findings.findings[0]?.detail).toMatch(/does not mutate/);
   });
@@ -140,9 +148,11 @@ describe("runCheck clients", () => {
           as: { principal: "alpha" },
           body: { title: "x" },
         });
+
         return made.status === 201 ? { kind: "asserted" } : { kind: "unresolved", reason: String(made.status) };
       },
     });
+
     expect(outcome).toEqual({ kind: "asserted" });
   });
 });
@@ -165,6 +175,7 @@ describe("runCheck errors", () => {
   it("stands a check down, naming the record, when its write names a record the run depends on", async () => {
     const reason =
       "apiKey.revoke would change api-key k-1, a credential the run holds (minted by apiKey.create): the API tester never sends that";
+
     const { ctx, outcome } = await ran({ id: "c.held", run: throwing(new HeldRecordError(reason)) });
     expect(outcome).toEqual({ kind: "stood-down", reason });
     expect(ctx.findings.findings).toEqual([]);
@@ -195,7 +206,7 @@ describe("runCheck errors", () => {
 
   it("reports any other error as the check's own gap", async () => {
     const { ctx, outcome } = await ran({ id: "c.bug", run: throwing(new Error("oops")) }, []);
-    /* A gap is no verdict on the API: the check stood down, and the report says why. */
+    // A gap is no verdict on the API: the check stood down, and the report says why.
     expect(outcome?.kind).toBe("stood-down");
     expect(ctx.findings.findings[0]).toMatchObject({ detail: "oops", summary: 'check "c.bug" could not complete' });
   });

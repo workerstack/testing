@@ -4,18 +4,17 @@ import { describe, expect, it } from "vitest";
 import type { ParamIn } from "../spec/graph/parameters.ts";
 import { serializeParam } from "./param-style.ts";
 
-/*
- * The serializer against an independent reference of the OAS 3.1 style table (§4.8.12.4, the
- * `color` examples), for primitives, arrays and flat objects, and against RFC 3986 encoding.
- */
+// The serializer against an independent reference of the OAS 3.1 style table (§4.8.12.4, the
+// `color` examples), for primitives, arrays and flat objects, and against RFC 3986 encoding.
 
 type Shape = { scalar: string } | { items: string[] } | { entries: Array<[string, string]> };
+
 type Encode = (text: string) => string;
 
 const UNRESERVED = /^[A-Za-z0-9._~-]$/;
 const RESERVED = /^[:/?#[\]@!$&'()*+,;=]$/;
 
-/* Percent-encodes every UTF-8 byte of a character outside `keep`, in uppercase hex. */
+// Percent-encodes every UTF-8 byte of a character outside `keep`, in uppercase hex.
 const percent =
   (keep: (char: string) => boolean): Encode =>
   (text) =>
@@ -28,44 +27,58 @@ const percent =
               .join(""),
       )
       .join("");
+
 const strict = percent((char) => UNRESERVED.test(char));
 const reservedKept = percent((char) => UNRESERVED.test(char) || RESERVED.test(char));
 
 const shapeOf = (value: unknown, encode: Encode): Shape => {
   if (Array.isArray(value)) return { items: value.map((item) => encode(String(item))) };
+
   if (typeof value !== "object" || value === null) return { scalar: encode(String(value)) };
+
   return { entries: Object.entries(value).map(([key, item]): [string, string] => [encode(key), encode(String(item))]) };
 };
+
 const pieces = (shape: Shape, explode: boolean, joiner: string): string[] => {
   if ("scalar" in shape) return [shape.scalar];
+
   if ("items" in shape) return shape.items;
+
   return explode ? shape.entries.map(([key, item]) => `${key}${joiner}${item}`) : shape.entries.flat();
 };
 
 /** One row of the table: its style, whether it explodes, and the parameter's name. */
-interface Row {
+type Row = {
   style: string;
   explode: boolean;
   name: string;
-}
+};
 
-/* The table's path and header rows: simple, label and matrix. */
+// The table's path and header rows: simple, label and matrix.
 function stringRow({ style, explode, name }: Row, shape: Shape): string {
   const parts = pieces(shape, explode, "=");
+
   if (style === "simple") return parts.join(",");
+
   if (style === "label") return `.${parts.join(explode ? "." : ",")}`;
+
   if ("scalar" in shape) return shape.scalar === "" ? `;${name}` : `;${name}=${shape.scalar}`;
+
   if (!explode) return `;${name}=${parts.join(",")}`;
+
   return "items" in shape ? parts.map((part) => `;${name}=${part}`).join("") : parts.map((part) => `;${part}`).join("");
 }
 
-/* The table's query rows: form, spaceDelimited, pipeDelimited and deepObject, as a query string. */
+// The table's query rows: form, spaceDelimited, pipeDelimited and deepObject, as a query string.
 function queryRow({ style, explode, name }: Row, shape: Shape): string {
   if (style === "deepObject" && "entries" in shape)
     return shape.entries.map(([k, v]) => `${name}[${k}]=${v}`).join("&");
+
   if (explode && "items" in shape) return shape.items.map((item) => `${name}=${item}`).join("&");
+
   if (explode && "entries" in shape) return pieces(shape, true, "=").join("&");
   const delimiter = { pipeDelimited: "|", spaceDelimited: "%20" }[style] ?? ",";
+
   return `${name}=${pieces(shape, false, "=").join(delimiter)}`;
 }
 
@@ -73,9 +86,11 @@ const safe = fc.stringMatching(/^[A-Za-z0-9._~-]{0,5}$/);
 const name = fc.stringMatching(/^[a-z][a-z0-9]{0,4}$/);
 const scalar = fc.oneof(safe, fc.integer(), fc.boolean());
 const items = fc.array(safe, { maxLength: 3, minLength: 1 });
+
 const flat = fc
   .uniqueArray(fc.tuple(name, fc.oneof(safe, fc.integer())), { maxLength: 3, minLength: 1, selector: ([key]) => key })
   .map((entries) => Object.fromEntries(entries));
+
 const value = fc.oneof(scalar, items, flat);
 
 const queryString = (pairs: Array<[string, string]>) => pairs.map(([key, item]) => `${key}=${item}`).join("&");
@@ -83,6 +98,7 @@ const queryString = (pairs: Array<[string, string]>) => pairs.map(([key, item]) 
 describe("the reference", () => {
   const blue = { scalar: "blue" };
   const colors = { items: ["blue", "black", "brown"] };
+
   const rgb: Shape = {
     entries: [
       ["R", "100"],
@@ -90,6 +106,7 @@ describe("the reference", () => {
       ["B", "150"],
     ],
   };
+
   const row = (render: typeof stringRow, style: string, explode: boolean) =>
     [{ scalar: "" }, blue, colors, rgb].map((shape) => render({ explode, name: "color", style }, shape));
 
@@ -142,6 +159,7 @@ describe("serializeParam against the OAS 3.1 style table", () => {
       fc.record({ at: fc.constant<ParamIn>("path"), style: fc.constantFrom("simple", "label", "matrix") }),
       fc.record({ at: fc.constant<ParamIn>("header"), style: fc.constant("simple") }),
     );
+
     fc.assert(
       fc.property(
         fc.record({ explode: fc.boolean(), param: name, v: value, where }),
@@ -168,6 +186,7 @@ describe("serializeParam against the OAS 3.1 style table", () => {
       }),
       fc.record({ explode: fc.constant(true), style: fc.constant("deepObject"), v: flat }),
     );
+
     fc.assert(
       fc.property(row, name, ({ explode, style, v }, param) => {
         const out = queryString(serializeParam({ explode, in: "query", name: param, style }, v));
@@ -221,6 +240,7 @@ describe("serializeParam's percent-encoding", () => {
         (param, v, at) => {
           const pairs = serializeParam({ in: at, name: param }, v);
           expect(pairs).toEqual(expectedPairs(param, v));
+
           for (const piece of pairs.flat()) expect(piece).toMatch(/^(?:[A-Za-z0-9._~-]|%[0-9A-F]{2})*$/);
         },
       ),
@@ -250,7 +270,7 @@ describe("serializeParam's percent-encoding, by location", () => {
   });
 });
 
-/* Exploded form pairs, each name and value encoded strictly. */
+// Exploded form pairs, each name and value encoded strictly.
 function expectedPairs(param: string, v: string | string[]): Array<[string, string]> {
   return (Array.isArray(v) ? v : [v]).map((item): [string, string] => [strict(param), strict(item)]);
 }

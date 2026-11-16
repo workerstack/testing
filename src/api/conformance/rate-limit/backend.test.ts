@@ -4,12 +4,13 @@ import type { Handle } from "../../reference/http/node.ts";
 import { referenceRequest } from "../../reference/http/wire.ts";
 import { planLimitedTables, untaggedThings } from "./backend.ts";
 
-/* Sends `handle` one request and reads back its status and body. */
+// Sends `handle` one request and reads back its status and body.
 function caller(handle: Handle) {
   return async (method: string, path: string, body = "") => {
     const answer = await handle(
       referenceRequest(method, new URL(path, "http://suite.test"), { headers: {}, read: async () => body }),
     );
+
     return [answer.status, answer.body];
   };
 }
@@ -18,9 +19,11 @@ describe("untaggedThings", () => {
   it("refuses the first create with a 429 that says to retry now, then creates", async () => {
     const handle = untaggedThings();
     const call = caller(handle);
+
     const first = await handle(
       referenceRequest("POST", new URL("http://suite.test/v1/things"), { headers: {}, read: async () => "" }),
     );
+
     expect([first.status, first.headers["retry-after"]]).toEqual([429, "0"]);
     expect(await call("POST", "/v1/things")).toEqual([201, '{"id":"t_2","name":"n"}']);
     expect(await call("GET", "/v1/things/t_2")).toEqual([200, '{"id":"t_2","name":"n"}']);

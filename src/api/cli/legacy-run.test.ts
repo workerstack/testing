@@ -6,15 +6,15 @@ import { describe, expect, it } from "vitest";
 
 import { LEGACY_REPORT, legacyRunHint } from "./legacy-run.ts";
 
-/*
- * A run folder written before the rename holds oat-report.json, which the API tester no longer reads.
- * Pointed at one, the CLI names the move instead of reporting a missing report.json.
- */
+// A run folder written before the rename holds oat-report.json, which the API tester no longer reads.
+// Pointed at one, the CLI names the move instead of reporting a missing report.json.
 
 function folder(files: readonly string[]): string {
   const dir = mkdtempSync(join(tmpdir(), "testing-legacy-run-"));
   mkdirSync(dir, { recursive: true });
+
   for (const file of files) writeFileSync(join(dir, file), "{}");
+
   return dir;
 }
 

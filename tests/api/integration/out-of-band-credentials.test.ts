@@ -6,13 +6,12 @@ import { run } from "../../../src/api/runtime/run/index.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 import { Listeners, readJson, reply, serve } from "../support/effects-fixtures.ts";
 
-/*
- * A sign-in whose secret arrives out of band: the API mails a one-time code, `resolveOutOfBand`
- * fetches it from the inbox, and the login spends it for a token whose claims name the principal's
- * organization. The reference delivers nothing out of band, so a small sign-in-by-code API stands in.
- */
+// A sign-in whose secret arrives out of band: the API mails a one-time code, `resolveOutOfBand`
+// fetches it from the inbox, and the login spends it for a token whose claims name the principal's
+// organization. The reference delivers nothing out of band, so a small sign-in-by-code API stands in.
 
 const listeners = new Listeners();
+
 afterEach(() => listeners.closeAll());
 
 const json = (schema: unknown) => ({ content: { "application/json": { schema } } });
@@ -43,39 +42,45 @@ function unsignedJwt(claims: Record<string, unknown>): string {
 }
 
 /** The API's inbox by address, the token it issued, and each item list's path and bearer. */
-interface World {
+type World = {
   inbox: Map<string, string>;
   token: string;
   reads: Array<{ path: string; bearer: string }>;
-}
+};
 
-/* Mails a code to whoever asks, trades a matching code for a token, and lists org_7's items to that token alone. */
+// Mails a code to whoever asks, trades a matching code for a token, and lists org_7's items to that token alone.
 async function codeApi(): Promise<{ url: string; world: World }> {
   const world: World = { inbox: new Map(), reads: [], token: unsignedJwt({ org_id: "org_7", sub: "u_1" }) };
+
   const server = await serve(listeners, SPEC, [
     async ({ req, res, url }) => {
       if (url.pathname !== "/v1/auth/code") return false;
       const { email } = await readJson<{ email: string }>(req);
       world.inbox.set(email, `code-${world.inbox.size + 1}`);
+
       return reply(res, 200, { sent: true });
     },
     async ({ req, res, url }) => {
       if (url.pathname !== "/v1/auth/verify") return false;
       const { code, email } = await readJson<{ code?: string; email?: string }>(req);
       const known = email !== undefined && code !== undefined && world.inbox.get(email) === code;
+
       return reply(res, known ? 200 : 401, known ? { access_token: world.token } : { error: "bad code" });
     },
     ({ req, res, url }) => {
       const bearer = (req.headers.authorization ?? "").replace(/^Bearer /, "");
       world.reads.push({ bearer, path: url.pathname });
+
       if (bearer !== world.token) return reply(res, 401, { error: "unauthorized" });
+
       return reply(res, url.pathname === "/v1/orgs/org_7/items" ? 200 : 403, { items: [] });
     },
   ]);
+
   return { url: server.url, world };
 }
 
-/* Signs in by a mailed code; the token's claims bind the organization. */
+// Signs in by a mailed code; the token's claims bind the organization.
 const BY_CODE: SecurityConfig = {
   bearer: {
     login: {
@@ -93,11 +98,13 @@ const BY_CODE: SecurityConfig = {
 async function signInByCode(resolve: (request: OutOfBandRequest, world: World) => string | null) {
   const { url, world } = await codeApi();
   const asked: OutOfBandRequest[] = [];
+
   const result = await run({
     baseUrl: url,
     hooks: {
       resolveOutOfBand: (request) => {
         asked.push(request);
+
         return Promise.resolve(resolve(request, world));
       },
     },
@@ -107,6 +114,7 @@ async function signInByCode(resolve: (request: OutOfBandRequest, world: World) =
     seed: 1,
     spec: `${url}/v1/openapi/spec`,
   });
+
   return { asked, result, world };
 }
 

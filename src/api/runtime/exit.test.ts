@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { EXIT, exitCode, runVerdict } from "./exit.ts";
 
 const ops = (...statuses: string[]) => statuses.map((status) => ({ status }));
+
 const full = (findings: string[], ...statuses: string[]) => ({
   findings: findings.map((verdict) => ({ verdict })),
   scope: { mode: "full", operations: ops(...statuses) },
@@ -70,10 +71,12 @@ describe("exitCode on what a run left or could not do", () => {
 
   it("counts both kinds of leftover in its reason", () => {
     const unidentified = [{ entity: "row", method: "POST", operationId: "row.create", seq: 4, status: 201, url: "x" }];
+
     const verdict = runVerdict({
       ...full([], "passed"),
       teardown: { failed: [listed("r1"), listed("r2")], unidentified, unsupported: [] },
     });
+
     expect(verdict).toEqual({
       outcome: "leftovers",
       reason: "records may remain: 2 teardown could not show gone, 1 create answered 2xx with no readable id",
@@ -114,6 +117,7 @@ describe("runVerdict on fences and targets", () => {
         { operationId: "row.list", status: "passed" },
       ],
     };
+
     const known = { known: { reason: "r" }, operations: ["row.get"], verdict: "BACKEND_BUG" };
     expect(runVerdict({ findings: [known, { verdict: "COVERAGE_GAP" }], scope }).outcome).toBe("failed");
     expect(runVerdict({ findings: [known], scope: { ...scope, operations: [scope.operations[0]!] } })).toEqual({

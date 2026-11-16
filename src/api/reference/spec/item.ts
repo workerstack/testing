@@ -15,10 +15,10 @@ function surface(entity: EntityDef): string[] {
   return [...listRoute(entity), `GET ${entity.itemPath}`];
 }
 
-/* The version a read answers, which an update's If-Match names. */
+// The version a read answers, which an update's If-Match names.
 const ETAG: Json = { ETag: { description: "The record's version, a strong tag", schema: { type: "string" } } };
 
-/* Optional, so an update that names no version is applied as before. */
+// Optional, so an update that names no version is applied as before.
 const IF_MATCH: Json = {
   description: "Apply the update only while the record's ETag is one of these",
   in: "header",
@@ -38,7 +38,7 @@ function deleteOperation(ctx: SpecContext, entity: EntityDef): Json {
     summary: `Delete ${entity.name}`,
     tags: [entityTag(entity)],
     "x-entity": { action: "delete", identity: declaredIdentity(ctx, entity), name: entity.name },
-    /* A delete changes the parent's derived count just as a create does. */
+    // A delete changes the parent's derived count just as a create does.
     "x-invalidate": [...surface(entity), ...parentReadRoutes(ctx, entity)],
     "x-tenant": tenantParam(entity),
     ...(entity.softDeleteField === undefined ? {} : { "x-soft-delete": entity.softDeleteField }),
@@ -84,9 +84,9 @@ function updateOperation(ctx: SpecContext, entity: EntityDef): Json {
     summary: `Update ${entity.name}`,
     tags: [entityTag(entity)],
     "x-entity": { action: "update", identity: declaredIdentity(ctx, entity), name: entity.name },
-    /* Declared here as well as on create. Real documents often list server-owned fields
-     * only where they are conspicuous — the fields a caller may not supply — and a tool
-     * that reads just one operation then treats a generated field as client-owned. */
+    // Declared here as well as on create. Real documents often list server-owned fields
+    // only where they are conspicuous — the fields a caller may not supply — and a tool
+    // that reads just one operation then treats a generated field as client-owned.
     "x-generated": fieldsWhere(entity, "generated"),
     "x-immutable": entity.fields.filter((f) => f.immutable === true).map((f) => f.name),
     "x-invalidate": surface(entity),

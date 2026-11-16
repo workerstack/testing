@@ -49,6 +49,7 @@ describe("nestedParamId", () => {
 
   it("stops six levels down", () => {
     let deep: Record<string, unknown> = { columns_json: [{ id: "too-deep" }] };
+
     for (let i = 0; i < 8; i++) deep = { nest: deep };
     expect(nestedParamId(deep, "col_id")).toBeUndefined();
   });

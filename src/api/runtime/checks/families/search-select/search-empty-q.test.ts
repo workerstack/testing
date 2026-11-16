@@ -62,12 +62,14 @@ describe("search.empty-q plans", () => {
     const undeclared = stage(searchEmptyQ);
     expect(await undeclared.run()).toEqual({ kind: "stood-down", reason: "`searchEmpty` declared" });
     expect(undeclared.sent).toEqual([]);
+
     const noParam = stage(searchEmptyQ, {
       doc: queryDoc(
         { searchEmpty: "reject" },
         PARAMS.filter((name) => name !== "q"),
       ),
     });
+
     expect(noParam.plan().ok).toBe(false);
   });
 });

@@ -5,6 +5,7 @@ import { answerBody, describeAnswerType, describeSaveAs, readSaveAs, type SaveAs
 
 function jsonPath(body: unknown, path: string): unknown {
   let node: unknown = body;
+
   for (const segment of path
     .replace(/^\$\.?/, "")
     .split(".")
@@ -12,6 +13,7 @@ function jsonPath(body: unknown, path: string): unknown {
     if (node === null || typeof node !== "object") return undefined;
     node = (node as Record<string, unknown>)[segment];
   }
+
   return node;
 }
 
@@ -60,7 +62,7 @@ describe("readSaveAs", () => {
 
 const FORM = "access_token=a%2Fb&refresh_token=r+1&expires_in=3600";
 
-/* The form text above, answered under `type`. */
+// The form text above, answered under `type`.
 const typed = (type: string) => answerBody({ body: FORM, headers: { "Content-Type": type } });
 
 describe("answerBody", () => {

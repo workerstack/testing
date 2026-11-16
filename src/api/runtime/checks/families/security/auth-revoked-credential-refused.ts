@@ -19,7 +19,9 @@ export const revokedCredentialRefused: OperationCheck<Lifecycle[]> = defineCheck
   subject: "operation",
   async run(ctx, planned) {
     const outcomes: SchemeOutcome[] = [];
+
     for (const lifecycle of planned) outcomes.push(await revokeAndProbe(ctx, lifecycle));
+
     return settle(outcomes);
   },
 });
@@ -30,23 +32,32 @@ async function revokeAndProbe(ctx: OperationWriteContext, { actor, route, scheme
   const { method, operation, path, scopes } = route;
   const reads = operation.operationId;
   const dedicated = await ctx.probe.dedicated({ principal: actor, scheme, scopes });
+
   if (isUntested(dedicated)) return { untested: `${scheme}: ${dedicated.untested}` };
   const { revoke } = dedicated;
+
   if (revoke === undefined) return { untested: `${scheme}: the dedicated credential has no declared revoke` };
   const as = { principal: dedicated.actor.principal, scheme };
   const query = operation.requiredQuery;
   const before = await ctx.client.request(method, path, { as, operationId: reads, query });
+
   if (before.status >= 300) {
     const reason = `a fresh ${scheme} credential was refused (${before.status}) on ${reads} before its revoke`;
+
     return ctx.findings.unresolved(CHECK, ctx.subject, reason);
   }
+
   await revoke();
   const after = await ctx.client.request(method, path, { as, operationId: reads, probe: true, query });
+
   if (isRefused(after.status)) return { kind: "asserted" };
+
   if (after.status >= 300) {
     const reason = `after its revoke, a ${scheme} credential drew ${after.status} on ${reads}, neither a refusal nor a success`;
+
     return ctx.findings.unresolved(CHECK, ctx.subject, reason);
   }
+
   return ctx.findings.security(CHECK, ctx.subject, {
     detail:
       `${actor}'s ${scheme} credential, issued for this probe alone and revoked through ` +

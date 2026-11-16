@@ -18,14 +18,14 @@ export default defineConfig({
   baseUrl: "https://api.example.com",
   principals: {
     alpha: {
-      /* Path parameters the API tester cannot create for itself. */
+      // Path parameters the API tester cannot create for itself.
       scope: { project_id: env("PROJECT_A") },
       tenant: env("PROJECT_A"),
       token: env("API_TOKEN"),
     },
     beta: { scope: { project_id: env("PROJECT_B") }, tenant: env("PROJECT_B"), token: env("API_TOKEN_B") },
   },
-  /* The document's bearer scheme; each principal's own token fills it. */
+  // The document's bearer scheme; each principal's own token fills it.
   security: { bearer: { static: "{principal.token}" } },
   spec: "https://api.example.com/openapi.json",
 });

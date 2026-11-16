@@ -14,6 +14,7 @@ describe("successSchema", () => {
         default: json({ type: "array" }),
       },
     } as OperationObject;
+
     expect(successSchema(op)).toEqual({ type: "object" });
     expect(successSchema({ responses: { "2XX": json({ type: "string" }) } } as OperationObject)).toEqual({
       type: "string",

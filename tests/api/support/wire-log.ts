@@ -1,10 +1,8 @@
-/*
- * A transport that logs each request a run sends as it leaves the process, and the status and body
- * the server answered: what a reference test asserts about the wire without a proxy in front of it.
- */
+// A transport that logs each request a run sends as it leaves the process, and the status and body
+// the server answered: what a reference test asserts about the wire without a proxy in front of it.
 
 /** One request on the wire: its method, path with the raw query, headers, and the answer. */
-interface WireEntry {
+type WireEntry = {
   method: string;
   /** Path and query exactly as sent, e.g. `/v1/styles?range[min]=1`. */
   path: string;
@@ -12,16 +10,17 @@ interface WireEntry {
   status: number;
   /** The answer's text, read from a copy, so the run still reads its own. */
   answer: string;
-}
+};
 
-export interface WireLog {
+export type WireLog = {
   fetch: typeof fetch;
   entries: WireEntry[];
-}
+};
 
 /** A `network.fetch` for `run()` that forwards to the global fetch and logs every exchange. */
 export function wireLog(): WireLog {
   const entries: WireEntry[] = [];
+
   const logged: typeof fetch = async (input, init) => {
     const request = new Request(input, init);
     const response = await fetch(request.clone());
@@ -33,8 +32,10 @@ export function wireLog(): WireLog {
       path: `${url.pathname}${url.search}`,
       status: response.status,
     });
+
     return response;
   };
+
   return { entries, fetch: logged };
 }
 

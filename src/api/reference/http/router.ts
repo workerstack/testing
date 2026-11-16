@@ -32,7 +32,7 @@ import type { ReferenceState } from "./state.ts";
 import { advanceJobs, typedScope } from "./store-ops.ts";
 import type { ReferenceRequest, ReferenceResponse } from "./wire.ts";
 
-/* In the order they are tried: an earlier route shadows a later one. */
+// In the order they are tried: an earlier route shadows a later one.
 const FIXED: readonly Route[] = [
   document,
   token,
@@ -76,55 +76,69 @@ export async function handle(state: ReferenceState, request: ReferenceRequest): 
 
 async function route(state: ReferenceState, request: ReferenceRequest): Promise<ReferenceResponse> {
   const { url } = request;
-  /* Mounted under a prefix, the API exists only there. */
+
+  // Mounted under a prefix, the API exists only there.
   if (state.basePath !== "") {
-    if (url.pathname !== state.basePath && !url.pathname.startsWith(`${state.basePath}/`)) {
+    if (url.pathname !== state.basePath && !url.pathname.startsWith(`${state.basePath}/`))
       throw new HttpError(404, "not_found", `no route for ${url.pathname}`);
-    }
+
     url.pathname = url.pathname.slice(state.basePath.length) || "/";
   }
+
   for (const fixed of FIXED) {
     const answer = await fixed(state, request);
+
     if (answer !== undefined) return answer;
   }
+
   return entityRoute(state, request);
 }
 
 async function entityRoute(state: ReferenceState, request: ReferenceRequest): Promise<ReferenceResponse> {
   const { method, url } = request;
   const match = matchRoute(url.pathname, state.entities);
+
   if (match === null) throw new HttpError(404, "not_found", `no route for ${url.pathname}`);
   const { entity } = match;
-  /* A record route takes a bearer JWT, or an API key holding the entity's read or write scope. */
+  // A record route takes a bearer JWT, or an API key holding the entity's read or write scope.
   const access = SAFE.has(method) ? "read" : "write";
+
   const principal = authenticate(state, request, {
     projectId: match.scope["project_id"],
     scope: `${entity.name}:${access}`,
   });
+
   const scope = await typedScope(state, match.scope);
   const itemId = match.itemId === null ? null : (scope[entity.itemParam] as string | number);
   const call = { entity, principal, scope };
-  /* Item GET may be a delegated read — a tenant check would 403 a valid grant before the lookup
-   * can honor it. Collection GET and mutations stay tenant-bound. */
+
+  // Item GET may be a delegated read — a tenant check would 403 a valid grant before the lookup
+  // can honor it. Collection GET and mutations stay tenant-bound.
   if (method !== "GET" || itemId === null) {
     assertTenant(principal, scope["project_id"]);
     await assertParents(state, call);
   }
+
   if (entity.name === state.job.name && method === "GET") await advanceJobs(state);
+
   if (itemId === null) {
-    if (method === "GET" && entity.unlisted === true) {
+    if (method === "GET" && entity.unlisted === true)
       throw new HttpError(405, "method_not_allowed", `${entity.plural} cannot be listed`);
-    }
+
     if (method === "GET") return cachedRead(state, { request, who: principal.key }, () => list(state, request, call));
+
     if (method === "POST") return create(state, request, call);
     throw new HttpError(404, "not_found", `method ${method} not supported here`);
   }
+
   return item(state, request, { ...call, itemId });
 }
 
 function item(state: ReferenceState, request: ReferenceRequest, call: ItemCall): Promise<ReferenceResponse> {
   if (request.method === "GET") return cachedRead(state, { request, who: call.principal.key }, () => read(state, call));
+
   if (request.method === state.updateMethod) return update(state, request, call);
+
   if (request.method === "DELETE") return remove(state, call);
   throw new HttpError(405, "method_not_allowed", `method ${request.method} not supported`);
 }

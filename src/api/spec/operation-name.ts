@@ -20,23 +20,27 @@ export function operationName(method: string, path: string, operationId: string 
 }
 
 /** Where an operation sits in a document: its path item and the method under it. */
-export interface OperationSlot {
+export type OperationSlot = {
   item: Record<string, unknown>;
   method: string;
-}
+};
 
 /** Each operation of a document's `paths`, by name. */
 export function operationSlots(paths: Readonly<Record<string, unknown>>): Map<string, OperationSlot> {
   const slots = new Map<string, OperationSlot>();
+
   for (const [path, item] of Object.entries(paths)) {
     if (!isRecord(item)) continue;
+
     for (const method of PATH_ITEM_METHODS) {
       const op = item[method];
+
       if (!isRaw<OperationObject>(op)) continue;
       const id = typeof op.operationId === "string" ? op.operationId : undefined;
       slots.set(operationName(method, path, id), { item, method });
     }
   }
+
   return slots;
 }
 
@@ -44,9 +48,12 @@ export function operationSlots(paths: Readonly<Record<string, unknown>>): Map<st
 export function resolveOperationName(ref: string, names: { has(name: string): boolean }): string | undefined {
   if (names.has(ref)) return ref;
   const space = ref.indexOf(" ");
+
   if (space < 0) return undefined;
   const method = ref.slice(0, space).toLowerCase();
+
   if (!METHODS.has(method)) return undefined;
   const canonical = operationName(method, ref.slice(space + 1), undefined);
+
   return names.has(canonical) ? canonical : undefined;
 }

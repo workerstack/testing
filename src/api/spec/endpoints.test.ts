@@ -16,6 +16,7 @@ describe("listEndpoints", () => {
         "/d": { delete: null, put: 3 },
       }),
     );
+
     expect(endpoints.map((e) => [e.method, e.path, e.operationId])).toEqual([
       ["get", "/a", "a.get"],
       ["post", "/a", "POST /a"],
@@ -35,11 +36,13 @@ describe("listEndpoints", () => {
   it("folds the path item's parameters in, letting the operation override one by name and location", () => {
     const own = { in: "query", name: "id" };
     const overriding = { ...id, description: "own" };
+
     const [endpoint] = listEndpoints(
       doc({
         "/x/{id}": { get: { parameters: [own, overriding] }, parameters: [id, { in: "header", name: "h" }, null] },
       }),
     );
+
     expect(endpoint?.op.parameters).toEqual([{ in: "header", name: "h" }, own, overriding]);
   });
 

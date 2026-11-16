@@ -7,10 +7,8 @@ import type { Scenario } from "../../../src/api/config/define/types.ts";
 import { run } from "../../../src/api/runtime/run/index.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 
-/*
- * What a response must never carry (a session's token, a secret in a data export) is a key that is
- * absent at any depth: no node's text, an object's JSON text included, may contain it.
- */
+// What a response must never carry (a session's token, a secret in a data export) is a key that is
+// absent at any depth: no node's text, an object's JSON text included, may contain it.
 
 const closers: Array<() => Promise<void>> = [];
 
@@ -36,18 +34,22 @@ async function serve(body: unknown): Promise<string> {
     res.writeHead(200, { "content-type": "application/json" });
     res.end(JSON.stringify(req.url === "/openapi.json" ? spec : body));
   });
+
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   closers.push(() => new Promise((resolve) => server.close(() => resolve())));
+
   return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 }
 
 async function status(body: unknown) {
   const url = await serve(body);
+
   const scenario: Scenario = {
     covers: ["export.get"],
     id: "export",
     steps: [{ assert: { from: "$", omits: '"token":' }, operationId: "export.get" }],
   };
+
   const result = await run({
     baseUrl: url,
     ops: ["export.get"],
@@ -56,6 +58,7 @@ async function status(body: unknown) {
     seed: 1,
     spec: `${url}/openapi.json`,
   });
+
   return result.scope.operations.find((op) => op.operationId === "export.get")?.status;
 }
 

@@ -30,10 +30,11 @@ afterEach(async () => {
   await Promise.all(closers.splice(0).map((close) => close()));
 });
 
-/* Registers a started server for teardown. */
+// Registers a started server for teardown.
 async function track(started: Promise<Listening>): Promise<Listening> {
   const server = await started;
   closers.push(server.close);
+
   return server;
 }
 
@@ -43,28 +44,33 @@ async function snapshotsRecordedForm() {
   const dir = await scratch();
   const journal = createExchangeJournal(dir, new Redactor());
   const bytes = new Uint8Array(64).fill(7);
+
   const server = await track(
     listen((_req, res) => {
       res.writeHead(201, { "content-type": "application/json" });
       res.end(JSON.stringify({ id: "1" }));
     }),
   );
+
   const client = new Client({
     baseUrl: server.url,
     maxInFlight: 1,
     onExchange: (exchange) => journal.record(exchange),
     redactor: new Redactor(),
   });
+
   const form = new FormData();
   form.append("note", "hi");
   form.append("file", new File([bytes], "blob.bin", { type: "application/octet-stream" }));
+
   const exchange = await client.request("POST", "/upload", {
     as: { anonymous: true },
     body: form,
     fixture: "blob.bin",
     operationId: "upload.once",
   });
-  /* The transcript keeps a compact copy; the caller keeps the real body. */
+
+  // The transcript keeps a compact copy; the caller keeps the real body.
   const stored = client.transcript.at(-1);
   expect(holdsLiveBody(stored?.requestBody)).toBe(false);
   expect(isFormSnapshot(stored?.requestBody)).toBe(true);
@@ -93,8 +99,10 @@ async function compactsTimedOutAttempt() {
       res.write('event: progress\ndata: {"n":1}\n\n');
     }),
   );
+
   const form = new FormData();
   form.append("file", new File([new Uint8Array(32).fill(1)], "hang.bin"));
+
   const client = new Client({
     baseUrl: server.url,
     maxInFlight: 1,
@@ -104,6 +112,7 @@ async function compactsTimedOutAttempt() {
     },
     redactor: new Redactor(),
   });
+
   await expect(client.request("POST", "/stream", { as: { anonymous: true }, body: form })).rejects.toSatisfy(
     (error: unknown) => isNetworkError(error) && error.kind === "timeout",
   );
@@ -116,6 +125,7 @@ async function compactsTimedOutAttempt() {
 function titledForm(): FormData {
   const form = new FormData();
   form.append("title", "t");
+
   return form;
 }
 
@@ -137,6 +147,7 @@ async function keepsMetadataAfterRelease() {
     fixture: "a.bin",
     operationId: "upload.once",
   };
+
   await releaseTranscriptBodies(exchange, new Redactor());
   expect(exchange.method).toBe("POST");
   expect(exchange.url).toBe("http://x.test/v1/x");
@@ -158,10 +169,11 @@ const FAN_OUT = 8;
 
 const PART_SIZE = 512 * 1024;
 
-/* Posts one distinct part per upload, keeping only a weak hold on each file and its digest. */
+// Posts one distinct part per upload, keeping only a weak hold on each file and its digest.
 async function postParts(client: Client): Promise<{ digests: string[]; files: WeakRef<File>[] }> {
   const files: WeakRef<File>[] = [];
   const digests: string[] = [];
+
   for (let i = 0; i < FAN_OUT; i++) {
     const bytes = new Uint8Array(PART_SIZE);
     bytes.fill(i + 1);
@@ -178,10 +190,11 @@ async function postParts(client: Client): Promise<{ digests: string[]; files: We
       operationId: "upload.once",
     });
   }
+
   return { digests, files };
 }
 
-/* The files the transcript let go are collectable: at most one survives two collections. */
+// The files the transcript let go are collectable: at most one survives two collections.
 async function expectPartsCollected(files: WeakRef<File>[]): Promise<void> {
   const gc = globalThis.gc;
   expect(gc).toBeTypeOf("function");
@@ -197,12 +210,14 @@ async function journalsUniqueParts() {
   const server = await track(listen((req, res) => drainThenCreate(req, res, () => ({ id: "1" }))));
   const exchangeDir = await scratch();
   const journal = createExchangeJournal(exchangeDir, new Redactor());
+
   const client = new Client({
     baseUrl: server.url,
     maxInFlight: 2,
     onExchange: (exchange) => journal.record(exchange),
     redactor: new Redactor(),
   });
+
   await client.request("GET", "/warmup", { as: { anonymous: true } });
   const { digests, files } = await postParts(client);
   const product = FAN_OUT * PART_SIZE;
@@ -216,10 +231,12 @@ async function journalsUniqueParts() {
   expect(retained).toBeLessThan(product / 16);
   const blobs = await readdir(join(exchangeDir, "blobs"));
   expect(blobs).toHaveLength(FAN_OUT);
+
   for (const digest of digests) {
     expect(blobs).toContain(digest);
     expect(existsSync(join(exchangeDir, "blobs", digest))).toBe(true);
   }
+
   expect(journal.count).toBe(FAN_OUT + 1);
   await expectPartsCollected(files);
 }
@@ -229,6 +246,7 @@ async function runLeavesDescriptors() {
   await writeFile(join(dir, "one.bin"), new Uint8Array(32).fill(1));
   await writeFile(join(dir, "two.bin"), new Uint8Array(32).fill(2));
   const server = await track(serveUploads());
+
   const result = await run({
     baseUrl: server.url,
     cohortSize: 1,
@@ -240,6 +258,7 @@ async function runLeavesDescriptors() {
     spec: `${server.url}/openapi.json`,
     uploads: { each: { "upload.once": ["./*.bin"] }, eachMax: 2 },
   });
+
   const posts = result.client.transcript.filter((e) => e.method === "POST" && new URL(e.url).pathname === "/uploads");
   expect(posts.length).toBeGreaterThanOrEqual(2);
   expect(posts.every((e) => isFormSnapshot(e.requestBody))).toBe(true);
@@ -254,6 +273,7 @@ describe("uploads.each fan-out does not scale RSS with fixtureBytes × N", () =>
 
 async function noGiantPartialBuffer() {
   const server = await track(serveHungList());
+
   const result = await run({
     baseUrl: server.url,
     cohortSize: 1,
@@ -263,18 +283,22 @@ async function noGiantPartialBuffer() {
     seed: 1,
     spec: `${server.url}/openapi.json`,
   });
-  /* The host answered the create: the hung list is that operation failing, not an outage. */
+
+  // The host answered the create: the hung list is that operation failing, not an outage.
   expect(result.network?.incomplete ?? false).toBe(false);
   expect(
     result.findings.some((f) => f.check === "response.no-server-error" && f.operations?.includes("item.list") === true),
   ).toBe(true);
+
   for (const exchange of result.client.transcript) {
     expect(holdsLiveBody(exchange.requestBody)).toBe(false);
     expect(holdsLiveBody(exchange.responseBody)).toBe(false);
   }
+
   const oversizedText = result.client.transcript
     .map((exchange) => exchange.responseBody)
     .filter((body) => typeof body === "string" && body.length > INLINE_BODY_LIMIT);
+
   expect(oversizedText).toEqual([]);
 }
 

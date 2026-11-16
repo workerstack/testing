@@ -11,9 +11,11 @@ const COHORT = [
   { amount: 5, id: "n-mid" },
   { amount: 13, id: "n-high" },
 ];
+
 /** A row the store holds that the API tester never seeded. */
 const OUTSIDE = { amount: 9, id: "x-gt" };
 const DOC = { xQuery: { filterable: ["amount"] } };
+
 /** Compares the query value as text: the defect the check exists for. */
 const LEXICAL = { ops: { gt: (value: unknown, arg: string) => typeof value === "number" && String(value) > arg } };
 

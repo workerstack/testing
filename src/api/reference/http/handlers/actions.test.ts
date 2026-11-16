@@ -79,9 +79,10 @@ describe("a notification", () => {
     expect((await call("POST", NOTIFY, { body: { message: "hi" }, token: VIEWER })).status).toBe(403);
     expect((await call("POST", NOTIFY, { body: { message: "hi" }, token: BETA })).status).toBe(403);
     expect((await call("POST", NOTIFY, { form: "message=hi" })).status).toBe(415);
-    for (const body of [{}, { message: "" }, { message: "x".repeat(201) }]) {
+
+    for (const body of [{}, { message: "" }, { message: "x".repeat(201) }])
       expect((await call("POST", NOTIFY, { body })).status).toBe(400);
-    }
+
     expect((await call("GET", NOTIFY)).status).toBe(404);
   });
 });

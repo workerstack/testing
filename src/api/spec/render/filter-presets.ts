@@ -34,7 +34,7 @@ export const FILTER_PRESETS: Readonly<Record<Exclude<FilterGrammar, "template">,
     reserved: "",
     term: "{value}",
   },
-  /* A grammar nobody named: every operator is unwritable, so every filter check stands down. */
+  // A grammar nobody named: every operator is unwritable, so every filter check stands down.
   unrecognized: {
     and: "repeat",
     escape: {},

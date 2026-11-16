@@ -5,11 +5,9 @@ import { join } from "node:path";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-/*
- * The published package as a user gets it: packed, installed from the tarball into a fresh
- * consumer, its config type-checked under strict settings, and every command run through the
- * installed bin against the demo API it serves. A Postgres pass joins when PGHOST is set.
- */
+// The published package as a user gets it: packed, installed from the tarball into a fresh
+// consumer, its config type-checked under strict settings, and every command run through the
+// installed bin against the demo API it serves. A Postgres pass joins when PGHOST is set.
 
 const ROOT = join(import.meta.dirname, "..", "..", "..");
 const HOME = mkdtempSync(join(tmpdir(), "testing-e2e-"));
@@ -17,13 +15,14 @@ const CONSUMER = join(HOME, "consumer");
 const BIN = join(CONSUMER, "node_modules", "@workerstack", "testing", "bin", "testing.js");
 const servers: ChildProcess[] = [];
 
-interface Ran {
+type Ran = {
   code: number | null;
   out: string;
-}
+};
 
 function sh(command: string, args: string[], cwd: string): Ran {
   const ran = spawnSync(command, args, { cwd, encoding: "utf8", env: { ...process.env, GITHUB_STEP_SUMMARY: "" } });
+
   return { code: ran.status, out: `${ran.stdout}${ran.stderr}` };
 }
 
@@ -38,6 +37,7 @@ const tester = (args: string[], env: Record<string, string> = {}): Ran => {
     encoding: "utf8",
     env: { ...process.env, GITHUB_STEP_SUMMARY: "", ...env },
   });
+
   return { code: ran.status, out: `${ran.stdout}${ran.stderr}` };
 };
 
@@ -45,19 +45,21 @@ const tester = (args: string[], env: Record<string, string> = {}): Ran => {
 function serve(args: string[]): Promise<string> {
   const child = spawn(process.execPath, [BIN, "api", "serve", ...args], { cwd: CONSUMER, env: process.env });
   servers.push(child);
+
   return new Promise((resolve, reject) => {
     let seen = "";
     child.stderr.on("data", (chunk: Buffer) => (seen += chunk.toString()));
     child.stdout.on("data", (chunk: Buffer) => {
       seen += chunk.toString();
       const url = /url\s+(http\S+)/.exec(seen)?.[1];
+
       if (url !== undefined) resolve(url);
     });
     child.once("exit", (code) => reject(new Error(`testing api serve exited ${code}: ${seen}`)));
   });
 }
 
-/* What a consumer writes: the demo API's jwt login per principal, from the package by name. */
+// What a consumer writes: the demo API's jwt login per principal, from the package by name.
 const CONFIG = `import { defineConfig, env } from "@workerstack/testing/api"
 
 export default defineConfig({
@@ -94,6 +96,7 @@ beforeAll(() => {
   const packed = sh("npm", ["pack", "--ignore-scripts", "--pack-destination", HOME], ROOT);
   must(packed, "npm pack");
   const tarball = readdirSync(HOME).find((name) => name.endsWith(".tgz"));
+
   if (tarball === undefined) throw new Error(`npm pack wrote no tarball: ${packed.out}`);
   mkdirSync(CONSUMER);
   const manifest = { dependencies: { "@workerstack/testing": `file:${join(HOME, tarball)}` }, private: true };
@@ -109,7 +112,7 @@ afterAll(() => {
 });
 
 describe("the installed package", () => {
-  /* The declarations are built with TypeScript 7; a consumer still on 5.9 must read them too. */
+  // The declarations are built with TypeScript 7; a consumer still on 5.9 must read them too.
   it.each(["typescript", "typescript-5.9"])("type-checks a strict consumer config with %s", (compiler) => {
     const tsc = sh(process.execPath, [join(ROOT, "node_modules", compiler, "bin", "tsc"), "-p", "."], CONSUMER);
     expect(tsc).toMatchObject({ code: 0 });
@@ -134,7 +137,7 @@ describe("the installed bin against the demo API", () => {
     expect(init).toMatchObject({ code: 0 });
     expect(readFileSync(join(CONSUMER, "init.config.ts"), "utf8")).toContain('from "@workerstack/testing/api"');
     const doctor = tester(["doctor", "--config", "testing.api.config.ts"], { TESTING_API_BASE_URL: memory });
-    /* 1 is doctor naming what cannot be tested; anything else is a refusal. */
+    // 1 is doctor naming what cannot be tested; anything else is a refusal.
     expect(doctor).toMatchObject({ code: doctor.code === 1 ? 1 : 0 });
     expect(doctor.out).toContain("jwt");
     const plan = tester(["plan", "--config", "testing.api.config.ts"], { TESTING_API_BASE_URL: memory });
@@ -145,8 +148,10 @@ describe("the installed bin against the demo API", () => {
     const run = tester(["run", "--config", "testing.api.config.ts", "--out", "runs/clean", "--quiet"], {
       TESTING_API_BASE_URL: memory,
     });
+
     expect(run).toMatchObject({ code: 0 });
     const latest = join(CONSUMER, "runs", "clean", "latest");
+
     for (const file of ["report.json", "report.md", "matrix.html", "matrix.json"])
       expect(existsSync(join(latest, file)) ? file : `missing ${file}`).toBe(file);
     const report = JSON.parse(readFileSync(join(latest, "report.json"), "utf8")) as { schemaVersion: number };
@@ -165,26 +170,34 @@ describe("the installed bin against the demo API", () => {
 describe("the installed bin's verdicts and stores", () => {
   it("exits 1 on a defect, 4 on records teardown could not remove, 3 when the backend is gone", async () => {
     const leaky = await serve(["--defects", "CROSS_TENANT_READ"]);
+
     const found = tester(["run", "--config", "testing.api.config.ts", "--out", "runs/defect", "--quiet"], {
       TESTING_API_BASE_URL: leaky,
     });
+
     expect(found).toMatchObject({ code: 1 });
     const sticky = await serve(["--defects", "DELETE_KEEPS_ROW"]);
+
     const kept = tester(["run", "--config", "testing.api.config.ts", "--out", "runs/kept", "--quiet"], {
       TESTING_API_BASE_URL: sticky,
     });
+
     expect(kept).toMatchObject({ code: 4 });
+
     const gone = tester(["run", "--config", "testing.api.config.ts", "--out", "runs/gone", "--quiet"], {
       TESTING_API_BASE_URL: "http://127.0.0.1:9",
     });
+
     expect(gone).toMatchObject({ code: 3 });
   });
 
   it("runs clean on the sqlite store", async () => {
     const sqlite = await serve(["--backend", "sqlite"]);
+
     const run = tester(["run", "--config", "testing.api.config.ts", "--out", "runs/sqlite", "--quiet"], {
       TESTING_API_BASE_URL: sqlite,
     });
+
     expect(run).toMatchObject({ code: 0 });
   });
 
@@ -194,15 +207,18 @@ describe("the installed bin's verdicts and stores", () => {
     expect(missing.out).toContain(
       "testing api: --backend postgres needs the postgres package (^3.4): npm install postgres",
     );
+
     if (process.env["PGHOST"] === undefined) return;
     must(
       sh("npm", ["install", "--no-audit", "--no-fund", "--prefer-offline", "postgres@^3.4"], CONSUMER),
       "npm install postgres",
     );
     const postgres = await serve(["--backend", "postgres"]);
+
     const run = tester(["run", "--config", "testing.api.config.ts", "--out", "runs/postgres", "--quiet"], {
       TESTING_API_BASE_URL: postgres,
     });
+
     expect(run).toMatchObject({ code: 0 });
   });
 

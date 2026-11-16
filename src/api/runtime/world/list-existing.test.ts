@@ -6,7 +6,7 @@ import { FencedError } from "../fence.ts";
 import { notes } from "./__fixtures__/documents.ts";
 import { listExisting } from "./list-existing.ts";
 
-/* A client whose every read fails with `error`. */
+// A client whose every read fails with `error`.
 const failing = (error: Error): Client =>
   ({
     get: async () => {

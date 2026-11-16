@@ -19,12 +19,19 @@ export const PUBLIC_GET_CHECK_ID: Extract<CheckId, "response.public-get-returns-
 /** A read anyone can make, with nothing to fill in. */
 export function isPublicGet(op: OperationModel): boolean {
   const method = op.method.toUpperCase();
+
   if (op.entity !== null) return false;
+
   if (method !== "GET" && method !== "HEAD") return false;
+
   if (op.pathParams.length > 0 || op.path.includes("{")) return false;
+
   if (op.queryParamNames.length > 0) return false;
+
   if (op.hasRequestBody || op.isMutation) return false;
+
   if (op.securitySchemes.length > 0) return false;
+
   return true;
 }
 
@@ -35,7 +42,9 @@ export function documentsSuccess(op: OperationModel): boolean {
 
 function successMatches(op: OperationModel, status: number): boolean {
   if (status < 200 || status >= 300) return false;
+
   if (op.statuses.ranges.includes(2)) return true;
+
   return op.statuses.exact.includes(status);
 }
 
@@ -51,24 +60,30 @@ export async function runPublicGets(input: {
   const ops = input.model.operations.filter(
     (op) => isPublicGet(op) && documentsSuccess(op) && (input.mode === "full" || input.inScope(op.operationId)),
   );
+
   if (ops.length === 0) return;
   input.checksRun.add(PUBLIC_GET_CHECK_ID);
-  /* `isPublicGet` keeps only paths with no parameter, so each path is sent as written. */
+
+  // `isPublicGet` keeps only paths with no parameter, so each path is sent as written.
   for (const op of ops) {
     const findings = input.findings.attributed([op.operationId]).ownedBy(PUBLIC_GET_CHECK_ID);
     const undeclared = noSecurityReason(op);
+
     if (undeclared !== undefined) {
       findings.unresolved(PUBLIC_GET_CHECK_ID, op.operationId, undeclared);
       continue;
     }
+
     const exchange = await input.client.request(op.method, op.path, {
       as: { anonymous: true },
       operationId: op.operationId,
       probe: true,
     });
+
     input.grades.graded([op.operationId], PUBLIC_GET_CHECK_ID);
+
     if (successMatches(op, exchange.status)) continue;
-    /* `documentsSuccess` kept only routes that name a 2xx, so this list is never empty. */
+    // `documentsSuccess` kept only routes that name a 2xx, so this list is never empty.
     const expected = describeSuccess(op.statuses).join(", ");
     findings.backend(PUBLIC_GET_CHECK_ID, op.operationId, {
       summary: "a public read did not return its success status",
@@ -83,6 +98,6 @@ export const publicGetCheck: Check = {
   needs: "a public GET or HEAD with no id, no query, and a documented success status",
   plan: () => ({ ok: false }),
   run: (): Promise<Outcome> => Promise.resolve(ASSERTED),
-  /* The routes have no entity, so the entity loop cannot grade them. `runPublicGets` does. */
+  // The routes have no entity, so the entity loop cannot grade them. `runPublicGets` does.
   subjects: () => [],
 };

@@ -16,7 +16,7 @@ import { standDownForFeatureGate, standDownForRateLimit } from "../../planning/s
 import { itemParamFor, subjectsOf } from "../../planning/subjects.ts";
 import { NO_RECORD } from "./records.ts";
 
-/* What the two concurrent patches write, one into each field. */
+// What the two concurrent patches write, one into each field.
 const RACE_VALUES = ["testing-concurrent-a", "testing-concurrent-b"] as const;
 
 /**
@@ -32,24 +32,29 @@ export const noLostUpdate: Check<{ updateOp: OperationModel; readOp: OperationMo
 }>({
   plan: (ctx) => {
     const { readOp, updateOp } = ctx;
+
     if (updateOp === undefined || readOp === undefined || ctx.createOp === undefined) return cannot();
-    /* Two concurrent PUTs each replace the whole record, so one losing the other's field is
-     * what PUT means. Only partial writes can be lost. */
+
+    // Two concurrent PUTs each replace the whole record, so one losing the other's field is
+    // what PUT means. Only partial writes can be lost.
     if (updateOp.method.toUpperCase() !== "PATCH") return cannot("an update by PATCH, whose writes are partial");
-    /* An update body that lists fewer than two fields a string may go into can never be raced:
-     * the precondition is visible in the document, so nothing is sent to find it out. */
+    // An update body that lists fewer than two fields a string may go into can never be raced:
+    // the precondition is visible in the document, so nothing is sent to find it out.
     const offered = offeredStringFields(ctx, updateOp);
+
     if (offered !== null && offered.length < 2) {
       const takes = offered.length === 0 ? "none" : `only ${offered.join(", ")}`;
+
       return cannot(`two independently writable string fields; ${ctx.entityName}'s update takes ${takes}`);
     }
+
     return ready({ readOp, updateOp });
   },
   dependsOn: [
     "list.read-after-write",
     "patch.minimality",
-    /* If writes do not persist at all, "the write was lost" describes a consequence rather
-     * than a concurrency defect. */
+    // If writes do not persist at all, "the write was lost" describes a consequence rather
+    // than a concurrency defect.
     "create.persists-submitted-fields",
   ],
   id: "concurrency.no-lost-update",
@@ -58,6 +63,7 @@ export const noLostUpdate: Check<{ updateOp: OperationModel; readOp: OperationMo
   subjects: subjectsOf.update,
   async run(ctx, { readOp, updateOp }): Promise<Outcome> {
     const made = await scratchRecord(ctx, this.id);
+
     if ("outcome" in made) return made.outcome;
     const params = { ...ctx.scope, ...itemParamFor(ctx, made.scratch.id) };
     const race: Race = { check: this.id, ctx, readPath: fillPath(readOp.path, params), readOp, updateOp };
@@ -66,21 +72,26 @@ export const noLostUpdate: Check<{ updateOp: OperationModel; readOp: OperationMo
       race,
       (status) => `reading the record back returned ${status}, so there was no baseline to race against`,
     );
+
     if ("outcome" in original) return original.outcome;
 
-    /* Two distinct writable string fields, so the writes cannot legitimately clobber each
-     * other — last-write-wins on the *same* field would be a defensible policy. */
+    // Two distinct writable string fields, so the writes cannot legitimately clobber each
+    // other — last-write-wins on the *same* field would be a defensible policy.
     const dropped = updateDrops(ctx);
+
     const fields = writableStringFields(ctx, original.record)
       .filter((field) => !dropped.has(field))
       .slice(0, 2);
+
     const [first, second] = fields;
+
     if ((first === undefined || second === undefined) && dropped.size > 0) {
-      /* A field the update never stores is not lost to a race: that check reports it. */
+      // A field the update never stores is not lost to a race: that check reports it.
       return standDown(
         `two fields the update stores; it drops ${[...dropped].join(", ")}, which update.persists-submitted-fields reports`,
       );
     }
+
     if (first === undefined || second === undefined) {
       return ctx.findings.unresolved(
         this.id,
@@ -89,18 +100,19 @@ export const noLostUpdate: Check<{ updateOp: OperationModel; readOp: OperationMo
           "needed so the concurrent writes cannot legitimately clobber each other",
       );
     }
+
     return raceAndJudge(race, fillPath(updateOp.path, params), [first, second]);
   },
 });
 
 /** The record a race runs on, and how to reach it. */
-interface Race {
+type Race = {
   ctx: WriteContext;
   check: string;
   readOp: OperationModel;
   updateOp: OperationModel;
   readPath: string;
-}
+};
 
 /** The record as read now, with the response that carried it, or why it could not be read. */
 async function readBack(
@@ -109,23 +121,32 @@ async function readBack(
 ): Promise<{ record: Record_; exchange: Exchange } | { outcome: Outcome }> {
   const { check, ctx } = race;
   const exchange = await ctx.client.get(race.readPath, { as: { principal: ctx.actor.id } });
+
   if (exchange.status >= 300)
     return { outcome: ctx.findings.unresolved(check, ctx.entityName, failed(exchange.status)) };
   const record = readRecord(race.readOp, exchange);
+
   if (record === undefined) return { outcome: ctx.findings.unresolved(check, ctx.entityName, NO_RECORD) };
+
   return { exchange, record };
 }
 
 /** Why the two concurrent writes cannot be judged — a feature gate, a rate limit, a refusal — or `undefined`. */
 function raceRefusal(race: Race, firstWrite: Exchange, secondWrite: Exchange): Outcome | undefined {
   const { check, ctx, updateOp } = race;
+
   if (standDownForFeatureGate(ctx, updateOp, firstWrite, check))
     return standDown("a documented feature gate refused the request");
+
   if (standDownForFeatureGate(ctx, updateOp, secondWrite, check))
     return standDown("a documented feature gate refused the request");
+
   if (standDownForRateLimit(ctx, firstWrite, check)) return standDown("the request was rate limited");
+
   if (standDownForRateLimit(ctx, secondWrite, check)) return standDown("the request was rate limited");
+
   if (firstWrite.status < 300 && secondWrite.status < 300) return undefined;
+
   return ctx.findings.unresolved(
     check,
     ctx.entityName,
@@ -136,6 +157,7 @@ function raceRefusal(race: Race, firstWrite: Exchange, secondWrite: Exchange): O
 
 async function raceAndJudge(race: Race, path: string, [first, second]: [string, string]): Promise<Outcome> {
   const { check, ctx } = race;
+
   const [firstWrite, secondWrite] = await Promise.all([
     ctx.client.request("PATCH", path, {
       body: { [first]: RACE_VALUES[0] },
@@ -146,18 +168,22 @@ async function raceAndJudge(race: Race, path: string, [first, second]: [string, 
       as: { principal: ctx.actor.id },
     }),
   ]);
+
   const refused = raceRefusal(race, firstWrite, secondWrite);
+
   if (refused !== undefined) return refused;
 
   const after = await readBack(race, (status) => `reading the record back after the race returned ${status}`);
+
   if ("outcome" in after) return after.outcome;
   const current = after.record;
   const lost: string[] = [];
+
   if (current[first] !== RACE_VALUES[0]) lost.push(first);
+
   if (current[second] !== RACE_VALUES[1]) lost.push(second);
-  if (lost.length === 0) {
-    return ASSERTED;
-  }
+
+  if (lost.length === 0) return ASSERTED;
 
   return ctx.findings.backend(check, ctx.entityName, {
     summary: "a concurrent write to a different field was silently lost",
@@ -180,7 +206,7 @@ async function raceAndJudge(race: Race, path: string, [first, second]: [string, 
  * write turns sound validation into a fabricated concurrency bug — which is exactly what happened
  * when a probe value was written into a `status` enum.
  */
-/* The identity, what the update cannot change (immutable and generated fields), and what an ordinary body leaves out. */
+// The identity, what the update cannot change (immutable and generated fields), and what an ordinary body leaves out.
 function fixedFields(ctx: CheckContext, updateOp: OperationModel | undefined): Set<string> {
   return new Set([
     ctx.identity,
@@ -196,17 +222,20 @@ function fixedFields(ctx: CheckContext, updateOp: OperationModel | undefined): S
  */
 function offeredStringFields(ctx: CheckContext, updateOp: OperationModel): string[] | null {
   const properties = (requestSchemaOf(ctx, updateOp)?.properties ?? {}) as Record<string, JsonSchema>;
+
   if (Object.keys(properties).length === 0) return null;
   const fixed = fixedFields(ctx, updateOp);
+
   return Object.entries(properties)
     .filter(([key, schema]) => !fixed.has(key) && !/_at$|_id$/.test(key) && takesString(schema))
     .filter(([, schema]) => !refusesArbitraryString(schema))
     .map(([key]) => key);
 }
 
-/* Whether a property may hold a string: it says so, or it names no type at all. */
+// Whether a property may hold a string: it says so, or it names no type at all.
 function takesString(schema: JsonSchema): boolean {
   const type = schema.type;
+
   return type === undefined || type === "string" || (Array.isArray(type) && type.includes("string"));
 }
 
@@ -215,35 +244,43 @@ function writableStringFields(ctx: CheckContext, record: Record_): string[] {
   const schema = ctx.updateOp === undefined ? null : requestSchemaOf(ctx, ctx.updateOp);
   const properties = (schema?.properties ?? {}) as Record<string, JsonSchema>;
 
-  /* Where the update body enumerates its properties, that list *is* the set of writable fields —
-   * a field the request schema does not mention is one the caller was never invited to send, and
-   * a backend is right to ignore it. Reading the record instead of the schema is what let a probe
-   * target `status` on an operation that only accepts `name`. */
+  // Where the update body enumerates its properties, that list *is* the set of writable fields —
+  // a field the request schema does not mention is one the caller was never invited to send, and
+  // a backend is right to ignore it. Reading the record instead of the schema is what let a probe
+  // target `status` on an operation that only accepts `name`.
   const enumerated = Object.keys(properties).length > 0;
 
   const out: string[] = [];
+
   for (const [key, value] of Object.entries(record)) {
     if (!isFreeStringValue(key, value, fixed)) continue;
 
     const propertySchema = properties[key];
+
     if (enumerated && propertySchema === undefined) continue;
+
     if (propertySchema !== undefined && refusesArbitraryString(propertySchema)) continue;
     out.push(key);
   }
+
   return out;
 }
 
 /** A string the record holds under a key that is not the identity, immutable, generated, or a timestamp or reference. */
 function isFreeStringValue(key: string, value: unknown, fixed: ReadonlySet<string>): boolean {
   if (fixed.has(key)) return false;
+
   if (/_at$|_id$/.test(key)) return false;
+
   return typeof value === "string";
 }
 
 /** Whether the schema has grounds to refuse a race value: an enum, a format, or a length or pattern either value fails. */
 function refusesArbitraryString(propertySchema: JsonSchema): boolean {
   const constraints = stringConstraints(propertySchema);
+
   if (constraints.enum !== undefined || constraints.format !== undefined) return true;
-  /* A pattern both values meet, such as a guard on every string, is no ground to refuse them. */
+
+  // A pattern both values meet, such as a guard on every string, is no ground to refuse them.
   return !RACE_VALUES.every((value) => admits(constraints, value));
 }

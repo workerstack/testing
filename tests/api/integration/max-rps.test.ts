@@ -13,11 +13,9 @@ import { buildModel } from "../../../src/api/spec/graph/build.ts";
 import { dereference } from "../../../src/api/spec/load/dereference.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 
-/*
- * An edge in front of an API (a CDN or firewall) often limits each client IP across every route.
- * No route declares it, and a run that trips it is blocked whole. `maxRps` is that ceiling: every
- * request to the origin shares it, on top of whatever each route declares for itself.
- */
+// An edge in front of an API (a CDN or firewall) often limits each client IP across every route.
+// No route declares it, and a run that trips it is blocked whole. `maxRps` is that ceiling: every
+// request to the origin shares it, on top of whatever each route declares for itself.
 
 const closers: Array<() => Promise<void>> = [];
 
@@ -29,24 +27,29 @@ const ok = { "200": { content: { "application/json": { schema: { type: "object" 
 
 async function serve(spec: OpenApiDocument): Promise<{ hits: number[]; url: string }> {
   const hits: number[] = [];
+
   const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     if (req.url !== "/openapi.json") hits.push(performance.now());
     res.writeHead(200, { "content-type": "application/json" });
     res.end(JSON.stringify(req.url === "/openapi.json" ? spec : { status: "ok" }));
   });
+
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   closers.push(() => new Promise((resolve) => server.close(() => resolve())));
+
   return { hits, url: `http://127.0.0.1:${(server.address() as AddressInfo).port}` };
 }
 
-/* The most requests that landed inside any one-second window. */
+// The most requests that landed inside any one-second window.
 function peakPerSecond(hits: number[]): number {
   const sorted = [...hits].sort((a, b) => a - b);
   let peak = 0;
+
   for (let i = 0, j = 0; i < sorted.length; i++) {
     while ((sorted[i] as number) - (sorted[j] as number) >= 1000) j++;
     peak = Math.max(peak, i - j + 1);
   }
+
   return peak;
 }
 
@@ -65,14 +68,15 @@ const pingSpec = (rateLimit?: Record<string, unknown>): OpenApiDocument =>
     },
   }) as OpenApiDocument;
 
-/* A client paced by the spec's declared limits under a `maxRps` ceiling. */
+// A client paced by the spec's declared limits under a `maxRps` ceiling.
 function pacedClient(spec: OpenApiDocument, url: string, maxRps: number): Client {
   const limiter = new RateLimiter(buildRateLimitRules(buildModel(dereference(spec).doc), []), { maxRps });
+
   return new Client({
     baseUrl: url,
     headers: {},
     maxInFlight: 16,
-    onExchange: () => undefined,
+    onExchange: () => {},
     rateLimiter: limiter,
     redactor: new Redactor(),
   });
@@ -85,7 +89,7 @@ describe("maxRps", () => {
     const client = pacedClient(spec, url, 4);
     const started = performance.now();
     await Promise.all(Array.from({ length: 12 }, () => client.request("GET", "/v1/ping", { as: { anonymous: true } })));
-    /* A burst of 4, then 4 a second: the last of 12 leaves no sooner than two seconds in. */
+    // A burst of 4, then 4 a second: the last of 12 leaves no sooner than two seconds in.
     expect(performance.now() - started).toBeGreaterThanOrEqual(1_900);
     expect(peakPerSecond(hits)).toBeLessThanOrEqual(8);
   });
@@ -110,6 +114,7 @@ describe("maxRps", () => {
         Array.from({ length: 12 }, (_, i) => [`/v1/r${i}`, { get: { operationId: `r${i}.get`, responses: ok } }]),
       ),
     } as OpenApiDocument;
+
     const { hits, url } = await serve(spec);
     await run({
       baseUrl: url,

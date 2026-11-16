@@ -5,7 +5,7 @@ import { NOTES, PARAMS, queryDoc, stage } from "../composition/__fixtures__/quer
 import { ignoring } from "./__fixtures__/sort-api.ts";
 import { sortUnknownFieldRejected } from "./sort-unknown-field-rejected.ts";
 
-/* Accepts the unknown field and serves the cohort reversed, unlike its default order. */
+// Accepts the unknown field and serves the cohort reversed, unlike its default order.
 const reordering: Responder = (method, path, options) =>
   options.query?.["order"] === undefined
     ? ignoring("order")(method, path, options)
@@ -61,6 +61,7 @@ describe("sort.unknown-field-rejected plans", () => {
       {},
       PARAMS.filter((name) => name !== "order"),
     );
+
     const staged = stage(sortUnknownFieldRejected, { doc });
     expect(await staged.run()).toEqual({ kind: "stood-down", reason: "an order parameter" });
     expect(staged.sent).toEqual([]);

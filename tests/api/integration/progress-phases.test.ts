@@ -7,11 +7,9 @@ import type { ProgressSnapshot } from "../../../src/api/runtime/progress/types.t
 import { run } from "../../../src/api/runtime/run/index.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 
-/*
- * Progress names the stage a request belongs to. Scenarios and contract calls run after the
- * matrix's fixtures are removed, and they are not teardown: a watcher who reads "teardown" while
- * a scenario waits on a mail is told cleanup is under way when it has not started.
- */
+// Progress names the stage a request belongs to. Scenarios and contract calls run after the
+// matrix's fixtures are removed, and they are not teardown: a watcher who reads "teardown" while
+// a scenario waits on a mail is told cleanup is under way when it has not started.
 
 const closers: Array<() => Promise<void>> = [];
 
@@ -20,6 +18,7 @@ afterEach(async () => {
 });
 
 const ok = { "200": { content: { "application/json": { schema: { type: "object" } } }, description: "ok" } };
+
 const spec: OpenApiDocument = {
   info: { title: "phases", version: "1" },
   openapi: "3.1.0",
@@ -35,12 +34,14 @@ async function serve(): Promise<string> {
     res.writeHead(200, { "content-type": "application/json" });
     res.end(JSON.stringify(req.url === "/openapi.json" ? spec : { status: "ok" }));
   });
+
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   closers.push(() => new Promise((resolve) => server.close(() => resolve())));
+
   return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 }
 
-/* The phase each request to `path` was reported under while it was in flight. */
+// The phase each request to `path` was reported under while it was in flight.
 function phasesOf(snaps: ProgressSnapshot[], path: string): Set<string> {
   return new Set(snaps.filter((snap) => snap.inflight?.url.endsWith(path) === true).map((snap) => snap.phase));
 }
@@ -57,7 +58,7 @@ describe("progress phases after the matrix", () => {
       seed: 1,
       spec: `${baseUrl}/openapi.json`,
     });
-    /* Auth probes every read first; what matters is the stage the later calls are shown under. */
+    // Auth probes every read first; what matters is the stage the later calls are shown under.
     const scene = phasesOf(snaps, "/v1/scene");
     const ping = phasesOf(snaps, "/v1/ping");
     expect(scene).toContain("scenario");

@@ -8,9 +8,10 @@ import type { EntityRun, World } from "./state.ts";
 export async function actorsOf(run: EntityRun, world: World): Promise<[Actor, ...Actor[]]> {
   const { principals } = run.ctx;
   const actors: [Actor, ...Actor[]] = [actor(principals.alpha, world.scope.values)];
-  for (const [index, principal] of principals.all.slice(1).entries()) {
+
+  for (const [index, principal] of principals.all.slice(1).entries())
     actors.push(await scopedActor(run, principal, index + 1));
-  }
+
   return actors;
 }
 
@@ -22,14 +23,15 @@ async function scopedActor(run: EntityRun, principal: RunPrincipal, offset: numb
   const { ctx, collectionOp, seeding, ancestors } = run;
   const { principals, exclusion, nonce, seed, uploads } = ctx;
   const roots = { ...principal.scope };
+
   try {
     const next = await resolvePathScope(collectionOp, {
       client: seeding,
       model: ctx.model,
       options: {
         ancestors,
-        /* Its own nonce: its parents must not share the first principal's names, or a server
-         * deriving a key from them gives both tenants the same one. */
+        // Its own nonce: its parents must not share the first principal's names, or a server
+        // deriving a key from them gives both tenants the same one.
         nonce: `${nonce}-${offset}`,
         onCreate: principals.recorder(principals.ownerOf(principal)),
         onUnidentified: principals.unidentified,
@@ -41,6 +43,7 @@ async function scopedActor(run: EntityRun, principal: RunPrincipal, offset: numb
         withheld: (createOp) => privilegedBar(createOp, principal, principals.all),
       },
     });
+
     return actor(principal, { ...roots, ...next.values });
   } catch {
     return actor(principal, roots);
@@ -55,5 +58,6 @@ function actor(principal: RunPrincipal, scope: Record<string, string>): Actor {
     scope,
     tenant: principal.tenant,
   };
+
   return principal.readOnly === true ? { ...acting, readOnly: true } : acting;
 }

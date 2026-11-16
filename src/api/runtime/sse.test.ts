@@ -34,6 +34,7 @@ describe("sseEvents", () => {
       { data: { id: 1 }, event: "start" },
       { data: "done", event: "complete" },
     ]);
+
     expect(events).toEqual([
       { data: { id: 1 }, event: "start", raw: '{"id":1}' },
       { data: "done", event: "complete", raw: "done" },

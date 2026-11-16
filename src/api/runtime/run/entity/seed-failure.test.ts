@@ -9,17 +9,17 @@ import { contextOf, entityRunOf, notesApi, notesDoc, optionsFor, outage } from "
 import type { RunOptions } from "../types.ts";
 import { seedFailed } from "./seed-failure.ts";
 
-/*
- * A seed that threw, reported as what it was: the network gone, a request fenced, fixtures that
- * cannot be built, or a create that failed — a defect when it crashed, and support when a
- * targeted run never asked about it. Where records exist, the entity is still read against them.
- */
+// A seed that threw, reported as what it was: the network gone, a request fenced, fixtures that
+// cannot be built, or a create that failed — a defect when it crashed, and support when a
+// targeted run never asked about it. Where records exist, the entity is still read against them.
 
 async function failing(rows: Record_[], error: unknown, extra: Partial<RunOptions> = {}) {
   const ctx = await contextOf(optionsFor(notesApi(notesDoc(), rows), extra));
   const run = entityRunOf(ctx);
   const createOp = ctx.model.byOperationId.get("notes.create");
+
   if (createOp === undefined) throw new Error("no create");
+
   return { ctx, world: await seedFailed(run, createOp, error) };
 }
 
@@ -97,11 +97,14 @@ describe("seedFailed on a create that failed", () => {
 
   it("takes the last server error the run saw as evidence for a failure that brought none", async () => {
     const notes = notesApi();
+
     const ctx = await contextOf(
       optionsFor((method, path, request) => (path === "/boom" ? { status: 502 } : notes(method, path, request))),
     );
+
     await ctx.client.get("/boom", { as: { principal: "alpha", scheme: "bearer" } });
     const createOp = ctx.model.byOperationId.get("notes.create");
+
     if (createOp === undefined) throw new Error("no create");
     expect(await seedFailed(entityRunOf(ctx), createOp, "plain failure")).toBeNull();
     expect(ctx.findings.findings[0]).toMatchObject({ detail: expect.stringContaining("unknown: plain failure") });

@@ -5,7 +5,7 @@ import { describeExceeded } from "../../rate-limit/retry-after.ts";
 import type { CheckContext } from "../core/context.ts";
 import { cannot, type Plan } from "../core/plan.ts";
 
-/* ------------------------------------------------------------------- helpers */
+// ------------------------------------------------------------------- helpers
 
 /** What a check that predicts stored values from the cohort's fields needs, when the records are what the API tester sent. */
 export const STORED_FIELDS_UNKNOWN: string =
@@ -35,14 +35,16 @@ export function standDownForFeatureGate(
   check: string,
 ): boolean {
   if (op === undefined) return false;
+
   if (!isDocumentedFeatureGateDenial(op, exchange.status, exchange.responseBody)) return false;
-  /* The 403 body is judged against its schema by schema.error-response-matches-document. */
+  // The 403 body is judged against its schema by schema.error-response-matches-document.
   ctx.findings.gap(check, ctx.entityName, {
     summary: `${op.operationId} did not apply`,
     detail:
       `${describeFeatureGate(op, exchange.responseBody)}. The check that needed a 2xx stands ` +
       "down rather than treat the documented 403 as a defect.",
   });
+
   return true;
 }
 
@@ -52,14 +54,17 @@ export function standDownForFeatureGate(
  */
 export function standDownForRateLimit(ctx: CheckContext, exchange: Exchange, check: string): boolean {
   if (exchange.status !== 429) return false;
+
   const why =
     exchange.retryAfterExceeded === undefined
       ? "after retries"
       : `and ${describeExceeded(exchange.retryAfterExceeded)}`;
+
   ctx.findings.unresolved(
     check,
     ctx.entityName,
     `the request was rate-limited (429) ${why}, so this check could not complete`,
   );
+
   return true;
 }

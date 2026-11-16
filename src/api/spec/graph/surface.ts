@@ -12,10 +12,10 @@ import { entityNamed } from "./entities.ts";
 import type { EntityModel, OperationModel } from "./types.ts";
 
 /** The document's operations, in order and by route. */
-export interface DocumentOperations {
+export type DocumentOperations = {
   operations: readonly OperationModel[];
   byRoute: ReadonlyMap<string, OperationModel>;
-}
+};
 
 /** Invert x-invalidate: a mutator's declared read routes belong to its entity's surface. */
 export function invertInvalidate(
@@ -26,15 +26,17 @@ export function invertInvalidate(
   for (const op of operations) {
     if (op.entity === null || op.invalidates.length === 0) continue;
     const entity = entityNamed(entities, op.entity);
+
     for (const ref of op.invalidates) {
       if (parseRouteRef(ref)?.method !== "GET") continue;
+
       if (!entity.readSurface.includes(ref)) {
         entity.readSurface.push(ref);
         entity.declaredSurface.push(ref);
       }
-      if (!byRoute.has(ref)) {
+
+      if (!byRoute.has(ref))
         gaps.record(op.operationId, "x-invalidate", `names "${ref}", which is not an operation in this document`);
-      }
     }
   }
 }
@@ -47,12 +49,16 @@ export function fallBackToSiblings(
 ): void {
   for (const entity of entities.values()) {
     if (entity.readSurface.length > 0) continue;
+
     for (const opId of [entity.list, entity.read]) {
       if (opId === undefined) continue;
       const op = operations.find((o) => o.operationId === opId);
+
       if (op !== undefined) entity.readSurface.push(op.route);
     }
+
     const mutator = entity.create ?? entity.update ?? entity.delete;
+
     if (entity.readSurface.length > 0 && mutator) {
       gaps.record(
         mutator,
@@ -69,6 +75,7 @@ export function markTrackable(entities: ReadonlyMap<string, EntityModel>, gaps: 
   for (const entity of entities.values()) {
     entity.trackable = entity.identity !== null;
     const mutator = entity.create ?? entity.update;
+
     if (!entity.trackable && mutator !== undefined) {
       gaps.record(
         mutator,

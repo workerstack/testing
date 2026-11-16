@@ -7,10 +7,8 @@ import type { Scenario } from "../../../src/api/config/define/types.ts";
 import { run } from "../../../src/api/runtime/run/index.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 
-/*
- * A support step (arming an account, setting the scene) is not what a scenario covers, but when it
- * fails the run must still say so: a scenario that stops in silence reads as one that never ran.
- */
+// A support step (arming an account, setting the scene) is not what a scenario covers, but when it
+// fails the run must still say so: a scenario that stops in silence reads as one that never ran.
 
 const closers: Array<() => Promise<void>> = [];
 
@@ -19,6 +17,7 @@ afterEach(async () => {
 });
 
 const ok = { "200": { content: { "application/json": { schema: { type: "object" } } }, description: "ok" } };
+
 const spec: OpenApiDocument = {
   info: { title: "arm", version: "1" },
   openapi: "3.1.0",
@@ -34,13 +33,16 @@ async function serve(): Promise<string> {
     res.writeHead(200, { "content-type": "application/json" });
     res.end(JSON.stringify(req.url === "/openapi.json" ? spec : { armed: false }));
   });
+
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   closers.push(() => new Promise((resolve) => server.close(() => resolve())));
+
   return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 }
 
 async function runScenario(covers: string[]) {
   const url = await serve();
+
   const scenario: Scenario = {
     covers,
     id: "arm",
@@ -50,6 +52,7 @@ async function runScenario(covers: string[]) {
       { operationId: "offer.redeem" },
     ],
   };
+
   return run({
     baseUrl: url,
     principals: { alpha: {} },
@@ -70,9 +73,11 @@ describe("a scenario that stops on a step it does not cover", () => {
 
   it("fails that step and blocks the covered operation it never reached", async () => {
     const result = await runScenario(["offer.redeem"]);
+
     const verdicts = result.findings
       .filter((item) => item.check === "scenario.arm")
       .map((item) => `${item.verdict} ${(item.operations ?? []).join(",")}`);
+
     expect(verdicts).toContain("BACKEND_BUG state.get");
     expect(verdicts).toContain("BLOCKED offer.redeem");
   });

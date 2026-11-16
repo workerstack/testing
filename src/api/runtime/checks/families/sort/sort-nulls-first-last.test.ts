@@ -8,17 +8,19 @@ import { sortNullsFirstLast } from "./sort-nulls-first-last.ts";
 const placing = (nulls: readonly string[]) => queryDoc({ sort: { nulls } });
 const both = placing(["first", "last"]);
 
-/* Rewrites the order before the correct backend reads it. */
+// Rewrites the order before the correct backend reads it.
 const rewriting =
   (from: RegExp, to: string): Responder =>
   (method, path, options) => {
     const query = queryOf(options);
+
     return backend()(method, path, { query: { ...query, order: query["order"]?.replace(from, to) } });
   };
 
-/* Drops the nulls token: ascending puts nulls last, whatever was asked. */
+// Drops the nulls token: ascending puts nulls last, whatever was asked.
 const ignoringNulls = rewriting(/\.nulls(first|last)$/, "");
-/* Puts nulls first, whatever was asked. */
+
+// Puts nulls first, whatever was asked.
 const alwaysFirst = rewriting(/nullslast$/, "nullsfirst");
 
 const empty: Responder = () => ({ body: [], status: 200 });
@@ -96,6 +98,7 @@ describe("sort.nulls-first-last plans", () => {
       { sort: { nulls: ["first"] } },
       PARAMS.filter((name) => name !== "order"),
     );
+
     expect(stage(sortNullsFirstLast, { doc: unordered }).plan().ok).toBe(false);
     expect(
       stage(sortNullsFirstLast, { doc: queryDoc({ sort: { nulls: ["first"] }, sortGrammar: "colon" }) }).plan().ok,

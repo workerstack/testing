@@ -9,6 +9,7 @@ type Operation = Record<string, unknown>;
 
 function operations(options: Parameters<typeof widgetSpec>[0]): { create: Operation; update: Operation } {
   const paths = widgetSpec(options).paths as Record<string, Record<string, Operation>>;
+
   return {
     create: paths["/v1/orgs/{org_id}/widgets"]?.["post"] ?? {},
     update: paths["/v1/orgs/{org_id}/widgets/{widget_id}"]?.["patch"] ?? {},

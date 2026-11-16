@@ -20,6 +20,7 @@ export function buildConfiguredModel(doc: OpenApiDocument, config: ModelConfig):
   const envelope = readNames<QueryEnvelopeNames>(config.query?.envelope, ENVELOPE);
   const model = buildModel(doc, { queryEnvelope: envelope, queryParams: params });
   applyGrammarOverrides(model, config);
+
   return model;
 }
 
@@ -29,27 +30,28 @@ export function buildConfiguredModel(doc: OpenApiDocument, config: ModelConfig):
  */
 export function assertQueryNamesDeclared(config: ModelConfig, models: readonly SpecModel[]): void {
   const operations = models.flatMap((model) => model.operations);
+
   for (const [role, name] of Object.entries(config.query?.params ?? {})) {
-    if (!operations.some((op) => op.queryParamNames.includes(name))) {
+    if (!operations.some((op) => op.queryParamNames.includes(name)))
       throw new UsageError(`query.params.${role} names "${name}", which no operation declares`);
-    }
   }
+
   for (const [role, name] of Object.entries(config.query?.envelope ?? {})) {
-    if (!operations.some((op) => op.collection?.envelopeKeys.includes(name) === true)) {
+    if (!operations.some((op) => op.collection?.envelopeKeys.includes(name) === true))
       throw new UsageError(`query.envelope.${role} names "${name}", which no list response declares`);
-    }
   }
 }
 
-/* What a names object is read as: its config key, its roles, and what each value names. */
-interface Names {
+// What a names object is read as: its config key, its roles, and what each value names.
+type Names = {
   key: "params" | "envelope";
   isRole: (role: string) => boolean;
   roles: readonly string[];
   names: string;
-}
+};
 
 const PARAMS: Names = { isRole: isQueryParamRole, key: "params", names: "a parameter name", roles: QUERY_PARAM_ROLES };
+
 const ENVELOPE: Names = {
   isRole: isQueryEnvelopeRole,
   key: "envelope",
@@ -57,17 +59,19 @@ const ENVELOPE: Names = {
   roles: QUERY_ENVELOPE_ROLES,
 };
 
-/* A config file is untyped until read: every key a role, every value a name. */
+// A config file is untyped until read: every key a role, every value a name.
 function readNames<T>(raw: unknown, { isRole, key, names, roles }: Names): T | undefined {
   if (raw === undefined) return undefined;
-  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw))
     throw new UsageError(`query.${key} must be an object of role names`);
-  }
+
   for (const [role, name] of Object.entries(raw)) {
-    if (!isRole(role)) {
+    if (!isRole(role))
       throw new UsageError(`query.${key} names an unknown role "${role}"; the roles are ${roles.join(", ")}`);
-    }
+
     if (typeof name !== "string" || name === "") throw new UsageError(`query.${key}.${role} must be ${names}`);
   }
+
   return raw as T;
 }

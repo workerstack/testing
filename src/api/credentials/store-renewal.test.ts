@@ -5,22 +5,23 @@ import { answerOf, BEARER, fakePorts, NOW } from "./__fixtures__/ports.ts";
 import { SCHEMES } from "./__fixtures__/store.ts";
 import { type Credential, createStore, type Held } from "./store.ts";
 
-/*
- * A renewal per refused value, and a block that outlasts it. A server may issue the very value it
- * refused, a token derived from the account say: a value is renewed once however many requests it was
- * refused for, before or after that renewal settled. A block holds for every scope until a credential
- * is adopted.
- */
+// A renewal per refused value, and a block that outlasts it. A server may issue the very value it
+// refused, a token derived from the account say: a value is renewed once however many requests it was
+// refused for, before or after that renewal settled. A block holds for every scope until a credential
+// is adopted.
 
 const LOGIN = { jwt: { login: { from: "$.token", steps: [{ operationId: "auth.login" }] } } } as SecurityConfig;
 
 /** A store whose every login answers `token`, counting the logins. */
 function storeAnswering(token: (login: number) => string) {
   const counted = { logins: 0 };
+
   const { ports } = fakePorts({
     run: async () => ({ answer: answerOf({ token: token(++counted.logins) }), scope: {} }),
   });
+
   const store = createStore({ ports, principals: { ann: {} }, schemes: new Map([["jwt", BEARER]]), security: LOGIN });
+
   return { counted, store };
 }
 
@@ -55,7 +56,7 @@ describe("createStore: block", () => {
   });
 });
 
-/* A login that saves its refresh token, and a refresh that reads it; ann's account is the run's own. */
+// A login that saves its refresh token, and a refresh that reads it; ann's account is the run's own.
 function rotating(refuseRefresh = false) {
   const security: SecurityConfig = {
     jwt: {
@@ -64,22 +65,28 @@ function rotating(refuseRefresh = false) {
       refresh: { from: "$.token", steps: [{ body: { token: "{refresh_token}" }, operationId: "auth.refresh" }] },
     },
   };
+
   let issued = 0;
+
   const { ports, recorded } = fakePorts({
     run: (call) => {
       const refreshing = "operationId" in call.steps[0]! && call.steps[0].operationId === "auth.refresh";
+
       if (refreshing && refuseRefresh) return Promise.reject(new Error("auth step 1 answered 401"));
       issued++;
+
       return Promise.resolve({
         answer: answerOf({ refresh: "r1", token: `ann-${issued}` }),
         scope: { refresh_token: "r1" },
       });
     },
   });
+
   const clock = { now: NOW };
   const principals = { ann: { created: true, email: "ann@x.io" } };
   const store = createStore({ now: () => clock.now, ports, principals, schemes: SCHEMES, security });
   const steps = () => recorded.runs.map((run) => [(run.steps[0] as { operationId: string }).operationId, run.scope]);
+
   return { clock, steps, store };
 }
 

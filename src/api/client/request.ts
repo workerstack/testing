@@ -27,22 +27,25 @@ export function prepare(ctx: Wire, method: string, path: string, options: Reques
   const at = requestUrl(ctx.baseUrl, path);
   const foreign = at.origin !== new URL(ctx.baseUrl).origin;
   const resolved = foreign ? null : (ctx.operationResolver?.(verb, ctx.relativePath(at)) ?? null);
-  /* The query is written once the operation is known: its styles say how. */
+  // The query is written once the operation is known: its styles say how.
   const styles = resolved?.paramStyles?.query;
   const writing = { query: options.query, styles };
   const url = requestUrl(ctx.baseUrl, path, writing);
   const callerQuery = new Set(url.searchParams.keys());
   addRequiredQuery(url, resolved?.requiredQuery ?? {}, writing);
   const relative = ctx.relativePath(url);
-  /* A value the API tester did not have, written as text: nothing goes out. */
+
+  // A value the API tester did not have, written as text: nothing goes out.
   if (carriesMissingValue(url)) throw new MissingValueError(`${verb} ${relative}`);
   const operationId = options.operationId ?? resolved?.operationId;
   const actor: Actor = foreign && "via" in options.as ? { anonymous: true } : options.as;
-  /* Never the query: a presigned URL's signature is a secret no message repeats. */
+  // Never the query: a presigned URL's signature is a secret no message repeats.
   const route = `${verb} ${foreign ? `${url.origin}${url.pathname}` : relative}`;
+
   return {
     callerHeaders: () => {
       const raw = options.headers;
+
       return { ...(typeof raw === "function" ? raw() : raw) };
     },
     callerQuery,
@@ -66,22 +69,26 @@ export function prepare(ctx: Wire, method: string, path: string, options: Reques
  */
 export async function sendAttempt(request: Prepared, attempt: number, wire: Wire): Promise<Exchange> {
   const pacing = pacingOf(request, wire.rateLimiter);
+
   for (let round = 1; ; round += 1) {
     const going = await placedAttempt(request, attempt, wire);
     await wire.slots.acquire();
     let landed: Timed;
+
     try {
       const room = await paced(pacing, request.method, wire.rateLimiter);
+
       if (round === 1 && request.credential.lapsed()) continue;
       landed = await onTheWire(going.sent, { ...going, room }, wire);
     } finally {
       wire.slots.release();
     }
+
     return answered(landed, { ...going.sent, pacing }, wire);
   }
 }
 
-/* The attempt with its credential placed and its first hop fenced: what goes on the wire once the waits are over. */
+// The attempt with its credential placed and its first hop fenced: what goes on the wire once the waits are over.
 async function placedAttempt(
   request: Prepared,
   attempt: number,
@@ -91,17 +98,21 @@ async function placedAttempt(
   const placement = await request.credential.next();
   const { headers, url } = placeOn(placement, await unplaced(request, { placement, wire }));
   const body = encodeBody(options.body, options.contentType);
+
   if (body.contentType !== undefined) headers["content-type"] = body.contentType;
-  /* The headers each hop sends: redirects strip and add to them, and the fence sees them as they are. */
+  // The headers each hop sends: redirects strip and add to them, and the fence sees them as they are.
   const hopHeaders = { ...headers };
+
   const fenced = {
     headers: hopHeaders,
     operationId: request.operationId,
     placement,
     purpose: options.context?.purpose,
   };
+
   const fence = fenceAsker(wire.fence, fenced);
   await fence(url, request.method, options.body);
+
   return { fence, hopHeaders, sent: { attempt, body, headers, placement, request, url } };
 }
 
@@ -114,34 +125,39 @@ async function unplaced(
   { placement, wire }: { placement: Placement; wire: Wire },
 ): Promise<Unplaced> {
   const { options } = request;
+
   const hooked = await wire.resolveHeaders?.({
     method: request.method,
     url: request.url.toString(),
     ...(options.operationId === undefined ? {} : { operationId: options.operationId }),
   });
+
   const above = [wire.headers, hooked ?? {}, request.callerHeaders()];
+
   const bypass = bypassLayer(
     { cache: options.cache, enabled: wire.cacheBypass, method: request.method, resolved: request.resolved },
     above,
   );
+
   const layers = withDeclared(request.resolved, placement, [bypass, ...above]);
+
   return { callerQuery: request.callerQuery, layers, url: request.url };
 }
 
-/* Rules are written against documented paths, which never include the base path. */
+// Rules are written against documented paths, which never include the base path.
 function pacingOf(request: Prepared, limiter: RateLimiter | undefined): Pacing | undefined {
   const tagged = limiter?.resolve(request.method, request.relative, request.operationId);
+
   if (tagged !== undefined) return { rule: tagged, tagged: true };
   const implicit = limiter?.implicitRule(request.method);
+
   return implicit === undefined ? undefined : { rule: implicit, tagged: false };
 }
 
-/*
- * Two independent constraints, both held: maxInFlight bounds in-flight HTTP with no notion of
- * time, a rate-limit category bounds throughput over time. Pacing sits entirely inside the
- * in-flight slot and never changes what maxInFlight itself guarantees. The origin's ceiling holds
- * alongside the route's own budget; neither replaces the other.
- */
+// Two independent constraints, both held: maxInFlight bounds in-flight HTTP with no notion of
+// time, a rate-limit category bounds throughput over time. Pacing sits entirely inside the
+// in-flight slot and never changes what maxInFlight itself guarantees. The origin's ceiling holds
+// alongside the route's own budget; neither replaces the other.
 async function paced(
   pacing: Pacing | undefined,
   method: string,
@@ -149,15 +165,17 @@ async function paced(
 ): Promise<boolean | undefined> {
   if (limiter === undefined) return undefined;
   await limiter.acquireCeiling();
+
   if (pacing === undefined) return undefined;
+
   return pacing.tagged ? limiter.acquire(pacing.rule) : limiter.waitImplicit(method);
 }
 
-interface Going {
+type Going = {
   fence: FenceAsk;
   hopHeaders: Record<string, string>;
   room: boolean | undefined;
-}
+};
 
 /** Sends the attempt and every redirect it follows, inside the hooks that watch the wire. */
 async function onTheWire(sent: Sent, going: Going, wire: Wire): Promise<Timed> {
@@ -167,8 +185,10 @@ async function onTheWire(sent: Sent, going: Going, wire: Wire): Promise<Timed> {
   const placed = placedNames(sent.placement);
   wire.httpHooks?.start?.(probe);
   const started = performance.now();
+
   try {
     const manual = options.redirect !== undefined || request.resolved?.redirects === true;
+
     const following = await sendFollowing(
       {
         body: body.init,
@@ -180,8 +200,8 @@ async function onTheWire(sent: Sent, going: Going, wire: Wire): Promise<Timed> {
       {
         body: options.body,
         callerCookie: headerValue(headers, "cookie"),
-        /* Every header that carries a credential: the known names, and whatever this request
-         * placed its credential under, an API key under a custom name included. */
+        // Every header that carries a credential: the known names, and whatever this request
+        // placed its credential under, an API key under a custom name included.
         credentialNames: credentialHeaderNames(placed.headers),
         credentialQuery: placed.query,
         fence: going.fence,
@@ -189,6 +209,7 @@ async function onTheWire(sent: Sent, going: Going, wire: Wire): Promise<Timed> {
         send: transport(wire.network),
       },
     );
+
     return { ...following, at: Date.now(), room: going.room, started };
   } catch (error) {
     throw await failed(error, { ...sent, probe, started }, wire);
@@ -211,5 +232,6 @@ function transport(network: NetworkClientOptions | undefined): (url: URL, init: 
   const timeoutMs = network?.requestTimeoutMs;
   const signal = timeoutMs === undefined ? undefined : AbortSignal.timeout(timeoutMs);
   const send = network?.fetchImpl ?? fetch;
+
   return (url, init) => send(url, signal === undefined ? init : { ...init, signal });
 }

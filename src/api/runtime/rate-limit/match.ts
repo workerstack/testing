@@ -19,9 +19,11 @@ export function compilePathPattern(pattern: string): RegExp {
     .split("/")
     .map((segment) => {
       if (segment === "*" || (segment.startsWith("{") && segment.endsWith("}"))) return "[^/]+";
-      return segment.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[^/]*");
+
+      return segment.replaceAll(/[.+^${}()|[\]\\]/g, "\\$&").replaceAll("*", "[^/]*");
     })
     .join("/");
+
   return new RegExp(`^${compiled}$`);
 }
 
@@ -33,27 +35,31 @@ export function compilePathPattern(pattern: string): RegExp {
 export function operationTest(op: OperationModel): RequestTest {
   const pathRegex = compilePathPattern(op.path);
   const method = op.method.toUpperCase();
+
   return (m, p, operationId) =>
-    operationId !== undefined ? operationId === op.operationId : m === method && pathRegex.test(p);
+    operationId === undefined ? m === method && pathRegex.test(p) : operationId === op.operationId;
 }
 
 /** Compiles one `match` string against the model — an operationId, a path pattern, or a category. */
 export function compileMatch(match: string, model: SpecModel): Array<{ test: RequestTest; category: string }> {
   if (match.startsWith("category:")) {
     const category = match.slice("category:".length).trim();
+
     return model.operations
       .filter((op) => op.rateLimit?.category === category)
       .map((op) => ({ category, test: operationTest(op) }));
   }
 
   const op = model.byOperationId.get(match);
+
   if (op !== undefined) return [{ category: match, test: operationTest(op) }];
 
-  /* "METHOD /pattern" or a bare "/pattern" matching any method. */
+  // "METHOD /pattern" or a bare "/pattern" matching any method.
   const spaceAt = match.indexOf(" ");
   const methodPart = spaceAt === -1 ? null : match.slice(0, spaceAt).toUpperCase();
   const pathPart = spaceAt === -1 ? match : match.slice(spaceAt + 1);
   const pathRegex = compilePathPattern(pathPart);
+
   return [
     {
       category: match,

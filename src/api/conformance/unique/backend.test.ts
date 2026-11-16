@@ -8,20 +8,23 @@ const AUTH = { authorization: "Bearer tok_alpha" };
 const WIDGETS = "/v1/orgs/org_1/widgets";
 
 /** A request's body and headers: none, and the owner's token, unless given. */
-interface Sent {
+type Sent = {
   body?: string;
   headers?: Record<string, string>;
-}
+};
 
 /** A backend for `options`, and a way to send it one request and read the answer. */
 function harness(options: HarnessOptions) {
   const { handle, posts } = widgetBackend(options);
+
   const send = async (method: string, path: string, { body = "", headers = AUTH }: Sent = {}) => {
     const response = await handle(
       referenceRequest(method, new URL(`http://unique.test${path}`), { headers, read: async () => body }),
     );
+
     return { body: response.body === "" ? undefined : (JSON.parse(response.body) as unknown), status: response.status };
   };
+
   return { posts, send };
 }
 
@@ -29,6 +32,7 @@ function harness(options: HarnessOptions) {
 async function duplicate(options: HarnessOptions, second = '{"name":"a"}') {
   const { send } = harness(options);
   await send("POST", WIDGETS, { body: '{"name":"a","slug":"s"}' });
+
   return send("POST", WIDGETS, { body: second });
 }
 
@@ -42,6 +46,7 @@ describe("widgetBackend", () => {
 
   it("creates, lists, reads, updates and deletes a widget", async () => {
     const { posts, send } = harness({ listSeeded: true, spec: {} });
+
     const created = await send("POST", WIDGETS, {
       body: '{"name":"a","email":"a@x.test","slug":"a"}',
       headers: {
@@ -49,6 +54,7 @@ describe("widgetBackend", () => {
         "idempotency-key": "k1",
       },
     });
+
     expect(created).toEqual({ body: { email: "a@x.test", id: "w_1", name: "a", slug: "a" }, status: 201 });
     expect(posts[0]?.headers["idempotency-key"]).toBe("k1");
     expect((await send("GET", WIDGETS)).body).toEqual({
@@ -154,10 +160,12 @@ describe("conflict", () => {
 describe("against", () => {
   it("runs the API tester on the widget alone through the via, and closes what it hosted", async () => {
     let closed = false;
+
     const via: Via = {
       ...inProcess,
       host: async (handle) => ({ ...(await inProcess.host(handle)), close: async () => void (closed = true) }),
     };
+
     const { posts, result } = await against(via, { duplicate: "409", spec: {} });
     expect(result.entitiesTested).toEqual(["widget"]);
     expect(posts.length).toBeGreaterThan(0);

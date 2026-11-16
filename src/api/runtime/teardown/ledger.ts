@@ -15,12 +15,12 @@ import type { Created, Disposable, Owner, TeardownReport, UnidentifiedCreate, Un
 import { unwindQueue } from "./unwind.ts";
 
 /** How the ledger is unwound: who else may remove a record, and the unwind's options. */
-export interface LedgerUnwind {
-  /* Principals allowed to remove a record its creator was refused, strongest first — the
-   * same tenant's owner removing what a member created. */
+export type LedgerUnwind = {
+  // Principals allowed to remove a record its creator was refused, strongest first — the
+  // same tenant's owner removing what a member created.
   fallbacks: (owner: Owner) => Owner[];
   options?: UnwindOptions;
-}
+};
 
 /**
  * Registry of what a run brought into existence, recorded the moment each record is created.
@@ -34,21 +34,22 @@ export interface LedgerUnwind {
 export class Ledger {
   private readonly items: Disposable[] = [];
   private readonly seen = new Set<string>();
-  /* By exchange: one create is reported once, whichever path saw it. */
+  // By exchange: one create is reported once, whichever path saw it.
   private readonly unknown = new Map<number, UnidentifiedCreate>();
-  /* Records an accepted write moved, by entity and id, with what moved them. */
+  // Records an accepted write moved, by entity and id, with what moved them.
   private readonly movedAway = new Map<string, string>();
-  /* Records a principal read back — `entity, id, principal` — wherever the read came from. */
+  // Records a principal read back — `entity, id, principal` — wherever the read came from.
   private readonly sightings = new Set<string>();
-  /* Records a delete the backend accepted removed, by entity and id, whoever sent it. */
+  // Records a delete the backend accepted removed, by entity and id, whoever sent it.
   private readonly deletes = new Set<string>();
-  /* Every record ever ledgered, by entity and id, whoever created it. */
+  // Every record ever ledgered, by entity and id, whoever created it.
   private readonly held = new Set<string>();
 
   record({ entity, id, scope, inferred }: Created, owner: Owner): void {
     if (id === "" || id === "undefined") return;
-    /* By principal too: ids are often unique only within a tenant, and each tenant's is its own. */
+    // By principal too: ids are often unique only within a tenant, and each tenant's is its own.
     const key = recordKey(entity, id, owner.id);
+
     if (this.seen.has(key)) return;
     this.seen.add(key);
     this.held.add(`${entity}\u0000${id}`);
@@ -128,8 +129,9 @@ export class Ledger {
   }
 
   unwind(model: SpecModel, client: Client, { fallbacks, options = {} }: LedgerUnwind): Promise<TeardownReport> {
-    /* Takes what is ledgered now; a later unwind removes only what was recorded after this one. */
+    // Takes what is ledgered now; a later unwind removes only what was recorded after this one.
     const queue = this.items.splice(0).toReversed();
+
     return unwindQueue({
       client,
       fallbacks,

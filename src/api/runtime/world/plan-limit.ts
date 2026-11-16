@@ -1,6 +1,7 @@
 function planLimitSignal(body: unknown): string | null {
   if (body === null || typeof body !== "object") return null;
   const rec = body as Record<string, unknown>;
+
   const candidates: unknown[] = [
     rec["error"],
     rec["error_key"],
@@ -9,18 +10,22 @@ function planLimitSignal(body: unknown): string | null {
     rec["reason"],
     rec["status_key"],
   ];
+
   const vars = rec["vars"];
+
   if (vars !== null && typeof vars === "object") {
     const inner = vars as Record<string, unknown>;
     candidates.push(inner["type"], inner["code"], inner["error"], inner["error_key"]);
   }
+
   for (const candidate of candidates) {
     if (typeof candidate !== "string") continue;
     const normalized = candidate.toLowerCase();
-    if (normalized === "payment_required" || normalized === "plan_limit" || normalized.includes("plan_limit")) {
+
+    if (normalized === "payment_required" || normalized === "plan_limit" || normalized.includes("plan_limit"))
       return normalized;
-    }
   }
+
   return null;
 }
 
@@ -32,6 +37,8 @@ function planLimitSignal(body: unknown): string | null {
  */
 export function isPlanLimitResponse(status: number, body: unknown): boolean {
   if (status === 402) return true;
+
   if (status < 400 || status >= 500 || status === 429) return false;
+
   return planLimitSignal(body) !== null;
 }

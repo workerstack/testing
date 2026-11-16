@@ -13,9 +13,11 @@ async function ask(
   { body, headers = BEARER }: { body?: string; headers?: Record<string, string> } = {},
 ): Promise<{ status: number; body: unknown }> {
   const [method = "", path = ""] = route.split(" ");
+
   const answer = await handle(
     referenceRequest(method, new URL(path, "http://gate.test"), { headers, read: async () => body ?? "" }),
   );
+
   return { body: answer.body === "" ? undefined : JSON.parse(answer.body), status: answer.status };
 }
 

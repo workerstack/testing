@@ -21,6 +21,7 @@ describe("readAnswer", () => {
       ],
       token: "t",
     };
+
     expect([
       readAnswer({ ...answer, body }, "/token"),
       readAnswer({ ...answer, body }, "$.keys[?(@.kind=='api')].value"),

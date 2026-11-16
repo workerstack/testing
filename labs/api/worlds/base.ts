@@ -1,6 +1,6 @@
 import type { Entity, Field, World } from "../kit/types.ts";
 
-/* The shared fields and the base worlds, tiny through vast, each correct. */
+// The shared fields and the base worlds, tiny through vast, each correct.
 
 export const NAME: Field = {
   filterable: true,
@@ -11,6 +11,7 @@ export const NAME: Field = {
   sortable: true,
   type: "string",
 };
+
 export const STATUS: Field = {
   enum: ["active", "draft", "archived"],
   filterable: true,
@@ -18,8 +19,10 @@ export const STATUS: Field = {
   sortable: true,
   type: "string",
 };
+
 export const POSITION: Field = { filterable: true, name: "position", sortable: true, type: "integer" };
 export const NOTE: Field = { maxLength: 256, name: "note", nullable: true, searchable: true, type: "string" };
+
 /** Two values so filter composition can pick a proper subset. */
 export const KIND: Field = {
   enum: ["red", "blue"],
@@ -212,24 +215,26 @@ export const PLATFORM: World = {
 function hugeWorld(size = 200, id = "huge"): World {
   const roots = 20;
   const children = Math.max(0, Math.floor((size - roots) / roots));
-  /* D1 rejects ~100+ columns. A count per child on vast (99 children) overflows; keep a
-   * bounded set so invalidate still has a derived field to watch. */
+  // D1 rejects ~100+ columns. A count per child on vast (99 children) overflows; keep a
+  // bounded set so invalidate still has a derived field to watch.
   const derivedCap = 16;
   const entities: Entity[] = [];
+
   for (let r = 0; r < roots; r++) {
     const parent = `r${String(r).padStart(2, "0")}`;
     const derived: Entity["derived"] = [];
-    for (let c = 0; c < children; c++) {
-      if (c < derivedCap) {
-        derived.push({ from: `${parent}c${c}`, name: `${parent}c${c}_count`, op: "count" });
-      }
-    }
+
+    for (let c = 0; c < children; c++)
+      if (c < derivedCap) derived.push({ from: `${parent}c${c}`, name: `${parent}c${c}_count`, op: "count" });
+
     entities.push(resource(parent, `${parent}s`, { derived, softDelete: r === 0 }));
+
     for (let c = 0; c < children; c++) {
       const name = `${parent}c${c}`;
       entities.push(resource(name, `${name}s`, { parent }));
     }
   }
+
   return {
     entities,
     id,

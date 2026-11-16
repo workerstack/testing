@@ -34,11 +34,13 @@ const UPLOAD = {
 
 async function uploads(names: string[]): Promise<UploadContext> {
   const dir = await mkdtemp(join(tmpdir(), "testing-seed-each-"));
+
   for (const name of names) await writeFile(join(dir, name), `%PDF-1.1\n${name}\n%%EOF\n`);
+
   return { configDir: dir, seed: 1, uploads: { each: { "note.create": ["./*.pdf"] } } };
 }
 
-/* Creates succeed; the list already holds the only identity the schema allows. */
+// Creates succeed; the list already holds the only identity the schema allows.
 const onlyListed: Responder = (method) =>
   method === "POST" ? { status: 201 } : { body: [{ id: "only" }], status: 200 };
 
@@ -47,9 +49,9 @@ const scope = { projectId: "p1" };
 const isDocument = (value: NotesOptions | OpenApiDocument): value is OpenApiDocument => "openapi" in value;
 
 /** The world's options, and the create the cohort is seeded through (default `note.create`). */
-interface SeedSetup extends Partial<WorldOptions> {
+type SeedSetup = Partial<WorldOptions> & {
   create?: string;
-}
+};
 
 function seed(
   respond: Responder,
@@ -58,18 +60,20 @@ function seed(
 ) {
   const model = modelOf(isDocument(document) ? document : notes(document));
   const fake = fakeClient(respond);
+
   const result = seedCohort(
     op(model, create),
     { client: fake.client, model, options: { principal: "alpha", roots: scope, seed: 1, ...options } },
     { created: [], values: scope },
   );
+
   return { result, sent: fake.sent };
 }
 
 const bodyOf = (options: Omit<RequestOptions, "as">): Record<string, unknown> =>
   options.body as Record<string, unknown>;
 
-/* Creates echo what they were sent; the list is empty. */
+// Creates echo what they were sent; the list is empty.
 const echo: Responder = (method, _path, options) =>
   method === "POST" ? { body: { ...bodyOf(options) }, status: 201 } : { body: [], status: 200 };
 
@@ -97,6 +101,7 @@ describe("seedCohort", () => {
       required: ["n"],
       type: "object",
     };
+
     await expect(seed(echo, { body: impossible }).result).rejects.toThrow(FixtureOverflow);
     await expect(seed(echo, { body: { allOf: [{ allOf: 5 }] } }).result).rejects.toThrow(
       /note\.create.*allOf\/0\/allOf is not a list of schemas/,
@@ -104,7 +109,7 @@ describe("seedCohort", () => {
   });
 });
 
-/* Withholds every create, as a lower rank's create of a body that requires a privileged property is. */
+// Withholds every create, as a lower rank's create of a body that requires a privileged property is.
 const barred = () => "note.create requires plan, marked x-privileged";
 
 describe("seedCohort as a principal that must not send the create", () => {
@@ -124,6 +129,7 @@ describe("seedCohort beside listed records", () => {
         ? { body: { error: "payment_required" }, status: 402 }
         : { body: [{ id: 7 }, { id: "n1", name: "kept" }], status: 200 },
     );
+
     const seeded = await result;
     expect(seeded.adopted).toBe(true);
     expect(seeded.records).toEqual([{ id: 7 }]);
@@ -132,15 +138,18 @@ describe("seedCohort beside listed records", () => {
 
   it("draws a client-chosen identity another tenant holds again and keeps the second record", async () => {
     const ids: unknown[] = [];
+
     const { result } = seed(
       (method, _path, options) => {
         if (method !== "POST") return { body: [], status: 200 };
         ids.push(bodyOf(options)["id"]);
+
         return ids.length === 1 ? { body: { error: "taken" }, status: 409 } : { body: bodyOf(options), status: 200 };
       },
       {},
       { cohortSize: 1 },
     );
+
     const seeded = await result;
     expect(ids).toHaveLength(2);
     expect(ids[1]).not.toEqual(ids[0]);
@@ -149,10 +158,12 @@ describe("seedCohort beside listed records", () => {
 
   it("never sends an identity or a unique value a listed record already holds", async () => {
     const unique = { create: { "x-unique": [["name"]] } };
+
     const listed: Responder = (method, _path, options) =>
       method === "POST"
         ? { body: bodyOf(options), status: 201 }
         : { body: [{ id: "Quarterly Report 0", name: "Quarterly Report 0" }], status: 200 };
+
     const { result, sent } = seed(listed, unique, { cohortSize: 1 });
     const seeded = await result;
     expect(seeded.existingIds).toEqual(["Quarterly Report 0"]);
@@ -161,21 +172,23 @@ describe("seedCohort beside listed records", () => {
 
   it("keeps a unique value apart from listed records when the body names no identity", async () => {
     const named = { properties: { name: { type: "string" } }, required: ["name"], type: "object" };
+
     const listed: Responder = (method, _path, options) =>
       method === "POST"
         ? { body: { ...bodyOf(options), id: "n1" }, status: 201 }
         : { body: [{ id: "x", name: "Quarterly Report 0" }], status: 200 };
+
     const { result, sent } = seed(listed, { body: named, create: { "x-unique": [["name"]] } }, { cohortSize: 1 });
     await result;
     expect(bodyOf((sent[1] as { options: RequestOptions }).options)["name"]).not.toBe("Quarterly Report 0");
   });
 });
 
-/* Every create refused with 409; the list holds one row another principal made. */
+// Every create refused with 409; the list holds one row another principal made.
 const refusing: Responder = (method) =>
   method === "POST" ? { body: { error: "taken" }, status: 409 } : { body: [{ id: "theirs" }], status: 200 };
 
-/* Creates echo what they were sent; the list holds two records. */
+// Creates echo what they were sent; the list holds two records.
 const twoListed: Responder = (method, _path, options) =>
   method === "POST"
     ? { body: bodyOf(options), status: 201 }
@@ -186,9 +199,11 @@ describe("seedCohort and the run's taken identities", () => {
     const taken = new Set<string>();
     const { result, sent } = seed(twoListed, {}, { cohortSize: 1, taken: () => taken });
     await result;
+
     const posted = sent
       .filter((request) => request.method === "POST")
       .map((request) => String(bodyOf(request.options)["id"]));
+
     expect(["listed-1", "listed-2"].every((id) => taken.has(id))).toBe(true);
     expect(posted.some((id) => id.startsWith("listed-"))).toBe(false);
   });
@@ -216,16 +231,19 @@ describe("seedCohort with no entity identity", () => {
       COUNTERS,
       { cohortSize: 1, create: "counter.create" },
     ).result;
+
     expect(counters).toMatchObject({ records: [{ id: "c1", size: 1 }] });
     expect(counters.existingIds).toBeUndefined();
     const unidentified: string[] = [];
+
     const pay = await seed(
       (_method, _path, options) =>
         bodyOf(options)["size"] === 1 ? { body: { id: "p1" }, status: 200 } : { status: 200 },
       PAY,
       { cohortSize: 2, create: "pay.start", onUnidentified: (entity) => unidentified.push(entity) },
     ).result;
-    /* `{ id }` alone is not the record, and nothing reads it back: what was sent, unverified. */
+
+    // `{ id }` alone is not the record, and nothing reads it back: what was sent, unverified.
     expect(pay).toMatchObject({ records: [{ flag: true, id: "p1", size: 1 }], unverified: "no item read" });
     expect(unidentified).toEqual(["pay.start"]);
   });
@@ -236,6 +254,7 @@ describe("seedCohort with no entity identity", () => {
       required: ["id"],
       type: "object",
     };
+
     await expect(seed(onlyListed, { body: only }, { cohortSize: 1 }).result).rejects.toThrow(
       'every generated "id" names an existing record, so nothing was created',
     );
@@ -249,23 +268,29 @@ describe("seedCohort losing variants", () => {
       required: ["name"],
       type: "object",
     };
+
     const seeded = await seed(echo, { body: fixed, create: { "x-unique": [["name"]] } }, { cohortSize: 3 }).result;
     expect(seeded.uniqueGap).toEqual(expect.any(String));
   });
 
   it("reports a variant the backend refused after the first, and skips one it cannot confirm", async () => {
     let posts = 0;
+
     const { result } = seed(
       (method, _path, options) => {
         if (method !== "POST") return { body: [], status: 200 };
         posts += 1;
+
         if (posts === 2) return { body: { error: "no" }, status: 422 };
+
         if (posts === 3) return { body: { ok: true }, status: 200 };
+
         return { body: bodyOf(options), status: 201 };
       },
       { read: false },
       { cohortSize: 4 },
     );
+
     const seeded = await result;
     expect(seeded.failedVariants?.map((lost) => `${lost.variant} ${lost.exchange.status}`)).toEqual([
       "lexical-first 422",
@@ -277,6 +302,7 @@ describe("seedCohort losing variants", () => {
     const { result } = seed((method) =>
       method === "POST" ? { body: { error: "no" }, status: 400 } : { body: [], status: 200 },
     );
+
     await expect(result).rejects.toBeInstanceOf(SeedError);
   });
 
@@ -288,6 +314,7 @@ describe("seedCohort losing variants", () => {
       },
       { cohortSize: 2 },
     ).result;
+
     expect(seeded.records).toEqual([]);
     expect(seeded.members).toHaveLength(2);
   });
@@ -297,11 +324,13 @@ describe("seeding one record per upload", () => {
   it("creates one record per file from the baseline member", async () => {
     const files = await uploads(["a.pdf", "b.pdf"]);
     let id = 0;
+
     const { result, sent } = seed(
       (method) => (method === "POST" ? { body: { id: `n${(id += 1)}` }, status: 201 } : { body: [], status: 200 }),
       UPLOAD,
       { uploads: files },
     );
+
     const seeded = await result;
     expect(seeded).toMatchObject({
       records: [{ id: "n1" }, { id: "n2" }],
@@ -315,6 +344,7 @@ describe("seeding one record per upload", () => {
 
   it("skips a file whose record it cannot confirm, and adopts or fails when none was made", async () => {
     const files = await uploads(["a.pdf"]);
+
     const unconfirmed = await seed(
       (method) => (method === "POST" ? { body: { ok: true }, status: 201 } : { body: [], status: 200 }),
       {
@@ -323,17 +353,21 @@ describe("seeding one record per upload", () => {
       },
       { uploads: files },
     ).result;
+
     expect(unconfirmed.records).toEqual([]);
+
     const limited = await seed(
       (method) => (method === "POST" ? { status: 402 } : { body: [{ id: "n8" }], status: 200 }),
       UPLOAD,
       { uploads: files },
     ).result;
+
     expect(limited).toMatchObject({ adopted: true, records: [{ id: "n8" }] });
   });
 
   it("sends an empty body when no member was planned", async () => {
     const files = await uploads(["a.pdf"]);
+
     const seeded = await seed(
       (method) => (method === "POST" ? { body: { id: "n1" }, status: 201 } : { body: [], status: 200 }),
       UPLOAD,
@@ -342,6 +376,7 @@ describe("seeding one record per upload", () => {
         uploads: files,
       },
     ).result;
+
     expect(seeded.records).toEqual([{ id: "n1" }]);
   });
 });

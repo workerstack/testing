@@ -46,6 +46,7 @@ describe("describeServerError", () => {
       responseHeaders: { "retry-after": "86400" },
       retryAfterExceeded: { limitMs: 60_000, waitMs: 86_400_000 },
     });
+
     expect(describeServerError(exceeded)).toBe(
       "was unavailable (503) and asked the API tester to wait 24h, longer than network.maxRetryAfterMs (1m)",
     );
@@ -98,6 +99,7 @@ describe("retryAfterVerdict", () => {
         waitMs: 86_400_000,
       });
     }
+
     expect(retryAfterVerdict({ header: "Wed, 02 Jan 2030 00:00:00 GMT", limitMs: minute, status: 429 }, NOW)).toEqual({
       limitMs: minute,
       waitMs: 86_400_000,

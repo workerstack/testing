@@ -5,7 +5,7 @@ import { modelOf } from "./graph/__fixtures__/operations.ts";
 import type { SpecModel } from "./graph/types.ts";
 import { accountMakersOf, makesAccount, unmarkedSignUp } from "./sign-up.ts";
 
-/* An account-making operation the document does not tag: an open POST named as a sign-up, or one taking a password. */
+// An account-making operation the document does not tag: an open POST named as a sign-up, or one taking a password.
 
 const signsUp = (model: SpecModel, operationId: string): boolean =>
   unmarkedSignUp(model.byOperationId.get(operationId) as never, model);
@@ -19,9 +19,9 @@ describe("unmarkedSignUp by name", () => {
       "/users": { post: { operationId: "users.signUp", ...OPEN } },
       "/registration": { post: { operationId: "makeOne", ...OPEN } },
     });
-    for (const id of ["auth.register", "accounts.create", "signUpAdmin", "users.signUp", "makeOne"]) {
+
+    for (const id of ["auth.register", "accounts.create", "signUpAdmin", "users.signUp", "makeOne"])
       expect([id, signsUp(model, id)]).toEqual([id, true]);
-    }
   });
 
   it("is not a device registered, a login, a listing of registrations, or a sign-up that needs a credential", () => {
@@ -37,9 +37,9 @@ describe("unmarkedSignUp by name", () => {
       },
       { components: { securitySchemes: { jwt: { scheme: "bearer", type: "http" } } }, security: [{ jwt: [] }] },
     );
-    for (const id of ["devices.registerDevice", "auth.login", "registrations.list", "register.read", "auth.register"]) {
+
+    for (const id of ["devices.registerDevice", "auth.login", "registrations.list", "register.read", "auth.register"])
       expect([id, signsUp(model, id)]).toEqual([id, false]);
-    }
   });
 });
 
@@ -50,6 +50,7 @@ describe("unmarkedSignUp by body", () => {
       "/members": { post: { operationId: "members.create", ...OPEN, ...body({ passphrase: {} }) } },
       "/people": { post: { operationId: "people.add", ...OPEN, ...body({ secret: { format: "password" } }) } },
     });
+
     for (const id of ["users.create", "members.create", "people.add"])
       expect([id, signsUp(model, id)]).toEqual([id, true]);
   });
@@ -61,9 +62,9 @@ describe("unmarkedSignUp by body", () => {
       "/accounts/recover": { post: { operationId: "recoverAccount", ...OPEN, ...body({ password: {} }) } },
       "/me/change-password": { post: { operationId: "changes.create", ...OPEN, ...body({ password: {} }) } },
     });
-    for (const id of ["passwordReset", "forgot.create", "recoverAccount", "changes.create"]) {
+
+    for (const id of ["passwordReset", "forgot.create", "recoverAccount", "changes.create"])
       expect([id, signsUp(model, id)]).toEqual([id, false]);
-    }
   });
 
   it("is not a sign-in, an item write, or a create that takes no password", () => {
@@ -80,9 +81,9 @@ describe("unmarkedSignUp by body", () => {
       "/notes": { post: { operationId: "notes.create", ...OPEN, ...body({ title: {} }) } },
       "/blobs": { post: { operationId: "blobs.create", ...OPEN } },
     });
-    for (const id of ["token.create", "users.reset", "notes.create", "blobs.create"]) {
+
+    for (const id of ["token.create", "users.reset", "notes.create", "blobs.create"])
       expect([id, signsUp(model, id)]).toEqual([id, false]);
-    }
   });
 });
 
@@ -95,6 +96,7 @@ const selfCreate = (security: unknown[]) => ({
 
 const makes = (security: unknown[]): boolean => {
   const model = modelOf({ "/me": { post: selfCreate(security) } });
+
   return makesAccount(model.byOperationId.get("me.create") as never, model);
 };
 
@@ -115,6 +117,7 @@ describe("accountMakersOf", () => {
       "/v1/register": { post: { operationId: "auth.register", ...OPEN } },
       "/v1/invites": { post: { operationId: "invite.accept", ...OPEN, "x-fresh-principal": true } },
     });
+
     expect(accountMakersOf(model)).toEqual([
       { method: "POST", operationId: "auth.register", path: "/v1/register" },
       { method: "POST", operationId: "invite.accept", path: "/v1/invites" },

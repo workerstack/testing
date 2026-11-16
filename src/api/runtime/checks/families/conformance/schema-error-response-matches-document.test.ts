@@ -17,9 +17,9 @@ import {
 import { errorSchemaHonored } from "./schema-error-response-matches-document.ts";
 
 /** The transcript's setting, and the options of the items document it runs against. */
-interface Stage extends Transcript {
+type Stage = Transcript & {
   document?: ItemsOptions;
-}
+};
 
 /** Plans and runs the check over `exchanges`, with the read's probe answered by `missing`. */
 async function judge(exchanges: Exchange[], missing: Answer, { document: options = {}, ...transcript }: Stage = {}) {
@@ -27,8 +27,10 @@ async function judge(exchanges: Exchange[], missing: Answer, { document: options
   const fields = { judged: (ids: readonly string[]) => judged.push([...ids]), ...transcript.fields };
   const staged = overTranscript(modelOfItems(options), exchanges, { ...transcript, fields, respond: () => missing });
   const plan = errorSchemaHonored.plan(staged.ctx);
+
   if (!plan.ok) throw new Error("the error-schema plan did not apply");
   const outcome = await errorSchemaHonored.run(staged.ctx, plan.value);
+
   return { ...staged, judged, outcome };
 }
 
@@ -48,6 +50,7 @@ describe("schema.error-response-matches-document plan", () => {
   it("grades the read, the gated operations and those that declare unique columns", () => {
     const model = modelOfItems();
     const item = model.entities.get("item");
+
     if (item === undefined) throw new Error("the document has an item entity");
     expect(errorSchemaHonored.subjects(item, model).toSorted()).toEqual(["item.create", "item.read", "item.update"]);
   });
@@ -91,6 +94,7 @@ describe("schema.error-response-matches-document probe", () => {
       { status: 404 },
       { document: { id: { enum: ["a"], type: "string" } } },
     );
+
     expect(sent).toEqual([]);
     expect(findings.findings).toEqual([]);
     expect(judged).toEqual([["item.read"]]);
@@ -104,6 +108,7 @@ describe("schema.error-response-matches-document probe preconditions", () => {
       { status: 404 },
       { fields: { inScope: (op) => op.operationId !== "item.read" } },
     );
+
     expect(sent).toEqual([]);
     expect(judged).toEqual([[]]);
   });
@@ -111,6 +116,7 @@ describe("schema.error-response-matches-document probe preconditions", () => {
   it("stands down on an empty list with no create, and probes when the list held a record", async () => {
     const { ctx } = overTranscript(modelOfItems(), [], { fields: { createOp: undefined } });
     const plan = errorSchemaHonored.plan(ctx);
+
     if (!plan.ok) throw new Error("the error-schema plan did not apply");
     expect(await errorSchemaHonored.run(ctx, plan.value)).toEqual({
       kind: "stood-down",
@@ -126,9 +132,11 @@ describe("schema.error-response-matches-document over the transcript", () => {
 
   it("judges the body of a documented feature-gate 403, read back from storage", async () => {
     const gate = seen("item.update", { status: 403 });
+
     const { findings, hydrated, judged } = await judge([gate], fine, {
       stored: new Map([[gate, { vars: GATE_BODY.vars }]]),
     });
+
     expect(hydrated).toEqual([gate]);
     expect(summaries(findings)).toEqual([
       ["SPEC_BUG", "403 error body does not match its documented schema", ["item.update"]],
@@ -148,11 +156,13 @@ describe("schema.error-response-matches-document over the transcript", () => {
 
   it("judges a 409 held only by reference by the verdict taken at capture", async () => {
     const ref = { bytes: 300_000, mediaType: "application/json", sha256: "a".repeat(64) };
+
     const held = seen(
       "item.create",
       { body: ref, status: 409 },
       { schemaVerdict: { errors: ["/error must be string"] } },
     );
+
     const { findings } = await judge([held], fine);
     expect(summaries(findings)).toEqual([
       ["SPEC_BUG", "409 error body does not match its documented schema", ["item.create"]],
@@ -169,6 +179,7 @@ describe("schema.error-response-matches-document over the transcript", () => {
     const { findings } = await judge([seen("item.create", { body: "x", status: 409 })], fine, {
       document: { conflict: UNCOMPILABLE },
     });
+
     expect(summaries(findings)).toEqual([
       ["COVERAGE_GAP", "item.create 409 has a schema that cannot be compiled", ["item.create"]],
     ]);
@@ -180,6 +191,7 @@ describe("schema.error-response-matches-document transcript stand-asides", () =>
 
   it("passes over exchanges that are not an expected refusal on this entity's graded operations", async () => {
     const success = seen("item.create", { body: {}, status: 201 });
+
     const { findings, hydrated, judged } = await judge(
       [
         success,
@@ -194,6 +206,7 @@ describe("schema.error-response-matches-document transcript stand-asides", () =>
       fine,
       { fields: { inScope: (op) => op.operationId !== "item.update" } },
     );
+
     expect(findings.findings).toEqual([]);
     expect(hydrated).not.toContain(success);
     expect(judged).toEqual([["item.read"]]);
@@ -210,6 +223,7 @@ describe("schema.error-response-matches-document transcript stand-asides", () =>
     const model = modelOfItems();
     const staged = overTranscript(model, [seen("item.create", { body: {}, status: 409 })], { respond: () => fine });
     const plan = errorSchemaHonored.plan(staged.ctx);
+
     if (!plan.ok) throw new Error("the error-schema plan did not apply");
     model.rawOperations.delete("item.create");
     const judged: string[][] = [];

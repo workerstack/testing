@@ -15,14 +15,14 @@ const READS = "the API tester reads OpenAPI 3.0–3.2 only";
 export type RawDocument = RawOf<OpenApiDocument & { swagger: unknown }>;
 
 export function assertVersion(doc: RawDocument, source: string): void {
-  if (doc.swagger !== undefined) {
+  if (doc.swagger !== undefined)
     throw new UsageError(`testing api: ${source} is Swagger ${String(doc.swagger)}; ${READS} — convert it first`);
-  }
-  if (typeof doc.openapi !== "string") {
+
+  if (typeof doc.openapi !== "string")
     throw new Error(`testing api: ${source} has no "openapi" version field; ${READS}`);
-  }
+
   const minor = /^3\.(\d+)/.exec(doc.openapi)?.[1];
-  if (minor === undefined || Number(minor) > 2) {
+
+  if (minor === undefined || Number(minor) > 2)
     throw new UsageError(`testing api: ${source} is OpenAPI ${doc.openapi}; ${READS}`);
-  }
 }

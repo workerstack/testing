@@ -31,14 +31,16 @@ export class Ids {
   /** The next number in the sequence. */
   tick(): number {
     this.sequence += 1;
+
     return this.sequence;
   }
 
-  /* An id the server hands out counts even when a defect then fails to store the record: the
-   * backend gave it back, so a client may rightly try to remove it. */
+  // An id the server hands out counts even when a defect then fails to store the record: the
+  // backend gave it back, so a client may rightly try to remove it.
   next(entity: EntityDef): string | number {
     const id = this.issue(entity);
     this.note(entity, id);
+
     return id;
   }
 
@@ -50,6 +52,7 @@ export class Ids {
   countOf(entity: EntityDef): number {
     const count = (this.counted.get(entity.name) ?? 0) + 1;
     this.counted.set(entity.name, count);
+
     return count;
   }
 
@@ -57,6 +60,7 @@ export class Ids {
   renumber(entity: EntityDef, from: unknown, to: unknown): void {
     const caused = this.caused[entity.name];
     const at = caused?.lastIndexOf(String(from)) ?? -1;
+
     if (caused !== undefined && at >= 0) caused[at] = String(to);
   }
 
@@ -72,21 +76,26 @@ export class Ids {
   /** A write's timestamp: the next in the sequence, so no two writes share one. */
   stamp(): number {
     this.tick();
+
     return this.now();
   }
 
   private issue(entity: EntityDef): string | number {
     const sequence = this.tick();
     const identity = entity.fields.find((field) => field.name === entity.identity);
+
     if (identity?.type === "integer") return sequence;
+
     if (identity?.format === "uuid") {
-      /* Deterministic but unordered, like a real v4: creation order says nothing about id order. */
+      // Deterministic but unordered, like a real v4: creation order says nothing about id order.
       const count = (this.drawn.get(entity.name) ?? 0) + 1;
       this.drawn.set(entity.name, count);
       const h = createHash("sha1").update(`testing-ref-${entity.name}-${count}`).digest("hex");
       const variant = "89ab"[Number.parseInt(h[16] as string, 16) % 4];
+
       return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-${variant}${h.slice(17, 20)}-${h.slice(20, 32)}`;
     }
+
     return `${entity.name}_${String(sequence).padStart(6, "0")}`;
   }
 }

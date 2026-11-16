@@ -11,6 +11,7 @@ const listed = { id: "n1", status: "open", title: "alpha" };
 /** A list-only notes context: a read route, no create, and `records` as the list returned them. */
 function stage(respond: Responder, fields: Partial<Listed> = {}) {
   const model = modelOf(notesDoc());
+
   return contextFor(model, "notes.list", {
     respond,
     fields: { readOp: op(model, "notes.get"), records: [listed], ...fields },
@@ -19,7 +20,9 @@ function stage(respond: Responder, fields: Partial<Listed> = {}) {
 
 async function drive(staged: ReturnType<typeof stage>) {
   const planned = listedRowIsTheGet.plan(staged.ctx);
+
   if (!planned.ok) throw new Error(`the plan did not apply: ${planned.needs}`);
+
   return listedRowIsTheGet.run(staged.ctx, planned.value);
 }
 
@@ -50,6 +53,7 @@ describe("list.item-matches-listed-row plan", () => {
     const model = modelOf(notesDoc());
     const note = model.entities.get("note");
     const org = model.entities.get("org");
+
     if (note === undefined || org === undefined) throw new Error("the document lost an entity");
     expect(listedRowIsTheGet.subjects(note, model)).toEqual(["notes.get"]);
     expect(listedRowIsTheGet.subjects(org, model)).toEqual([]);
@@ -66,6 +70,7 @@ describe("list.item-matches-listed-row run", () => {
   it("stands down when the context lost its read operation", async () => {
     const staged = stage(notesBackend([listed]));
     const planned = listedRowIsTheGet.plan(staged.ctx);
+
     if (!planned.ok) throw new Error("the plan did not apply");
     const ctx = { ...staged.ctx, readOp: undefined };
     expect(await listedRowIsTheGet.run(ctx, planned.value)).toEqual({
@@ -86,6 +91,7 @@ describe("list.item-matches-listed-row run", () => {
 
   it("reports a get body that differs from the listed row", async () => {
     const unlike = "notes.get returned a body that does not contain the row notes.list already returned for n1";
+
     for (const [body, detail] of [
       [{ ...listed, status: "done" }, `${unlike}: status listed "open", got "done"`],
       [[listed], unlike],
@@ -108,18 +114,21 @@ describe("list.item-matches-listed-row run", () => {
 describe("list.item-matches-listed-row nested values", () => {
   it("lets the get carry nested fields the listed row leaves out", async () => {
     const row = { access: { view: true }, id: "n1", mappers: [{ name: "a" }], tags: ["x"] };
+
     const body = {
       access: { configure: true, manage: false, view: true },
       id: "n1",
       mappers: [{ name: "a", protocol: "oidc" }],
       tags: ["x"],
     };
+
     const staged = stage(answering(body), { records: [row] });
     expect(await drive(staged)).toEqual({ kind: "asserted" });
   });
 
   it("reports a nested value that differs by its full path", async () => {
     const row = { access: { view: true }, id: "n1", mappers: [{ name: "a" }], tags: ["x", "y"], title: "alpha" };
+
     const body = {
       access: { manage: true, view: false },
       id: "n1",
@@ -127,6 +136,7 @@ describe("list.item-matches-listed-row nested values", () => {
       tags: ["x"],
       title: "alpha",
     };
+
     const staged = stage(answering(body), { records: [row] });
     expect(await drive(staged)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     expect(staged.findings.findings[0]?.detail).toBe(

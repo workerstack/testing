@@ -6,20 +6,20 @@ import { deriveCollectionShape } from "../../../src/api/spec/collection/shape.ts
 import { buildModel } from "../../../src/api/spec/graph/build.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 
-/*
- * Some APIs keep the record inside an envelope: `{ data: { ID, ... }, fields: [...] }` on a read,
- * `{ success, id, message, data }` on a create, and an update that answers `{ success, id, message }`
- * with no record at all. `x-entity.recordPath` says where the record is, per operation. A path
- * that names nothing means there is no record to compare, never an empty one: compared against
- * `{}`, every field would read as dropped. A list with two arrays of objects is ambiguous until
- * `recordPath` names the rows.
- */
+// Some APIs keep the record inside an envelope: `{ data: { ID, ... }, fields: [...] }` on a read,
+// `{ success, id, message, data }` on a create, and an update that answers `{ success, id, message }`
+// with no record at all. `x-entity.recordPath` says where the record is, per operation. A path
+// that names nothing means there is no record to compare, never an empty one: compared against
+// `{}`, every field would read as dropped. A list with two arrays of objects is ambiguous until
+// `recordPath` names the rows.
 
 const ITEM = { properties: { ID: { type: "integer" }, name: { type: "string" } }, type: "object" };
+
 const FIELDS = {
   items: { properties: { name: { type: "string" }, type: { type: "string" } }, type: "object" },
   type: "array",
 };
+
 const LIST = {
   properties: { data: { items: ITEM, type: "array" }, fields: FIELDS, totalCount: { type: "integer" } },
   type: "object",
@@ -100,8 +100,9 @@ describe("a list with two arrays of objects", () => {
   });
 });
 
-/* Typesense's search: each hit wraps the record under `document`, beside object sidecars. */
+// Typesense's search: each hit wraps the record under `document`, beside object sidecars.
 const BOOK = { properties: { id: { type: "string" }, title: { type: "string" } }, type: "object" };
+
 const SEARCH = {
   properties: {
     found: { type: "integer" },

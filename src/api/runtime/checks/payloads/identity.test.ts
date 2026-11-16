@@ -12,11 +12,9 @@ import {
   saltOf,
 } from "./identity.ts";
 
-/*
- * Identities the API tester invents. An absent id must have the identity's own shape, or the backend refuses
- * it as malformed before existence is considered. A client-chosen identity is reserved before the
- * request goes out, so no two bodies — and no body and existing record — share one.
- */
+// Identities the API tester invents. An absent id must have the identity's own shape, or the backend refuses
+// it as malformed before existence is considered. A client-chosen identity is reserved before the
+// request goes out, so no two bodies — and no body and existing record — share one.
 
 const ITEM_ID = { in: "path", name: "noteId", required: true } as const;
 
@@ -24,6 +22,7 @@ const ITEM_ID = { in: "path", name: "noteId", required: true } as const;
 function shaped(identity: Record<string, unknown> | undefined, param?: Record<string, unknown>): Listed {
   const { ctx } = notesContext();
   const collection = ctx.listOp.collection;
+
   if (collection === null) throw new Error("the notes list is a collection");
   const properties = identity === undefined ? {} : { id: identity };
   const rawOperations = new Map(ctx.model.rawOperations);
@@ -32,6 +31,7 @@ function shaped(identity: Record<string, unknown> | undefined, param?: Record<st
     ...raw,
     parameters: [param === undefined ? ITEM_ID : { ...ITEM_ID, schema: param }],
   });
+
   return {
     ...ctx,
     listOp: { ...ctx.listOp, collection: { ...collection, itemSchema: { properties } } },

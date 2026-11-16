@@ -9,6 +9,7 @@ describe("coerce", () => {
   it("reads an integer field's text as a whole number, and nothing else as one", () => {
     expect(coerce("2", of("integer"))).toBe(2);
     expect(coerce("-3", of("integer"))).toBe(-3);
+
     for (const raw of ["", "  ", "abc", "Infinity", "2.5"]) expect(coerce(raw, of("integer"))).toBeUndefined();
   });
 

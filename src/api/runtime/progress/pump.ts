@@ -7,15 +7,17 @@ import type { ProgressHandler, ProgressSnapshot } from "./types.ts";
 
 export const HEARTBEAT_MS = 5_000;
 
-export interface ProgressPump {
+export type ProgressPump = {
   emit: ProgressHandler;
   stop: () => void;
-}
+};
 
 export function progressEventKey(snap: ProgressSnapshot): string {
   const inflight =
     snap.inflight === undefined ? "" : `${snap.inflight.method} ${snap.inflight.url} ${snap.inflight.at}`;
+
   const finished = snap.last === undefined ? "" : String(snap.last.at);
+
   return `${snap.phase}|${snap.entity ?? ""}|${snap.check ?? ""}|${snap.message ?? ""}|${inflight}|${finished}`;
 }
 
@@ -56,6 +58,7 @@ export function createProgressPump(
     if (latest === undefined) return;
     flush({ ...latest, elapsedMs: Date.now() - startedAt });
   }, HEARTBEAT_MS);
+
   timer.unref();
 
   return {
@@ -67,6 +70,7 @@ export function createProgressPump(
       const stalled = isStalled(snap);
       const force = isForced(snap);
       const due = Date.now() - lastWrite >= 2_000;
+
       if (force || keyChanged || stalled || due) flush(snap);
     },
     stop() {
@@ -78,11 +82,13 @@ export function createProgressPump(
 /** Progress lines for a terminal, glossary first, each handed to `write` with its newline. */
 export function createProgressPrinter(write: (text: string) => void, startedAt: number = Date.now()): ProgressPump {
   let headed = false;
+
   return createProgressPump(startedAt, (snap, now) => {
     if (!headed) {
       headed = true;
       write(`${PROGRESS_GLOSSARY}\n`);
     }
+
     write(`${formatProgressLine(snap, now)}\n`);
   });
 }

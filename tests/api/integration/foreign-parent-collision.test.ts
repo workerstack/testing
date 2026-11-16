@@ -7,37 +7,39 @@ import { bearerSecurity } from "../../../src/api/conformance/harness/security.ts
 import { run } from "../../../src/api/runtime/run/index.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 
-/*
- * A parent named by a slug the server derives from its name: two tenants can each hold their own
- * `quarterly-report-0`. The owner's parent placed under the other tenant's root then reaches the
- * other tenant's own parent — a correct answer, not a crossed boundary. The check says it cannot
- * tell, and still reports a backend that resolves the slug in another tenant.
- */
+// A parent named by a slug the server derives from its name: two tenants can each hold their own
+// `quarterly-report-0`. The owner's parent placed under the other tenant's root then reaches the
+// other tenant's own parent — a correct answer, not a crossed boundary. The check says it cannot
+// tell, and still reports a backend that resolves the slug in another tenant.
 
 const CHECK = "tenant.parent-not-reachable-from-another-root";
 
-interface Options {
-  /* A slug the path's project does not hold is looked up in every project. */
+type Options = {
+  // A slug the path's project does not hold is looked up in every project.
   crossResolve?: boolean;
-  /* Tables each project holds before the API tester arrives, by name. */
+  // Tables each project holds before the API tester arrives, by name.
   existing?: Record<string, string[]>;
-}
+};
 
 const TOKENS: Record<string, string> = { "Bearer a": "a", "Bearer b": "b" };
-/* Each principal's bearer token is its project's id. */
+
+// Each principal's bearer token is its project's id.
 const SECURITY = { bearer: { static: "{principal.token}" } };
 
 const json = (schema: unknown) => ({ content: { "application/json": { schema } } });
+
 const TABLE = {
   properties: { name: { type: "string" }, slug: { readOnly: true, type: "string" } },
   required: ["slug", "name"],
   type: "object",
 };
+
 const ROW = {
   properties: { id: { readOnly: true, type: "string" }, label: { type: "string" } },
   required: ["id", "label"],
   type: "object",
 };
+
 const REFUSED = { default: { description: "refused" } };
 const PROJECT = { in: "path", name: "project_id", required: true, schema: { type: "string" }, "x-root": true };
 const param = (name: string) => ({ in: "path", name, required: true, schema: { type: "string" } });
@@ -52,19 +54,20 @@ const op = (
   "x-tenant": "project_id",
   ...extra,
 });
+
 const write = (schema: { properties: Record<string, unknown> }, field: string) => ({
   ...json({ properties: { [field]: schema.properties[field] }, required: [field], type: "object" }),
   required: true,
 });
 
-interface Resource {
+type Resource = {
   entity: string;
   identity: string;
   item: unknown;
   field: string;
   parents: unknown[];
   id: string;
-}
+};
 
 function resource({ entity, identity, item, field, parents, id }: Resource) {
   return {
@@ -107,6 +110,7 @@ function spec(): OpenApiDocument {
     item: TABLE,
     parents: [PROJECT],
   });
+
   const rows = resource({
     entity: "row",
     field: "label",
@@ -115,6 +119,7 @@ function spec(): OpenApiDocument {
     item: ROW,
     parents: [PROJECT, param("table_id")],
   });
+
   return {
     ...bearerSecurity(),
     info: { title: "foreign-parent-collision", version: "1" },
@@ -148,27 +153,29 @@ function readJson(req: IncomingMessage): Promise<Record<string, unknown> | null>
   });
 }
 
-/* `Quarterly Report 0` → `quarterly-report-0`. */
+// `Quarterly Report 0` → `quarterly-report-0`.
 const slugOf = (name: string) =>
   name
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
+    .replaceAll(/[^a-z0-9]+/g, "-")
+    .replaceAll(/^-|-$/g, "");
 
-interface Table {
+type Table = {
   key: string;
   project: string;
   slug: string;
   name: string;
-}
-interface Row {
+};
+
+type Row = {
   id: string;
   project: string;
   table: string;
   label: string;
-}
+};
 
 const servers: Array<() => Promise<void>> = [];
+
 afterEach(async () => {
   await Promise.all(servers.splice(0).map((close) => close()));
 });
@@ -176,7 +183,7 @@ afterEach(async () => {
 const shownTable = (table: Table) => ({ name: table.name, slug: table.slug });
 const shownRow = (row: Row) => ({ id: row.id, label: row.label });
 
-/* Tables keyed internally and reached by (project, slug); rows under them. */
+// Tables keyed internally and reached by (project, slug); rows under them.
 class TableBackend {
   readonly tables = new Map<string, Table>();
   readonly rows = new Map<string, Row>();
@@ -185,9 +192,9 @@ class TableBackend {
 
   constructor(options: Options) {
     this.#options = options;
-    for (const [project, names] of Object.entries(options.existing ?? {})) {
+
+    for (const [project, names] of Object.entries(options.existing ?? {}))
       for (const name of names) this.addTable(project, name);
-    }
   }
 
   nextId(prefix: string): string {
@@ -197,109 +204,142 @@ class TableBackend {
   addTable(project: string, name: string): Table {
     const table = { key: this.nextId("k"), name, project, slug: slugOf(name) };
     this.tables.set(table.key, table);
+
     return table;
   }
 
   tableAt(project: string, slug: string): Table | undefined {
     const own = [...this.tables.values()].find((table) => table.project === project && table.slug === slug);
+
     if (own !== undefined || this.#options.crossResolve !== true) return own;
+
     return [...this.tables.values()].find((table) => table.slug === slug);
   }
 }
 
-interface At {
+type At = {
   backend: TableBackend;
   project: string;
   method: string;
   req: IncomingMessage;
   res: ServerResponse;
-}
+};
 
 async function onTables({ backend, project, method, req, res }: At) {
   if (method === "GET") {
     const own = [...backend.tables.values()].filter((table) => table.project === project);
+
     return send(res, 200, { items: own.map(shownTable) });
   }
+
   if (method !== "POST") return send(res, 405);
   const body = await readJson(req);
+
   if (body === null || typeof body["name"] !== "string") return send(res, 400, { error: "name is required" });
   const slug = slugOf(body["name"]);
+
   if (slug === "") return send(res, 400, { error: "name has no letters" });
-  if ([...backend.tables.values()].some((table) => table.project === project && table.slug === slug)) {
+
+  if ([...backend.tables.values()].some((table) => table.project === project && table.slug === slug))
     return send(res, 409, { error: "slug taken" });
-  }
+
   return send(res, 201, shownTable(backend.addTable(project, body["name"])));
 }
 
 function onTable({ backend, project, method, res }: At, table: Table) {
   if (table.project !== project) return send(res, 404, { error: "missing" });
+
   if (method === "GET") return send(res, 200, shownTable(table));
+
   if (method === "DELETE") {
     backend.tables.delete(table.key);
+
     for (const row of backend.rows.values()) if (row.table === table.key) backend.rows.delete(row.id);
+
     return send(res, 204);
   }
+
   return send(res, 405);
 }
 
 async function onRows({ backend, project, method, req, res }: At, table: Table, inTable: (row: Row) => boolean) {
   if (method === "GET") return send(res, 200, { items: [...backend.rows.values()].filter(inTable).map(shownRow) });
+
   if (method !== "POST") return send(res, 405);
   const body = await readJson(req);
+
   if (body === null || typeof body["label"] !== "string") return send(res, 400, { error: "label is required" });
   const row = { id: backend.nextId("r"), label: body["label"], project, table: table.key };
   backend.rows.set(row.id, row);
+
   return send(res, 201, shownRow(row));
 }
 
 function onRow({ backend, method, res }: At, row: Row) {
   if (method === "GET") return send(res, 200, shownRow(row));
+
   if (method === "DELETE") {
     backend.rows.delete(row.id);
+
     return send(res, 204);
   }
+
   return send(res, 405);
 }
 
-/* Below a known table: the table itself, its rows, or one row. */
+// Below a known table: the table itself, its rows, or one row.
 function underTable(at: At, parts: string[], table: Table) {
   if (parts.length === 5) return onTable(at, table);
+
   if (parts[5] !== "rows") return send(at.res, 404, { error: "missing" });
   const inTable = (row: Row) => row.table === table.key && row.project === at.project;
+
   if (parts.length === 6) return onRows(at, table, inTable);
   const row = at.backend.rows.get(parts[6] ?? "");
+
   if (row === undefined || !inTable(row)) return send(at.res, 404, { error: "missing" });
+
   return onRow(at, row);
 }
 
 async function route(backend: TableBackend, req: IncomingMessage, res: ServerResponse) {
   const url = new URL(req.url ?? "/", "http://x");
+
   if (url.pathname === "/v1/openapi/spec") return send(res, 200, spec());
   const caller = TOKENS[req.headers.authorization ?? ""];
+
   if (caller === undefined) return send(res, 401, { error: "unauthenticated" });
   const parts = url.pathname.split("/").filter(Boolean).map(decodeURIComponent);
-  if (parts[0] !== "v1" || parts[1] !== "projects" || parts[2] !== caller || parts[3] !== "tables") {
+
+  if (parts[0] !== "v1" || parts[1] !== "projects" || parts[2] !== caller || parts[3] !== "tables")
     return send(res, 404, { error: "missing" });
-  }
+
   const at: At = { backend, method: req.method ?? "GET", project: parts[2], req, res };
+
   if (parts.length === 4) return onTables(at);
   const table = backend.tableAt(at.project, parts[4] ?? "");
+
   if (table === undefined) return send(res, 404, { error: "missing" });
+
   return underTable(at, parts, table);
 }
 
 async function serve(options: Options = {}) {
   const backend = new TableBackend(options);
+
   const server = createServer((req, res) => {
     void route(backend, req, res);
   });
+
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   servers.push(() => new Promise((resolve) => server.close(() => resolve())));
+
   return { url: `http://127.0.0.1:${(server.address() as AddressInfo).port}` };
 }
 
 async function runAgainst(options: Options, scope: { a: Record<string, string>; b: Record<string, string> }) {
   const backend = await serve(options);
+
   return run({
     baseUrl: backend.url,
     nonce: "n1",
@@ -320,7 +360,7 @@ const breaches = (result: Awaited<ReturnType<typeof run>>) =>
 
 describe("the owner's parent under another tenant's root", () => {
   it("reaching the other tenant's own parent of the same slug is unresolved, not a breach", async () => {
-    /* What alpha names its scaffolding table under the fixed nonce: the other tenant holds its own. */
+    // What alpha names its scaffolding table under the fixed nonce: the other tenant holds its own.
     const result = await runAgainst({ existing: { b: ["Quarterly Report 0 n1"] } }, { a: {}, b: {} });
     expect(result.checksRun).toContain(CHECK);
     expect(breaches(result)).toEqual([]);
@@ -350,6 +390,7 @@ describe("the owner's parent under another tenant's root", () => {
 describe("a parent the API tester creates as scaffolding", () => {
   it("never takes a slug the entity's own cohort takes", async () => {
     const backend = await serve();
+
     const result = await run({
       baseUrl: backend.url,
       nonce: "n1",
@@ -358,9 +399,11 @@ describe("a parent the API tester creates as scaffolding", () => {
       seed: 1,
       spec: `${backend.url}/v1/openapi/spec`,
     });
+
     const creates = result.client.transcript.filter(
       (exchange) => exchange.purpose === "seed" && exchange.operationId === "table.create",
     );
+
     expect(creates.length).toBeGreaterThan(1);
     expect(creates.filter((exchange) => exchange.status === 409)).toEqual([]);
     expect(result.findings.filter((finding) => finding.check === "world.seed")).toEqual([]);
@@ -370,17 +413,20 @@ describe("a parent the API tester creates as scaffolding", () => {
 describe("a second principal's seeds", () => {
   it("differ from the first principal's in every string field", async () => {
     const result = await runAgainst({}, { a: {}, b: {} });
+
     const seeded = (principal: string) =>
       result.client.transcript.find(
         (exchange) =>
           exchange.purpose === "seed" && exchange.operationId === "table.create" && exchange.principal === principal,
       )?.requestBody as Record<string, unknown> | undefined;
+
     const alpha = seeded("alpha");
     const beta = seeded("beta");
     expect(alpha).toBeDefined();
     expect(beta).toBeDefined();
     const strings = Object.keys(alpha ?? {}).filter((key) => typeof alpha?.[key] === "string");
     expect(strings.length).toBeGreaterThan(0);
+
     for (const key of strings) expect(beta?.[key]).not.toBe(alpha?.[key]);
   }, 120_000);
 });

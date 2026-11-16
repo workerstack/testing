@@ -4,7 +4,7 @@ import { isNetworkError, NetworkError } from "../../errors/network.ts";
 import { failing, net } from "./__fixtures__/failures.ts";
 import { fetchSpecText, fetchWithNetworkRetry, type NetworkFetchOptions } from "./fetch.ts";
 
-/* ERR_INTERNET_DISCONNECTED reads as "offline", which no interface check can refine further. */
+// ERR_INTERNET_DISCONNECTED reads as "offline", which no interface check can refine further.
 const offline = (): Error =>
   Object.assign(new TypeError("fetch failed"), { cause: { code: "ERR_INTERNET_DISCONNECTED" } });
 
@@ -14,8 +14,11 @@ type Impl = (url: string | URL | Request, init?: RequestInit) => Promise<Respons
 function scripted(...script: Array<Response | Error>): ReturnType<typeof vi.fn<Impl>> {
   return vi.fn<Impl>(async () => {
     const next = script.shift();
+
     if (next === undefined) throw new Error("script ran out");
+
     if (next instanceof Error) throw next;
+
     return next;
   });
 }
@@ -24,6 +27,7 @@ function scripted(...script: Array<Response | Error>): ReturnType<typeof vi.fn<I
 function clock(): Required<Pick<NetworkFetchOptions, "now" | "sleep">> & { slept: number[] } {
   let at = 0;
   const slept: number[] = [];
+
   return {
     now: () => at,
     sleep: async (ms) => {
@@ -76,18 +80,20 @@ describe("fetchWithNetworkRetry, out of retries", () => {
   it("names the failure and how long it waited once the link never came back", async () => {
     const time = clock();
     const impl = scripted(offline(), offline(), offline());
+
     const error = await fetchWithNetworkRetry(
       "http://h.test/a",
       { method: "delete" },
       {
         ...time,
         fetchImpl: impl,
-        onWait: () => undefined,
+        onWait: () => {},
         probe: async () => false,
         retries: 2,
         waitMs: 2_000,
       },
     ).catch((caught: unknown) => caught);
+
     expect(error).toBeInstanceOf(NetworkError);
     const failed = error as NetworkError;
     expect([failed.kind, failed.attempts, failed.method, failed.url]).toEqual([
@@ -104,11 +110,13 @@ describe("fetchWithNetworkRetry, out of retries", () => {
   it("asks once more when the link comes back", async () => {
     const time = clock();
     const impl = scripted(offline(), new Response("back"));
+
     const res = await fetchWithNetworkRetry(
       "http://h.test/a",
       {},
       { ...time, fetchImpl: impl, probe: async () => true, retries: -3, waitMs: 5_000 },
     );
+
     expect(await res.text()).toBe("back");
     expect(impl).toHaveBeenCalledTimes(2);
   });
@@ -116,9 +124,11 @@ describe("fetchWithNetworkRetry, out of retries", () => {
   it("probes the origin with the same fetch, for a minute, when no probe or wait is given", async () => {
     const time = clock();
     const impl = scripted(offline(), new Response(null), offline());
+
     const error = await fetchWithNetworkRetry("http://h.test/a", {}, { ...time, fetchImpl: impl, retries: 0 }).catch(
       (caught: unknown) => caught,
     );
+
     expect(error).toBeInstanceOf(NetworkError);
   });
 });
@@ -147,6 +157,7 @@ const SPEC = "http://x.test/spec";
 /** No-op sleeps that move a virtual clock, for a wait budget that must run out. */
 function ticking(): Required<Pick<NetworkFetchOptions, "now" | "sleep">> {
   let at = 0;
+
   return {
     now: () => at,
     sleep: async (ms) => {
@@ -173,14 +184,19 @@ describe("fetchWithNetworkRetry, by failure kind", () => {
   it("retries a blip and then succeeds", async () => {
     let hits = 0;
     const sleeps: number[] = [];
+
     const blip = async (): Promise<Response> => {
       hits += 1;
+
       if (hits < 3) throw net("ECONNRESET");
+
       return new Response("ok", { status: 200 });
     };
+
     const sleep = async (ms: number): Promise<void> => {
       sleeps.push(ms);
     };
+
     const res = await fetchWithNetworkRetry(SPEC, { method: "GET" }, { fetchImpl: blip, retries: 4, sleep, waitMs: 0 });
     expect(await res.text()).toBe("ok");
     expect(hits).toBe(3);
@@ -202,22 +218,29 @@ describe("fetchWithNetworkRetry, by failure kind", () => {
 describe("fetchWithNetworkRetry, after the wait budget", () => {
   it("recovers after the wait budget probe succeeds", async () => {
     let hits = 0;
+
     const flaky = async (): Promise<Response> => {
       hits += 1;
+
       if (hits === 1) throw net("ENOTFOUND");
+
       return new Response("{}", { status: 200 });
     };
-    const options = { fetchImpl: flaky, probe: async () => true, retries: 0, sleep: async () => undefined };
+
+    const options = { fetchImpl: flaky, probe: async () => true, retries: 0, sleep: async () => {} };
     const res = await fetchWithNetworkRetry(SPEC, { method: "POST" }, { ...options, waitMs: 200 });
     expect(res.status).toBe(200);
   });
 
   it("passes AbortSignal when requestTimeoutMs is set", async () => {
     let sawSignal = false;
+
     const seeing = async (_url: string | URL | Request, init?: RequestInit): Promise<Response> => {
       sawSignal = init?.signal !== undefined;
+
       return new Response("ok");
     };
+
     const options = { fetchImpl: seeing, requestTimeoutMs: 1_000, retries: 0, waitMs: 0 };
     expect((await fetchWithNetworkRetry(SPEC, {}, options)).status).toBe(200);
     expect(sawSignal).toBe(true);
@@ -231,7 +254,7 @@ describe("fetchWithNetworkRetry, after the wait budget", () => {
 
   it("propagates a post-recovery failure", async () => {
     const options = { fetchImpl: failing("ECONNRESET"), probe: async () => true, retries: 0, waitMs: 100 };
-    await expect(fetchWithNetworkRetry(SPEC, {}, { ...options, sleep: async () => undefined })).rejects.toSatisfy(
+    await expect(fetchWithNetworkRetry(SPEC, {}, { ...options, sleep: async () => {} })).rejects.toSatisfy(
       (error: unknown) => isNetworkError(error) && error.kind === "reset",
     );
   });

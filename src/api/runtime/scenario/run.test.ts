@@ -53,11 +53,13 @@ describe("runScenarios", () => {
 
   it("skips a scenario that touches nothing in scope, and runs one whose step does", async () => {
     const support = scenario([{ operationId: "notes.list" }], { covers: [], id: "support" });
+
     const { input, sent } = stage(notesApi(notes()), {
       inScope: (id) => id === "notes.list",
       mode: "targeted",
       scenarios: [rename, support, scenario([{ operationId: "auth.token" }], { id: "unrelated" })],
     });
+
     await runScenarios(input);
     expect([...input.checksRun]).toEqual(["scenario.rename", "scenario.support"]);
     expect(sent.filter((request) => request.path === "/token")).toEqual([]);
@@ -70,6 +72,7 @@ describe("runScenarios", () => {
       },
       { scenarios: [rename] },
     );
+
     await runScenarios(input);
     expect(input.findings.findings.map(({ detail, summary, verdict }) => ({ detail, summary, verdict }))).toEqual([
       {
@@ -96,13 +99,16 @@ describe("runScenarios when the run stops", () => {
 
   it("grades what completed, and nothing after, when stopped mid-scenario", async () => {
     let checks = 0;
+
     const { input, sent } = stage(notesApi(notes()), {
       scenarios: [rename, scenario([{ operationId: "notes.list" }], { id: "later" })],
       stopped: () => {
         checks += 1;
+
         return checks > 3;
       },
     });
+
     await runScenarios(input);
     expect(sent).toHaveLength(2);
     expect(input.grades.evidence.get("notes.create")?.observation).toMatchObject({ value: "first" });
@@ -116,12 +122,15 @@ describe("runScenarios when the run stops", () => {
     let reads = 0;
     held.answers["GET /notes"] = () => {
       reads += 1;
+
       return { body: { total: reads }, status: 200 };
     };
+
     const poll = scenario(
       [{ assert: { atLeast: 2, from: "$.total" }, operationId: "notes.list", poll: { within: "5s" } }],
       { covers: ["notes.list"] },
     );
+
     const { input } = stage(notesApi(held), { scenarios: [poll], sleep: undefined });
     const running = runScenarios(input);
     await vi.advanceTimersByTimeAsync(500);
@@ -146,7 +155,7 @@ describe("runScenarios: a principal BLOCKED at sign-in", () => {
   });
 });
 
-/* A profile that leaves out the scenario named "consent" and runs every other. */
+// A profile that leaves out the scenario named "consent" and runs every other.
 const skipsConsent = (of: { id: string }) => (of.id === "consent" ? 'external "consent" is kind "device"' : null);
 
 describe("runScenarios: a scenario the profile leaves out", () => {
@@ -155,6 +164,7 @@ describe("runScenarios: a scenario the profile leaves out", () => {
       covers: ["notes.list"],
       id: "consent",
     });
+
     const { input, sent } = stage(notesApi(notes()), { scenarios: [consent, rename], skipped: skipsConsent });
     await runScenarios(input);
     expect(sent.map((request) => `${request.method} ${request.path}`)).toEqual([
@@ -177,9 +187,10 @@ describe("runScenarios: a scenario the profile leaves out", () => {
   });
 });
 
-/* The reauth flow over the accounts API, its port, and the scenario's steps in place of the default ones. */
+// The reauth flow over the accounts API, its port, and the scenario's steps in place of the default ones.
 function selfDelete(steps: ScenarioStep[], answers: Parameters<typeof accountsApi>[0] = {}) {
   const accounts = accountsPort();
+
   const { input } = stage(accountsApi(answers), {
     accounts: accounts.port,
     hooks: { resolveOutOfBand: async ({ address }) => `mailed-to-${address}` },
@@ -187,6 +198,7 @@ function selfDelete(steps: ScenarioStep[], answers: Parameters<typeof accountsAp
     outOfBand: { attempts: 1 },
     scenarios: [scenario(steps, { covers: ["auth.deleteAccount"] })],
   });
+
   return { ...accounts, input };
 }
 
@@ -204,6 +216,7 @@ describe("runScenarios: a self delete sent through the scenario's session", () =
       [signUp, refresh, { ...deleteThroughSession, assert: { equals: "yes", from: "$.gone" } }],
       { "DELETE /account": { body: { gone: "no" }, status: 200 } },
     );
+
     await runScenarios(input);
     expect(input.findings.findings.map(({ verdict }) => verdict)).toEqual(["BACKEND_BUG"]);
     expect(deleted.map(({ entry }) => entry.n)).toEqual([1]);
@@ -213,6 +226,7 @@ describe("runScenarios: a self delete sent through the scenario's session", () =
     const { deleted, input } = selfDelete([signUp, refresh, { ...deleteThroughSession, expect: [403] }], {
       "DELETE /account": { status: 403 },
     });
+
     await runScenarios(input);
     expect(deleted).toEqual([]);
   });
@@ -222,6 +236,7 @@ describe("runScenarios: a self delete sent through the scenario's session", () =
       signUp,
       { ...deleteThroughSession, headers: { authorization: "Bearer {org}" } },
     ]);
+
     await runScenarios(input);
     expect(deleted).toEqual([]);
   });
@@ -255,10 +270,13 @@ describe("runScenarios: which sign-up a session descends from", () => {
   it("settles the account of the sign-up answer that passed, when the sign-up was polled", async () => {
     let answers = 0;
     const polled = { ...signUp, assert: { equals: "t2", from: "$.token" }, poll: { everyMs: 1, within: "5s" } };
+
     const register = () => {
       answers += 1;
+
       return { body: { refresh: `r${answers}`, token: `t${answers}` }, status: 201 };
     };
+
     const { deleted, input } = selfDelete([polled, refresh, deleteThroughSession], { "POST /register": register });
     await runScenarios(input);
     expect(answers).toBe(2);
@@ -266,13 +284,14 @@ describe("runScenarios: which sign-up a session descends from", () => {
   });
 });
 
-/* A verify that sends only the mailed token, and saves the session it answers. */
+// A verify that sends only the mailed token, and saves the session it answers.
 const verify: ScenarioStep = {
   anonymous: true,
   body: { refresh: "{verifyToken}" },
   operationId: "auth.refresh",
   saveAs: { rotated: "$.token" },
 };
+
 const mailed = (address: string): ScenarioStep => ({ outOfBand: { address, as: "verifyToken", kind: "verify" } });
 
 describe("runScenarios: lineage through a value delivered outside HTTP", () => {
@@ -297,7 +316,7 @@ describe("runScenarios: lineage through a value delivered outside HTTP", () => {
   });
 });
 
-/* Each kept account's entry number, and the scenario that kept it. */
+// Each kept account's entry number, and the scenario that kept it.
 const keptBy = (kept: ReturnType<typeof accountsPort>["kept"]) => kept.map((one) => [one.entry.n, one.scenario]);
 
 describe("runScenarios: an account a scenario keeps for a later run", () => {

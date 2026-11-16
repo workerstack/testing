@@ -1,0 +1,5 @@
+{
+  // The browser tests' support code under the strict flags.
+  "exclude": ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx", "**/*.fixture.tsx", "**/*.config.ts"],
+  "extends": ["./tsconfig.json", "@workerstack/repo/tsconfig/strict"]
+}

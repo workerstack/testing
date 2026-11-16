@@ -5,7 +5,7 @@ import type { ProgressHandler, ProgressInflight, ProgressLast, ProgressSnapshot 
 type Phase = ProgressSnapshot["phase"];
 
 /** What a tick moves the run to. Each field left out keeps what the run was already on. */
-export interface Tick {
+export type Tick = {
   phase: Phase;
   entity?: string | undefined;
   entityIndex?: number | undefined;
@@ -13,14 +13,14 @@ export interface Tick {
   check?: string | undefined;
   message?: string | undefined;
   requests?: number | undefined;
-}
+};
 
-interface SnapshotExtra {
+type SnapshotExtra = {
   message?: string;
   requests?: number;
   inflight?: ProgressInflight;
   omitInflight?: boolean;
-}
+};
 
 /**
  * Where the run is, for the live status: the phase, entity and check it is on, the last answer,
@@ -56,9 +56,13 @@ export class RunProgress {
 
   tick(partial: Tick): void {
     this.phase = partial.phase;
+
     if (partial.entity !== undefined) this.entity = partial.entity;
+
     if (partial.entityIndex !== undefined) this.entityIndex = partial.entityIndex;
+
     if (partial.entityTotal !== undefined) this.entityTotal = partial.entityTotal;
+
     if (partial.check !== undefined) this.check = partial.check;
     this.publish({
       ...(partial.message === undefined ? {} : { message: partial.message }),
@@ -81,6 +85,7 @@ export class RunProgress {
   announce(): void {
     this.publish({ omitInflight: true });
     const remaining = this.oldestInflight();
+
     if (remaining !== undefined) this.publish({ inflight: remaining });
   }
 
@@ -106,32 +111,43 @@ export class RunProgress {
       phase: this.phase,
       requests: extra.requests ?? this.requests,
     };
+
     if (this.check !== undefined) snap.check = this.check;
+
     if (this.entity !== undefined) snap.entity = this.entity;
+
     if (this.entityIndex !== undefined) snap.entityIndex = this.entityIndex;
+
     if (this.entityTotal !== undefined) snap.entityTotal = this.entityTotal;
+
     if (extra.message !== undefined) snap.message = extra.message;
+
     if (this.last !== undefined) snap.last = this.last;
+
     if (extra.omitInflight !== true) {
       const live = extra.inflight ?? this.oldestInflight();
+
       if (live !== undefined) snap.inflight = live;
     }
+
     return snap;
   }
 
   private oldestInflight(): ProgressInflight | undefined {
     let oldest: RequestStart | undefined;
-    for (const probe of this.inflight) {
-      if (oldest === undefined || probe.at < oldest.at) oldest = probe;
-    }
+
+    for (const probe of this.inflight) if (oldest === undefined || probe.at < oldest.at) oldest = probe;
+
     return oldest === undefined ? undefined : displayed(oldest);
   }
 }
 
 function displayed(probe: RequestStart): ProgressInflight {
   const shown: ProgressInflight = { at: probe.at, method: probe.method, url: probe.url };
+
   if (probe.requestId !== "") shown.requestId = probe.requestId;
   shown.requestBytes = probe.requestBytes;
+
   return shown;
 }
 

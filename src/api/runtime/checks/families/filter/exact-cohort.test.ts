@@ -10,10 +10,8 @@ import { filterContainsMembership } from "./filter-contains-membership.ts";
 import { filterIsNullSelectsNulls } from "./filter-is-null-selects-nulls.ts";
 import { numericComparisonIsNumeric } from "./filter-numeric-comparison-is-numeric.ts";
 
-/*
- * A live store holds rows the API tester never seeded. A filter check that knows the cohort judges only the
- * cohort's identities: an extra match outside it is no defect, and must not hide one inside it.
- */
+// A live store holds rows the API tester never seeded. A filter check that knows the cohort judges only the
+// cohort's identities: an extra match outside it is no defect, and must not hide one inside it.
 
 const TEXT_COMPARE = "compared as text rather than as a number";
 
@@ -49,6 +47,7 @@ function listSpec(): OpenApiDocument {
     required: ["widgets"],
     type: "object",
   };
+
   return {
     info: { title: "numeric-filter", version: "1" },
     openapi: "3.1.0",
@@ -85,60 +84,77 @@ function listSpec(): OpenApiDocument {
 
 type CompareMode = "numeric" | "lexical";
 
-interface StoreOptions {
+type StoreOptions = {
   compare: CompareMode;
   dropKnownMatch?: boolean;
   includeKnownNonMatch?: boolean;
   store: Record_[];
-}
+};
 
 function matchesFilter(row: Record_, filter: string, compare: CompareMode): boolean {
   const isNull = /^([^.]+)\.is\.(null|notnull)$/.exec(filter);
+
   if (isNull !== null) {
     const field = isNull[1] as string;
     const isNullValue = row[field] === null || row[field] === undefined;
+
     return isNull[2] === "null" ? isNullValue : !isNullValue;
   }
+
   const contains = /^([^.]+)\.contains\.(.+)$/.exec(filter);
+
   if (contains !== null) {
     const value = row[contains[1] as string];
+
     return Array.isArray(value) && value.some((item) => String(item) === contains[2]);
   }
+
   const gt = /^([^.]+)\.gt\.(.+)$/.exec(filter);
+
   if (gt !== null) {
     const threshold = gt[2] as string;
     const value = row[gt[1] as string];
+
     if (typeof value !== "number") return false;
+
     return compare === "lexical" ? String(value) > threshold : value > Number(threshold);
   }
+
   return true;
 }
 
 function filterStore(opts: StoreOptions, filter: string | null): Record_[] {
   const known = new Set(COHORT.map((row) => String(row["id"])));
+
   let rows =
     filter === null || filter === ""
       ? [...opts.store]
       : opts.store.filter((row) => matchesFilter(row, filter, opts.compare));
+
   if (opts.dropKnownMatch === true) {
     const victim = rows.find((row) => known.has(String(row["id"])));
+
     if (victim !== undefined) rows = rows.filter((row) => row["id"] !== victim["id"]);
   }
+
   if (opts.includeKnownNonMatch === true) {
     const included = new Set(rows.filter((row) => known.has(String(row["id"]))).map((row) => String(row["id"])));
     const extra = COHORT.find((row) => !included.has(String(row["id"])));
+
     if (extra !== undefined) rows = [...rows, extra];
   }
+
   return rows;
 }
 
 /** The widget listing over `opts`, paged; any other route is a 404. */
 function listing(opts: StoreOptions): Serve {
   return (url, method) => {
-    if (method !== "GET" || url.pathname !== "/v1/widgets") return undefined;
+    if (method !== "GET" || url.pathname !== "/v1/widgets") return;
     const rows = filterStore(opts, url.searchParams.get("filter"));
     const limit = Number(url.searchParams.get("limit") ?? 20);
     const page = Number(url.searchParams.get("page") ?? 1);
+
     return { widgets: rows.slice((page - 1) * limit, page * limit) };
   };
 }
@@ -148,8 +164,10 @@ async function judge(check: Check, opts: StoreOptions): Promise<{ findings: Find
     fields: { collectionKey: "widgets", identity: "id", records: COHORT },
     serve: listing(opts),
   });
+
   expect(check.plan(staged.ctx).ok).toBe(true);
   await runCheck(check, staged.ctx);
+
   return staged;
 }
 

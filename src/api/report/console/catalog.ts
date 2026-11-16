@@ -12,14 +12,14 @@ import { listOperation, sortedEntities } from "./describe.ts";
 type Caps = EffectiveQueryCapabilities;
 
 /** What config says about query capabilities, over and above the document. */
-export interface CatalogConfig {
+export type CatalogConfig = {
   query?: QueryCapabilities;
   entities?: Record<string, EntityConfig>;
   hooks?: Pick<NonNullable<ApiConfig["hooks"]>, "resolveQueryCapabilities">;
-}
+};
 
 /** One listable entity's query capabilities, where they came from, and the checks they let run. */
-export interface QueryCatalog {
+export type QueryCatalog = {
   entity: string;
   source: Caps["source"];
   filterable: Caps["filterable"];
@@ -44,7 +44,7 @@ export interface QueryCatalog {
   grammar?: string;
   /** A declared sort template, described. */
   sortGrammar?: string;
-}
+};
 
 /** The capabilities a list was given by name in config rather than declared inline. */
 function harvested(caps: Caps): string[] {
@@ -79,6 +79,7 @@ function catalogRow(
   { entity, hook }: Pick<QueryCatalog, "entity" | "hook">,
 ): QueryCatalog {
   const { filterGrammar, sortSpec } = listOp.conventions;
+
   return {
     aliases: caps.aliases,
     checks: catalogCheckPreview(caps, listOp, caps.source),
@@ -104,20 +105,24 @@ export function entityQueryCatalogs(
   const unknownEntities = Object.keys(config?.entities ?? {}).filter((name) => !model.entities.has(name));
   const hook = config?.hooks?.resolveQueryCapabilities !== undefined;
   const catalogs: QueryCatalog[] = [];
+
   for (const entity of sortedEntities(model)) {
     if (entity.list === undefined) continue;
     const listOp = listOperation(model, entity.list);
     const entityQuery = config?.entities?.[entity.name]?.query;
+
     const sources = {
       tag: listOp.query,
       ...(config?.query === undefined ? {} : { global: config.query }),
       ...(entityQuery === undefined ? {} : { entity: entityQuery }),
     };
+
     const merged = mergeQueryCapabilities({ ...sources, itemSchema: listOp.collection?.itemSchema ?? null });
-    /* What the run sends: only what a declared parameter can carry. A configured hook is asked at run
-     * time, and whatever it answers is no guess. */
+    // What the run sends: only what a declared parameter can carry. A configured hook is asked at run
+    // time, and whatever it answers is no guess.
     const caps = sendableCapabilities(merged, listOp, filterIsGuess(sources, { ...merged, hook })).capabilities;
     catalogs.push(catalogRow(listOp, caps, { entity: entity.name, hook }));
   }
+
   return { catalogs, unknownEntities };
 }

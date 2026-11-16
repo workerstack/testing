@@ -24,10 +24,12 @@ export async function failed(
   wire: Wire,
 ): Promise<unknown> {
   const kind = networkKindOf(error, wire.network?.interfaces);
+
   if (kind === null) return error;
   const { request, probe } = sent;
   const url = sent.url.toString();
   const message = `${request.method} ${url} failed (${kind}: ${describeNetworkKind(kind)})`;
+
   const exchange: Exchange = {
     at: Date.now(),
     durationMs: Math.round(performance.now() - sent.started),
@@ -45,15 +47,19 @@ export async function failed(
     url,
     ...stamped(sent),
   };
+
   await wire.deliver(exchange, request.resolved?.entity ?? undefined);
+
   return new NetworkError({ attempts: sent.attempt + 1, cause: error, kind, message, method: request.method, url });
 }
 
-/* What failed, refined to offline when this machine has no usable interface; `null` when it was not the network. */
+// What failed, refined to offline when this machine has no usable interface; `null` when it was not the network.
 function networkKindOf(error: unknown, interfaces: NetworkClientOptions["interfaces"]): NetworkKind | null {
   const read = interfaces ?? networkInterfaces;
   const raw = classifyNetworkError(error);
+
   if (raw !== null) return refineNetworkKind(raw, read);
+
   return hasUsableInterface(read) ? null : "offline";
 }
 
@@ -66,6 +72,7 @@ export async function answered(
   const { request, headers, body, url } = sent;
   const { response, bodyBytes, digest } = landed;
   const responseHeaders = recordResponseHeaders(response.headers);
+
   const exchange: Exchange = {
     at: landed.at,
     durationMs: Math.round(performance.now() - landed.started),
@@ -87,33 +94,39 @@ export async function answered(
     ...traveled(landed, url),
     ...overLimit(response.status, responseHeaders, wire.network),
   };
+
   registerSecrets(wire, exchange, request.options.context?.secrets ?? []);
   await wire.deliver(exchange, request.resolved?.entity ?? undefined);
+
   return Object.freeze(exchange);
 }
 
-/* The credentials a recipe will read from this answer, a form's included, scrubbed before anything records it. */
+// The credentials a recipe will read from this answer, a form's included, scrubbed before anything records it.
 function registerSecrets(wire: Wire, exchange: Exchange, addresses: readonly string[]): void {
   const headers = exchange.responseHeaders;
+
   const source = {
     body: answerBody({ body: exchange.responseBody, headers }),
     cookies: {},
     headers,
     readJson: readPath,
   };
+
   for (const address of addresses) {
     const value = readSaveAs(address, source);
+
     if (typeof value === "string") wire.redactor.registerSecret(value);
   }
 }
 
-/* A body that will be stored by reference is hashed once, from the text that was sent. */
+// A body that will be stored by reference is hashed once, from the text that was sent.
 function requestDigestOf(body: EncodedBody): Pick<Exchange, "requestDigest"> {
   if (body.text === undefined || body.bytes <= INLINE_BODY_LIMIT) return {};
+
   return { requestDigest: { bytes: body.bytes, sha256: sha256Hex(Buffer.from(body.text)) } };
 }
 
-/* A 429 or 503 asking for a longer wait than the API tester accepts is marked before anything records it. */
+// A 429 or 503 asking for a longer wait than the API tester accepts is marked before anything records it.
 function overLimit(
   status: number,
   headers: Record<string, string>,
@@ -121,6 +134,7 @@ function overLimit(
 ): Partial<Exchange> {
   const limitMs = network?.maxRetryAfterMs ?? DEFAULT_MAX_RETRY_AFTER_MS;
   const exceeded = retryAfterVerdict({ header: headerValue(headers, "retry-after"), limitMs, status });
+
   return exceeded === undefined ? {} : { retryAfterExceeded: exceeded };
 }
 
@@ -131,10 +145,11 @@ function paced(pacing: Pacing | undefined, room: boolean | undefined): Partial<E
   };
 }
 
-/* The redirects it followed, where it landed when that is elsewhere, and the cookies it was handed. */
+// The redirects it followed, where it landed when that is elsewhere, and the cookies it was handed.
 function traveled(landed: Timed, url: URL): Partial<Exchange> {
   const cookies = landed.jar.snapshot();
   const landing = landed.landing.toString();
+
   return {
     ...(landed.hops.length === 0 ? {} : { redirects: landed.hops }),
     ...(landing === url.toString() ? {} : { finalUrl: landing }),
@@ -147,8 +162,9 @@ function stamped({ request, placement }: Sent): Partial<Exchange> {
   const { resolved, operationId, options } = request;
   const { principal, schemes } = placement;
   const context = options.context ?? {};
+
   return {
-    /* Only a request meant to be refused is a probe; a dedicated credential alone is ordinary traffic. */
+    // Only a request meant to be refused is a probe; a dedicated credential alone is ordinary traffic.
     ...(options.probe === true ? { probe: true as const } : {}),
     ...(operationId === undefined ? {} : { operationId }),
     ...(resolved === null ? {} : { template: resolved.template }),

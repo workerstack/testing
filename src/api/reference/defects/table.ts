@@ -17,7 +17,7 @@ import { QUERY_DEFECTS } from "./query.ts";
 import { RECORD_DEFECTS } from "./records.ts";
 import { SECURITY_DEFECTS } from "./security.ts";
 
-/* The families in the table's order: every reader of the names (the matrix, the docs, the goldens) sees this order. */
+// The families in the table's order: every reader of the names (the matrix, the docs, the goldens) sees this order.
 export const DEFECTS: Readonly<
   typeof CORE_DEFECTS &
     typeof COMPOSITION_DEFECTS &

@@ -6,6 +6,7 @@ import type { FilterGrammarSpec } from "./filter-types.ts";
 
 function describeAnd(and: FilterGrammarSpec["and"]): string {
   if (typeof and === "string") return and;
+
   return "group" in and ? and.group : `join "${and.join}"`;
 }
 
@@ -14,8 +15,10 @@ export function describeFilterGrammar(spec: FilterGrammarSpec): string {
   const ops = Object.entries(spec.ops)
     .map(([op, token]) => `${op}=${token}`)
     .join(" ");
+
   const or = typeof spec.or === "string" ? spec.or : spec.or.group;
   const unwritable = FILTER_OPS.filter((op) => !canWriteOp(spec, op));
+
   return [
     `template ${spec.term}`,
     `ops ${ops}`,

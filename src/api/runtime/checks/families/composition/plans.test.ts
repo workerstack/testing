@@ -5,17 +5,17 @@ import { NOTES, PARAMS, queryDoc, stage } from "./__fixtures__/query-api.ts";
 import { overlapPlan, projectionBeside, projectionPlan, selectionPlan, sortFieldBeside, subsetPlan } from "./plans.ts";
 import { queryAxesCompose } from "./query-axes-compose.ts";
 
-/* The context of a check staged against `rows` under the tag `xQuery`. */
+// The context of a check staged against `rows` under the tag `xQuery`.
 const contextOf = (
   xQuery: Record<string, unknown> = {},
   rows: readonly Record_[] = NOTES,
   params: readonly string[] = PARAMS,
 ) => stage(queryAxesCompose, { doc: queryDoc(xQuery, params), rows }).ctx;
 
-/* A grammar the API tester cannot read: a bare string `filter` parameter, nothing declared. */
+// A grammar the API tester cannot read: a bare string `filter` parameter, nothing declared.
 const UNREADABLE = { grammar: undefined };
 
-/* Groups of one, of all, of no searchable overlap, and finally one that overlaps: status "s2". */
+// Groups of one, of all, of no searchable overlap, and finally one that overlaps: status "s2".
 const OVERLAP_ROWS: readonly Record_[] = [
   { id: "a8", rank: 1, status: "solo", title: "q" },
   { id: "a1", rank: 1, status: "s1", title: "x" },
@@ -43,6 +43,7 @@ describe("subsetPlan", () => {
       { id: "r4", score: 5, status: "same" },
       { id: "r5", score: 7, status: "same" },
     ];
+
     const plan = subsetPlan(contextOf({ filterable: ["id", "status", "score"] }, rows));
     expect(plan).toEqual({ ok: true, value: { field: "score", target: rows[2], term: { filter: "score.eq.5" } } });
   });

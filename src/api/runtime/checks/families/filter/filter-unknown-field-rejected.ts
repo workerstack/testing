@@ -11,20 +11,19 @@ import { ids, list } from "../../sets/list.ts";
 export const unknownFilterRejected: Check<{ unknownField: Record<string, string> }> = defineCheck<{
   unknownField: Record<string, string>;
 }>({
-  /*
-   * Deliberately narrower than `filterable`: this asserts that a *filter expression* naming a
-   * field the document does not declare is rejected rather than dropped.
-   *
-   * Under one-parameter-per-field equality there is no expression language, so an unrecognized
-   * parameter is just an unrecognized query parameter — and ignoring those is conventional,
-   * widely relied upon, and not a defect. Reporting it as one would fire against a large share
-   * of real APIs, which is how a tool earns a reputation for crying wolf.
-   */
+  // Deliberately narrower than `filterable`: this asserts that a *filter expression* naming a
+  // field the document does not declare is rejected rather than dropped.
+  //
+  // Under one-parameter-per-field equality there is no expression language, so an unrecognized
+  // parameter is just an unrecognized query parameter — and ignoring those is conventional,
+  // widely relied upon, and not a defect. Reporting it as one would fire against a large share
+  // of real APIs, which is how a tool earns a reputation for crying wolf.
   plan: (ctx) => {
     const unknownField =
       conv(ctx).filter === undefined
         ? null
         : filterTerm(conv(ctx), { field: "testing_no_such_field_xyz", op: "eq", value: 1 });
+
     return unknownField === null ? cannot() : ready({ unknownField });
   },
   id: "filter.unknown-field-rejected",
@@ -42,18 +41,20 @@ export const unknownFilterRejected: Check<{ unknownField: Record<string, string>
         evidence: [result.exchange],
       });
     }
+
     const refused = judgeRefusal(ctx, this.id, ["validation"], result.exchange);
+
     if (refused !== null) return refused;
 
     const same = ids(result.items, ctx.identity).join(",") === ids(baseline.items, ctx.identity).join(",");
+
     return ctx.findings.backend(this.id, ctx.entityName, {
       summary: "unknown filter field is silently ignored",
       detail:
-        `filtering on an undeclared field returned ${result.exchange.status} with ` +
-        `${result.items.length} of ${baseline.items.length} records` +
-        (same ? " — identical to the unfiltered result, so the filter was dropped entirely" : "") +
-        ". A filter the backend does not understand must be rejected, never ignored: silently " +
-        "ignoring it means every caller's filter may be doing nothing.",
+        `filtering on an undeclared field returned ${result.exchange.status} with ${result.items.length} of ${baseline.items.length} records${
+          same ? " — identical to the unfiltered result, so the filter was dropped entirely" : ""
+        }. A filter the backend does not understand must be rejected, never ignored: silently ` +
+        `ignoring it means every caller's filter may be doing nothing.`,
       evidence: [baseline.exchange, result.exchange],
     });
   },

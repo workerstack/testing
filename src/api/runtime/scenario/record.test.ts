@@ -9,16 +9,17 @@ import type { ScenarioRun } from "./types.ts";
 import { wantsOf } from "./want.ts";
 
 /** How a step was sent: its method, and the run it belongs to (a fresh one over the notes API by default). */
-interface Sending {
+type Sending = {
   method?: string;
   run?: ScenarioRun;
-}
+};
 
 /** Records `step` as passed on `answer` to `method`, and returns the run. */
 function passed(step: ScenarioRequestStep, answer: Answer, { method = "GET", run = runOf(notes()) }: Sending = {}) {
   const answered = exchange(method, "/notes", answer);
   const stepOp = "operationId" in step ? step.operationId : undefined;
   record(run, { exchange: answered, step, stepOp, wants: wantsOf(step, run.scope) });
+
   return { answered, run };
 }
 
@@ -31,6 +32,7 @@ describe("record: saveAs", () => {
       },
       { body: { items: [{ id: "n1" }], name: "Ada", on: true, total: 2 }, headers: { "x-tag": "t" }, status: 200 },
     );
+
     expect(run.scope).toMatchObject({ count: "2", first: '{"id":"n1"}', name: "Ada", on: "true", tag: "t" });
     expect([...run.objects.entries()]).toEqual([
       ["count", 2],
@@ -59,10 +61,12 @@ describe("record: saveAs", () => {
 describe("record: saveClaimsFrom", () => {
   it("reads claims from a token in the response or already in scope", () => {
     const token = jwt({ org: "o9", sub: "u1" });
+
     const { run } = passed(
       { operationId: "auth.token", saveClaimsFrom: { bind: { user: "$.sub" }, token: "$.token" } },
       { body: { token }, status: 200 },
     );
+
     expect(run.scope["user"]).toBe("u1");
     run.scope["saved"] = token;
     passed(
@@ -107,6 +111,7 @@ describe("record: observations", () => {
     const created = exchange("POST", "/notes", { status: 201 });
     run.calls.set("notes.create", created);
     run.calls.set("notes.rename", created);
+
     const { answered } = passed(
       {
         assert: [
@@ -118,6 +123,7 @@ describe("record: observations", () => {
       { body: { items: [{ text: "Ada" }] }, status: 200 },
       { run },
     );
+
     expect(run.observations.get("notes.create")).toEqual({ path: "$.items[*].text", seq: answered.seq, value: "Ad" });
     expect(run.observations.get("notes.rename")).toEqual({
       absent: true,

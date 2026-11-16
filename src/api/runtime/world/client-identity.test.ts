@@ -13,7 +13,7 @@ import {
   takenFor,
 } from "./client-identity.ts";
 
-/* A create whose client-chosen identity is drawn and, on a 409, drawn again. */
+// A create whose client-chosen identity is drawn and, on a 409, drawn again.
 
 const SCHEMA = { properties: { id: { maximum: 999, minimum: 1, type: "integer" }, name: { type: "string" } } };
 
@@ -24,13 +24,16 @@ const at = (taken: Set<string>, identity: string | null = "id"): ClientIdentity 
   token: "t",
 });
 
-/* Answers each create with the next status, and keeps every body it was sent. */
+// Answers each create with the next status, and keeps every body it was sent.
 function server(statuses: number[]) {
   const sent: Array<Record<string, unknown>> = [];
+
   const send = async (body: Record<string, unknown>): Promise<Exchange> => {
     sent.push(body);
+
     return exchange("POST", "/tables", { body: { id: body["id"] }, status: statuses.shift() ?? 409 });
   };
+
   return { send, sent };
 }
 
@@ -84,7 +87,7 @@ describe("createWithClientId", () => {
   });
 });
 
-/* A create filed under `entity`. */
+// A create filed under `entity`.
 const create = (entity: string | null): OperationModel => ({ entity }) as OperationModel;
 
 describe("takenFor", () => {

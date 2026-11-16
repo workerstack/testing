@@ -10,14 +10,12 @@ import { EXIT } from "../runtime/exit.ts";
 import { invokedDirectly, main, start } from "./main.ts";
 import { bufferWriter } from "./writer.ts";
 
-/*
- * The command line's front door: what it cannot parse it refuses with the help, help it prints,
- * and each command is handed what it reaches the world through.
- */
+// The command line's front door: what it cannot parse it refuses with the help, help it prints,
+// and each command is handed what it reaches the world through.
 
 const quietServe = {
-  factoryFor: async () => async () => ({ close: async () => undefined, url: "http://127.0.0.1:1" }),
-  stopped: async () => undefined,
+  factoryFor: async () => async () => ({ close: async () => {}, url: "http://127.0.0.1:1" }),
+  stopped: async () => {},
 };
 
 describe("main", () => {
@@ -81,10 +79,12 @@ describe("start", () => {
   it("reports an error no command expected in one line, and fails", async () => {
     process.argv = ["node", "testing", "serve"];
     const writer = bufferWriter();
+
     const broken = {
       factoryFor: async () => Promise.reject(new Error("no ports left")),
-      stopped: async () => undefined,
+      stopped: async () => {},
     };
+
     await start({ serve: broken, writer });
     expect(writer.text()).toBe("testing api: no ports left\n");
     expect(process.exitCode).toBe(EXIT.failed);
@@ -93,11 +93,13 @@ describe("start", () => {
   it("exits 2 on a usage error a command threw, saying it once", async () => {
     process.argv = ["node", "testing", "serve", "--backend", "postgres"];
     const writer = bufferWriter();
+
     const refused = {
       factoryFor: async () =>
         Promise.reject(new UsageError("testing api: --backend postgres needs the postgres package")),
-      stopped: async () => undefined,
+      stopped: async () => {},
     };
+
     await start({ serve: refused, writer });
     expect(writer.text()).toBe("testing api: --backend postgres needs the postgres package\n");
     expect(process.exitCode).toBe(EXIT.usage);
@@ -108,11 +110,13 @@ describe("start", () => {
     const written: string[] = [];
     const write = process.stderr.write;
     process.stderr.write = ((chunk: string) => written.push(chunk) > 0) as typeof process.stderr.write;
+
     try {
       await start();
     } finally {
       process.stderr.write = write;
     }
+
     expect(written.join("")).toMatch(/^testing api: unknown command/);
   });
 });
@@ -149,6 +153,7 @@ describe("start and a document whose refs point at nothing", () => {
   it("reports a document whose refs point at nothing, rather than failing on it", async () => {
     const spec = join(mkdtempSync(join(tmpdir(), "testing-main-")), "dangling.json");
     const fee = { $ref: "#/components/schemas/AppFeeAllocation" };
+
     const doc = {
       components: { schemas: { Order: { properties: { fee }, type: "object" } } },
       info: { title: "t", version: "1" },
@@ -164,6 +169,7 @@ describe("start and a document whose refs point at nothing", () => {
         },
       },
     };
+
     writeFileSync(spec, JSON.stringify(doc));
     process.argv = ["node", "testing", "doctor", "--spec", spec];
     const writer = bufferWriter();

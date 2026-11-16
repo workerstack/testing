@@ -33,6 +33,7 @@ describe("isBinaryMediaType", () => {
       "application/vnd.ms-officedocument",
       "Image/JPEG; q=1",
     ];
+
     expect(binary.filter((type) => !isBinaryMediaType(type))).toEqual([]);
   });
 

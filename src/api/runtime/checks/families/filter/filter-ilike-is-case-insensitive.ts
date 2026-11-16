@@ -27,18 +27,24 @@ export const filterIlikeIsCaseInsensitive: Check<{
 }>({
   plan: (ctx) => {
     const unverified = storedFieldsUnknown(ctx);
+
     if (unverified !== undefined) return unverified;
     const field = fieldsAllowing(ctx, "ilike").find((item) => canUseOp(ctx, item, "like"));
+
     if (field === undefined) return cannot();
+
     const sample = ctx.records
       .map((row) => row[field.field])
       .find((value): value is string => typeof value === "string" && /[A-Za-z]/.test(value));
+
     if (sample === undefined) return cannot(`a cohort value of "${field.field}" holding a letter to case-flip`);
     const flipped = sample.replace(/[A-Za-z]/, (ch) => (ch === ch.toLowerCase() ? ch.toUpperCase() : ch.toLowerCase()));
     const conventions = conv(ctx);
     const likeTerm = filterTerm(conventions, { field: field.field, op: "like", value: flipped });
     const ilikeTerm = filterTerm(conventions, { field: field.field, op: "ilike", value: flipped });
+
     if (likeTerm === null || ilikeTerm === null) return cannot("a filter grammar that can express like and ilike");
+
     return ready({ field, flipped, ilikeTerm, likeTerm, sample });
   },
   dependsOn: ["query.filter-selects-from-whole-set", ...FOUNDATIONS, "filter.like-metacharacters-escaped"],
@@ -50,18 +56,22 @@ export const filterIlikeIsCaseInsensitive: Check<{
     const limit = pageSize(ctx);
     const like = await listAll(ctx, { ...q(ctx, { limit }), ...likeTerm });
     const ilike = await listAll(ctx, { ...q(ctx, { limit }), ...ilikeTerm });
-    if (like.exchange.status >= 400 || ilike.exchange.status >= 400) {
+
+    if (like.exchange.status >= 400 || ilike.exchange.status >= 400)
       return ctx.findings.unresolved(this.id, ctx.entityName, "like/ilike probe was rejected");
-    }
-    if (!like.complete || !ilike.complete) {
+
+    if (!like.complete || !ilike.complete)
       return ctx.findings.unresolved(this.id, ctx.entityName, "the sets are larger than a read covers");
-    }
+
     const likeHits = ids(like.items, ctx.identity);
     const ilikeHits = ids(ilike.items, ctx.identity);
+
     const original = ctx.records
       .filter((row) => row[field.field] === sample)
       .flatMap((row) => idOf(row, ctx.identity) ?? []);
+
     if (original.some((id) => ilikeHits.includes(id)) && !original.some((id) => likeHits.includes(id))) return ASSERTED;
+
     if (original.some((id) => ilikeHits.includes(id)) && original.some((id) => likeHits.includes(id))) {
       return ctx.findings.unresolved(
         this.id,
@@ -69,6 +79,7 @@ export const filterIlikeIsCaseInsensitive: Check<{
         "like also matched the case-flipped value — the store may already be case-insensitive",
       );
     }
+
     return ctx.findings.backend(this.id, ctx.entityName, {
       summary: "ilike is not case-insensitive relative to like",
       detail: `ilike on ${JSON.stringify(flipped)} did not select the record whose ${field.field} is ${JSON.stringify(sample)}.`,

@@ -14,20 +14,23 @@ export function collectRoots(
   entities: ReadonlyMap<string, EntityModel>,
 ): string[] {
   const roots = new Set<string>();
-  for (const op of operations) {
-    for (const param of op.rootParams) roots.add(param);
-  }
+
+  for (const op of operations) for (const param of op.rootParams) roots.add(param);
+
   for (const op of operations) {
     for (const param of op.pathParams) {
-      /* Resolve the entity from the segment the parameter qualifies, not from its name:
-       * `/table-templates/{template_id}` identifies a `table-template`, and matching on
-       * the name alone would invent a phantom `template` root. */
+      // Resolve the entity from the segment the parameter qualifies, not from its name:
+      // `/table-templates/{template_id}` identifies a `table-template`, and matching on
+      // the name alone would invent a phantom `template` root.
       const implied = owningEntityOf(operations, op.path, param) ?? impliedEntityName(param);
+
       if (implied === null) continue;
       const entity = entities.get(implied);
+
       if (entity === undefined || (entity.create === undefined && entity.invite === null)) roots.add(param);
     }
   }
+
   return [...roots].sort();
 }
 
@@ -44,11 +47,14 @@ export function owningEntityOf(
 ): string | null {
   const segments = segmentsOf(path);
   const index = segments.indexOf(`{${param}}`);
+
   if (index <= 0) return null;
   const collection = pathShape(segments.slice(0, index).join("/"));
   const item = pathShape(segments.slice(0, index + 1).join("/"));
+
   const tagged = (method: string, at: string) =>
     operations.find((op) => op.entity !== null && op.method === method && pathShape(op.path) === at)?.entity;
+
   return tagged("POST", collection) ?? tagged("GET", item) ?? owningEntityName(path, param);
 }
 
@@ -56,9 +62,12 @@ export function owningEntityOf(
 export function owningEntityName(path: string, param: string): string | null {
   const segments = segmentsOf(path);
   const index = segments.indexOf(`{${param}}`);
+
   if (index <= 0) return null;
   const previous = segments[index - 1] as string;
+
   if (isParamSegment(previous)) return null;
+
   return singularize(previous);
 }
 
@@ -66,9 +75,10 @@ export function owningEntityName(path: string, param: string): string | null {
 export function impliedEntityName(param: string): string | null {
   const stripped = param
     .replace(/[_.]?(id|slug|uuid|key)$/i, "")
-    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .replaceAll(/([a-z0-9])([A-Z])/g, "$1_$2")
     .toLowerCase();
-  return stripped.length === 0 ? null : stripped.replace(/_/g, "-");
+
+  return stripped.length === 0 ? null : stripped.replaceAll("_", "-");
 }
 
 /** What a prefix root is read from: the operations, and the entities whose list and create they are. */
@@ -82,9 +92,11 @@ export function scopingParams(op: OperationModel, model: Scoping): string[] {
   const segments = segmentsOf(op.path);
   const entity = op.entity === null ? undefined : model.entities.get(op.entity);
   const collects = entity !== undefined && (entity.list === op.operationId || entity.create === op.operationId);
+
   return op.pathParams.filter((param) => {
     if (op.rootParams.includes(param)) return true;
     const after = segments.slice(segments.indexOf(`{${param}}`) + 1);
+
     return after.some((segment) => segment.startsWith("{")) || (collects && after.length > 0);
   });
 }
@@ -92,8 +104,9 @@ export function scopingParams(op: OperationModel, model: Scoping): string[] {
 /** The prefix roots a document's routes hang below, each with the operations it scopes. */
 export function prefixRoots(model: Scoping): Map<string, string[]> {
   const scoped = new Map<string, string[]>();
-  for (const op of model.operations) {
+
+  for (const op of model.operations)
     for (const root of scopingParams(op, model)) scoped.set(root, [...(scoped.get(root) ?? []), op.operationId]);
-  }
+
   return scoped;
 }

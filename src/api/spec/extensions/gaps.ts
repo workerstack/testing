@@ -1,10 +1,10 @@
 /** A tag the API tester could not resolve, named so the report can say which tag would close the gap. */
 
-export interface Gap {
+export type Gap = {
   operationId: string;
   tag: string;
   detail: string;
-}
+};
 
 export class GapCollector {
   readonly gaps: Gap[] = [];

@@ -5,5 +5,6 @@
  */
 export function payloadLanes(input: { cases: number; max: number; records: number; viaPatch: boolean }): number {
   const bound = Math.min(input.max, input.cases);
+
   return Math.max(1, input.viaPatch ? Math.min(bound, input.records) : bound);
 }

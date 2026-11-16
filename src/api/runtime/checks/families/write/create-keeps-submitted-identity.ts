@@ -25,17 +25,21 @@ const KEPT_IDENTITY_SAMPLES = 3;
  */
 async function createExchanges(ctx: CheckContext, max: number): Promise<Exchange[]> {
   const createOp = ctx.createOp;
+
   if (createOp === undefined) return [];
   let resolved: string;
+
   try {
     resolved = fillPath(createOp.path, ctx.scope);
   } catch {
     return [];
   }
+
   const found = ctx.client
     .exchangesFor(createOp.operationId)
     .filter((e) => e.status < 300 && ctx.client.relativePath(e.url) === resolved)
     .slice(0, max);
+
   return Promise.all(found.map((e) => ctx.client.hydrate(e)));
 }
 
@@ -48,12 +52,16 @@ export const createKeepsSubmittedIdentity: Check<{ readOp: OperationModel }> = d
   plan: (ctx) => {
     const createOp = ctx.createOp;
     const readOp = ctx.readOp;
+
     if (createOp === undefined || readOp === undefined) return cannot();
+
     const property = (requestSchemaOf(ctx, createOp)?.properties as Record<string, JsonSchema> | undefined)?.[
       ctx.identity
     ];
-    /* Only an identity the client writes can be kept or ignored. */
+
+    // Only an identity the client writes can be kept or ignored.
     if (property === undefined || property.readOnly === true) return cannot();
+
     return ready({ readOp });
   },
   dependsOn: [],
@@ -62,6 +70,7 @@ export const createKeepsSubmittedIdentity: Check<{ readOp: OperationModel }> = d
   subjects: subjectsOf.create,
   async run(ctx, { readOp }): Promise<Outcome> {
     const creates = await sampledCreates(ctx);
+
     if (creates.length === 0) {
       return ctx.findings.unresolved(
         this.id,
@@ -69,35 +78,42 @@ export const createKeepsSubmittedIdentity: Check<{ readOp: OperationModel }> = d
         "no create carrying a client-chosen identity was observed",
       );
     }
+
     for (const create of creates) {
       const failed = await judgeCreate(ctx, this.id, readOp, create);
+
       if (failed !== undefined) return failed;
     }
+
     return ASSERTED;
   },
 });
 
 /** One observed create and the identity it was sent. */
-interface SentCreate {
+type SentCreate = {
   created: Exchange;
   sent: string | number;
-}
+};
 
-/*
- * A server issuing its own ids from a counter can issue, by chance, the very one a create
- * sent: that create looks kept. Several creates with distinct ids all coinciding cannot.
- */
+// A server issuing its own ids from a counter can issue, by chance, the very one a create
+// sent: that create looks kept. Several creates with distinct ids all coinciding cannot.
 async function sampledCreates(ctx: CheckContext): Promise<SentCreate[]> {
   const creates: SentCreate[] = [];
+
   for (const created of await createExchanges(ctx, KEPT_IDENTITY_SAMPLES * 4)) {
     const body = created.requestBody;
+
     const sent =
       body !== null && typeof body === "object" && !Array.isArray(body) ? (body as Record_)[ctx.identity] : undefined;
+
     if (typeof sent !== "string" && typeof sent !== "number") continue;
+
     if (creates.some((seen) => String(seen.sent) === String(sent))) continue;
     creates.push({ created, sent });
+
     if (creates.length === KEPT_IDENTITY_SAMPLES) break;
   }
+
   return creates;
 }
 
@@ -114,8 +130,10 @@ async function judgeCreate(
     identity: ctx.identity,
     model: ctx.model,
   });
+
   if (answered !== undefined) {
     if (String(answered) === String(sent)) return undefined;
+
     return ctx.findings.backend(check, ctx.entityName, {
       summary: "create answers with an identity other than the one it was sent",
       detail:
@@ -124,12 +142,16 @@ async function judgeCreate(
       evidence: [created],
     });
   }
+
   const read = await ctx.client.get(fillPath(readOp.path, { ...ctx.scope, ...itemParamFor(ctx, String(sent)) }), {
     as: { principal: ctx.actor.id },
     operationId: readOp.operationId,
   });
+
   const record = readRecord(readOp, read);
+
   if (read.status >= 200 && read.status < 300 && idOf(record, ctx.identity) === String(sent)) return undefined;
+
   return ctx.findings.backend(check, ctx.entityName, {
     summary: "create acknowledged a record that is not under the identity it was sent",
     detail:

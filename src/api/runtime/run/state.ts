@@ -7,7 +7,7 @@ import type { CheckTiming } from "./types.ts";
  * What the run gathers as it goes: which entities and checks ran, skipped, stood down or were
  * suppressed, and how teardown went. Stages add to it; the result reads it once at the end.
  */
-export interface RunState {
+export type RunState = {
   entitiesTested: string[];
   checksRun: Set<string>;
   checksSkipped: Array<{ check: string; entity: string; needs: string }>;
@@ -30,7 +30,7 @@ export interface RunState {
   verifyHookFailed: boolean;
   /** The guard over the principals' own records, made the first time a write needs it. */
   ownRecords?: OwnRecords;
-}
+};
 
 /**
  * The identities `entity`'s records hold, one set for the whole run: what its own lane, the
@@ -38,10 +38,12 @@ export interface RunState {
  */
 export function takenOf(state: Pick<RunState, "takenByEntity">, entity: string): Set<string> {
   let taken = state.takenByEntity.get(entity);
+
   if (taken === undefined) {
     taken = new Set();
     state.takenByEntity.set(entity, taken);
   }
+
   return taken;
 }
 

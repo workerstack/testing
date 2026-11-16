@@ -3,15 +3,15 @@ import { describe, expect, it } from "vitest";
 import { parseSortGrammar } from "./sort-parse.ts";
 import { renderSortKey, renderSortKeys, renderUnknownDirection, SORT_PRESETS, type SortGrammarSpec } from "./sort.ts";
 
-/*
- * A sort grammar the API tester has no name for, declared as a template: `Qty_descending`, several keys
- * joined by a comma or none at all, and a nulls token only when the grammar has one.
- */
+// A sort grammar the API tester has no name for, declared as a template: `Qty_descending`, several keys
+// joined by a comma or none at all, and a nulls token only when the grammar has one.
 const TEMPLATE = { asc: "ascending", desc: "descending", join: ",", term: "{field}_{direction}" };
 
 function parsed(raw: unknown): SortGrammarSpec {
   const result = parseSortGrammar(raw);
+
   if (!result.ok) throw new Error(result.error);
+
   return result.spec;
 }
 
@@ -49,6 +49,7 @@ describe("the named sort grammars", () => {
       ["a", "asc"],
       ["b", "desc"],
     ] as const;
+
     expect(renderSortKeys(SORT_PRESETS.dotted, both)).toBe("a.asc,b.desc");
     expect(renderSortKeys(SORT_PRESETS.prefixed, both)).toBe("a,-b");
     expect(renderSortKeys(SORT_PRESETS.colon, both)).toBe("a:asc,b:desc");
@@ -57,11 +58,9 @@ describe("the named sort grammars", () => {
   });
 });
 
-/*
- * Some APIs take several sort keys only as the sort parameter repeated, in order:
- * `?sort=A_descending&sort=B_ascending`. `join: "repeat"` declares it; the keys then travel as a
- * list the client sends one parameter each, never joined into one value.
- */
+// Some APIs take several sort keys only as the sort parameter repeated, in order:
+// `?sort=A_descending&sort=B_ascending`. `join: "repeat"` declares it; the keys then travel as a
+// list the client sends one parameter each, never joined into one value.
 describe("join: repeat", () => {
   it("renders several keys as a list, in order, and one key as a value", () => {
     const spec = parsed({ ...TEMPLATE, join: "repeat" });

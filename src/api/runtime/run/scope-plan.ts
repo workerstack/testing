@@ -15,6 +15,7 @@ import type { Connected, Planned } from "./context.ts";
 export function planScope(connected: Connected): Planned {
   const { options, model, originClients, profile, progress } = connected;
   const authCreates = authStepOperationIds(options);
+
   const scope = resolveTargetScope(model, {
     ...(options.ops === undefined ? {} : { ops: options.ops }),
     ...(options.only === undefined ? {} : { only: options.only }),
@@ -22,8 +23,10 @@ export function planScope(connected: Connected): Planned {
     exclusion: { profile: profile.name, reason: (op) => excludedByProfile(op, profile.spec) },
     origins: new Map([...originClients].map(([id, origin]) => [id, origin.model])),
   });
+
   const ownScenarios = scenariosOf(connected);
   progress.tick({ message: scopeMessage(scope), phase: "load", requests: progress.requests });
+
   return {
     ...connected,
     authCreates,
@@ -35,9 +38,10 @@ export function planScope(connected: Connected): Planned {
   };
 }
 
-/* A scenario that belongs to a secondary origin runs in that origin's run, not here. */
+// A scenario that belongs to a secondary origin runs in that origin's run, not here.
 function scenariosOf({ options, model, originClients }: Connected): Scenario[] {
   const own = (options.scenarios ?? []).filter((scenario) => scenario.origin === undefined);
+
   for (const scenario of options.scenarios ?? []) {
     if (scenario.origin !== undefined && !originClients.has(scenario.origin)) {
       throw new Error(
@@ -45,17 +49,20 @@ function scenariosOf({ options, model, originClients }: Connected): Scenario[] {
       );
     }
   }
+
   assertScenarios(own, (id, origin) =>
     origin === undefined
       ? model.byOperationId.has(id)
       : originClients.get(origin)?.model.byOperationId.has(id) === true,
   );
+
   return own;
 }
 
 function scopeMessage(scope: TargetScope): string {
   if (scope.mode === "full") return "scope: full";
   const entities = scope.entities.length;
+
   return `scope: targeted · ${scope.targets.size} operation(s) · ${entities} entit${entities === 1 ? "y" : "ies"}`;
 }
 

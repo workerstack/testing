@@ -5,22 +5,20 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { solidHydration } from "./vitest.ts";
 
-/*
- * The plugin's server renders a real fixture: vite in middleware mode, with no HMR or watcher,
- * opens no socket. A plugin passed in counts the servers it opens.
- */
+// The plugin's server renders a real fixture: vite in middleware mode, with no HMR or watcher,
+// opens no socket. A plugin passed in counts the servers it opens.
 const ROOT = join(import.meta.dirname, "..", "..", "..");
 const FIXTURE = "/tests/web/solid/greeting.fixture.tsx";
 const CONTEXT = { project: { config: { root: ROOT } } } as never;
 
 type Command = (context: never, fixture: string, name: string) => Promise<{ html: string; warnings: string[] }>;
 
-interface Wired {
+type Wired = {
   serverRender: Command;
   config: unknown;
   close: () => Promise<void>;
   opened: () => number;
-}
+};
 
 function wire(): Wired {
   let opened = 0;
@@ -31,6 +29,7 @@ function wire(): Wired {
   (plugin.configureVitest as unknown as (context: unknown) => void)({
     vitest: { onClose: (close: () => Promise<void>) => closers.push(close) },
   });
+
   return {
     close: async () => {
       for (const close of closers) await close();
@@ -66,7 +65,7 @@ describe("solidHydration", () => {
     expect(greeting.html).toContain("Hello &amp; welcome");
     expect(greeting.html).toMatch(/ _hk=/);
     expect(greeting.warnings).toEqual([]);
-    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(console, "warn").mockImplementation(() => {});
     expect((await wired.serverRender(CONTEXT, FIXTURE, "Warns")).warnings).toEqual(["rendered with a warning"]);
     expect(wired.opened()).toBe(1);
   });

@@ -96,9 +96,11 @@ describe("doctor / plan invite accept mode", () => {
     expect(plan).toContain("GET-link");
     expect(plan).toContain("acceptFrom: link");
     expect(doctor.text).toContain("GET-link");
+
     const asJson = JSON.parse(report.doctor(modeled, { asJson: true }).text) as {
       invites: Array<{ acceptFrom: string }>;
     };
+
     expect(asJson.invites.some((row) => row.acceptFrom === "link")).toBe(true);
     expect(report.plan(modeled, true)).toContain("acceptFrom");
   });

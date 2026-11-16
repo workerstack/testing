@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { normalizeText } from "../support/golden.ts";
 
-/* A golden must not hold anything a run's timing decides: every issued id reads the same. */
+// A golden must not hold anything a run's timing decides: every issued id reads the same.
 describe("normalizeText", () => {
   it("hides an issued id wherever it stands, an encoded separator before it included", () => {
     expect(normalizeText("filter=id.in.%28table_000012%2Ctable_000044%29")).toBe(

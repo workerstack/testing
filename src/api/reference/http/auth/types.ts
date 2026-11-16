@@ -4,26 +4,26 @@
 export type Role = "viewer" | "member" | "admin";
 
 /** Who a request acts as. Higher rank can do everything a lower rank can. */
-export interface Principal {
+export type Principal = {
   key: string;
   projectId: string;
   rank: number;
   /** The access token's id, when a JWT authenticated the request. */
   jti?: string;
-}
+};
 
 /** Someone who can sign in: by key at `auth.token`, or by email and password at `auth.login`. */
-export interface Account extends Principal {
+export type Account = Principal & {
   email?: string;
   password?: string;
   /** What `account.update` last set as its display name. */
   displayName?: string;
   /** What `auth.register` made it with: an account it made has one, a seeded principal none. */
   signup?: { staff: boolean };
-}
+};
 
 /** An API key: bound to its creator's tenant and rank, and to the scopes it was made with. */
-export interface ApiKey {
+export type ApiKey = {
   id: string;
   /** What its creator called it; `null` when unnamed. */
   name: string | null;
@@ -33,10 +33,10 @@ export interface ApiKey {
   rank: number;
   scopes: readonly string[];
   revoked: boolean;
-}
+};
 
 /** The claims every token the server issues carries. */
-export interface Claims {
+export type Claims = {
   sub: string;
   project_id: string;
   role: Role;
@@ -46,17 +46,17 @@ export interface Claims {
   jti: string;
   iat: number;
   exp: number;
-}
+};
 
 /** A sign-in's answer, as `auth.token`, `auth.login` and `auth.refresh` give it. */
-export interface Session {
+export type Session = {
   access_token: string;
   refresh_token: string;
   expires_in: number | string;
   project_id: string;
-}
+};
 
-export interface AuthState {
+export type AuthState = {
   /** Signs every JWT. */
   secret: string;
   /** Milliseconds since the epoch: expiry and the login throttle read it. */
@@ -81,4 +81,4 @@ export interface AuthState {
   apiKeys: Map<string, ApiKey>;
   /** Failed login instants, per identity, while throttling. */
   failures: Map<string, number[]>;
-}
+};

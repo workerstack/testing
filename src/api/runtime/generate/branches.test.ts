@@ -47,7 +47,7 @@ describe("viaRef", () => {
     expect(() => viaRef({ $ref: ref("Node") }, at({ refs: ["Node", "Node"] }), instance)).toThrow(
       "recursion through Node is bounded at depth 2",
     );
-    /* The optional child is left out where the bound stops it. */
+    // The optional child is left out where the bound stops it.
     expect(viaRef({ $ref: ref("Node") }, at(), instance)).toEqual({ child: {} });
   });
 });

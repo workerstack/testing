@@ -8,6 +8,7 @@ const read = (more: Partial<ResolvedOperation> = {}): ResolvedOperation => ({
   template: "/rows/{id}",
   ...more,
 });
+
 const DECLARED = read({ bypass: { name: "x-fresh", value: "1" } });
 
 describe("bypassLayer", () => {

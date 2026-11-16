@@ -3,8 +3,8 @@ import { describe, expect, expectTypeOf, it } from "vitest";
 import type { Scenario } from "../config/types/steps.ts";
 import { steps } from "./steps.ts";
 
-/* A caller's types, as a config derives them from its SDK. Type aliases, not interfaces: an
- * interface is not assignable to the index signature `OpMap` declares. */
+// A caller's types, as a config derives them from its SDK. Type aliases, not interfaces: an
+// interface is not assignable to the index signature `OpMap` declares.
 type Ops = {
   "auth.reauthenticate": {
     body: { password: string; two_factor_code?: string };
@@ -15,10 +15,12 @@ type Ops = {
   "table.export": { bind: { project_id: string }; query: { format: "csv" | "json" } };
   "billing.charge": { body: { amount: number; currency: "eur" | "usd"; items: { sku: string }[] } };
 };
+
 type Cdn = {
   "cdn.upload": { bind: { wildcard: string }; body: Uint8Array };
   "cdn.head": { bind: { wildcard: string } };
 };
+
 type Types = {
   ops: Ops;
   origins: { cdn: Cdn };
@@ -26,10 +28,10 @@ type Types = {
   mail: "magic-link" | "otp";
 };
 
-/* How a session held in the scope is sent is the config's to say: here, a bearer token. */
+// How a session held in the scope is sent is the config's to say: here, a bearer token.
 const b = steps<Types>({ session: (name) => ({ authorization: `Bearer {${name}}` }) });
 
-/* Never run: `bun run check` proves each line is a compile error. */
+// Never run: `bun run check` proves each line is a compile error.
 function rejectedAtCompile(): void {
   // @ts-expect-error an operation id the document lacks
   b.self.call("auth.deleteAcount");
@@ -118,11 +120,13 @@ describe("steps beyond requests", () => {
 
   it("stamps the origin on a scenario of an origin's own set, and on none of its steps", () => {
     const cdn = steps<{ ops: Cdn }>({ origin: "cdn" });
+
     const files = cdn.scenario({
       covers: ["cdn.upload"],
       id: "cdn-files",
       steps: [cdn.self.call("cdn.upload", { bind: { wildcard: "o/1" }, body: Uint8Array.of(1) })],
     });
+
     expect(files).toStrictEqual({
       covers: ["cdn.upload"],
       id: "cdn-files",
@@ -136,7 +140,7 @@ describe("steps beyond requests", () => {
 describe("steps types", () => {
   it("types every name a scenario writes against the caller's maps", () => {
     expectTypeOf(b.scenario).returns.toEqualTypeOf<Scenario>();
-    /* Placeholders fill any scalar, at any depth. */
+    // Placeholders fill any scalar, at any depth.
     b.self.call("billing.charge", { body: { amount: "{amt}", currency: "{cur}", items: [{ sku: "{sku}" }] } });
     b.self.call("table.export", { bind: { project_id: "{pid}" }, query: { format: "csv" } });
     b.self.refused("auth.deleteAccount", { key: "account_reauth_required", status: 403 });

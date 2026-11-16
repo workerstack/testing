@@ -34,11 +34,14 @@ describe("createRenewals", () => {
     const once = createRenewals<{ value: string }, string>();
     const held = { value: "v1" };
     let started = 0;
+
     const start = async (): Promise<string> => {
       started++;
       await Promise.resolve();
+
       return `v${started + 1}`;
     };
+
     const results = await Promise.all(Array.from({ length: 10 }, () => once(held, start)));
     expect([started, new Set(results)]).toEqual([1, new Set(["v2"])]);
     expect(await once(held, start)).toBe("v2");

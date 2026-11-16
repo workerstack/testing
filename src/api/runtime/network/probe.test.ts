@@ -4,10 +4,12 @@ import { failing } from "./__fixtures__/failures.ts";
 import { probeOrigin } from "./probe.ts";
 
 const answering = (response: Response) => vi.fn<typeof fetch>(async () => response);
+
 const throwing = (error: unknown) =>
   vi.fn<typeof fetch>(async () => {
     throw error;
   });
+
 const refused = Object.assign(new TypeError("fetch failed"), { cause: { code: "ECONNREFUSED" } });
 
 afterEach(() => {
@@ -57,7 +59,7 @@ describe("probeOrigin", () => {
   });
 });
 
-/* A fetch that fails with a programming error, not a network one. */
+// A fetch that fails with a programming error, not a network one.
 const bug = async (): Promise<Response> => {
   throw new SyntaxError("bug");
 };

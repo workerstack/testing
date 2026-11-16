@@ -29,14 +29,15 @@ import {
 import { signalExit, type SignalSource, stopOnSignal } from "./run-signals.ts";
 
 /** What `run` needs from outside: the run itself, and where signals come from. */
-export interface RunDeps {
+export type RunDeps = {
   run(options: RunOptions): Promise<RunResult>;
   signals: SignalSource;
-}
+};
 
 /** Loaded when a run starts, not when the CLI does: `testing api help` should not pay for it. */
 export async function runPipeline(options: RunOptions): Promise<RunResult> {
   const { run } = await import("../../runtime/run/index.ts");
+
   return run(options);
 }
 
@@ -49,27 +50,39 @@ const PROCESS: RunDeps = { run: runPipeline, signals: process };
  */
 export async function commandRun(writer: Writer, flags: Args["flags"], deps: RunDeps = PROCESS): Promise<number> {
   const configPath = str(flags, "config");
+
   if (configPath === undefined) {
     writer.err(`testing api: run requires --config\n\n${USAGE}`);
+
     return EXIT.usage;
   }
+
   const formats = reportFormats(flags);
+
   if (typeof formats === "string") {
     writer.err(`testing api: ${formats}\n`);
+
     return EXIT.usage;
   }
+
   const read = await readConfig(configPath, true);
+
   if ("problem" in read) {
     writer.err(`testing api: ${read.problem}\n`);
+
     return EXIT.usage;
   }
-  /* The config's checks already refused one without principals: the run has someone to act as. */
+
+  // The config's checks already refused one without principals: the run has someone to act as.
   const { config } = read;
   const baseline = await baselineOf(config, configPath);
+
   if (typeof baseline === "string") {
     writer.err(`testing api: ${baseline}\n`);
+
     return EXIT.usage;
   }
+
   return started(writer, { baseline, config, configPath, deps, flags, formats });
 }
 
@@ -77,7 +90,9 @@ export async function commandRun(writer: Writer, flags: Args["flags"], deps: Run
 function reportFormats(flags: Args["flags"]): ReportFormat[] | string {
   const named = list(flags, "report") ?? [];
   const unknown = named.find((name) => !(REPORT_FORMATS as readonly string[]).includes(name));
+
   if (unknown !== undefined) return `--report takes ${REPORT_FORMATS.join(", ")}, got "${unknown}"`;
+
   return [...new Set(named as ReportFormat[])];
 }
 
@@ -85,6 +100,7 @@ function reportFormats(flags: Args["flags"]): ReportFormat[] | string {
 async function baselineOf(config: ApiConfig, configPath: string): Promise<BaselineFile | undefined | string> {
   if (config.baseline === undefined) return undefined;
   const path = resolve(dirname(resolve(configPath)), config.baseline);
+
   try {
     return parseBaseline(JSON.parse(await readFile(path, "utf8")), path);
   } catch (error) {
@@ -92,26 +108,29 @@ async function baselineOf(config: ApiConfig, configPath: string): Promise<Baseli
   }
 }
 
-interface Start {
+type Start = {
   config: ApiConfig;
   configPath: string;
   flags: Args["flags"];
   baseline: BaselineFile | undefined;
   deps: RunDeps;
   formats: readonly ReportFormat[];
-}
+};
 
 /** The run, from its folder to its exit code. */
 async function started(writer: Writer, start: Start): Promise<number> {
   const { config, flags, deps } = start;
   const startedAt = new Date();
   const began = performance.now();
+
   const configured =
     config.outDir === undefined ? undefined : resolve(dirname(resolve(start.configPath)), config.outDir);
+
   const allocated = await allocateRunDir(str(flags, "out") ?? configured ?? DEFAULT_RUNS_ROOT, startedAt);
   const outDir = allocated.runDir;
   const progress = runProgress(writer, outDir, { quiet: flags.quiet === true, startedAt: startedAt.getTime() });
   const stop = stopOnSignal(writer, deps.signals);
+
   const options = runOptionsOf(config, flags, {
     accountsFile: join(outDir, "accounts.json"),
     baseline: start.baseline,
@@ -121,22 +140,27 @@ async function started(writer: Writer, start: Start): Promise<number> {
     signal: stop.signal,
     warn: (message) => writer.err(`testing api: ${message}\n`),
   });
+
   let result: RunResult;
+
   try {
     result = await deps.run(options);
   } catch (error) {
     const code = refused(writer, error);
-    /* Nothing ran: no folder for it, and `latest` stays where it was. The files close first, or
-     * one still flushing would land in the folder as it is removed. */
+
+    // Nothing ran: no folder for it, and `latest` stays where it was. The files close first, or
+    // one still flushing would land in the folder as it is removed.
     if (code === EXIT.usage) {
       await progress.close();
       await allocated.rollback();
     }
+
     return code;
   } finally {
     stop.dispose();
     await progress.close();
   }
+
   const finished: Finished = {
     baseUrl: options.baseUrl,
     durationMs: performance.now() - began,
@@ -145,22 +169,26 @@ async function started(writer: Writer, start: Start): Promise<number> {
     result,
     startedAt,
   };
+
   const input = reportInput(finished);
   await writeReports(finished, input);
+
   if (await keepCredentials(result, resolve(KEPT_CREDENTIALS)))
     writer.out(`  credentials: ${resolve(KEPT_CREDENTIALS)}\n`);
   printSummary(writer, finished, input);
   await publishLatest(allocated);
   writer.out(`  latest: ${allocated.latest}\n\n`);
-  /* Inside GitHub Actions, the job's summary page; the variable is set nowhere else. */
+  // Inside GitHub Actions, the job's summary page; the variable is set nowhere else.
   await appendStepSummary(writer, input, { path: process.env["GITHUB_STEP_SUMMARY"], runDir: outDir });
   const by = stop.by();
-  /* Stopped by a signal: the shell's convention, once teardown and the report are done. */
+
+  // Stopped by a signal: the shell's convention, once teardown and the report are done.
   return by === undefined ? exitCode(result) : signalExit(by);
 }
 
 function savesExchanges(config: ApiConfig, flags: Args["flags"]): boolean {
   const profile = str(flags, "profile") ?? config.profile;
+
   return resolveSaveExchanges({
     ...(flags["no-save-exchanges"] === true ? { flag: false } : flags["save-exchanges"] === true ? { flag: true } : {}),
     ...(config.saveExchanges === undefined ? {} : { config: config.saveExchanges }),
@@ -172,9 +200,12 @@ function savesExchanges(config: ApiConfig, flags: Args["flags"]): boolean {
 function refused(writer: Writer, error: unknown): number {
   if (error instanceof FencedError) {
     writer.err(`testing api: ${error.message}\n`);
+
     return EXIT.failed;
   }
+
   if (!(error instanceof UsageError)) throw error;
   writer.err(`${error.message}\n`);
+
   return EXIT.usage;
 }

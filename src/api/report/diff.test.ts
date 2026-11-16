@@ -27,6 +27,7 @@ describe("diffReports", () => {
         finding("gap", "note", { verdict: "COVERAGE_GAP" }),
       ],
     };
+
     const b: SavedReport = {
       findings: [
         finding("b-check", "note", { operations: ["op1", "op2"], summary: "same root cause" }),
@@ -35,6 +36,7 @@ describe("diffReports", () => {
         finding("blocked", "note", { verdict: "BLOCKED" }),
       ],
     };
+
     const diff = diffReports(a, b);
     expect(diff.new.map(({ check, entity }) => `${check}/${entity}`)).toEqual(["z-check/note", "z-check/tag"]);
     expect(diff.fixed.map(({ check }) => check)).toEqual(["a-check"]);
@@ -54,6 +56,7 @@ describe("diffReports", () => {
       ]),
       targetVersion: { value: "1.0" },
     };
+
     const b: SavedReport = {
       findings: [],
       scope: scope([
@@ -63,6 +66,7 @@ describe("diffReports", () => {
       ]),
       targetVersion: { error: "unreachable" },
     };
+
     expect(diffReports(a, b)).toMatchObject({
       coverage: [
         { from: "absent", operationId: "added", to: "skipped" },
@@ -88,6 +92,7 @@ describe("renderDiff", () => {
       persisting: [finding("b-check", "tag")],
       versions: { b: "2.0" },
     });
+
     expect(text).toBe(
       [
         "",

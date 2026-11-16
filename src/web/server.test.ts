@@ -2,14 +2,16 @@ import { describe, expect, it } from "vitest";
 
 import { appServer } from "./server.ts";
 
-/* An env and a port picker the test owns, so no real socket opens and process.env stays put. */
+// An env and a port picker the test owns, so no real socket opens and process.env stays put.
 function deps(env: Record<string, string | undefined> = {}, port = 41234) {
   const picks: number[] = [];
+
   return {
     deps: {
       env,
       freePort: async () => {
         picks.push(port);
+
         return port;
       },
     },
@@ -36,10 +38,12 @@ describe("appServer", () => {
 
   it("fills {port} in the command and env, sets PORT, and never reuses a server it did not start", async () => {
     const { deps: injected } = deps();
+
     const app = await appServer(
       { command: "serve --port {port}", cwd: "site", env: { ORIGIN: "http://localhost:{port}" }, path: "/health" },
       injected,
     );
+
     expect(app.webServer).toEqual({
       command: "serve --port 41234",
       cwd: "site",

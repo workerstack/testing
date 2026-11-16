@@ -20,7 +20,7 @@ export function formatRunStamp(at: Date): string {
     .replace(/\.\d{3}Z$/, "Z");
 }
 
-export interface AllocatedRunDir {
+export type AllocatedRunDir = {
   /** Resolved history root (`--out` / `outDir` / default). */
   root: string;
   /** Fresh directory for this invocation's artifacts. */
@@ -34,7 +34,7 @@ export interface AllocatedRunDir {
    * back where it was, or removes it if there was none, when this run had moved it.
    */
   rollback: () => Promise<void>;
-}
+};
 
 export async function allocateRunDir(
   root: string = DEFAULT_RUNS_ROOT,
@@ -45,14 +45,18 @@ export async function allocateRunDir(
   const { dir: runDir, stamp } = await mkdirUnique(resolvedRoot, formatRunStamp(at));
   const latest = join(resolvedRoot, LATEST_LINK);
   const previous = await linkTarget(latest);
+
   const rollback = async (): Promise<void> => {
     await rm(runDir, { force: true, recursive: true });
     const now = await linkTarget(latest);
-    /* A junction reads back absolute on Windows; resolving compares either form. */
+
+    // A junction reads back absolute on Windows; resolving compares either form.
     if (now === undefined || resolve(resolvedRoot, now) !== runDir) return;
+
     if (previous === undefined) await rm(latest, { force: true });
     else await pointLatest(resolvedRoot, previous);
   };
+
   return { latest, rollback, root: resolvedRoot, runDir, stamp };
 }
 
@@ -68,10 +72,13 @@ async function linkTarget(path: string): Promise<string | undefined> {
 async function mkdirUnique(root: string, base: string): Promise<{ dir: string; stamp: string }> {
   let stamp = base;
   let n = 2;
+
   for (;;) {
     const dir = join(root, stamp);
+
     try {
       await mkdir(dir);
+
       return { dir, stamp };
     } catch (error) {
       if (!isAlreadyExists(error)) throw error;
@@ -92,7 +99,7 @@ export async function publishLatest(run: Pick<AllocatedRunDir, "root" | "stamp">
 async function pointLatest(root: string, stamp: string): Promise<void> {
   const latest = join(root, LATEST_LINK);
   await rm(latest, { force: true, recursive: true });
-  /* Junctions work without admin on Windows; `dir` is the Unix equivalent. */
+  // Junctions work without admin on Windows; `dir` is the Unix equivalent.
   await symlink(stamp, latest, process.platform === "win32" ? "junction" : "dir");
 }
 

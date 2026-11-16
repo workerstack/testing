@@ -13,6 +13,7 @@ describe("the styles route", () => {
 
   it("refuses either value written in another style", async () => {
     const { call } = await api();
+
     for (const query of [
       "min=1&max=5&ids=a|b",
       "range=min,1,max,5&ids=a|b",

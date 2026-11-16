@@ -52,6 +52,7 @@ const MERGED: ReadonlySet<string> = /* @__PURE__ */ new Set(["operatorsByType", 
 /** The tag's catalog with its flat `defaultOrder` / `stableTiebreak` lifted into `sort`, in place. */
 function tagLayer(tag: MergeTag | null): QueryCapabilities {
   const fromTag = tag?.catalog ?? {};
+
   if (tag?.defaultOrder !== undefined || tag?.stableTiebreak !== undefined) {
     fromTag.sort = {
       ...fromTag.sort,
@@ -59,12 +60,14 @@ function tagLayer(tag: MergeTag | null): QueryCapabilities {
       ...(tag.stableTiebreak === undefined ? {} : { stableTiebreak: tag.stableTiebreak }),
     };
   }
+
   return fromTag;
 }
 
 function stack(out: Record<string, unknown>, layer: QueryCapabilities): void {
   for (const key of LAYERED) {
     const value = layer[key];
+
     if (value === undefined) continue;
     out[key] = MERGED.has(key) ? { ...(out[key] as object | undefined), ...(value as object) } : value;
   }
@@ -76,7 +79,9 @@ export function overlayCatalog(
   entity: QueryCapabilities | undefined,
 ): QueryCapabilities {
   const out: Record<string, unknown> = {};
+
   for (const layer of [tagLayer(tag), global, entity]) if (layer !== undefined) stack(out, layer);
+
   return out as QueryCapabilities;
 }
 
@@ -84,6 +89,7 @@ export function overlayCatalog(
 export function assignOptional(target: EffectiveQueryCapabilities, catalog: Partial<QueryCapabilities>): void {
   for (const key of CARRIED) {
     const value = catalog[key];
+
     if (value !== undefined) Object.assign(target, { [key]: value });
   }
 }

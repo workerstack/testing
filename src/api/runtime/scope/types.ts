@@ -13,7 +13,7 @@ import type { Exchange } from "../exchange.ts";
 import type { Finding, Inconclusive } from "../finding.ts";
 import type { GradeLedger, PassEvidence } from "../grades.ts";
 
-export interface ScopeInput {
+export type ScopeInput = {
   /** operationIds; `*` globs within one id; `<originId>:<operationId>` routes to an origin. */
   ops?: readonly string[];
   /** Entity names; each expands to every operation the entity owns. */
@@ -24,9 +24,9 @@ export interface ScopeInput {
   authCreates?: ReadonlySet<string>;
   /** Active profile gate. An exact target it excludes is a usage error, not a quiet gap. */
   exclusion?: { profile: string; reason: (op: OperationModel) => string | null };
-}
+};
 
-export interface TargetScope {
+export type TargetScope = {
   mode: "full" | "targeted";
   requested: { ops: string[]; only: string[] };
   /** Primary-origin targets. Empty in a full run, where `inScope` is always true. */
@@ -40,7 +40,7 @@ export interface TargetScope {
   /** Glob or `--only` matches the profile excluded, dropped from the targets. */
   excluded: Array<{ operationId: string; reason: string }>;
   inScope: (operationId: string) => boolean;
-}
+};
 
 export type OperationStatus = "passed" | "failed" | "inconclusive" | "blocked" | "untested";
 
@@ -53,7 +53,7 @@ type PassTier = "contract" | "verified";
  */
 export type Sufficiency = "verified" | "complete" | "unproven";
 
-export interface OperationCoverage {
+export type OperationCoverage = {
   operationId: string;
   /** Secondary origin id; absent on the primary. */
   origin?: string;
@@ -76,18 +76,18 @@ export interface OperationCoverage {
   sufficiency?: Sufficiency;
   /** One line on why the pass goes that far, or why the operation did not pass. */
   why?: string;
-}
+};
 
 /** An operation a targeted run called without grading it. */
-export interface SupportUse {
+export type SupportUse = {
   operationId: string;
   origin?: string;
   calls: number;
   non2xx: number;
   firstFailure?: { status: number; requestId: string };
-}
+};
 
-export interface ScopeReport {
+export type ScopeReport = {
   mode: "full" | "targeted";
   requested: { ops: string[]; only: string[] };
   operations: OperationCoverage[];
@@ -96,9 +96,9 @@ export interface ScopeReport {
   excluded: Array<{ operationId: string; reason: string }>;
   /** Secondary origins a targeted run did not touch because none of their operations were targets. */
   originsSkipped: string[];
-}
+};
 
-export interface CoverageInput {
+export type CoverageInput = {
   model: SpecModel;
   scope: TargetScope;
   ledger: GradeLedger;
@@ -107,9 +107,9 @@ export interface CoverageInput {
   transcript: readonly Exchange[];
   baseUrl: string;
   authCreates: ReadonlySet<string>;
-}
+};
 
-export interface ScopePlan {
+export type ScopePlan = {
   mode: "full" | "targeted";
   requested: { ops: string[]; only: string[] };
   entities: string[];
@@ -119,4 +119,4 @@ export interface ScopePlan {
   support: string[];
   excluded: Array<{ operationId: string; reason: string }>;
   origins: Record<string, string[]>;
-}
+};

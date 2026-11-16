@@ -33,9 +33,11 @@ describe("wait", () => {
   it("resolves once the time has passed", async () => {
     vi.useFakeTimers();
     let done = false;
+
     const waiting = wait(1_000).then(() => {
       done = true;
     });
+
     await vi.advanceTimersByTimeAsync(999);
     expect(done).toBe(false);
     await vi.advanceTimersByTimeAsync(1);

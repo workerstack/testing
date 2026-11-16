@@ -1,11 +1,12 @@
 import { isServer } from "@solidjs/web";
 import { createSignal } from "solid-js";
 
-/* Fixtures both renders share: the server half renders them in node, the browser half hydrates them. */
+// Fixtures both renders share: the server half renders them in node, the browser half hydrates them.
 
 /** A counter whose text the server renders and hydration then updates in place. */
 export function Greeting() {
   const [count, setCount] = createSignal(0);
+
   return (
     <p data-slot="greeting">
       <button type="button" onClick={() => setCount((n) => n + 1)}>
@@ -19,6 +20,7 @@ export function Greeting() {
 /** Warns while it renders, as a component that writes a signal on the server does. */
 export function Warns() {
   console.warn("rendered with a warning");
+
   return <p>warned</p>;
 }
 

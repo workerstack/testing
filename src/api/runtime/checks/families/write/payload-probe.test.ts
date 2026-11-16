@@ -10,6 +10,7 @@ function probeOf(
   options: WidgetDocOptions = {},
 ): { probe: PayloadProbe; sent: ReturnType<typeof contextFor>["sent"] } {
   const model = modelOf(widgetDoc(options));
+
   const { ctx, sent } = contextFor(model, "listWidgets", {
     respond,
     fields: {
@@ -19,8 +20,10 @@ function probeOf(
       updateOp: model.byOperationId.get("updateWidget"),
     },
   });
+
   const field = { maxLength: undefined, minLength: undefined, name: "note" };
   const writeOp = ctx.updateOp ?? op(model, "createWidget");
+
   return {
     probe: {
       check: "payload.string-survives",
@@ -35,12 +38,14 @@ function probeOf(
   };
 }
 
-/* The widget backend, refusing the first create with 409. */
+// The widget backend, refusing the first create with 409.
 function refusingOnce(): Responder {
   let refused = false;
+
   return (method, path, options) => {
     if (method !== "POST" || refused) return widgetApi()(method, path, options);
     refused = true;
+
     return { status: 409 };
   };
 }
@@ -54,10 +59,10 @@ describe("payload probe, a client-chosen identity", () => {
     const bodies = sent.map((s) => s.options.body as { id: string; note: string });
     expect(bodies.map((body) => body.note)).toEqual(["value", "value"]);
     expect(bodies[1]?.id).not.toBe(bodies[0]?.id);
-    /* The identity under test is the value itself: never drawn again. */
+    // The identity under test is the value itself: never drawn again.
     const asIdentity = probeOf(refusingOnce(), { item, update: null });
     asIdentity.probe.ctx.takenIdentities = new Set();
-    /* A run with no nonce draws all the same. */
+    // A run with no nonce draws all the same.
     delete (asIdentity.probe.ctx as { nonce?: string }).nonce;
     const probed = { ...asIdentity.probe, field: { ...asIdentity.probe.field, name: "id" } };
     expect((await writeField(probed, "mangled", "")).status).toBe(409);
@@ -82,10 +87,12 @@ describe("payload probe", () => {
 
   it("creates from the value alone when the create documents no body", async () => {
     const { probe, sent } = probeOf(widgetApi(), { update: null });
+
     const bodiless = {
       ...probe,
       ctx: { ...probe.ctx, model: { ...probe.ctx.model, rawOperations: new Map<string, never>() } },
     };
+
     await writeField(bodiless, "value", "");
     expect(sent[0]?.options.body).toEqual({ note: "value" });
   });

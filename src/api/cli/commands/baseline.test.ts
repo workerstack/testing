@@ -9,7 +9,7 @@ import { LEGACY_REPORT } from "../legacy-run.ts";
 import { bufferWriter } from "../writer.ts";
 import { commandBaseline } from "./baseline.ts";
 
-/* A run's root-cause findings, written as the baseline the next runs measure against. */
+// A run's root-cause findings, written as the baseline the next runs measure against.
 
 const finding = {
   check: "list.read-after-write",
@@ -42,6 +42,7 @@ describe("commandBaseline", () => {
     const dir = folder();
     const cwd = process.cwd();
     process.chdir(dir);
+
     try {
       expect(await commandBaseline(bufferWriter(), { from: savedRun(dir, "run", { findings: [] }) })).toBe(0);
       expect(readFileSync(join(dir, "testing.api.baseline.json"), "utf8")).toContain('"entries"');
@@ -52,6 +53,7 @@ describe("commandBaseline", () => {
 
   it("refuses without a run, with an unreadable or listless report, and over an existing file", async () => {
     const dir = folder();
+
     const refusals: Array<[Flags, RegExp]> = [
       [{}, /^testing api: baseline needs --from/],
       [{ from: join(dir, "missing") }, /^testing api: cannot read .*report\.json: /],
@@ -61,6 +63,7 @@ describe("commandBaseline", () => {
         /exists; --force overwrites it/,
       ],
     ];
+
     for (const [flags, said] of refusals) {
       const writer = bufferWriter();
       expect(await commandBaseline(writer, flags)).toBe(2);
@@ -81,7 +84,7 @@ describe("commandBaseline", () => {
   });
 });
 
-/* A run folder written before the package was renamed is not read: the CLI names the move. */
+// A run folder written before the package was renamed is not read: the CLI names the move.
 describe("commandBaseline from an old run", () => {
   it("names a run folder from before the rename instead of a missing report", async () => {
     const dir = folder();

@@ -13,15 +13,15 @@ describe("the tag tables", () => {
   });
 
   it("say plainly that what the API tester never calls is not tested", () => {
-    for (const tag of ["webhooks", "callbacks", "links", "additionalOperations"]) {
+    for (const tag of ["webhooks", "callbacks", "links", "additionalOperations"])
       expect(TAG_REMEDY[tag]).toMatch(/^not tested: the API tester /);
-    }
   });
 });
 
 describe("declaredTags", () => {
   it("finds every tag the reference declares, and none once its tags are stripped", async () => {
     const tagged = declaredTags((await referenceModel()).model);
+
     for (const tag of [
       "x-async",
       "x-effects",
@@ -34,9 +34,9 @@ describe("declaredTags", () => {
       "x-unique",
       "x-invite",
       "x-entity",
-    ]) {
+    ])
       expect(tagged.has(tag)).toBe(true);
-    }
+
     expect([...declaredTags((await referenceModel({ untagged: true })).model)]).toEqual([]);
   });
 
@@ -49,6 +49,7 @@ describe("declaredTags", () => {
         }),
       ).model,
     );
+
     expect(declared.has("x-entity")).toBe(false);
   });
 });

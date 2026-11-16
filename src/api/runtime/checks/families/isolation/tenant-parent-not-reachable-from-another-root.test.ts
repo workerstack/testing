@@ -14,17 +14,17 @@ const SCOPES = { peerScope: { book_id: "b2", org_id: "o2" }, scope: { book_id: "
 const table = (answers: Record<string, Answer>) => (method: string, path: string) => answers[`${method} ${path}`];
 
 /** How a stage departs from the default: the parents the notes nest under, the document's options, the context's fields. */
-interface Setup {
+type Setup = {
   parents?: readonly Parent[];
   options?: NotesOptions & { prefix?: string };
   fields?: NotesFields;
-}
+};
 
 function staged(answers: Record<string, Answer>, { parents = [BOOKS], options = {}, fields = {} }: Setup = {}) {
   return notesContext(modelOf(nestedDocument(parents, options)), table(answers), { ...SCOPES, ...fields });
 }
 
-/* The other tenant holds only its own book, b2. */
+// The other tenant holds only its own book, b2.
 const OWN_BOOKS = { "GET /orgs/o2/books": { body: [{ id: "b2" }], status: 200 } };
 
 describe("tenant.parent-not-reachable-from-another-root", () => {
@@ -45,6 +45,7 @@ describe("tenant.parent-not-reachable-from-another-root", () => {
       ...OWN_BOOKS,
       "GET /orgs/o2/books/b1/notes": { body: [{ id: "x" }], status: 200 },
     });
+
     expect(await runCheck(foreignParentRejected, ctx)).toEqual({ kind: "asserted" });
     expect(findings.findings).toEqual([]);
   });
@@ -54,6 +55,7 @@ describe("tenant.parent-not-reachable-from-another-root", () => {
       { ...OWN_BOOKS, "GET /orgs/o2/books/b1/notes": { body: [{ id: "n1" }], status: 200 } },
       { options: { tenant: "org_id" } },
     );
+
     expect(await runCheck(foreignParentRejected, ctx)).toEqual({ kind: "finding", verdict: "SECURITY" });
     expect(findings.findings[0]?.summary).toBe(
       "another tenant's records are listed through their parent under one's own root",
@@ -104,6 +106,7 @@ describe("tenant.parent-not-reachable-from-another-root: the other tenant's own 
 
   it("keeps the first collision when every level below collides too", async () => {
     const PAGES: Parent = { list: true, param: "page_id", segment: "pages" };
+
     const { ctx } = staged(
       {
         "GET /orgs/o2/books": { body: [{ id: "b1" }], status: 200 },
@@ -117,6 +120,7 @@ describe("tenant.parent-not-reachable-from-another-root: the other tenant's own 
         },
       },
     );
+
     expect(await runCheck(foreignParentRejected, ctx)).toMatchObject({
       reason: expect.stringContaining("holds a book b1 of its own"),
     });
@@ -124,6 +128,7 @@ describe("tenant.parent-not-reachable-from-another-root: the other tenant's own 
 
   it("stops at the first level holding nothing named like the owner's", async () => {
     const PAGES: Parent = { list: true, param: "page_id", segment: "pages" };
+
     const { ctx, sent } = staged(
       {
         "GET /orgs/o2/books": { body: [{ id: "b1" }], status: 200 },
@@ -137,6 +142,7 @@ describe("tenant.parent-not-reachable-from-another-root: the other tenant's own 
         },
       },
     );
+
     expect(await runCheck(foreignParentRejected, ctx)).toEqual({ kind: "asserted" });
     expect(sent[1]?.path).toBe("/orgs/o2/books/b1/pages");
   });
@@ -146,6 +152,7 @@ describe("tenant.parent-not-reachable-from-another-root: parents it cannot rule 
   it("reads a parent with no identity of its own by id", async () => {
     const model = modelOf(nestedDocument([BOOKS]));
     const book = model.entities.get("book");
+
     if (book !== undefined) book.identity = null;
     const answers = table({ "GET /orgs/o2/books": { body: [{ id: "b1" }], status: 200 } });
     const { ctx } = notesContext(model, answers, SCOPES);
@@ -198,6 +205,7 @@ describe("tenant.parent-not-reachable-from-another-root: parents without a list"
         },
       },
     );
+
     expect(await runCheck(foreignParentRejected, ctx)).toEqual({ kind: "asserted" });
     expect(sent[0]?.path).toBe("/s1/orgs/o2/notes");
   });
@@ -211,9 +219,8 @@ describe("tenant.parent-not-reachable-from-another-root planning", () => {
       [{ tenant: false }, {}],
       [{}, { peerScope: { book_id: "b2" } }],
       [{}, { peerScope: { book_id: "b2", org_id: "o1" } }],
-    ] as const) {
+    ] as const)
       expect(foreignParentRejected.plan(staged({}, { options, fields }).ctx)).toEqual({ ok: false });
-    }
   });
 
   it("names what is missing for a flat collection or a parent both tenants share", () => {

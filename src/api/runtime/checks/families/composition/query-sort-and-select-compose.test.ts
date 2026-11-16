@@ -5,10 +5,10 @@ import { carries, dropWhen, fleetingSelect, rewriting } from "./__fixtures__/com
 import { NOTES, queryDoc, REJECT, stage } from "./__fixtures__/query-api.ts";
 import { querySortAndSelectCompose } from "./query-sort-and-select-compose.ts";
 
-/* A listing whose first record is null. */
+// A listing whose first record is null.
 const nullFirst: Responder = () => ({ body: [null, { id: "n1", title: "Alpha report" }], status: 200 });
 
-/* A listing of one record. */
+// A listing of one record.
 const single: Responder = () => ({ body: [{ id: "n1", title: "Alpha report" }], status: 200 });
 
 describe("query.sort-and-select-compose judges", () => {
@@ -17,7 +17,7 @@ describe("query.sort-and-select-compose judges", () => {
     expect(await staged.run()).toEqual({ kind: "asserted" });
     expect(staged.sent.map((sent) => sent.options.query)).toEqual([
       { limit: 20, order: "title.asc", select: "id,title" },
-      /* An ascending answer is checked against the descending one: a fixed order passes only one. */
+      // An ascending answer is checked against the descending one: a fixed order passes only one.
       { limit: 20, order: "title.desc", select: "id,title" },
     ]);
   });
@@ -33,7 +33,7 @@ describe("query.sort-and-select-compose judges", () => {
   });
 
   it("fails an order dropped under a select whose fallback happens to ascend by the sort field", async () => {
-    /* Whatever order is asked for, the projected listing comes back by title ascending. */
+    // Whatever order is asked for, the projected listing comes back by title ascending.
     const fixed = rewriting((query) => (carries(query, "select") ? { ...query, order: "title.asc" } : query));
     const staged = stage(querySortAndSelectCompose, { respond: fixed });
     expect(await staged.run()).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
@@ -79,6 +79,7 @@ describe("query.sort-and-select-compose plans", () => {
   it("stands down without an order or a select parameter, or with one record", () => {
     const noOrder = queryDoc({}, ["filter", "select", "q", "limit"]);
     const noSelect = queryDoc({}, ["filter", "order", "q", "limit"]);
+
     for (const doc of [noOrder, noSelect])
       expect(stage(querySortAndSelectCompose, { doc }).plan()).toEqual({ ok: false });
     expect(stage(querySortAndSelectCompose, { rows: NOTES.slice(0, 1) }).plan()).toEqual({ ok: false });

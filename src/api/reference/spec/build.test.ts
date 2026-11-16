@@ -19,6 +19,7 @@ function keysDeep(node: unknown, found = new Set<string>()): Set<string> {
       keysDeep(value, found);
     }
   }
+
   return found;
 }
 
@@ -28,10 +29,12 @@ describe("buildSpec", () => {
   it("gives an entity with no list a create alone at its collection, and no listing to invalidate", () => {
     const paths = spec["paths"] as Record<string, Record<string, Json>>;
     expect(Object.keys(paths[WEBHOOK.collectionPath] ?? {})).toEqual(["post"]);
+
     const invalidated = [
       paths[WEBHOOK.collectionPath]?.["post"],
       ...Object.values(paths[WEBHOOK.itemPath] ?? {}),
     ].flatMap((operation) => (operation?.["x-invalidate"] as string[] | undefined) ?? []);
+
     expect(invalidated.length).toBeGreaterThan(0);
     expect(invalidated).not.toContain(`GET ${WEBHOOK.collectionPath}`);
     expect(Object.keys(paths[TABLE.collectionPath] ?? {})).toEqual(["get", "post"]);
@@ -39,7 +42,7 @@ describe("buildSpec", () => {
 
   it("is the PostgREST document over the default entities when called bare", () => {
     expect(spec).toEqual(buildSpec(POSTGREST, { entities: ENTITIES, shape: {} }));
-    /* 3.2: the search route is a QUERY operation, a Path Item field since OAS 3.2. */
+    // 3.2: the search route is a QUERY operation, a Path Item field since OAS 3.2.
     expect(spec).toMatchObject({
       info: { title: "the API tester reference backend", version: "1.0.0" },
       openapi: "3.2.0",

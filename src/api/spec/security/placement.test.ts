@@ -5,9 +5,12 @@ import { placementOf } from "./placement.ts";
 import { readSchemes } from "./schemes.ts";
 
 const schemes = readSchemes(everyScheme);
+
 const placed = (name: string) => {
   const scheme = schemes.get(name);
+
   if (scheme === undefined) throw new Error(`no scheme ${name}`);
+
   return placementOf(scheme);
 };
 

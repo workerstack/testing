@@ -33,10 +33,13 @@ export const crossTenantItemWrite: Check<{
 }>({
   plan: (ctx) => {
     const { peer, readOp } = ctx;
+
     if (peer === undefined || readOp === undefined || ctx.createOp === undefined) return cannot();
     const updateOp = ctx.updateOp !== undefined && tenantBoundary(ctx.updateOp) ? ctx.updateOp : undefined;
     const deleteOp = ctx.deleteOp !== undefined && tenantBoundary(ctx.deleteOp) ? ctx.deleteOp : undefined;
+
     if (updateOp === undefined && deleteOp === undefined) return cannot();
+
     return ready({ deleteOp, peer, readOp, updateOp });
   },
   dependsOn: ["list.read-after-write", "tenant.item-not-readable-cross-tenant"],
@@ -46,9 +49,11 @@ export const crossTenantItemWrite: Check<{
   subjects: (entity) => declared(entity.update, entity.delete),
   async run(ctx, { deleteOp, peer, readOp, updateOp }): Promise<Outcome> {
     const made = await scratchRecord(ctx, this.id);
+
     if ("outcome" in made) return made.outcome;
     const { id, record } = made.scratch;
     const own = { ...ctx.scope, ...itemParamFor(ctx, id) };
+
     const probe: Probe = {
       check: this.id,
       ctx,
@@ -63,15 +68,18 @@ export const crossTenantItemWrite: Check<{
           operationId: readOp.operationId,
         }),
     };
+
     const changed = updateOp === undefined ? null : await foreignUpdate(probe, updateOp);
+
     if (changed !== null) return changed;
     const deleted = deleteOp === undefined ? null : await foreignDelete(probe, deleteOp);
+
     return deleted ?? ASSERTED;
   },
 });
 
 /** One scratch record, and how the other tenant addresses it. */
-interface Probe {
+type Probe = {
   ctx: WriteContext;
   check: string;
   id: string;
@@ -82,7 +90,7 @@ interface Probe {
   peer: string;
   /** The owner's read of the record. */
   reread: () => Promise<Exchange>;
-}
+};
 
 /** A write that crossed the boundary: SECURITY where the document declares it, AMBIGUITY where the API tester inferred it. */
 function breach(
@@ -91,6 +99,7 @@ function breach(
   finding: { summary: string; detail: string; evidence: Exchange[] },
 ): Outcome {
   const { detail, evidence, summary } = finding;
+
   if (op.tenantSource === "tag") {
     return ctx.findings.security(check, ctx.entityName, {
       summary,
@@ -98,6 +107,7 @@ function breach(
       evidence,
     });
   }
+
   return ctx.findings.report({
     check,
     detail:
@@ -115,16 +125,21 @@ async function foreignUpdate(probe: Probe, updateOp: OperationModel): Promise<Ou
   const { ctx, record } = probe;
   const field = pickWritableStringField(ctx, record);
   const value = field === null ? undefined : changedValue(ctx, field, record[field], updateOp);
+
   if (field === null || value === undefined) return null;
   const update = await updateRequest(ctx, updateOp, record, { [field]: value });
+
   const attempt = await ctx.client.request(update.method, fillPath(updateOp.path, probe.foreign), {
     ...update.options,
     as: { principal: probe.peer },
     operationId: updateOp.operationId,
   });
+
   const after = await probe.reread();
   const now = readRecord(probe.readOp, after)?.[field];
+
   if (after.status >= 300 || JSON.stringify(now) !== JSON.stringify(value)) return null;
+
   return breach(probe, updateOp, {
     detail:
       `${ctx.entityName} ${probe.id} belongs to one tenant; a principal in another tenant set "${field}" ` +
@@ -137,12 +152,16 @@ async function foreignUpdate(probe: Probe, updateOp: OperationModel): Promise<Ou
 /** The other tenant deletes the record; the breach when the owner can no longer read it, else `null`. */
 async function foreignDelete(probe: Probe, deleteOp: OperationModel): Promise<Outcome | null> {
   const { ctx } = probe;
+
   const attempt = await ctx.client.request("DELETE", fillPath(deleteOp.path, probe.foreign), {
     as: { principal: probe.peer },
     operationId: deleteOp.operationId,
   });
+
   const after = await probe.reread();
+
   if (attempt.status >= 300 || (after.status !== 404 && after.status !== 410)) return null;
+
   return breach(probe, deleteOp, {
     detail:
       `${ctx.entityName} ${probe.id} belongs to one tenant; a principal in another tenant deleted it ` +

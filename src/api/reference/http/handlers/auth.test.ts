@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { cellText } from "../../cell.ts";
 import { api, BETA, MEMBER } from "../__fixtures__/api.ts";
 import { createApiKey } from "../auth/api-keys.ts";
 import type { ReferenceOptions } from "../state.ts";
@@ -7,13 +8,14 @@ import type { ReferenceOptions } from "../state.ts";
 const T0 = 1_800_000_000_000;
 const ALPHA_LOGIN = { email: "alpha@reference.test", password: "alpha-password" };
 
-/* A call that sends `authorization` exactly as given. */
+// A call that sends `authorization` exactly as given.
 const as = (authorization: string) => ({ headers: { authorization }, token: null });
 
-/* A reference on a clock a test moves. */
+// A reference on a clock a test moves.
 async function world(options: ReferenceOptions = {}) {
   const now = { ms: T0 };
   const reference = await api({ clock: () => now.ms, ...options });
+
   return { ...reference, now };
 }
 
@@ -23,13 +25,13 @@ describe("auth.token", () => {
     const { status, body } = await call("POST", "/v1/auth/token", { body: { key: "key_beta" }, token: null });
     expect(status).toBe(200);
     expect(body).toMatchObject({ expires_in: 3600, project_id: "proj_beta" });
-    expect(String(body["access_token"]).split(".")).toHaveLength(3);
-    expect(String(body["refresh_token"]).split(".")).toHaveLength(3);
+    expect(cellText(body["access_token"]).split(".")).toHaveLength(3);
+    expect(cellText(body["refresh_token"]).split(".")).toHaveLength(3);
     expect(
-      (await call("GET", "/v1/projects/proj_beta/tables", as(`Bearer ${String(body["access_token"])}`))).status,
+      (await call("GET", "/v1/projects/proj_beta/tables", as(`Bearer ${cellText(body["access_token"])}`))).status,
     ).toBe(200);
     expect(
-      (await call("GET", "/v1/projects/proj_alpha/tables", as(`Bearer ${String(body["access_token"])}`))).status,
+      (await call("GET", "/v1/projects/proj_alpha/tables", as(`Bearer ${cellText(body["access_token"])}`))).status,
     ).toBe(403);
   });
 
@@ -43,9 +45,10 @@ describe("auth.token", () => {
 
   it("throttles a key after 5 failures within a minute under throttleLogins, the right key included", async () => {
     const { call, now } = await world({ throttleLogins: true });
-    for (let attempt = 0; attempt < 5; attempt += 1) {
+
+    for (let attempt = 0; attempt < 5; attempt += 1)
       expect((await call("POST", "/v1/auth/token", { body: { key: "key_ghost" }, token: null })).status).toBe(401);
-    }
+
     const refused = await call("POST", "/v1/auth/token", { body: { key: "key_ghost" }, token: null });
     expect(refused.status).toBe(429);
     expect(refused.headers["retry-after"]).toBe("60");
@@ -71,6 +74,7 @@ describe("auth.login", () => {
     for (const defects of [[], ["LOGIN_NOT_THROTTLED"]]) {
       const { call } = await world({ defects, throttleLogins: true });
       const wrong = { body: { ...ALPHA_LOGIN, password: "nope" }, token: null };
+
       for (let attempt = 0; attempt < 5; attempt += 1) await call("POST", "/v1/auth/login", wrong);
       const sixth = await call("POST", "/v1/auth/login", { body: ALPHA_LOGIN, token: null });
       expect(sixth.status).toBe(defects.length === 0 ? 429 : 200);
@@ -88,13 +92,15 @@ describe("auth.refresh", () => {
   it("rotates the pair, and a reused refresh token is a 401 that revokes the session", async () => {
     const { call } = await world();
     const first = (await call("POST", "/v1/auth/login", { body: ALPHA_LOGIN, token: null })).body;
+
     const refresh = (token: unknown) =>
       call("POST", "/v1/auth/refresh", { body: { refresh_token: token }, token: null });
+
     const second = await refresh(first["refresh_token"]);
     expect(second.status).toBe(200);
     expect(second.body["refresh_token"]).not.toBe(first["refresh_token"]);
     expect((await refresh(first["refresh_token"])).status).toBe(401);
-    expect((await call("GET", "/v1/me", as(`Bearer ${String(second.body["access_token"])}`))).status).toBe(401);
+    expect((await call("GET", "/v1/me", as(`Bearer ${cellText(second.body["access_token"])}`))).status).toBe(401);
     expect((await refresh(42)).status).toBe(400);
   });
 });
@@ -105,7 +111,7 @@ describe("auth.revoke", () => {
     const session = (await call("POST", "/v1/auth/token", { body: { key: "key_alpha" }, token: null })).body;
     const revoke = await call("POST", "/v1/auth/revoke", { body: { token: session["access_token"] } });
     expect(revoke).toMatchObject({ body: { revoked: true }, status: 200 });
-    expect((await call("GET", "/v1/me", as(`Bearer ${String(session["access_token"])}`))).status).toBe(401);
+    expect((await call("GET", "/v1/me", as(`Bearer ${cellText(session["access_token"])}`))).status).toBe(401);
     expect((await call("POST", "/v1/auth/revoke", { body: { token: "x" }, token: null })).status).toBe(401);
     const key = createApiKey(state, state.auth.accounts.get("key_alpha") as never, []);
     expect((await call("POST", "/v1/auth/revoke", { body: { token: "x" }, ...as(`ApiKey ${key.value}`) })).status).toBe(
@@ -118,7 +124,7 @@ describe("auth.logout", () => {
   it("revokes only the caller's access token, and needs one", async () => {
     const { call } = await world();
     const session = (await call("POST", "/v1/auth/token", { body: { key: "key_alpha" }, token: null })).body;
-    const caller = as(`Bearer ${String(session["access_token"])}`);
+    const caller = as(`Bearer ${cellText(session["access_token"])}`);
     expect((await call("POST", "/v1/logout", caller)).body).toEqual({ ok: true });
     expect((await call("GET", "/v1/me", caller)).status).toBe(401);
     expect((await call("GET", "/v1/me")).status).toBe(200);
@@ -128,11 +134,11 @@ describe("auth.logout", () => {
   it("signs every account out under DISPOSABLE_KILLS_CALLER, and an API key's logout revokes nothing", async () => {
     const { call } = await world({ defects: ["DISPOSABLE_KILLS_CALLER"] });
     const registered = await call("POST", "/v1/register", { body: { email: "d@x.test" }, token: null });
-    const disposable = String(registered.body["access_token"]);
+    const disposable = cellText(registered.body["access_token"]);
     await call("POST", "/v1/logout", { token: disposable });
     expect((await call("GET", "/v1/me")).status).toBe(401);
     const again = (await call("POST", "/v1/auth/token", { body: { key: "key_alpha" }, token: null })).body;
-    expect((await call("GET", "/v1/me", { token: String(again["access_token"]) })).status).toBe(401);
+    expect((await call("GET", "/v1/me", { token: cellText(again["access_token"]) })).status).toBe(401);
     const open = await world({ defects: ["ANY_SCHEME_ACCEPTED"] });
     const key = createApiKey(open.state, open.state.auth.accounts.get("key_alpha") as never, []);
     expect((await open.call("POST", "/v1/logout", as(`ApiKey ${key.value}`))).status).toBe(200);
@@ -147,7 +153,7 @@ describe("auth.register", () => {
     expect(status).toBe(201);
     expect(Object.keys(body)).toEqual(["access_token", "account_id"]);
     expect(state.auth.registered).toEqual(["new@x.test"]);
-    const token = String(body["access_token"]);
+    const token = cellText(body["access_token"]);
     expect((await call("GET", "/v1/me", { token })).status).toBe(200);
     expect((await call("GET", "/v1/projects/proj_alpha/tables", { token })).status).toBe(200);
     expect((await call("GET", "/v1/me", { token: BETA })).status).toBe(200);
@@ -156,24 +162,26 @@ describe("auth.register", () => {
   it("refuses a body it cannot read, or one without an email, with a 400, and adds no account", async () => {
     const { call, state } = await world();
     const accounts = state.auth.accounts.size;
+
     for (const body of [
       "{",
       {},
       { email: 5 },
       { email: "a@x.test", role: "admin" },
       { email: "a@x.test", staff: "yes" },
-    ]) {
+    ])
       expect((await call("POST", "/v1/register", { body, token: null })).status).toBe(400);
-    }
+
     expect(state.auth.accounts.size).toBe(accounts);
   });
 });
 
-/* The sign-ups alpha's project lists, after one registered asking to be staff. */
+// The sign-ups alpha's project lists, after one registered asking to be staff.
 async function listedAfterAsking(defects: ReferenceOptions["defects"] = []) {
   const { call } = await world({ defects });
   const made = await call("POST", "/v1/register", { body: { email: "s@x.test", staff: true }, token: null });
   expect(made.status).toBe(201);
+
   return { listed: await call("GET", "/v1/signups"), made };
 }
 
@@ -208,9 +216,9 @@ describe("deleting an account", () => {
   it("removes the caller's own account: no token it holds is accepted, and no sign-in finds it", async () => {
     const { call, state } = await world();
     const made = await call("POST", "/v1/register", { body: { email: "gone@x.test" }, token: null });
-    const token = String(made.body["access_token"]);
+    const token = cellText(made.body["access_token"]);
     expect((await call("DELETE", "/v1/me", { token })).status).toBe(204);
-    expect(state.auth.accounts.has(String(made.body["account_id"]))).toBe(false);
+    expect(state.auth.accounts.has(cellText(made.body["account_id"]))).toBe(false);
     expect((await call("GET", "/v1/me", { token })).status).toBe(401);
     expect((await call("DELETE", "/v1/me", { token: null })).status).toBe(401);
   });
@@ -218,13 +226,13 @@ describe("deleting an account", () => {
   it("lets an admin delete an account of its own project by id, and no one else", async () => {
     const { call, state } = await world();
     const made = await call("POST", "/v1/register", { body: { email: "member@x.test" }, token: null });
-    const id = String(made.body["account_id"]);
+    const id = cellText(made.body["account_id"]);
     expect((await call("DELETE", `/v1/signups/${id}`, { token: BETA })).status).toBe(404);
     expect((await call("DELETE", "/v1/signups/nobody")).status).toBe(404);
     expect((await call("DELETE", "/v1/signups/key_alpha_member", { token: MEMBER })).status).toBe(403);
     expect((await call("DELETE", `/v1/signups/${id}`)).status).toBe(204);
     expect(state.auth.accounts.has(id)).toBe(false);
-    expect((await call("GET", "/v1/me", { token: String(made.body["access_token"]) })).status).toBe(401);
+    expect((await call("GET", "/v1/me", { token: cellText(made.body["access_token"]) })).status).toBe(401);
     expect((await call("PUT", `/v1/signups/${id}`)).status).toBe(404);
   });
 });

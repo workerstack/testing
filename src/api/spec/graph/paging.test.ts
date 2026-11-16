@@ -19,7 +19,9 @@ const listing = (parameters: unknown[], xQuery?: Record<string, unknown>) =>
 const pageOf = (parameters: unknown[], xQuery?: Record<string, unknown>) => {
   const model = listing(parameters, xQuery);
   const op = model.byOperationId.get("notes.list");
+
   if (op === undefined) throw new Error("notes.list is missing");
+
   return { model, op };
 };
 

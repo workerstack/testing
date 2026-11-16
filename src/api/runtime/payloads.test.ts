@@ -36,6 +36,7 @@ describe("catalogProblems", () => {
       value: "x",
       why: "",
     }));
+
     const broken: StringPayload[] = [
       ...required,
       { id: "empty", value: "", why: "again" },
@@ -45,6 +46,7 @@ describe("catalogProblems", () => {
       { id: "low", value: "\uDE42a", why: "" },
       { id: "pair", value: "🙂", why: "" },
     ];
+
     expect(catalogProblems(broken, "äöüß")).toEqual([
       "duplicate id empty",
       "nul contains NUL",

@@ -16,11 +16,9 @@ import { dereference } from "../../../src/api/spec/load/dereference.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 import { checkContext } from "../support/check-context.ts";
 
-/*
- * An append-only log (an audit trail) gains rows while it is read: the run that reads it is also
- * writing to it. Two reads a moment apart hold different rows, and that is not a sorting bug. A
- * sort that really is broken on a log that holds still must still be reported.
- */
+// An append-only log (an audit trail) gains rows while it is read: the run that reads it is also
+// writing to it. Two reads a moment apart hold different rows, and that is not a sorting bug. A
+// sort that really is broken on a log that holds still must still be reported.
 
 const closers: Array<() => Promise<void>> = [];
 
@@ -28,7 +26,7 @@ afterEach(async () => {
   await Promise.all(closers.splice(0).map((close) => close()));
 });
 
-/* Rows tie on created_at (second resolution), as an audit trail written in bursts does. */
+// Rows tie on created_at (second resolution), as an audit trail written in bursts does.
 const COHORT: Record_[] = [
   { created_at: 100, id: "log-a" },
   { created_at: 100, id: "log-b" },
@@ -96,9 +94,12 @@ function ordered(rows: Record_[], order: string, shuffleTies: boolean): Record_[
   const [field = "created_at", direction = "desc"] = order.split(".");
   const sign = direction === "asc" ? 1 : -1;
   const tie = () => (shuffleTies ? Math.random() - 0.5 : 0);
+
   return [...rows].sort((a, b) => {
     const primary = (Number(a[field]) - Number(b[field])) * sign;
+
     if (primary !== 0) return primary;
+
     return shuffleTies ? tie() : String(a["id"]).localeCompare(String(b["id"]));
   });
 }
@@ -107,28 +108,35 @@ async function listen(handler: (req: IncomingMessage, res: ServerResponse) => vo
   const server = createServer(handler);
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   closers.push(() => new Promise((resolve) => server.close(() => resolve())));
+
   return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 }
 
 async function run(checkId: string, opts: { grows: boolean; shuffleTies?: boolean }): Promise<FindingCollector> {
   const check = entityChecks(CHECKS).find((item) => item.id === checkId);
+
   if (check === undefined) throw new Error(`no check ${checkId}`);
   const model = buildModel(dereference(spec()).doc);
   const listOp = model.byOperationId.get("log.list");
+
   if (listOp === undefined) throw new Error("missing log.list");
   const store = [...COHORT];
   let reads = 0;
+
   const url = await listen((req, res) => {
     const at = new URL(req.url ?? "/", "http://127.0.0.1");
     reads += 1;
-    /* Every other read lands after a background write. */
+
+    // Every other read lands after a background write.
     if (opts.grows && reads % 2 === 0) store.push({ created_at: 300 + reads, id: `log-new-${reads}` });
     const rows = ordered(store, at.searchParams.get("order") ?? "created_at.desc", opts.shuffleTies === true);
     const limit = Number(at.searchParams.get("limit") ?? 20);
     const page = Number(at.searchParams.get("page") ?? 1);
     send(res, { logs: rows.slice((page - 1) * limit, page * limit) });
   });
+
   const findings = new FindingCollector();
+
   const ctx = checkContext({
     actors: [],
     asyncOps: [],
@@ -160,8 +168,10 @@ async function run(checkId: string, opts: { grows: boolean; shuffleTies?: boolea
     validator: new SchemaValidator(),
     waitOps: [],
   });
+
   expect(check.plan(ctx).ok).toBe(true);
   await planAndRun(check, ctx);
+
   return findings;
 }
 
@@ -178,13 +188,15 @@ describe("sort checks on a collection that grows while it is read", () => {
 
   it("still reports ties that come back in a different order each time", async () => {
     let reported = false;
-    /* Two tied rows shuffle into the same order on both reads half the time, and a pair always
-     * reads as one direction, so a try shows the bug with odds of one half: twenty leave a miss
-     * at one in a million. */
+
+    // Two tied rows shuffle into the same order on both reads half the time, and a pair always
+    // reads as one direction, so a try shows the bug with odds of one half: twenty leave a miss
+    // at one in a million.
     for (let attempt = 0; attempt < 20 && !reported; attempt++) {
       reported =
         bugs(await run("sort.stable-tiebreak", { grows: false, shuffleTies: true }), "sort.stable-tiebreak").length > 0;
     }
+
     expect(reported).toBe(true);
   });
 });

@@ -10,7 +10,7 @@ describe("writer", () => {
   it("writes results to stdout and diagnostics to stderr", () => {
     const out = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     const err = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-    const uncork = vi.spyOn(process.stdout, "uncork").mockImplementation(() => undefined);
+    const uncork = vi.spyOn(process.stdout, "uncork").mockImplementation(() => {});
     processWriter.out("result\n");
     processWriter.err("warning\n");
     processWriter.flush();

@@ -14,6 +14,7 @@ describe("sort block", () => {
         stableTiebreak: "id",
       },
     });
+
     expect(sort).toEqual({
       collation: "locale",
       defaultNulls: "first",

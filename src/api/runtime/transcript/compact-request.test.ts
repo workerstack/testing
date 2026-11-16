@@ -12,12 +12,14 @@ describe("compactRequestBody, forms", () => {
   it("keeps a form field by field, scrubbing secret fields and what the run was issued", async () => {
     const issued = new Redactor();
     issued.registerSecret("issued-token-value");
+
     const form = new URLSearchParams([
       ["note", "sent issued-token-value"],
       ["tag", "a"],
       ["tag", "b"],
       ["tag", "c"],
     ]);
+
     expect(await compactRequestBody(form, issued)).toEqual({ note: `sent ${REDACTED}`, tag: ["a", "b", "c"] });
     const multipart = new FormData();
     multipart.append("password", "hunter2");

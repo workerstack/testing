@@ -17,14 +17,14 @@ import {
 } from "../runtime/exchange.ts";
 import type { Redactor } from "../security/redact.ts";
 
-export interface CurlOptions {
+export type CurlOptions = {
   /** The run's redactor: secret header names, and the values it was issued, never print. */
   redactor: Redactor;
   /** Header names whose values are replaced by a shell variable reference, in place of the redactor's names. */
   redact?: readonly string[];
   /** Origin to replace with `"$BASE"`, so a script can be pointed at another environment. */
   origin?: string;
-}
+};
 
 /**
  * What follows `base` in `target`, when `target` lies under it: `/api` holds `/api/x` and `/api?q`,
@@ -32,8 +32,10 @@ export interface CurlOptions {
  */
 export function belowBase(target: string, base: string): string | undefined {
   const prefix = base.replace(/\/$/, "");
+
   if (!target.startsWith(prefix)) return undefined;
   const rest = target.slice(prefix.length);
+
   return rest === "" || /^[/?#]/.test(rest) ? rest : undefined;
 }
 
@@ -43,34 +45,46 @@ export function toCurl(exchange: Exchange, options: CurlOptions): string {
   const below = options.origin === undefined ? undefined : belowBase(target, options.origin);
   const url = below === undefined ? shellQuote(target) : `"$BASE${shellEscapeDouble(below)}"`;
   const parts = [`curl -i -X ${exchange.method} ${url}`];
+
   for (const [key, value] of Object.entries(exchange.requestHeaders)) parts.push(headerFlag(key, value, options));
+
   if (exchange.requestBody !== undefined) parts.push(...curlBodyFlags(redactBody(exchange.requestBody, redactor)));
+
   return parts.join(" \\\n");
 }
 
 function headerFlag(key: string, value: string, { redact, redactor }: CurlOptions): string {
   const secret = redact === undefined ? redactor.isSecretHeader(key) : redact.includes(key.toLowerCase());
+
   if (!secret) return `  -H ${shellQuote(`${key}: ${redactor.text(value)}`)}`;
-  /* Preserve the scheme prefix ("Bearer ", "ApiKey ") so the variable holds only the secret and
-   * the script stays copy-pasteable. */
+  // Preserve the scheme prefix ("Bearer ", "ApiKey ") so the variable holds only the secret and
+  // the script stays copy-pasteable.
   const scheme = /^(\w+)\s+/.exec(value)?.[1];
   const rendered = scheme === undefined ? "$TOKEN" : `${scheme} $TOKEN`;
+
   return `  -H "${shellEscapeDouble(key)}: ${rendered}"`;
 }
 
 /** A request body with secrets removed, keeping the shape `curlBodyFlags` understands. */
 function redactBody(body: unknown, redactor: Redactor): unknown {
   if (typeof body === "string") return redactor.text(body);
+
   if (isURLSearchParams(body)) {
     const out = new URLSearchParams();
+
     for (const [key, value] of body) out.append(key, redactor.field(key, value));
+
     return out;
   }
+
   if (isFormData(body)) {
     const out = new FormData();
+
     for (const [key, value] of body) out.append(key, typeof value === "string" ? redactor.field(key, value) : value);
+
     return out;
   }
+
   if (isFormSnapshot(body)) {
     return {
       parts: body.parts.map((part) =>
@@ -78,19 +92,26 @@ function redactBody(body: unknown, redactor: Redactor): unknown {
       ),
     };
   }
+
   if (isRawBytes(body) || isBodyRef(body)) return body;
+
   return redactor.json(body);
 }
 
 function curlBodyFlags(body: unknown): string[] {
   if (isFormData(body)) return formDataFlags(body);
+
   if (isFormSnapshot(body)) return formSnapshotFlags(body);
-  /* Field by field: curl encodes each value itself. Handing it the joined string encoded the
-   * separators too, so the server received one field holding the whole form. */
+
+  // Field by field: curl encodes each value itself. Handing it the joined string encoded the
+  // separators too, so the server received one field holding the whole form.
   if (isURLSearchParams(body))
     return [...body].map(([key, value]) => `  --data-urlencode ${shellQuote(`${key}=${value}`)}`);
+
   if (typeof body === "string") return [`  -d ${shellQuote(body)}`];
+
   if (isRawBytes(body) || isBodyRef(body)) return [`  --data-binary @-`];
+
   return [`  -d ${shellQuote(JSON.stringify(body))}`];
 }
 
@@ -112,10 +133,10 @@ function formSnapshotFlags(body: FormSnapshot): string[] {
 
 /** One shell word, whatever it holds: single-quoted, with each `'` closed, escaped and reopened. */
 function shellQuote(text: string): string {
-  return `'${text.replace(/'/g, `'\\''`)}'`;
+  return `'${text.replaceAll("'", `'\\''`)}'`;
 }
 
 /** Escapes the characters that stay special inside double quotes. */
 function shellEscapeDouble(text: string): string {
-  return text.replace(/(["\\`])/g, "\\$1");
+  return text.replaceAll(/(["\\`])/g, "\\$1");
 }

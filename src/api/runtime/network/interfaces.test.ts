@@ -11,6 +11,7 @@ const online = (): NodeJS.Dict<NetworkInterfaceInfo[]> => ({
   eth0: [info("10.0.0.2", false)],
   lo: [info("127.0.0.1", true)],
 });
+
 const loopbackOnly = (): NodeJS.Dict<NetworkInterfaceInfo[]> => ({
   blank: [info("", false)],
   gone: undefined,

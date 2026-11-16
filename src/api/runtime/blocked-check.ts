@@ -15,5 +15,6 @@ export function blockedCheckSummary(check: string): string {
 /** The check an `auth.blocked` finding stopped, or undefined for any other finding. */
 export function blockedCheckOf(finding: { check: string; summary: string }): string | undefined {
   if (finding.check !== "auth.blocked" || !finding.summary.endsWith(SUFFIX)) return undefined;
+
   return finding.summary.slice(0, -SUFFIX.length);
 }

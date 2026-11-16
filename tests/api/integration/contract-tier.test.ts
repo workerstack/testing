@@ -7,6 +7,7 @@ import { run } from "../../../src/api/runtime/run/index.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 
 let open: Array<{ close: () => Promise<void> }> = [];
+
 afterEach(async () => {
   for (const server of open) await server.close();
   open = [];
@@ -17,11 +18,13 @@ const versionBody = {
     schema: { properties: { version: { type: "string" } }, required: ["version"], type: "object" },
   },
 };
+
 const accepted = {
   "application/json": {
     schema: { properties: { received: { type: "boolean" } }, required: ["received"], type: "object" },
   },
 };
+
 const feedback = {
   content: {
     "application/json": {
@@ -29,6 +32,7 @@ const feedback = {
     },
   },
 };
+
 const noteSchema = {
   properties: { id: { type: "string" }, text: { type: "string" } },
   required: ["id", "text"],
@@ -39,7 +43,7 @@ const ok = (content: unknown, code = "200") => ({ [code]: { content, description
 
 const notePath = { in: "path", name: "note_id", required: true, schema: { type: "string" } };
 
-/* The operations no entity owns: each is graded by the contract tier alone. */
+// The operations no entity owns: each is graded by the contract tier alone.
 function loosePaths(): Record<string, unknown> {
   return {
     "/v1/signups/{account_id}/badge": {
@@ -159,7 +163,7 @@ type Exchange = {
 
 type World = { created: number; keepDeleted: boolean; notes: Note[] };
 
-/* Matched in order; a route without a method answers every method. */
+// Matched in order; a route without a method answers every method.
 type Route = { handle: (world: World, exchange: Exchange) => void; method?: string; path: RegExp };
 
 function writeNote(world: World, { body, send }: Exchange): void {
@@ -172,9 +176,13 @@ function writeNote(world: World, { body, send }: Exchange): void {
 
 function noteItem(world: World, { match, method, res, send }: Exchange): void {
   const index = world.notes.findIndex((note) => note.id === match[1]);
+
   if (index < 0) return send(404, { error: "not_found" });
+
   if (method === "GET") return send(200, world.notes[index]);
+
   if (method !== "DELETE") return send(404, { error: "not_found" });
+
   if (!world.keepDeleted) world.notes.splice(index, 1);
   res.writeHead(204);
   res.end();
@@ -213,35 +221,45 @@ function route(world: World, exchange: Omit<Exchange, "match">): void {
   for (const candidate of ROUTES) {
     if (candidate.method !== undefined && candidate.method !== exchange.method) continue;
     const match = candidate.path.exec(exchange.url.pathname);
+
     if (match !== null) return candidate.handle(world, { ...exchange, match });
   }
+
   exchange.send(404, { error: "not_found" });
 }
 
 async function serve(options: { keepDeleted?: boolean } = {}): Promise<string> {
   const world: World = { created: 0, keepDeleted: options.keepDeleted === true, notes: [] };
   const document = spec();
+
   const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
     const method = (req.method ?? "GET").toUpperCase();
     let raw = "";
+
     for await (const chunk of req) raw += chunk;
     const body = raw === "" ? {} : (JSON.parse(raw) as Record<string, unknown>);
+
     const send = (status: number, value: unknown) => {
       res.writeHead(status, { "content-type": "application/json" });
       res.end(JSON.stringify(value));
     };
+
     if (url.pathname === "/openapi.json") return send(200, document);
+
     if (req.headers.authorization !== "Bearer alpha") return send(401, { error: "unauthorized" });
     route(world, { body, method, res, send, url });
   });
+
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   open.push({ close: () => new Promise<void>((resolve) => server.close(() => resolve())) });
+
   return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 }
 
 async function fullRun(options: { keepDeleted?: boolean } = {}) {
   const url = await serve(options);
+
   return run({
     baseUrl: url,
     principals: { alpha: {} },
@@ -254,6 +272,7 @@ async function fullRun(options: { keepDeleted?: boolean } = {}) {
 describe("the contract tier", () => {
   it("calls an operation nothing else graded and passes it on a documented, schema-valid success", async () => {
     const result = await fullRun();
+
     for (const id of ["version.get", "feedback.send"]) {
       const row = result.scope.operations.find((op) => op.operationId === id);
       expect(row?.status).toBe("passed");
@@ -274,6 +293,7 @@ describe("the contract tier", () => {
 
   it("sends the values the operation binds in x-bind", async () => {
     const result = await fullRun();
+
     for (const id of ["notes.stats", "notes.tag"]) {
       const row = result.scope.operations.find((op) => op.operationId === id);
       expect(row?.status, `${id}: ${row?.reason ?? ""}`).toBe("passed");

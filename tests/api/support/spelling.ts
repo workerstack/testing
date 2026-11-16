@@ -1,6 +1,6 @@
-/* en-GB spellings in text, identifiers included, for the structure test that holds the API tester to en-US. */
+// en-GB spellings in text, identifiers included, for the structure test that holds the API tester to en-US.
 
-/* The en-GB spellings, inflections spelled out, so no correct en-US word can ever match. */
+// The en-GB spellings, inflections spelled out, so no correct en-US word can ever match.
 const EN_GB: ReadonlySet<string> = /* @__PURE__ */ new Set(
   `	behaviour behaviours behavioural colour colours coloured colouring honour honours honoured honouring
 	favour favours favoured favourite favourable flavour flavours flavoured neighbour neighbours
@@ -43,10 +43,8 @@ export const QUOTED_FILES: readonly RegExp[] = [
   /^tests\/structure\/spelling\.test\.ts$/,
 ];
 
-/*
- * Tokens quoted in our own files: GitHub Actions' `cancelled()` and its 'cancelled' result, and the
- * three 0.24 check ids, named where a migration says what replaced them and a baseline refuses them.
- */
+// Tokens quoted in our own files: GitHub Actions' `cancelled()` and its 'cancelled' result, and the
+// three 0.24 check ids, named where a migration says what replaced them and a baseline refuses them.
 const QUOTED_TOKENS: readonly RegExp[] = [
   /\bcancelled\(\)/g,
   /["']cancelled["']/g,
@@ -56,6 +54,7 @@ const QUOTED_TOKENS: readonly RegExp[] = [
 /** The en-GB words in `text`, lower case, in order, identifiers split at case and `_` boundaries. */
 export function enGbWords(text: string): string[] {
   const own = QUOTED_TOKENS.reduce((left, token) => left.replace(token, ""), text);
+
   return (own.match(/[A-Za-z]+/g) ?? [])
     .flatMap((word) => word.split(/(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])/))
     .map((word) => word.toLowerCase())

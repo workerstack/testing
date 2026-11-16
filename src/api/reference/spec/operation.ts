@@ -12,13 +12,16 @@ export function ok(ctx: SpecContext, status: number): string {
 
 export function jsonResponse(description: string, schema: JsonSchema, headers?: Json): Json {
   const response: Json = { content: { "application/json": { schema } }, description };
+
   if (headers !== undefined) response["headers"] = headers;
+
   return response;
 }
 
 /** RFC 8288 pagination links, declared only by dialects that actually publish them. */
 export function listResponseHeaders(dialect: Dialect): Json | undefined {
   if (dialect.envelope !== null) return undefined;
+
   return {
     Link: {
       description: 'Pagination links; rel="next" is present while further pages remain',

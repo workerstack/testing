@@ -11,20 +11,20 @@ import type { OperationCoverage, ScopeReport } from "../runtime/scope/types.ts";
 
 type ConfidenceKey = "failed" | "blocked" | "unproven" | "verified" | "complete";
 
-interface ConfidenceRow {
+type ConfidenceRow = {
   operation: string;
   entity: string | null;
   why: string;
   /** Exchange files behind the row: the call, then the exchange that observed its effect. */
   evidence: string[];
-}
+};
 
-export interface ConfidenceGroup {
+export type ConfidenceGroup = {
   key: ConfidenceKey;
   title: string;
   meaning: string;
   rows: ConfidenceRow[];
-}
+};
 
 const GROUPS: ReadonlyArray<Omit<ConfidenceGroup, "rows">> = [
   { key: "failed", meaning: "A check found the backend wrong here.", title: "Failed" },
@@ -48,23 +48,29 @@ const GROUPS: ReadonlyArray<Omit<ConfidenceGroup, "rows">> = [
 
 function groupOf(op: OperationCoverage): ConfidenceKey {
   if (op.status === "failed") return "failed";
+
   if (op.status !== "passed") return "blocked";
+
   return op.sufficiency ?? "unproven";
 }
 
 function whyOf(op: OperationCoverage): string {
   if (op.status === "failed") {
     const checks = op.checks.failed.length > 0 ? op.checks.failed.join(", ") : "a check";
+
     return `failed ${checks} (${op.findings} finding${op.findings === 1 ? "" : "s"})`;
   }
+
   return op.why ?? op.reason ?? "no reason recorded";
 }
 
 function evidenceOf(op: OperationCoverage, files: ReadonlyMap<number, string>): string[] {
   if (op.evidence === undefined) return [];
   const seqs = [op.evidence.call, ...(op.evidence.observation === undefined ? [] : [op.evidence.observation.seq])];
+
   return seqs.flatMap((seq) => {
     const file = files.get(seq);
+
     return file === undefined ? [] : [file];
   });
 }
@@ -92,6 +98,7 @@ function rowHtml(row: ConfidenceRow): string {
   const links = row.evidence
     .map((file, i) => `<a href="${escape(file)}">${i === 0 ? "call" : "observed"}</a>`)
     .join(" · ");
+
   return (
     `<tr><td><code>${escape(row.operation)}</code>${row.entity === null ? "" : `<span class="entity">${escape(row.entity)}</span>`}</td>` +
     `<td>${escape(row.why)}</td><td class="links">${links}</td></tr>`
@@ -118,12 +125,14 @@ export function renderConfidenceHtml(
 ): string {
   const groups = confidenceGroups(run.scope, files);
   const total = groups.reduce((sum, group) => sum + group.rows.length, 0);
+
   const bar = groups
     .map(
       (group) =>
         `<a href="#${group.key}"><strong style="color:var(--${group.key})">${group.rows.length}</strong>${escape(group.title)}</a>`,
     )
     .join("");
+
   const sections = groups
     .filter((group) => group.rows.length > 0)
     .map(
@@ -132,6 +141,7 @@ export function renderConfidenceHtml(
         `<p class="meaning">${escape(group.meaning)}</p><table>${group.rows.map(rowHtml).join("")}</table></section>`,
     )
     .join("");
+
   return (
     `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">` +
     `<title>the API tester confidence</title><style>${STYLE}</style></head><body><main>` +
@@ -144,21 +154,26 @@ export function renderConfidenceHtml(
 /** Each request's saved file by its seq, from the journal index (`exchanges.jsonl`). */
 export function exchangeFilesFromIndex(index: string): Map<number, string> {
   const files = new Map<number, string>();
+
   for (const line of index.split("\n")) {
     if (line.trim() === "") continue;
+
     try {
       const entry = JSON.parse(line) as RawOf<JournalIndexLine>;
+
       if (typeof entry.seq === "number" && typeof entry.file === "string") files.set(entry.seq, entry.file);
     } catch {
-      /* a torn last line from an interrupted run */
+      // a torn last line from an interrupted run
     }
   }
+
   return files;
 }
 
 /** The markdown report's opening count, one row per group, pointing at the page that lists them. */
 export function renderConfidenceMarkdown(scope: ScopeReport): string {
   const groups = confidenceGroups(scope, new Map());
+
   return [
     "## Confidence",
     "",

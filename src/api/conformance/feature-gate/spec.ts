@@ -40,6 +40,7 @@ function json(schema: unknown, description: string): Record<string, unknown> {
 /** The list operation of `entity`: `<entity>.list`, answering `{ <entity>s: items[] }`. */
 function listOf(entity: string, items: unknown): Record<string, unknown> {
   const key = `${entity}s`;
+
   return {
     operationId: `${entity}.list`,
     parameters: [ORG_ID],
@@ -100,6 +101,7 @@ function webhookItem(tag: string | null): Record<string, unknown> {
 
 function inviteCollection(): Record<string, unknown> {
   const invite = { properties: { email: { type: "string" }, id: { type: "string" } }, type: "object" };
+
   return {
     get: listOf("invite", invite),
     parameters: [ORG_ID],

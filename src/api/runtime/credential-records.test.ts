@@ -4,11 +4,9 @@ import type { SpecModel } from "../spec/graph/types.ts";
 import { heldCredential, mintedRecords } from "./credential-records.ts";
 import type { Exchange } from "./exchange.ts";
 
-/*
- * A record that holds a live credential the run depends on, a minted API key say, is known by the
- * mint answer that made it: its id read the way every created id is, from the body by the entity's
- * identity or from Location. A check may read such a record; it may never change or remove it.
- */
+// A record that holds a live credential the run depends on, a minted API key say, is known by the
+// mint answer that made it: its id read the way every created id is, from the body by the entity's
+// identity or from Location. A check may read such a record; it may never change or remove it.
 
 const KEY_OPS = [
   { action: "create", entity: "api-key", method: "POST", operationId: "apiKey.create", path: "/keys", pathParams: [] },
@@ -38,6 +36,7 @@ const KEY_OPS = [
   },
   { action: null, entity: null, method: "POST", operationId: "token.mint", path: "/tokens", pathParams: [] },
 ].map((op) => ({ ...op, createdIdFrom: null, recordPath: null }));
+
 const MODEL = {
   byOperationId: new Map(KEY_OPS.map((op) => [op.operationId, op])),
   entities: new Map([
@@ -65,6 +64,7 @@ describe("mintedRecords", () => {
       minted({ id: "k-1", key: "ak_1" }),
       minted({ key: "ak_2" }, { responseHeaders: { location: "http://api.test/keys/k-2" } }),
     ];
+
     expect(mintedRecords({ exchanges, mintOps: new Set(["apiKey.create"]), model: MODEL })).toEqual([
       { entity: "api-key", id: "k-1", operationId: "apiKey.create" },
       { entity: "api-key", id: "k-2", operationId: "apiKey.create" },
@@ -73,6 +73,7 @@ describe("mintedRecords", () => {
 
   it("leaves out what no recipe minted, a refused mint, and an answer that names no id", () => {
     const { issuedBy: _byTheStore, ...unissued } = minted({ id: "k-3" });
+
     const exchanges = [
       unissued as Exchange,
       minted({ id: "k-4" }, { status: 400 }),
@@ -81,7 +82,8 @@ describe("mintedRecords", () => {
       minted({ id: "x-1" }, { operationId: "token.mint" }),
       minted({ id: "x-2" }, { operationId: "gone.mint" }),
     ];
-    /* A mint the document places in no entity, or no operation at all, holds no record the API tester can name. */
+
+    // A mint the document places in no entity, or no operation at all, holds no record the API tester can name.
     const mintOps = new Set(["apiKey.create", "token.mint", "gone.mint"]);
     expect(mintedRecords({ exchanges, mintOps, model: MODEL })).toEqual([]);
   });

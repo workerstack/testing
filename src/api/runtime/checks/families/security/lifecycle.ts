@@ -1,9 +1,7 @@
-/*
- * What the credential-lifecycle checks share. A session's issue, refresh and revoke are properties of
- * the credential, not of a route, so each check anchors once per scheme on the operation the actor's
- * recipe names for that step. It proves the credential on one read the API tester can send whole (`readRoute`).
- * Per-route guard coverage is the missing- and invalid-credential checks'.
- */
+// What the credential-lifecycle checks share. A session's issue, refresh and revoke are properties of
+// the credential, not of a route, so each check anchors once per scheme on the operation the actor's
+// recipe names for that step. It proves the credential on one read the API tester can send whole (`readRoute`).
+// Per-route guard coverage is the missing- and invalid-credential checks'.
 
 import { UnsatisfiedSecurity } from "../../../../client/credential-source.ts";
 import type { RecipeAnchors } from "../../../../credentials/anchors.ts";
@@ -24,10 +22,10 @@ import { acceptorOf } from "./probing.ts";
 export type AnchorKind = "issue" | "refresh" | "revoke";
 
 /** Which step, and whether only a login recipe's counts. */
-export interface Anchoring {
+export type Anchoring = {
   kind: AnchorKind;
   login?: true;
-}
+};
 
 const NAMED: Readonly<Record<AnchorKind, string>> = {
   issue: "documented issuing step",
@@ -35,9 +33,10 @@ const NAMED: Readonly<Record<AnchorKind, string>> = {
   revoke: "revoke",
 };
 
-/* Why this recipe cannot anchor the step at all, or undefined when it names one. */
+// Why this recipe cannot anchor the step at all, or undefined when it names one.
 function refusalOf(recipe: RecipeAnchors, { kind, login }: Anchoring): string | undefined {
   if (login === true && recipe.kind !== "login") return `${recipe.kind} recipes have no login step`;
+
   return recipe[kind] === undefined ? `the ${recipe.kind} recipe declares no ${NAMED[kind]}` : undefined;
 }
 
@@ -50,23 +49,27 @@ export function anchoredSchemes(ctx: OperationContext, anchoring: Anchoring): Pl
   const here: string[] = [];
   const elsewhere = new Set<string>();
   const reasons: string[] = [];
+
   for (const scheme of ctx.model.securitySchemes) {
     const recipe = ctx.probe.recipe({ principal: ctx.actor.id, scheme });
     const refused = isUntested(recipe) ? recipe.untested : refusalOf(recipe, anchoring);
     const anchor = isUntested(recipe) ? undefined : recipe[anchoring.kind];
+
     if (refused !== undefined) reasons.push(`${scheme}: ${refused}`);
     else if (anchor === ctx.operation.operationId) here.push(scheme);
     else elsewhere.add(anchor as string);
   }
+
   if (here.length > 0) return ready(here);
-  if (elsewhere.size > 0) {
+
+  if (elsewhere.size > 0)
     return cannot(`the ${anchoring.kind} operation of a recipe; this check runs on ${[...elsewhere].join(", ")}`);
-  }
+
   return cannot(reasons.length > 0 ? reasons.join("; ") : "a declared security scheme");
 }
 
 /** The one read a lifecycle check proves a credential on. */
-export interface ReadRoute {
+export type ReadRoute = {
   operation: OperationModel;
   /** The method it is sent with: GET or HEAD. */
   method: SafeMethod;
@@ -74,7 +77,7 @@ export interface ReadRoute {
   path: string;
   /** The scopes the scheme's alternative asks for, which a minted credential must carry. */
   scopes: string[];
-}
+};
 
 /** The safe methods a credential is proven with: neither carries a body. */
 const PROVING: ReadonlySet<string> = /* @__PURE__ */ new Set(["GET", "HEAD"]);
@@ -90,58 +93,65 @@ const PROVING: ReadonlySet<string> = /* @__PURE__ */ new Set(["GET", "HEAD"]);
 export function readRoute(ctx: OperationContext, scheme: string): ReadRoute | undefined {
   const { scope } = acceptorOf(ctx);
   let best: { rank: number; route: ReadRoute } | undefined;
+
   for (const operation of ctx.model.operations) {
     if (!PROVING.has(operation.method.toUpperCase()) || operation.security.source === "none") continue;
     const alone = operation.security.alternatives.find((set) => set.length === 1 && set[0]?.scheme === scheme)?.[0];
+
     if (alone === undefined) continue;
     const raw = ctx.model.rawOperations.get(operation.operationId) as OperationObject;
     const values = pathValues(operation, raw, scope);
+
     if (values === undefined || unfilledRequired(raw).length > 0) continue;
     const rank = rankOf(operation, raw);
+
     if (best !== undefined && best.rank <= rank) continue;
     const path = fillPath(operation.path, values);
     const method = operation.method.toUpperCase() as SafeMethod;
     best = { rank, route: { method, operation, path, scopes: [...alone.scopes] } };
   }
+
   return best?.route;
 }
 
-/* Each path parameter's value from the scope, else its declared enum's first; undefined once one has neither. */
+// Each path parameter's value from the scope, else its declared enum's first; undefined once one has neither.
 function pathValues(
   operation: OperationModel,
   raw: OperationObject,
   scope: Readonly<Record<string, string>>,
 ): Record<string, string> | undefined {
   const values: Record<string, string> = {};
+
   for (const name of operation.pathParams) {
     const enumerated = raw.parameters?.find((param) => param.in === "path" && param.name === name)?.schema?.["enum"];
     const value = Object.hasOwn(scope, name) ? scope[name] : Array.isArray(enumerated) ? enumerated[0] : undefined;
+
     if (value === undefined || value === null) return undefined;
     values[name] = String(value);
   }
+
   return values;
 }
 
-/*
- * Lower is better: a read that needs no parameter at all, then the caller's own read or a list, which
- * any credential of the scheme should be let into, over a read of one record it may not reach. A GET
- * breaks a tie with a HEAD: some stacks answer HEAD outside their auth middleware (an automatic
- * HEAD, a static or proxy layer), and its 2xx would read a revoked credential as accepted.
- */
+// Lower is better: a read that needs no parameter at all, then the caller's own read or a list, which
+// any credential of the scheme should be let into, over a read of one record it may not reach. A GET
+// breaks a tie with a HEAD: some stacks answer HEAD outside their auth middleware (an automatic
+// HEAD, a static or proxy layer), and its 2xx would read a revoked credential as accepted.
 function rankOf(operation: OperationModel, raw: OperationObject): number {
   const bare = operation.pathParams.length === 0 && !(raw.parameters ?? []).some((param) => param.required === true);
   const open = operation.identity === SELF_IDENTITY || operation.action === "list";
   const head = operation.method.toUpperCase() === "HEAD";
+
   return (bare ? 0 : 4) + (open ? 0 : 2) + (head ? 1 : 0);
 }
 
 /** One scheme a lifecycle check runs for, the read it proves the credential on, and whose credential it is. */
-export interface Lifecycle {
+export type Lifecycle = {
   scheme: string;
   route: ReadRoute;
   /** The principal whose dedicated credential is proven, then revoked or rotated (`acceptorOf`). */
   actor: string;
-}
+};
 
 /** Why a lifecycle check stands down when no scheme it anchors has a read `readRoute` can send. */
 const NO_READ = "no read this credential protects that the API tester can send";
@@ -152,13 +162,17 @@ const NO_READ = "no read this credential protects that the API tester can send";
  */
 export function lifecyclePlan(ctx: OperationContext, kind: AnchorKind): Plan<Lifecycle[]> {
   const undeclared = noSecurityReason(ctx.operation);
+
   if (undeclared !== undefined) return cannot(undeclared);
   const actor = acceptorOf(ctx).id;
+
   return andThen(anchoredSchemes(ctx, { kind }), (schemes) => {
     const planned = schemes.flatMap((scheme) => {
       const route = readRoute(ctx, scheme);
+
       return route === undefined ? [] : [{ actor, route, scheme }];
     });
+
     return planned.length > 0 ? ready(planned) : cannot(NO_READ);
   });
 }
@@ -183,6 +197,7 @@ export async function unlessUnsatisfied<T = Outcome>(
     return await work();
   } catch (error) {
     if (!(error instanceof UnsatisfiedSecurity)) throw error;
+
     return { untested: `${label}: ${error.reason}` };
   }
 }
@@ -195,7 +210,10 @@ export function settle(outcomes: readonly SchemeOutcome[]): Outcome {
   const ran = outcomes.filter((outcome): outcome is Outcome => !("untested" in outcome));
   const untested = outcomes.flatMap((outcome) => ("untested" in outcome ? [outcome.untested] : []));
   const decided = ran.find((outcome) => outcome.kind === "finding") ?? ran.find((o) => o.kind === "unresolved");
+
   if (decided !== undefined) return decided;
+
   if (ran.length === 0) return standDown(untested.join("; "));
+
   return untested.length > 0 ? asserted(`untested: ${untested.join("; ")}`) : ASSERTED;
 }

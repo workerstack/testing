@@ -10,30 +10,35 @@ import { ifMatchEnforced } from "./concurrency-if-match-enforced.ts";
 type Json = Record<string, unknown>;
 
 /** What the document declares beyond the widget's routes: an ETag on the read, If-Match on the update. */
-interface Declared {
+type Declared = {
   etag?: boolean;
   ifMatch?: boolean;
   updateBody?: boolean;
-}
+};
 
-/* The widget document, with the read's ETag header and the update's If-Match parameter and 412. */
+// The widget document, with the read's ETag header and the update's If-Match parameter and 412.
 function preconditionDoc(options: WidgetDocOptions, declared: Declared): OpenApiDocument {
   const doc = widgetDoc(options) as unknown as { paths: Record<string, Record<string, Json | undefined>> };
   const route = doc.paths["/widgets/{id}"] ?? {};
   const read = route["get"] as { responses: Record<string, Json> } | undefined;
+
   if (declared.etag !== false && read !== undefined)
     read.responses["200"] = { ...read.responses["200"], headers: { ETag: {} } };
   const update = (route["patch"] ?? route["put"]) as Json | undefined;
+
   if (update !== undefined && declared.ifMatch !== false) {
     update["parameters"] = [{ in: "header", name: "If-Match", schema: { type: "string" } }];
     (update["responses"] as Json)["412"] = { description: "stale" };
   }
+
   if (update !== undefined && declared.updateBody === false) delete update["requestBody"];
+
   return doc as unknown as OpenApiDocument;
 }
 
 function stage(respond: Responder, options: WidgetDocOptions = {}, declared: Declared = {}) {
   const model = modelOf(preconditionDoc(options, declared));
+
   return contextFor(model, "listWidgets", {
     respond,
     fields: {
@@ -44,14 +49,15 @@ function stage(respond: Responder, options: WidgetDocOptions = {}, declared: Dec
   });
 }
 
-/* The If-Match a request carried, when it carried one. */
+// The If-Match a request carried, when it carried one.
 function ifMatchOf(options: Omit<RequestOptions, "as">): string | undefined {
   const headers = typeof options.headers === "function" ? options.headers() : (options.headers ?? {});
+
   return headers["If-Match"];
 }
 
 /** How a versioned backend misbehaves, if it does. */
-interface Versioning {
+type Versioning = {
   /** Answers a stale If-Match with this status instead of 412, and applies the write. */
   ignore?: number;
   /** Answers 412 and applies the write anyway. */
@@ -64,46 +70,57 @@ interface Versioning {
   weak?: boolean;
   /** The read sends no ETag. */
   untagged?: boolean;
-}
+};
 
 const PROBLEM = { headers: { "content-type": "application/problem+json" }, status: 412 };
 
-/* The widget backend with a version per record: the read tags it, a write moves it, a stale If-Match is 412. */
+// The widget backend with a version per record: the read tags it, a write moves it, a stale If-Match is 412.
 function versioned(how: Versioning = {}, rows: Rows = new Map()): Responder {
   const backend = widgetApi(rows);
   const versions = new Map<string, number>();
   const tag = (id: string): string => `${how.weak === true ? "W/" : ""}"v${versions.get(id) ?? 0}"`;
+
   const bump = (id: string): void => {
     if (how.frozen !== true) versions.set(id, (versions.get(id) ?? 0) + 1);
   };
+
   return (method, path, options) => {
     const answer = backend(method, path, options);
+
     if (path === "/widgets" || answer === undefined) return answer;
     const id = decodeURIComponent(path.slice("/widgets/".length));
+
     if (method === "GET") return how.untagged === true ? answer : { ...answer, headers: { etag: tag(id) } };
     const sent = ifMatchOf(options);
+
     if (sent === undefined || sent === tag(id)) {
       bump(id);
+
       return answer;
     }
+
     return staleAnswer(how, answer, () => bump(id));
   };
 }
 
-/* How the versioned backend answers a write under a stale If-Match: as `how` says, else 412. */
+// How the versioned backend answers a write under a stale If-Match: as `how` says, else 412.
 function staleAnswer(how: Versioning, answer: Answer, bump: () => void): Answer {
   if (how.alreadyApplied === true) return { ...answer, status: 200 };
+
   if (how.landsAnyway !== true && how.ignore === undefined) return PROBLEM;
   bump();
+
   return how.ignore === undefined ? PROBLEM : { ...answer, status: how.ignore };
 }
 
 /** Answers the `nth` write (1-based) with `answer`; everything else reaches `backend`. */
 function writing(nth: number, answer: Answer, backend: Responder = versioned()): Responder {
   let writes = 0;
+
   return overriding(backend, (method) => {
-    if (method !== "PATCH" && method !== "PUT") return undefined;
+    if (method !== "PATCH" && method !== "PUT") return;
     writes += 1;
+
     return writes === nth ? answer : undefined;
   });
 }
@@ -111,9 +128,11 @@ function writing(nth: number, answer: Answer, backend: Responder = versioned()):
 /** Answers the item read with `answer` from the `nth` read on (1-based). */
 function readingFrom(nth: number, answer: Answer): Responder {
   let reads = 0;
+
   return overriding(versioned(), (method, path) => {
-    if (method !== "GET" || path === "/widgets") return undefined;
+    if (method !== "GET" || path === "/widgets") return;
     reads += 1;
+
     return reads >= nth ? answer : undefined;
   });
 }
@@ -133,7 +152,7 @@ describe("concurrency.if-match-enforced verdicts", () => {
       'PATCH "v0"',
       "GET -",
     ]);
-    /* Both updates carry the record as read: its writable fields, never its server-issued id. */
+    // Both updates carry the record as read: its writable fields, never its server-issued id.
     const [created, , first, , second] = sent;
     const made = created?.options.body as Json;
     expect(first?.options.body).toEqual({ label: made["label"], name: made["name"], note: made["note"] });
@@ -245,10 +264,12 @@ describe("concurrency.if-match-enforced unresolved", () => {
       [2, { body: { id: "w1", name: "n" }, status: 200 }, "the item read after the first update carried no ETag"],
       [3, { status: 404 }, "reading the record after the stale update returned 404"],
     ];
+
     for (const [nth, answer, reason] of cases) {
       const { ctx } = stage(readingFrom(nth, answer));
       expect(await runCheck(ifMatchEnforced, ctx)).toEqual({ kind: "unresolved", reason });
     }
+
     const { ctx } = stage(versioned({ untagged: true }));
     expect(await runCheck(ifMatchEnforced, ctx)).toEqual({
       kind: "unresolved",
@@ -284,6 +305,7 @@ describe("concurrency.if-match-enforced plan", () => {
   it("grades the update and the item read", () => {
     const { ctx } = stage(versioned());
     const entity = ctx.model.entities.get(ctx.entityName);
+
     if (entity === undefined) throw new Error("expected the widget entity");
     expect(ifMatchEnforced.subjects(entity, ctx.model)).toEqual(["updateWidget", "getWidget"]);
   });

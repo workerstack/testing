@@ -23,17 +23,22 @@ export const crossTenantFilterBypass: Check<{
   plan: (ctx) => {
     const { peer, peerScope } = ctx;
     const target = ctx.records[0];
+
     if (peer === undefined || peerScope === undefined || target === undefined) return cannot();
+
     if (!filterable(ctx) || !tenantBoundary(ctx.listOp) || !identityIsFilterable(ctx)) return cannot();
     const id = idOf(target, ctx.identity);
+
     if (id === undefined) return cannot(NO_IDENTITY);
     const tenantTerm = filterTerm(conv(ctx), { field: filterIdentity(ctx), op: "eq", value: id });
+
     if (tenantTerm === null) return cannot("a filter grammar that can express equality on the identity");
+
     return ready({ id, peer: peer.id, peerScope, tenantTerm });
   },
-  /* The probe filters, so anything that stops a filter from selecting over the whole collection
-   * hides the very record whose visibility is in question — a leak that cannot be observed is
-   * not a leak that can be reported. */
+  // The probe filters, so anything that stops a filter from selecting over the whole collection
+  // hides the very record whose visibility is in question — a leak that cannot be observed is
+  // not a leak that can be reported.
   dependsOn: ["query.filter-selects-from-whole-set"],
   id: "tenant.filter-does-not-bypass-scope",
   lists: true,
@@ -45,12 +50,15 @@ export const crossTenantFilterBypass: Check<{
       { ...q(ctx, { limit: pageSize(ctx) }), ...tenantTerm },
       { principal: peer, scope: peerScope },
     );
+
     if (result.exchange.status >= 400) return ASSERTED;
+
     if (!ids(result.items, ctx.identity).includes(id)) return ASSERTED;
 
-    /* Same split as the item check. A public catalog has no tenant at all — a 200 for
-     * `id.eq.<someone else's public row>` is the contract, not a leak. */
+    // Same split as the item check. A public catalog has no tenant at all — a 200 for
+    // `id.eq.<someone else's public row>` is the contract, not a leak.
     const tenantDeclared = ctx.listOp.tenantSource === "tag";
+
     const detail =
       `a principal in another tenant filtered on ${ctx.identity}.eq.${id} and received the ` +
       "record. The tenant predicate is applied to the base listing but not re-applied to " +
@@ -78,6 +86,7 @@ export const crossTenantFilterBypass: Check<{
       summary: "a filter crosses an inferred tenant boundary; the document does not say whether that is intended",
       verdict: "AMBIGUITY",
     });
+
     return ASSERTED;
   },
 });

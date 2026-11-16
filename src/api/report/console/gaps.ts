@@ -26,6 +26,7 @@ export function danglingRefLines(danglingRefs: string[]): string[] {
 /** The gaps, most frequent tag first, each tag with what would close it. */
 export function gapLines(facts: DoctorFacts): string[] {
   const sorted = [...facts.gapsByTag.entries()].sort((a, b) => b[1].length - a[1].length);
+
   return block(
     "  gaps by tag",
     sorted.flatMap(([tag, gapList]) => [

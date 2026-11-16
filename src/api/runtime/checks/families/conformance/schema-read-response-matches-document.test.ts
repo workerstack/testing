@@ -13,21 +13,23 @@ import {
 } from "./__fixtures__/items.ts";
 import { readSchemaHonored } from "./schema-read-response-matches-document.ts";
 
-/*
- * Every 2xx answer of an entity's item read and listing must fit the schema the document declares
- * for its status. The check judges the answers the run already drew; it sends nothing.
- */
+// Every 2xx answer of an entity's item read and listing must fit the schema the document declares
+// for its status. The check judges the answers the run already drew; it sends nothing.
 
 const ROW = { id: "1", name: "a" };
 
 /** The check's outcome over a transcript of `exchanges`, and the operations it says it judged. */
 async function judge(exchanges: Exchange[], options: ItemsOptions = {}) {
   const judged: string[][] = [];
+
   const staged = overTranscript(modelOfItems(options), exchanges, {
     fields: { judged: (ids: readonly string[]) => judged.push([...ids]) },
   });
+
   const plan = readSchemaHonored.plan(staged.ctx);
+
   if (!plan.ok) throw new Error("the read-schema plan did not apply");
+
   return { ...staged, judged, outcome: await readSchemaHonored.run(staged.ctx, plan.value) };
 }
 
@@ -37,7 +39,7 @@ const listed = (body: unknown, extra: Partial<Exchange> = {}): Exchange =>
 describe("schema.read-response-matches-document plan", () => {
   it("needs a validator, and an item read or a listing", () => {
     const model = modelOfItems();
-    const { ctx } = contextFor(model, "item.list", { respond: () => undefined, fields: itemOperations(model) });
+    const { ctx } = contextFor(model, "item.list", { respond: () => {}, fields: itemOperations(model) });
     expect(readSchemaHonored.plan(ctx).ok).toBe(true);
     expect(readSchemaHonored.plan({ ...ctx, readOp: undefined }).ok).toBe(true);
     expect(readSchemaHonored.plan({ ...ctx, validator: undefined }).ok).toBe(false);
@@ -78,11 +80,13 @@ describe("schema.read-response-matches-document run", () => {
 
   it("reports each operation once, on its first diverging answer", async () => {
     const first = seen("item.read", { body: { extra: 1, ...ROW }, status: 200 });
+
     const { findings } = await judge([
       first,
       seen("item.read", { body: { other: 2, ...ROW }, status: 200 }),
       listed([{ id: 1, name: "a" }]),
     ]);
+
     expect(findings.findings.map((f) => f.operations)).toEqual([["item.read"], ["item.list"]]);
     expect(findings.findings[0]?.evidence).toEqual([first]);
   });
@@ -91,6 +95,7 @@ describe("schema.read-response-matches-document run", () => {
 describe("schema.read-response-matches-document, what it leaves alone", () => {
   it("leaves alone what is not a documented 2xx answer to an ordinary read", async () => {
     const wrong = { body: { item: ROW }, status: 200 };
+
     const { findings, outcome } = await judge([
       seen("item.read", { body: ROW, status: 200 }),
       seen("item.read", { body: { nope: 1 }, status: 404 }),
@@ -100,6 +105,7 @@ describe("schema.read-response-matches-document, what it leaves alone", () => {
       seen("item.update", wrong),
       seen("other.list", wrong),
     ]);
+
     expect(outcome).toEqual({ kind: "asserted" });
     expect(findings.findings).toEqual([]);
   });
@@ -113,6 +119,7 @@ describe("schema.read-response-matches-document, what it leaves alone", () => {
     const staged = overTranscript(modelOfItems(), [seen("item.read", wrong), listed([ROW])]);
     staged.model.rawOperations.delete("item.read");
     const plan = readSchemaHonored.plan(staged.ctx);
+
     if (!plan.ok) throw new Error("the read-schema plan did not apply");
     expect(await readSchemaHonored.run(staged.ctx, plan.value)).toEqual({ kind: "asserted" });
     expect(staged.findings.findings).toEqual([]);
@@ -129,9 +136,9 @@ describe("schema.read-response-matches-document, what it cannot see", () => {
       [["item.list"], true],
     ]);
     expect(judged).toEqual([["item.list"]]);
-    /* Held to its schema and fitting it: a pass, with nothing said about its size. */
+    // Held to its schema and fitting it: a pass, with nothing said about its size.
     expect((await judge([listed(ref, { schemaVerdict: { errors: [] } })])).outcome).toEqual({ kind: "asserted" });
-    /* Never captured whole, there is nothing to judge it by. */
+    // Never captured whole, there is nothing to judge it by.
     const unjudged = await judge([listed(ref)]);
     expect(unjudged.outcome).toEqual({
       kind: "stood-down",

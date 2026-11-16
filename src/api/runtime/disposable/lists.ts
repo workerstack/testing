@@ -17,9 +17,12 @@ function shapeOf(list: OperationModel, model: SpecModel): ReturnType<typeof deri
 
 export function recordsOf(body: unknown, op: OperationModel, model: SpecModel): Record<string, unknown>[] {
   const shape = shapeOf(op, model);
+
   if (body === null || typeof body !== "object") return [];
   const value = shape?.key === null || shape?.key === undefined ? body : (body as Record<string, unknown>)[shape.key];
+
   if (!Array.isArray(value)) return [];
+
   return value.filter(
     (item): item is Record<string, unknown> => item !== null && typeof item === "object" && !Array.isArray(item),
   );
@@ -28,13 +31,16 @@ export function recordsOf(body: unknown, op: OperationModel, model: SpecModel): 
 export function identityOf(list: OperationModel, model: SpecModel, param: string): string {
   const shape = shapeOf(list, model);
   const props = effective(shape?.itemSchema ?? null)?.properties;
+
   if (props !== null && props !== undefined && typeof props === "object" && param in props) return param;
+
   return deriveIdentity(shape?.itemSchema ?? null, param) ?? "id";
 }
 
 /** The collection read one level up — `GET /a/{id}` lists for `DELETE /a/{id}/b/{item}`. */
 export function parentList(model: SpecModel, op: OperationModel): OperationModel | undefined {
   const parent = op.path.replace(/\/\{[^}]+\}$/, "");
+
   return model.operations.find((item) => item.method.toUpperCase() === "GET" && item.path === parent);
 }
 
@@ -47,8 +53,9 @@ export function bodyFor(
   if (schema === null) return undefined;
   const out = { ...generated };
   const props = schema.properties;
-  if (props !== null && props !== undefined && typeof props === "object") {
+
+  if (props !== null && props !== undefined && typeof props === "object")
     for (const name of Object.keys(props)) if (name in known) out[name] = known[name];
-  }
+
   return out;
 }

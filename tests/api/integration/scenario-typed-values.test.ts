@@ -7,8 +7,8 @@ import type { Scenario } from "../../../src/api/config/define/types.ts";
 import { run } from "../../../src/api/runtime/run/index.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 
-/* A number a response returned goes back as a number: a body field that is exactly `{name}`
- * sends the saved value with its type, as it already does for objects. */
+// A number a response returned goes back as a number: a body field that is exactly `{name}`
+// sends the saved value with its type, as it already does for objects.
 
 const closers: Array<() => Promise<void>> = [];
 
@@ -47,13 +47,16 @@ describe("scenario saved values", () => {
   it("sends a saved number or boolean with its type where a body field names it whole", async () => {
     const server = createServer((req, res) => {
       res.writeHead(200, { "content-type": "application/json" });
+
       if (req.url === "/openapi.json") res.end(JSON.stringify(spec));
       else if (req.url === "/v1/slot") res.end(JSON.stringify({ open: true, sid: 7 }));
       else res.end(JSON.stringify({ declined: true }));
     });
+
     await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
     closers.push(() => new Promise((resolve) => server.close(() => resolve())));
     const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+
     const scenario: Scenario = {
       covers: ["slot.decline"],
       id: "slot",
@@ -62,6 +65,7 @@ describe("scenario saved values", () => {
         { body: { label: "slot {sid}", open: "{open}", sid: "{sid}" }, operationId: "slot.decline" },
       ],
     };
+
     const result = await run({
       baseUrl: url,
       ops: ["slot.decline"],
@@ -70,6 +74,7 @@ describe("scenario saved values", () => {
       seed: 1,
       spec: `${url}/openapi.json`,
     });
+
     const sent = result.client.transcript.find((exchange) => exchange.operationId === "slot.decline");
     expect(sent?.requestBody).toEqual({ label: "slot 7", open: true, sid: 7 });
   });

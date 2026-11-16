@@ -19,6 +19,7 @@ const ref = (text: string, mediaType: string) => ({
   mediaType,
   sha256: sha256Hex(utf8Encode(text)),
 });
+
 const response = (body: unknown, contentType?: string) =>
   exchangeOf({ responseBody: body, responseHeaders: contentType === undefined ? {} : { "Content-Type": contentType } });
 
@@ -54,10 +55,12 @@ describe("persistRequestBody", () => {
         { field: "doc", filename: "a.txt", ...ref("abc", "text/plain") },
       ],
     });
+
     const fields = new URLSearchParams([
       ["password", "p"],
       ["q", "1"],
     ]);
+
     expect(await persistRequestBody(fields, store)).toEqual({ password: REDACTED, q: "1" });
   });
 
@@ -76,11 +79,14 @@ describe("persistResponseBody, event streams", () => {
       response('event: tick\ndata: {"password":"p"}\n\n', "text/event-stream"),
       store,
     );
+
     expect(frames).toEqual([{ data: { password: REDACTED }, event: "tick" }]);
+
     const listed = await persistResponseBody(
       response([{ data: "x", event: "e" }], "text/event-stream; charset=utf-8"),
       store,
     );
+
     expect(listed).toEqual([{ data: "x", event: "e" }]);
     const big = `: ${"z".repeat(INLINE_BODY_LIMIT)}`;
     expect(await persistResponseBody(response(big, "text/event-stream; charset=utf-8"), store)).toEqual(

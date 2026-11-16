@@ -13,6 +13,7 @@ const created = (body: Record<string, unknown>): CreatedCaller => ({
 
 function act(answer: Answer, query: string[], caller: CreatedCaller | null) {
   const { input, findings, sent } = selfInput(() => answer, me({ action: query }));
+
   return { findings, result: runSelfActions(input, findings, caller), sent };
 }
 
@@ -23,6 +24,7 @@ describe("runSelfActions", () => {
       ["handle", "n", "b"],
       created({ b: false, handle: "h", n: 2 }),
     );
+
     expect(await result).toBeNull();
     expect(sent[0]?.options.query).toEqual({ b: "false", handle: "h", n: "2" });
     expect(sent[0]?.options.as).toEqual({ principal: "alpha" });
@@ -52,7 +54,7 @@ describe("runSelfActions", () => {
   });
 
   it("has nothing to do without actions", async () => {
-    const { input, findings } = selfInput(() => undefined);
+    const { input, findings } = selfInput(() => {});
     expect(await runSelfActions(input, findings, null)).toBeNull();
   });
 });

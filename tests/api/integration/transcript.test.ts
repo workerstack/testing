@@ -21,10 +21,11 @@ afterEach(async () => {
   await Promise.all(closers.splice(0).map((close) => close()));
 });
 
-/* Registers a started server for teardown. */
+// Registers a started server for teardown.
 async function track(started: Promise<Listening>): Promise<Listening> {
   const server = await started;
   closers.push(server.close);
+
   return server;
 }
 
@@ -52,7 +53,7 @@ function recognizesDescriptors() {
 
 type Snapshot = { parts: Array<Record<string, unknown>> };
 
-/* Descriptors pass through; bytes, blobs and oversized text become refs; small values stay inline. */
+// Descriptors pass through; bytes, blobs and oversized text become refs; small values stay inline.
 async function expectBodiesCompacted(bytes: Uint8Array, compacted: Snapshot, ref: object): Promise<void> {
   expect(await compactRequestBody(compacted, new Redactor())).toBe(compacted);
   expect(await compactRequestBody(ref, new Redactor())).toBe(ref);
@@ -80,13 +81,13 @@ async function expectBodiesCompacted(bytes: Uint8Array, compacted: Snapshot, ref
   expect(await compactRequestBody(7, new Redactor())).toBe(7);
 }
 
-/* A stored body's ref, and the bytes it names. */
-interface StoredBody {
+// A stored body's ref, and the bytes it names.
+type StoredBody = {
   ref: object;
   bytes: Uint8Array;
-}
+};
 
-/* The live form, its snapshot and a ref each describe and render as curl. */
+// The live form, its snapshot and a ref each describe and render as curl.
 function expectDescribedAndCurled(form: FormData, compacted: Snapshot, { bytes, ref }: StoredBody): void {
   expect(describeRequestBody(form)).toMatchObject({
     file: { bytes: 4, filename: "a.bin" },
@@ -103,9 +104,11 @@ function expectDescribedAndCurled(form: FormData, compacted: Snapshot, { bytes, 
     mediaType: "application/octet-stream",
     sha256: sha256Hex(bytes),
   });
+
   const curl = toCurl({ method: "POST", requestBody: compacted, requestHeaders: {}, url: "http://x.test/" } as never, {
     redactor: new Redactor(),
   });
+
   expect(curl).toContain("-F 'title=scan'");
   expect(curl).toContain("-F 'file=@a.bin;type=application/octet-stream'");
   expect(
@@ -121,7 +124,7 @@ async function compactsRequestBodies() {
   form.append("title", "scan");
   form.append("password", "nope");
   form.append("file", new File([bytes], "a.bin"));
-  /* A form compacts to a snapshot: text kept, secrets redacted, the file named by its digest. */
+  // A form compacts to a snapshot: text kept, secrets redacted, the file named by its digest.
   const compacted = (await compactRequestBody(form, new Redactor())) as Snapshot;
   expect(isFormSnapshot(compacted)).toBe(true);
   expect(compacted.parts[0]).toEqual({ field: "title", value: "scan" });
@@ -144,10 +147,12 @@ async function compactsResponseBodies() {
   expect(await compactResponseBody(ref, {})).toBe(ref);
   const snap = { parts: [{ field: "a", value: "1" }] };
   expect(await compactResponseBody(snap, {})).toBe(snap);
+
   const frames = [
     { data: { n: 1 }, event: "batch" },
     { data: { status: "complete" }, event: "complete" },
   ];
+
   expect(await compactResponseBody(frames, { "content-type": "text/event-stream" })).toEqual(frames);
   expect(await compactResponseBody('event: batch\ndata: {"n":1}\n\n', { "content-type": "text/event-stream" })).toEqual(
     [{ data: { n: 1 }, event: "batch" }],
@@ -207,9 +212,11 @@ async function parsesJsonEmptyAndText() {
 async function parsesBodylessSse() {
   const empty = new Response(null, { headers: { "content-type": "text/event-stream" } });
   expect(await readResponsePayload(empty)).toEqual({ bodyBytes: 0, parsed: "" });
+
   const framed = new Response('event: batch\ndata: {"n":1}\n\n', {
     headers: { "content-type": "text/event-stream" },
   });
+
   Object.defineProperty(framed, "body", { configurable: true, value: null });
   expect(await readResponsePayload(framed)).toEqual({
     bodyBytes: 'event: batch\ndata: {"n":1}\n\n'.length,
@@ -232,6 +239,7 @@ async function parsesLiveSseInChunks() {
       res.end('event: complete\ndata: {"status":"complete"}\n\n');
     }),
   );
+
   const response = await fetch(`${server.url}/stream`);
   const payload = await readResponsePayload(response);
   expect(payload.parsed).toEqual([
@@ -241,7 +249,7 @@ async function parsesLiveSseInChunks() {
   expect(typeof payload.parsed).not.toBe("string");
 }
 
-/* Serves one body under the given content type, an event stream by default. */
+// Serves one body under the given content type, an event stream by default.
 function serveOnce(body: string, contentType = "text/event-stream"): Promise<Listening> {
   return track(
     listen((_req, res) => {
@@ -252,7 +260,7 @@ function serveOnce(body: string, contentType = "text/event-stream"): Promise<Lis
 }
 
 async function spillsUnframedOversized() {
-  const huge = "not-a-frame-" + "x".repeat(INLINE_BODY_LIMIT);
+  const huge = `not-a-frame-${"x".repeat(INLINE_BODY_LIMIT)}`;
   const server = await serveOnce(huge);
   const payload = await readResponsePayload(await fetch(`${server.url}/stream`));
   expect(isBodyRef(payload.parsed)).toBe(true);
@@ -271,7 +279,7 @@ async function keepsFramesOverCap() {
   expect(payload.parsed).toEqual([{ data, event: "chunk" }]);
 }
 
-/* An event-stream response that enqueues each chunk in order, then closes. */
+// An event-stream response that enqueues each chunk in order, then closes.
 function chunkedStream(chunks: Array<Uint8Array | undefined>): Response {
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
@@ -279,6 +287,7 @@ function chunkedStream(chunks: Array<Uint8Array | undefined>): Response {
       controller.close();
     },
   });
+
   return new Response(stream, { headers: { "content-type": "text/event-stream" } });
 }
 
@@ -290,10 +299,12 @@ async function ignoresEmptyChunk() {
 async function flushesDecoderRemainder() {
   const small = chunkedStream([new TextEncoder().encode("data: hi\n\n"), new Uint8Array([0xe2])]);
   expect((await readResponsePayload(small)).parsed).toEqual([{ data: "hi", event: "message" }]);
+
   const large = chunkedStream([
-    new TextEncoder().encode("not-a-frame-" + "x".repeat(INLINE_BODY_LIMIT)),
+    new TextEncoder().encode(`not-a-frame-${"x".repeat(INLINE_BODY_LIMIT)}`),
     new Uint8Array([0xe2]),
   ]);
+
   const spilled = await readResponsePayload(large);
   expect(isBodyRef(spilled.parsed)).toBe(true);
 }
@@ -304,6 +315,7 @@ async function propagatesReadError() {
       controller.error(Object.assign(new Error("aborted"), { name: "AbortError" }));
     },
   });
+
   const response = new Response(stream, { headers: { "content-type": "text/event-stream" } });
   await expect(readResponsePayload(response)).rejects.toSatisfy(
     (error: unknown) => error instanceof Error && error.name === "AbortError",
@@ -332,6 +344,7 @@ async function namesTextByDigest() {
 
 async function namesSentRequestBytes() {
   let received = Buffer.alloc(0);
+
   const server = await track(
     listen((req, res) => {
       const chunks: Buffer[] = [];
@@ -342,6 +355,7 @@ async function namesSentRequestBytes() {
       });
     }),
   );
+
   const client = new Client({ baseUrl: server.url, redactor: new Redactor() });
   const body = { rows: Array.from({ length: 4000 }, (_, i) => ({ id: i, name: "n".repeat(60) })) };
   const exchange = await client.request("POST", "/rows", { as: { anonymous: true }, body });
@@ -356,7 +370,7 @@ async function namesSentRequestBytes() {
 }
 
 async function namesServerBytes() {
-  /* Spacing JSON.stringify would not reproduce: hashing the parsed value would miss it. */
+  // Spacing JSON.stringify would not reproduce: hashing the parsed value would miss it.
   const sent = `{ "rows" : [ ${Array.from({ length: 4000 }, (_, i) => `{ "id" : ${i}, "name" : "${"n".repeat(60)}" }`).join(" , ")} ] }`;
   const server = await serveOnce(sent, "application/json");
   const client = new Client({ baseUrl: server.url, redactor: new Redactor() });

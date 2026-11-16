@@ -14,7 +14,7 @@ import { securityLines } from "./security-text.ts";
 import { securityJson } from "./security.ts";
 
 /** How `doctor` reports: the refs the API tester could not follow, JSON or text, and the config beside it. */
-export interface DoctorOptions {
+export type DoctorOptions = {
   /** Refs to other files, which the API tester did not follow. */
   externalRefs?: string[];
   /** Internal refs that point at nothing. */
@@ -23,21 +23,22 @@ export interface DoctorOptions {
   config?: DoctorConfig | undefined;
   /** Variables the config names that are not set: a note, never a block. Given only with a config. */
   unsetEnv?: string[] | undefined;
-}
+};
 
-/* Everything one doctor report is written from. */
-interface Diagnosis {
+// Everything one doctor report is written from.
+type Diagnosis = {
   model: SpecModel;
   facts: DoctorFacts;
   externalRefs: string[];
   danglingRefs: string[];
   config: DoctorConfig | undefined;
   unsetEnv: string[] | undefined;
-}
+};
 
 /** The note for variables a config names that are not set, or nothing when every one is. */
 export function unsetEnvLines(unsetEnv: readonly string[] | undefined): string[] {
   if (unsetEnv === undefined || unsetEnv.length === 0) return [];
+
   return [`  ${"env".padEnd(11)}${unsetEnv.join(", ")} not set — a run stops until they are`, ""];
 }
 
@@ -80,9 +81,10 @@ function doctorJson({ config, danglingRefs, externalRefs, facts, unsetEnv }: Dia
   )}\n`;
 }
 
-/* Said only where the document declares or names a scheme: `authLines` already speaks for one that declares none. */
+// Said only where the document declares or names a scheme: `authLines` already speaks for one that declares none.
 function securityBlock(facts: DoctorFacts): string[] {
   const { security } = facts;
+
   return security.schemes.length === 0 && security.undeclared.length === 0 ? [] : securityLines(security);
 }
 
@@ -101,7 +103,9 @@ function doctorText({ config, danglingRefs, externalRefs, facts, model, unsetEnv
     ...danglingRefLines(danglingRefs),
     ...gapLines(facts),
   ];
+
   if (facts.blocking === 0 && facts.gapsByTag.size === 0) lines.push("  no gaps — full coverage available\n");
+
   return lines.join("\n");
 }
 
@@ -110,5 +114,6 @@ export function doctor(model: SpecModel, options: DoctorOptions = {}): { text: s
   const { asJson = false, config, danglingRefs = [], externalRefs = [], unsetEnv } = options;
   const facts = doctorFacts(model, config);
   const diagnosis = { config, danglingRefs, externalRefs, facts, model, unsetEnv };
+
   return { blocking: facts.blocking, text: asJson ? doctorJson(diagnosis) : doctorText(diagnosis) };
 }

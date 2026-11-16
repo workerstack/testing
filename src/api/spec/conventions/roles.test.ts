@@ -5,7 +5,8 @@ import type { JsonSchema, ParameterObject } from "../types.ts";
 import { isAliasOf, parameterNamed, resolveRoles, type Role, schemaOf } from "./roles.ts";
 
 const int = (name: string, schema: JsonSchema = {}): ParameterObject => query(name, { type: "integer", ...schema });
-/* The parameter aliases alone give a role, as an operation that names none sees it. */
+
+// The parameter aliases alone give a role, as an operation that names none sees it.
 const roleName = (params: readonly ParameterObject[], role: Role) => resolveRoles(params, {}).roles[role];
 const resolvePagingRoles = (params: readonly ParameterObject[]) => resolveRoles(params, {}).roles;
 
@@ -24,11 +25,12 @@ describe("roles by alias", () => {
   });
 
   it("passes over a search alias whose declaration says it takes key:value pairs, not free text", () => {
-    /* Keycloak's users list: `q` searches custom attributes, `search` is the free text. */
+    // Keycloak's users list: `q` searches custom attributes, `search` is the free text.
     const attributes: ParameterObject = {
       ...query("q"),
       description: "A query to search for custom attributes, in the format 'key1:value2 key2:value2'",
     };
+
     expect(roleName([attributes, query("search")], "search")).toBe("search");
     expect(roleName([attributes], "search")).toBeUndefined();
     expect(roleName([query("q", { examples: ["role:admin"], type: "string" })], "search")).toBe("q");
@@ -104,6 +106,7 @@ describe("resolvePagingRoles over nullable numbers", () => {
       { in: "query", name: "limit", schema: { maximum: 100, type: ["integer", "null"] } },
       { in: "query", name: "page", schema: { minimum: 1, oneOf: [{ type: "integer" }, { type: "null" }] } },
     ]);
+
     expect(roles).toEqual({ limit: "limit", page: "page" });
   });
 
@@ -129,7 +132,7 @@ describe("resolveRoles with named parameters", () => {
   });
 
   it("keeps a named parameter from being taken by another role's alias", () => {
-    /* `query` is a filter alias; once named the search parameter, it is not the filter too. */
+    // `query` is a filter alias; once named the search parameter, it is not the filter too.
     expect(resolveRoles([query("query"), query("where")], { search: "query" }).roles).toEqual({
       filter: "where",
       search: "query",

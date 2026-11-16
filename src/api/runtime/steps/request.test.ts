@@ -22,12 +22,14 @@ describe("resolveRequest: an operation step", () => {
 
   it("encodes a body the way the operation documents it", async () => {
     const { ctx } = stepStage(answered);
+
     const form = await resolveRequest(
       ctx,
       { body: { tags: ["a", "b"], user: "{who}" }, operationId: "auth.login" },
       { who: "al" },
       0,
     );
+
     expect(form.contentType).toBe("application/x-www-form-urlencoded");
     expect(String(form.body)).toBe("tags=a%2Cb&user=al");
     const json = await resolveRequest(ctx, { body: { user: "{who}" }, operationId: "auth.token" }, { who: "al" }, 0);
@@ -63,6 +65,7 @@ describe("resolveRequest: an operation step", () => {
 describe("resolveRequest: a raw step", () => {
   it("fills its path, body, headers and query, and follows redirects unless told not to", async () => {
     const { ctx } = stepStage(answered);
+
     const step = {
       body: { u: "{who}" },
       headers: { h: "{who}" },
@@ -70,6 +73,7 @@ describe("resolveRequest: a raw step", () => {
       path: "/r/{who}",
       query: { q: "{who}" },
     };
+
     expect(await resolveRequest(ctx, step, { who: "al" }, 0)).toEqual({
       body: { u: "al" },
       client: ctx.client,
@@ -95,17 +99,20 @@ describe("resolveRequest: a raw step", () => {
     const scope = { "user-id": "u1" };
     const filled = await resolveRequest(ctx, { method: "GET", path: "/users/{user-id}" }, scope, 0);
     expect(filled.path).toBe("/users/u1");
+
     const sends = [
       { method: "GET", path: "/realms/{realm-name}/users" },
       { body: { id: "{realm-name}" }, method: "PUT", path: "/r" },
       { headers: { h: "{realm-name}" }, method: "GET", path: "/r" },
       { method: "GET", path: "/r", query: { q: "{realm-name}" } },
     ];
+
     for (const step of sends) {
       await expect(resolveRequest(ctx, step, scope, 1)).rejects.toThrow(
         "testing api: step 2's placeholder {realm-name} has no value: no bind, saveAs or earlier step fills it",
       );
     }
+
     await expect(resolveRequest(ctx, { operationId: "orgs.get" }, {}, 0)).rejects.toThrow(
       "testing api: step 1's placeholder {org} has no value",
     );

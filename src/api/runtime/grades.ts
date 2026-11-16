@@ -1,14 +1,14 @@
-/* What each operation was graded by during a run, and the exchange that proved each pass. */
+// What each operation was graded by during a run, and the exchange that proved each pass.
 
 /** Exchanges by `seq`, which is unique within a run; the journal saves each with its `seq`. */
-export interface PassEvidence {
+export type PassEvidence = {
   call: number;
   /**
    * A later exchange holding `value` at `path`. For a delete: a later read of the same resource
    * answering `status`, or a later list of its collection where `value` is `absent`.
    */
   observation?: { seq: number; path: string; value: string; absent?: true } | { seq: number; status: number };
-}
+};
 
 /** Which checks graded which operations, filled as checks run. */
 export class GradeLedger {
@@ -43,6 +43,7 @@ export class GradeLedger {
   /** Whether some check other than a probe graded the operation. */
   judged(operation: string): boolean {
     const probed = this.probed.get(operation);
+
     return [...(this.ran.get(operation) ?? [])].some((check) => probed?.has(check) !== true);
   }
 
@@ -57,6 +58,7 @@ export class GradeLedger {
   /** The call behind a pass, and the later read that showed it. An observation is never downgraded. */
   prove(operation: string, evidence: PassEvidence): void {
     const known = this.evidence.get(operation);
+
     if (known?.observation !== undefined && evidence.observation === undefined) return;
     this.evidence.set(operation, evidence);
   }

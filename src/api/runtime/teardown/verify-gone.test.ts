@@ -9,7 +9,7 @@ import { STILL_LISTED, STILL_READS, verifyGone } from "./verify-gone.ts";
 const petParam = [{ in: "path", name: "pet_id", required: true, schema: { type: "string" } }];
 const pet = { "x-entity": { identity: "id", name: "pet" } };
 
-/* Pins list rows with no identity; solos have no list and no read; pets have no list, but a read. */
+// Pins list rows with no identity; solos have no list and no read; pets have no list, but a read.
 const model = notesModel("none", {
   "/pets": { post: { operationId: "pets.create", responses: { "201": { description: "made" } }, ...pet } },
   "/pets/{pet_id}": {
@@ -36,9 +36,10 @@ const model = notesModel("none", {
 /** Re-lists the removed `items` (the others left in place) against `held`. */
 async function relist(held: Store, removed: Disposable[], kept: Disposable[] = []) {
   const records = new Map<Disposable, RecordState>();
-  for (const item of [...removed, ...kept]) {
+
+  for (const item of [...removed, ...kept])
     records.set(item, { entity: item.entity, id: item.id, principal: item.owner.id, removed: removed.includes(item) });
-  }
+
   const report: TeardownReport = {
     failed: [],
     records: [],
@@ -46,8 +47,10 @@ async function relist(held: Store, removed: Disposable[], kept: Disposable[] = [
     unidentified: [],
     unsupported: [],
   };
+
   const { client, sent } = notesClient(held);
   await verifyGone({ client, model, queue: [...removed, ...kept], records, report });
+
   return { records, report, sent };
 }
 
@@ -68,6 +71,7 @@ describe("verifyGone", () => {
       disposable("note", "n2"),
       disposable("note", "n3", { by: "beta" }),
     ]);
+
     expect(sent.map((request) => request.path)).toEqual(["/notes", "/notes"]);
   });
 
@@ -77,6 +81,7 @@ describe("verifyGone", () => {
       [disposable("ghost", "g1"), disposable("solo", "s1"), disposable("pin", "p1"), disposable("comment", "c1")],
       [disposable("note", "n1")],
     );
+
     expect(sent).toEqual([]);
   });
 
@@ -84,6 +89,7 @@ describe("verifyGone", () => {
     const { report } = await relist(store({}, { answers: { "GET /notes": { status: 401 } } }), [
       disposable("note", "n1"),
     ]);
+
     expect(report.failed).toEqual([]);
     expect(report.removed).toBe(1);
   });
@@ -111,11 +117,13 @@ describe("verifyGone for an entity with no list", () => {
       "GET /pets/p2": { status: 410 },
       "GET /pets/p3": { status: 403 },
     };
+
     const { report } = await relist(store({}, { answers }), [
       disposable("pet", "p1"),
       disposable("pet", "p2"),
       disposable("pet", "p3"),
     ]);
+
     expect(report.failed).toEqual([]);
     expect(report.removed).toBe(3);
   });
@@ -139,6 +147,7 @@ describe("verifyGone reading back a record it cannot reach", () => {
         },
       },
     );
+
     const { report } = await relist(held, [disposable("pet", "p1")]);
     expect(report.failed).toEqual([]);
     expect(report.removed).toBe(1);
@@ -150,6 +159,7 @@ describe("verifyGone reading back a record it cannot reach", () => {
         throw new Error("a bug");
       },
     };
+
     await expect(relist(store({}, { answers }), [disposable("pet", "p1")])).rejects.toThrow("a bug");
   });
 });

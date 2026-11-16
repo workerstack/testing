@@ -20,6 +20,7 @@ export const sortUnknownFieldRejected: Check = defineCheck({
       asProbe(ctx),
       q(ctx, { limit: 5, order: sortTerm(conv(ctx), { direction: "asc", field: "testing_no_such_sort_xyz" }) }),
     );
+
     if (result.exchange.status >= 500) {
       return ctx.findings.backend(this.id, ctx.entityName, {
         summary: "unknown sort field produces a server error",
@@ -27,16 +28,18 @@ export const sortUnknownFieldRejected: Check = defineCheck({
         evidence: [result.exchange],
       });
     }
+
     const refused = judgeRefusal(ctx, this.id, ["validation"], result.exchange);
+
     if (refused !== null) return refused;
     const baseline = await list(ctx, q(ctx, { limit: 5 }));
     const same = ids(result.items, ctx.identity).join(",") === ids(baseline.items, ctx.identity).join(",");
+
     return ctx.findings.backend(this.id, ctx.entityName, {
       summary: "unknown sort field is silently ignored",
-      detail:
-        `order on an undeclared field returned ${result.exchange.status}` +
-        (same ? " with the default order, so the field was dropped" : "") +
-        ".",
+      detail: `order on an undeclared field returned ${result.exchange.status}${
+        same ? " with the default order, so the field was dropped" : ""
+      }.`,
       evidence: [baseline.exchange, result.exchange],
     });
   },

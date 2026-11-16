@@ -12,21 +12,26 @@ function targetedScope(
 ): TargetScope {
   const { model, targets } = ctx;
   const graded = new Set<string>();
+
   const entities = testable.filter((entity) => {
     const subjects = staticSubjects(entity, model);
     const hit = [...subjects].some((id) => targets.has(id));
+
     if (hit) for (const id of subjects) if (targets.has(id)) graded.add(id);
+
     return hit;
   });
 
   const untestable = new Map<string, string>();
+
   for (const id of targets) {
     if (graded.has(id)) continue;
-    /* A primary target is an operationId of the model. */
+    // A primary target is an operationId of the model.
     untestable.set(id, untestableReason(model.byOperationId.get(id) as OperationModel, model, authCreates));
   }
 
   const origins = new Map<string, string[]>();
+
   for (const [originId, ids] of ctx.originTargets) if (ids.size > 0) origins.set(originId, [...ids]);
 
   return {
@@ -61,7 +66,10 @@ export function resolveTargetScope(model: SpecModel, input: ScopeInput): TargetS
   }
 
   const t: Targeting = { excluded: [], input, model, originTargets: new Map(), targets: new Set() };
+
   for (const pattern of ops) targetPattern(t, pattern);
+
   for (const name of only) targetEntity(t, name);
+
   return targetedScope(t, testable, authCreates, { only, ops });
 }

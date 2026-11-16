@@ -7,25 +7,29 @@ import { recordUnmodeled } from "./unmodeled.ts";
 function gapsOf(doc: Record<string, unknown>) {
   const gaps = new GapCollector();
   recordUnmodeled({ openapi: "3.1.0", ...doc } as OpenApiDocument, gaps);
+
   return gaps.gaps;
 }
 
-/* The gap each kind records, spelled out once so every case asserts the exact wording. */
+// The gap each kind records, spelled out once so every case asserts the exact wording.
 const webhook = (name: string) => ({
   detail: "is a call the API sends to a subscriber's URL; the API tester receives no inbound call",
   operationId: `webhook ${name}`,
   tag: "webhooks",
 });
+
 const callback = (operationId: string, name: string) => ({
   detail: `declares callback "${name}", a call the API makes back to a URL the request names`,
   operationId,
   tag: "callbacks",
 });
+
 const link = (operationId: string, status: string, name: string) => ({
   detail: `response ${status} links "${name}" to a follow-up call the API tester does not make`,
   operationId,
   tag: "links",
 });
+
 const additional = (operationId: string, method: string) => ({
   detail: `declares method ${method} under additionalOperations, which the API tester does not send`,
   operationId,
@@ -48,6 +52,7 @@ describe("recordUnmodeled", () => {
       "/subscriptions": { post: { callbacks: { onEvent: {}, onError: {} }, operationId: "subscribe" } },
       "/plain": { put: { callbacks: { onDone: {} } } },
     };
+
     expect(gapsOf({ paths })).toEqual([
       callback("subscribe", "onEvent"),
       callback("subscribe", "onError"),
@@ -61,6 +66,7 @@ describe("recordUnmodeled", () => {
       "404": { description: "missing" },
       default: { links: { Retry: {} } },
     };
+
     expect(gapsOf({ paths: { "/users": { post: { operationId: "users.create", responses } } } })).toEqual([
       link("users.create", "201", "GetUser"),
       link("users.create", "201", "ListPets"),
@@ -75,6 +81,7 @@ describe("recordUnmodeled", () => {
         get: { operationId: "files.get" },
       },
     };
+
     expect(gapsOf({ paths })).toEqual([additional("COPY /files/{id}", "COPY"), additional("files.link", "LINK")]);
   });
 
@@ -88,6 +95,7 @@ describe("recordUnmodeled", () => {
       "/b": null,
       "/c": { additionalOperations: { MOVE: null } },
     };
+
     expect(gapsOf({ paths, webhooks: [] })).toEqual([additional("MOVE /c", "MOVE")]);
     expect(gapsOf({ webhooks: "x" })).toEqual([]);
   });

@@ -37,6 +37,7 @@ describe("runRateLimitSuite", () => {
       ...inProcess,
       host: (handle) => inProcess.host(async (request) => (request.method === "POST" ? answer(500) : handle(request))),
     };
+
     const results = await runRateLimitSuite(refusing);
     expect(results.slice(2).map((r) => [r.ok, r.detail])).toEqual([
       [false, "status=500 seq=500"],

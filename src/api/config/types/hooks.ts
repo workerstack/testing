@@ -1,8 +1,8 @@
-/* The functions a config passes the API tester, and what each receives and returns. */
+// The functions a config passes the API tester, and what each receives and returns.
 
 import type { FilterableField, QueryCapabilities } from "./query.ts";
 
-export interface OutOfBandRequest {
+export type OutOfBandRequest = {
   address: string;
   kind: string;
   /** 1-based; the API tester retries with backoff until a value arrives or the attempts run out. */
@@ -16,16 +16,16 @@ export interface OutOfBandRequest {
    * some other request. Absent when no request named the address, or the step is `sentEarlier`.
    */
   since?: number;
-}
+};
 
 /** Where a credential goes on one request: header, query parameter and cookie values by name, as its scheme places it. */
-export interface Sends {
+export type Sends = {
   headers: Record<string, string>;
   query: Record<string, string>;
   cookies: Record<string, string>;
-}
+};
 
-export interface TeardownPrincipalContext {
+export type TeardownPrincipalContext = {
   /** The principal's credential as the run last held it: the latest issued, not a cleared snapshot. */
   credential: string;
   /** Where that credential goes, as its scheme places it, ready to send on the removing request. */
@@ -35,13 +35,13 @@ export interface TeardownPrincipalContext {
    * has likely lapsed. A hook that can reach the account another way (its password, an admin) should.
    */
   stale?: string;
-}
+};
 
 /** The principal `hooks.resolveCredential` gets a credential for: its id and its identity data. */
-export interface CredentialPrincipal {
+export type CredentialPrincipal = {
   id: string;
   identity: Readonly<Record<string, unknown>>;
-}
+};
 
 /** A credential `hooks.resolveCredential` returns: the value, or the value and its lifetime in seconds. */
 type CredentialAnswer = string | { value: string; expiresIn?: number };
@@ -54,19 +54,19 @@ type CredentialAnswer = string | { value: string; expiresIn?: number };
  * `200+400+800+1600+3000+3000 = 9000` ms. `{ attempts: 20, initialMs: 1000, maxMs: 8000 }`
  * is `1000+2000+4000+8000×17 = 143000` ms. The hook must not sleep; the API tester owns the backoff.
  */
-export interface OutOfBandConfig {
+export type OutOfBandConfig = {
   attempts?: number;
   initialMs?: number;
   maxMs?: number;
-}
+};
 
-export interface HeaderRequest {
+export type HeaderRequest = {
   method: string;
   url: string;
   operationId?: string;
-}
+};
 
-export interface InputRequest {
+export type InputRequest = {
   operationId: string;
   /** Property name at this depth. */
   field: string;
@@ -79,17 +79,17 @@ export interface InputRequest {
    * constraint probe. Return `null` to send that value unchanged.
    */
   value: unknown;
-}
+};
 
-export interface SideEffectRequest {
+export type SideEffectRequest = {
   /** The write that should have produced the side effect. */
   operationId: string;
   /** Latest poll body, or the write response when no poll has landed yet. */
   record: unknown;
   attempt: number;
-}
+};
 
-export interface UploadRequest {
+export type UploadRequest = {
   operationId: string;
   /** The request's multipart / json / urlencoded media type. */
   mediaType: string;
@@ -108,13 +108,13 @@ export interface UploadRequest {
     index: number;
     total: number;
   };
-}
+};
 
-export interface UploadFile {
+export type UploadFile = {
   bytes: Uint8Array;
   filename: string;
   mediaType: string;
-}
+};
 
 /**
  * Exact body or part. `null` falls through to each / pool / dummy.
@@ -124,7 +124,7 @@ export interface UploadFile {
  */
 export type UploadResolution = UploadFile | { fields: Record<string, string | UploadFile> } | null;
 
-export interface Uploads {
+export type Uploads = {
   /**
    * Files the API tester may pick from. Globs and directories, relative to the config file.
    * Matched by extension / sniffed type against the part's contentMediaType.
@@ -139,10 +139,10 @@ export interface Uploads {
   each?: Record<string, string[]>;
   /** Per-operation cap on `each` matches. Default: no cap. */
   eachMax?: number;
-}
+};
 
 /** A request about to leave the process, as `hooks.beforeRequest` sees it. */
-export interface FenceRequest {
+export type FenceRequest = {
   method: string;
   url: string;
   headers: Record<string, string>;
@@ -156,25 +156,25 @@ export interface FenceRequest {
   schemes?: string[];
   /** Set when the credential is a forged value a probe sends on purpose. */
   forged?: true;
-}
+};
 
 /** Let the request go, or refuse it with a reason the report shows. */
 export type FenceDecision = { allow: true } | { allow: false; reason: string };
 
 /** A record teardown counted removed, or could not show gone, as `hooks.verifyRemoved` is asked about it. */
-export interface RemovedRecord {
+export type RemovedRecord = {
   entity: string;
   id: string;
   /** Path parameters in scope when the record was created. */
   scope: Record<string, string>;
   /** The configured principal that created it. */
   principal: string;
-}
+};
 
 /** What a store outside HTTP says about a record: still there, gone, or cannot tell. */
 export type RemovalVerdict = "present" | "absent" | "unknown";
 
-export interface Hooks {
+export type Hooks = {
   /**
    * Sees every request before it leaves the process and may refuse it. A refused request is never
    * sent and never judged: its check is unresolved, its cohort blocked, its record a leftover. The
@@ -250,9 +250,9 @@ export interface Hooks {
   resolveQueryCapabilities?: (
     request: QueryCapabilitiesRequest,
   ) => Promise<FilterableField[] | Partial<QueryCapabilities> | null>;
-}
+};
 
-export interface PathValueRequest {
+export type PathValueRequest = {
   operationId: string;
   param: string;
   method: string;
@@ -269,10 +269,10 @@ export interface PathValueRequest {
   credential?: string;
   /** Where that credential goes, as the operation's security places it: enough to call the API as the principal. */
   sends?: Sends;
-}
+};
 
-export interface QueryCapabilitiesRequest {
+export type QueryCapabilitiesRequest = {
   entity: string;
   scope: Record<string, string>;
   get: (operationId: string, scope?: Record<string, string>) => Promise<unknown>;
-}
+};

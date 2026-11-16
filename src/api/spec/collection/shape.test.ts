@@ -30,6 +30,7 @@ describe("deriveCollectionShape", () => {
       },
       type: "object",
     } as JsonSchema;
+
     expect(deriveCollectionShape(document)).toBeNull();
     expect(
       deriveCollectionShape({ properties: { config: { additionalProperties: {} }, rows: list() }, type: "object" }),
@@ -50,6 +51,7 @@ describe("deriveCollectionShape: envelopes", () => {
       },
       type: "object",
     } as JsonSchema;
+
     expect(deriveCollectionShape(envelope)).toEqual({
       envelopeKeys: ["has_more", "next_cursor", "page_size", "pageNumber", "total"],
       itemSchema: item,
@@ -75,6 +77,7 @@ describe("deriveCollectionShape: envelopes", () => {
       },
       type: "object",
     } as JsonSchema;
+
     expect(deriveCollectionShape(envelope)?.key).toBe("data");
   });
 });
@@ -130,7 +133,8 @@ describe("ambiguousRows", () => {
 describe("deriveCollectionShape: rows that wrap their record", () => {
   const document = { properties: { title: { type: "string" } }, type: "object" };
   const hit = { properties: { document, highlights: list() }, type: "object" };
-  /* Typesense's search answer: the record under each hit's `document`, beside object sidecars. */
+
+  // Typesense's search answer: the record under each hit's `document`, beside object sidecars.
   const search = {
     properties: {
       facet_counts: list(),

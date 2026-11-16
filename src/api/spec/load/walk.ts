@@ -21,13 +21,13 @@ export const DISCRIMINATOR_KEY = "x-testing-discriminator";
 export const DANGLING_KEY = "x-testing-dangling";
 
 /** The tag property of a discriminated union, and the values that name each branch. */
-export interface Discriminated {
+export type Discriminated = {
   propertyName: string;
   values: string[][];
-}
+};
 
 /** One dereference in progress. */
-export interface Dereferencing {
+export type Dereferencing = {
   doc: OpenApiDocument;
   /** External refs met, reported by the caller as a coverage gap. */
   externalRefs: Set<string>;
@@ -40,7 +40,7 @@ export interface Dereferencing {
   building: Set<object>;
   /** Each recursive ref, by the definition name it is stored under. */
   defNames: Map<string, string>;
-}
+};
 
 /**
  * `mode` says what the node is: ordinary document structure, or an Example Object, whose `value`
@@ -51,11 +51,15 @@ type Mode = "node" | "example";
 export function walk(ctx: Dereferencing, node: unknown, mode: Mode = "node"): unknown {
   if (node === null || typeof node !== "object") return node;
   const cached = mode === "node" ? ctx.memo.get(node) : undefined;
+
   if (cached !== undefined) return cached;
+
   if (Array.isArray(node)) return walkArray(ctx, node);
   const obj = node as JsonSchema;
-  /* Not memoized by node: whether a ref recurses depends on the path that reached it. */
+
+  // Not memoized by node: whether a ref recurses depends on the path that reached it.
   if (typeof obj.$ref === "string") return walkRef(ctx, obj, obj.$ref);
+
   return walkObject(ctx, obj, mode);
 }
 
@@ -63,62 +67,82 @@ function walkArray(ctx: Dereferencing, node: unknown[]): unknown[] {
   const out: unknown[] = [];
   ctx.memo.set(node, out);
   ctx.building.add(node);
+
   for (const item of node) out.push(walk(ctx, item));
   ctx.building.delete(node);
+
   return out;
 }
 
 function walkObject(ctx: Dereferencing, obj: JsonSchema, mode: Mode): Record<string, unknown> {
   const out: Record<string, unknown> = {};
+
   if (mode === "node") ctx.memo.set(obj, out);
   ctx.building.add(obj);
+
   for (const [key, value] of Object.entries(obj)) out[key] = walkEntry(ctx, key, value, mode);
   const tags = mode === "node" ? discriminated(ctx, obj) : undefined;
+
   if (tags !== undefined) out[DISCRIMINATOR_KEY] = tags;
   ctx.building.delete(obj);
+
   return out;
 }
 
 function walkEntry(ctx: Dereferencing, key: string, value: unknown, mode: Mode): unknown {
   if (key === "example" || (mode === "example" && key === "value")) return value;
+
   if (key === "examples" && Array.isArray(value)) return value;
+
   if (key === "examples" && value !== null && typeof value === "object") {
-    /* A map of Example Objects: each may be a $ref, and each one's `value` is data. */
+    // A map of Example Objects: each may be a $ref, and each one's `value` is data.
     const examples: Record<string, unknown> = {};
+
     for (const [name, example] of Object.entries(value)) examples[name] = walk(ctx, example, "example");
+
     return examples;
   }
+
   return walk(ctx, value);
 }
 
 function walkRef(ctx: Dereferencing, obj: JsonSchema, ref: string): unknown {
   if (ref !== "#" && !ref.startsWith("#/")) {
     ctx.externalRefs.add(ref);
+
     return obj;
   }
+
   const target = resolvePointer(ctx.doc, ref);
-  if (target !== null && typeof target === "object" && ctx.building.has(target)) {
+
+  if (target !== null && typeof target === "object" && ctx.building.has(target))
     return { $ref: `${DEFS_ID}#/$defs/${defName(ctx, ref)}` };
-  }
+
   if (target === undefined) ctx.danglingRefs.add(ref);
   const resolved = target === undefined ? { [DANGLING_KEY]: ref } : walk(ctx, target);
   const siblings = Object.entries(obj).filter(([key]) => key !== "$ref");
+
   if (siblings.length === 0) return resolved;
   const base = resolved !== null && typeof resolved === "object" && !Array.isArray(resolved) ? resolved : {};
   const out: Record<string, unknown> = { ...(base as Record<string, unknown>) };
+
   for (const [key, value] of siblings) out[key] = walk(ctx, value);
+
   return out;
 }
 
 function defName(ctx: Dereferencing, ref: string): string {
   const existing = ctx.defNames.get(ref);
+
   if (existing !== undefined) return existing;
-  /* `split` always yields at least one segment. */
-  const base = (decodeSegment(ref.split("/").at(-1) as string) || "schema").replace(/[^\w.-]/g, "_");
+  // `split` always yields at least one segment.
+  const base = (decodeSegment(ref.split("/").at(-1) as string) || "schema").replaceAll(/[^\w.-]/g, "_");
   const taken = new Set(ctx.defNames.values());
   let name = base;
+
   for (let n = 2; taken.has(name); n++) name = `${base}_${n}`;
   ctx.defNames.set(ref, name);
+
   return name;
 }
 
@@ -142,19 +166,23 @@ const COMPONENT = /^#\/components\/schemas\/([^/]+)$/;
 function discriminated(ctx: Dereferencing, obj: JsonSchema): Discriminated | undefined {
   const { discriminator } = obj;
   const union = obj.oneOf ?? obj.anyOf;
+
   if (!isDiscriminator(discriminator) || !Array.isArray(union)) return undefined;
   const mapped = mappingTargets(ctx, discriminator.mapping);
   const values: string[][] = [];
+
   for (const branch of union) {
     const ref = isSchema(branch) && typeof branch.$ref === "string" ? branch.$ref : "";
     const target = ref.startsWith("#/") ? finalTarget(ctx, ref) : undefined;
-    /* A mapped node is never undefined, so a branch that reaches nothing matches no value. */
+    // A mapped node is never undefined, so a branch that reaches nothing matches no value.
     const own = mapped.filter(([, node]) => node === target).map(([value]) => value);
     const name = COMPONENT.exec(ref)?.[1];
     const named = own.length > 0 ? own : name === undefined ? [] : [decodeSegment(name)];
+
     if (named.length === 0) return undefined;
     values.push(named);
   }
+
   return { propertyName: discriminator.propertyName, values };
 }
 
@@ -163,12 +191,15 @@ function mappingTargets(ctx: Dereferencing, mapping: unknown): [string, unknown]
   if (!isRecord(mapping)) return [];
   const schemas = ctx.doc.components?.schemas ?? {};
   const out: [string, unknown][] = [];
+
   for (const [value, ref] of Object.entries(mapping)) {
     if (typeof ref !== "string") continue;
     const pointer = ref.startsWith("#") ? ref : Object.hasOwn(schemas, ref) ? `#/components/schemas/${ref}` : "";
     const target = pointer === "" ? undefined : finalTarget(ctx, pointer);
+
     if (target !== undefined) out.push([value, target]);
   }
+
   return out;
 }
 
@@ -176,11 +207,14 @@ function mappingTargets(ctx: Dereferencing, mapping: unknown): [string, unknown]
 function finalTarget(ctx: Dereferencing, ref: string): unknown {
   const seen = new Set<string>();
   let pointer = ref;
+
   while (!seen.has(pointer)) {
     seen.add(pointer);
     const node = resolvePointer(ctx.doc, pointer);
+
     if (!isSchema(node) || typeof node.$ref !== "string" || !node.$ref.startsWith("#")) return node;
     pointer = node.$ref;
   }
+
   return undefined;
 }

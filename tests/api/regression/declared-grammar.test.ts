@@ -8,11 +8,9 @@ import { dereference } from "../../../src/api/spec/load/dereference.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 import { readBack } from "../support/json-body.ts";
 
-/*
- * A grammar the API tester cannot infer is declared: on the list operation's `x-query.grammar`, or in config
- * as `query.grammar` for every endpoint and `entities.<name>.query.grammar` for one entity. Config
- * outranks the document, and an entity outranks the whole run.
- */
+// A grammar the API tester cannot infer is declared: on the list operation's `x-query.grammar`, or in config
+// as `query.grammar` for every endpoint and `entities.<name>.query.grammar` for one entity. Config
+// outranks the document, and an entity outranks the whole run.
 
 const TEMPLATE = {
   conj: { and: "and" },
@@ -36,14 +34,18 @@ function model(grammar?: unknown) {
       },
     },
   } as unknown as OpenApiDocument;
+
   return buildModel(dereference(doc).doc);
 }
 
 const conventionsOf = (built: ReturnType<typeof model>) => {
   const op = built.byOperationId.get("notes.list");
+
   if (op === undefined) throw new Error("no list operation");
+
   return op.conventions;
 };
+
 const queryGaps = (built: ReturnType<typeof model>) =>
   built.gaps.gaps.filter((gap) => gap.tag === "x-query").map((gap) => gap.detail);
 
@@ -63,8 +65,8 @@ describe("x-query.grammar as a template", () => {
   });
 
   it("writes no filter term at all while the expression's grammar is unrecognized", () => {
-    /* Guessing one parameter per field would send parameters the document never declared and
-     * read the backend ignoring them as a defect. */
+    // Guessing one parameter per field would send parameters the document never declared and
+    // read the backend ignoring them as a defect.
     const conventions = conventionsOf(model());
     expect(conventions.grammar).toBe("unrecognized");
     expect(filterTerm(conventions, { field: "Qty", op: "eq", value: 2 })).toBeNull();
@@ -101,7 +103,7 @@ describe("config grammars", () => {
     expect(() =>
       applyGrammarOverrides(model(), { entities: { note: { query: { grammar: { term: "{field}" } } } } }),
     ).toThrow(/entities\.note\.query\.grammar/);
-    /* A config file is read untyped, so a name the API tester does not know can reach it. */
+    // A config file is read untyped, so a name the API tester does not know can reach it.
     const untyped = readBack('{ "query": { "grammar": "sql" } }') as Parameters<typeof applyGrammarOverrides>[1];
     expect(() => applyGrammarOverrides(model(), untyped)).toThrow(/query\.grammar/);
   });
@@ -122,9 +124,11 @@ describe("doctor", () => {
 
 describe("testing api plan and doctor", () => {
   const SORT = { asc: "ascending", desc: "descending", join: ",", term: "{field}_{direction}" };
+
   const withBoth = () => {
     const built = model(TEMPLATE);
     applyGrammarOverrides(built, { query: { sortGrammar: SORT } });
+
     return built;
   };
 

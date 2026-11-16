@@ -34,6 +34,7 @@ describe("breaches", () => {
       { text: "oom", reason: "a known third-party widget" },
       { text: /not defined$/, reason: "the legacy bundle" },
     ];
+
     expect(breaches(EVENTS, { ignore })).toEqual([]);
   });
 
@@ -41,6 +42,7 @@ describe("breaches", () => {
     const found = breaches([event("error", "boom"), event("pageerror", "boom")], {
       ignore: [{ kind: "error", text: "boom", reason: "logged on purpose" }],
     });
+
     expect(found).toEqual([event("pageerror", "boom")]);
   });
 
@@ -49,6 +51,7 @@ describe("breaches", () => {
       fail: [{ kind: "warning", text: "deprecated" }],
       ignore: [{ text: "deprecated", reason: "the upgrade lands next release" }],
     });
+
     expect(found.map((one) => one.text)).toEqual(["boom", "x is not defined"]);
   });
 

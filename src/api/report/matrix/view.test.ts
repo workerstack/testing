@@ -42,6 +42,7 @@ describe("matrixViewFromReport", () => {
         entities: [{ name: "table", readSurface: ["GET /table", "GET /table/{id}"] }, "row"],
       }),
     );
+
     expect(view).toMatchObject({
       blocked: 1,
       entity: "table",

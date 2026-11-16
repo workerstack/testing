@@ -43,21 +43,42 @@ export default defineConfig({
         rules: ["eslint/no-empty-pattern"],
         reason: "Playwright reads a fixture's dependencies from its first parameter's pattern, and `{}` is none",
       },
+      {
+        files: ["**"],
+        rules: ["typescript/no-unnecessary-type-assertion"],
+        reason:
+          "it calls casts tsc needs unnecessary (src/api/runtime/body/multipart.ts:63), " +
+          "and its fix deletes them and breaks the build",
+      },
+      {
+        files: ["**"],
+        rules: ["eslint/sort-keys"],
+        reason:
+          "key order is output here: its fix reorders style objects, " +
+          "so src/api/client/param-style.test.ts writes B,G,R for R,G,B",
+      },
+      {
+        files: ["**"],
+        rules: ["typescript/consistent-return"],
+        reason:
+          "unicorn/no-useless-undefined rewrites `return undefined` to `return;`, which this then flags; " +
+          "tsc's noImplicitReturns already holds every path of a value-returning function to a return",
+      },
     ],
   },
   knip: {
     ignore: [
       {
         file: "tests/api/types/config.typetest.ts",
-        reason: "tsc -p tsconfig.test.json checks it for type errors; nothing imports a type test",
+        reason: "tsc -p tsconfig.json checks it for type errors; nothing imports a type test",
       },
       {
         file: "tests/api/types/proven-id.typetest.ts",
-        reason: "tsc -p tsconfig.test.json checks it for type errors; nothing imports a type test",
+        reason: "tsc -p tsconfig.json checks it for type errors; nothing imports a type test",
       },
       {
         file: "tests/api/types/public-api.typetest.ts",
-        reason: "tsc -p tsconfig.test.json checks it for type errors; nothing imports a type test",
+        reason: "tsc -p tsconfig.json checks it for type errors; nothing imports a type test",
       },
       {
         file: "tests/web/support/serve-pages.ts",

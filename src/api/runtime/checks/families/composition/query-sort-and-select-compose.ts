@@ -20,12 +20,15 @@ export const querySortAndSelectCompose: Check<{
 }>({
   plan: (ctx) => {
     if (conv(ctx).order === undefined || conv(ctx).select === undefined || ctx.records.length <= 1) return cannot();
+
     if ((ctx.query?.selectable.length ?? 0) === 0) return cannot();
     const field = ctx.query?.sortable.find((name) => name !== ctx.identity) ?? ctx.query?.sortable[0];
+
     if (field === undefined) return cannot();
-    /* The sort field itself must survive the projection, or the order has nothing to be read off. */
+    // The sort field itself must survive the projection, or the order has nothing to be read off.
     const requested = field === ctx.identity ? [ctx.identity] : [ctx.identity, field];
     const projection = selectTerm(conv(ctx), requested, ctx.entityName);
+
     return projection === null ? cannot() : ready({ field, projection, requested });
   },
   dependsOn: ["sort.order-is-applied", "select.projection-honored", "select.requested-fields-present"],
@@ -37,20 +40,25 @@ export const querySortAndSelectCompose: Check<{
     const query = { ...q(ctx, { limit: 20, order: sortTerm(conv(ctx), { direction: "asc", field }) }), ...projection };
     const result = await list(ctx, query);
     const [first, second] = result.items;
-    if (result.exchange.status >= 400 || first === undefined || second === undefined) {
+
+    if (result.exchange.status >= 400 || first === undefined || second === undefined)
       return ctx.findings.unresolved(this.id, ctx.entityName, "sort+select probe was rejected");
-    }
+
     const extras = Object.keys(first).filter((key) => !requested.includes(key));
     const values = result.items.map((item) => item[field]);
+
     if (extras.length === 0 && sortedUnder(ctx, field, values) !== null) {
       const descending = await orderIgnored(ctx, { ascending: values, field, query });
+
       if (descending === null) return ASSERTED;
+
       return ctx.findings.backend(this.id, ctx.entityName, {
         summary: "sort and select do not compose",
         detail: `order=${field}.asc and order=${field}.desc returned the same sequence under the projection.`,
         evidence: [result.exchange, descending.exchange],
       });
     }
+
     return ctx.findings.backend(this.id, ctx.entityName, {
       summary: "sort and select do not compose",
       detail:

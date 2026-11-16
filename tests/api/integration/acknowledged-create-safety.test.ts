@@ -6,13 +6,11 @@ import { afterEach, describe, expect, it } from "vitest";
 import { run } from "../../../src/api/runtime/run/index.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 
-/*
- * A create that asks for a client-chosen integer id, ignores it, stores the record under an id of
- * its own and answers only `{ success: true }`. Another tenant's rows hold the ids 1–60 and, as on
- * backends with weak item isolation, answer a GET or DELETE by id from anyone.
- *
- * The API tester sent those ids but never created anything under them. Nothing it does may touch those rows.
- */
+// A create that asks for a client-chosen integer id, ignores it, stores the record under an id of
+// its own and answers only `{ success: true }`. Another tenant's rows hold the ids 1–60 and, as on
+// backends with weak item isolation, answer a GET or DELETE by id from anyone.
+//
+// The API tester sent those ids but never created anything under them. Nothing it does may touch those rows.
 
 type Row = { id: number; name: string; owner: string };
 
@@ -21,6 +19,7 @@ const OWN_IDS_FROM = 100;
 const CALLER = "alpha";
 
 let open: Array<{ close: () => Promise<void> }> = [];
+
 afterEach(async () => {
   for (const server of open) await server.close();
   open = [];
@@ -36,11 +35,14 @@ function spec(withUpdate: boolean): OpenApiDocument {
     required: ["id", "name"],
     type: "object",
   };
+
   const ack = {
     content: { "application/json": { schema: { properties: { success: { type: "boolean" } }, type: "object" } } },
     description: "ok",
   };
+
   const idParam = [{ in: "path", name: "noteId", required: true, schema: { type: "integer" } }];
+
   return {
     info: { title: "ignored-client-id", version: "1" },
     openapi: "3.1.0",
@@ -89,8 +91,10 @@ function spec(withUpdate: boolean): OpenApiDocument {
 
 async function readJson(req: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = [];
+
   for await (const chunk of req) chunks.push(chunk as Buffer);
   const raw = Buffer.concat(chunks).toString("utf8");
+
   return raw === "" ? undefined : JSON.parse(raw);
 }
 
@@ -99,7 +103,7 @@ function send(res: ServerResponse, status: number, body: unknown): void {
   res.end(JSON.stringify(body));
 }
 
-/* Names a validator would refuse: the payload probes send control characters. */
+// Names a validator would refuse: the payload probes send control characters.
 function hasControlCharacter(text: string): boolean {
   return [...text].some((ch) => (ch.codePointAt(0) ?? 0) < 0x20);
 }
@@ -108,35 +112,41 @@ type World = { nextId: number; rows: Map<number, Row>; withUpdate: boolean };
 
 async function createNote(world: World, req: IncomingMessage, res: ServerResponse): Promise<void> {
   const body = (await readJson(req)) as Partial<Row> | undefined;
-  if (typeof body?.name !== "string" || body.name === "" || hasControlCharacter(body.name)) {
+
+  if (typeof body?.name !== "string" || body.name === "" || hasControlCharacter(body.name))
     return send(res, 400, { success: false });
-  }
+
   const id = world.nextId++;
   world.rows.set(id, { id, name: body.name, owner: CALLER });
   send(res, 200, { success: true });
 }
 
-/* One request and the response that answers it. */
-interface Exchange {
+// One request and the response that answers it.
+type Exchange = {
   req: IncomingMessage;
   res: ServerResponse;
-}
+};
 
 async function updateNote(world: World, id: number, { req, res }: Exchange): Promise<void> {
   const row = world.rows.get(id);
   const body = (await readJson(req)) as Partial<Row> | undefined;
+
   if (row === undefined) return send(res, 404, {});
+
   if (typeof body?.name !== "string" || body.name === "") return send(res, 400, { success: false });
   world.rows.set(id, { ...row, name: body.name });
   send(res, 200, { success: true });
 }
 
-/* Any row answers by id, whoever owns it: the weak item isolation the header describes. */
+// Any row answers by id, whoever owns it: the weak item isolation the header describes.
 async function noteItem(world: World, id: number, { req, res }: Exchange): Promise<void> {
   const method = (req.method ?? "GET").toUpperCase();
   const row = world.rows.get(id);
+
   if (method === "GET") return row === undefined ? send(res, 404, {}) : send(res, 200, row);
+
   if (method === "PUT" && world.withUpdate) return updateNote(world, id, { req, res });
+
   if (method === "DELETE") return world.rows.delete(id) ? send(res, 200, { success: true }) : send(res, 404, {});
   send(res, 405, {});
 }
@@ -144,6 +154,7 @@ async function noteItem(world: World, id: number, { req, res }: Exchange): Promi
 async function route(world: World, req: IncomingMessage, res: ServerResponse): Promise<void> {
   const url = new URL(req.url ?? "/", "http://127.0.0.1");
   const method = (req.method ?? "GET").toUpperCase();
+
   if (url.pathname === "/notes" && method === "GET") {
     return send(
       res,
@@ -151,18 +162,23 @@ async function route(world: World, req: IncomingMessage, res: ServerResponse): P
       [...world.rows.values()].filter((row) => row.owner === CALLER),
     );
   }
+
   if (url.pathname === "/notes" && method === "POST") return createNote(world, req, res);
   const item = url.pathname.match(/^\/notes\/([^/]+)$/);
+
   if (item === null) return send(res, 404, {});
+
   return noteItem(world, Number(decodeURIComponent(item[1] ?? "")), { req, res });
 }
 
 async function serve(rows: Map<number, Row>, options: { withUpdate: boolean }): Promise<string> {
   const document = spec(options.withUpdate);
   const world: World = { nextId: OWN_IDS_FROM, rows, withUpdate: options.withUpdate };
+
   const server = createServer((req, res) => {
     void (async () => {
       const url = new URL(req.url ?? "/", "http://127.0.0.1");
+
       if (url.pathname === "/openapi.json") return send(res, 200, document);
       await route(world, req, res);
     })().catch(() => {
@@ -170,24 +186,31 @@ async function serve(rows: Map<number, Row>, options: { withUpdate: boolean }): 
       res.end();
     });
   });
+
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   open.push({ close: () => new Promise<void>((resolve) => server.close(() => resolve())) });
+
   return url;
 }
 
 function foreignRows(): Map<number, Row> {
   const rows = new Map<number, Row>();
+
   for (let id = 1; id <= FOREIGN; id++) rows.set(id, { id, name: `foreign-${id}`, owner: "beta" });
+
   return rows;
 }
 
 function untouchedForeign(rows: Map<number, Row>): number {
   let untouched = 0;
+
   for (let id = 1; id <= FOREIGN; id++) {
     const row = rows.get(id);
+
     if (row?.owner === "beta" && row.name === `foreign-${id}`) untouched++;
   }
+
   return untouched;
 }
 

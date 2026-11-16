@@ -4,22 +4,20 @@ import { pathToFileURL } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-/*
- * A Playwright-only app installs none of the Solid peers. `./web` and `./web/dom` must still load
- * for it, so the built entries are imported in a node whose resolver refuses those packages to
- * the package's own files, as a consumer's would when they are missing. vitest still gets the
- * vite it depends on. `./web/solid` is the control: it needs them.
- */
+// A Playwright-only app installs none of the Solid peers. `./web` and `./web/dom` must still load
+// for it, so the built entries are imported in a node whose resolver refuses those packages to
+// the package's own files, as a consumer's would when they are missing. vitest still gets the
+// vite it depends on. `./web/solid` is the control: it needs them.
 
 const ROOT = join(import.meta.dirname, "..", "..");
 const REFUSED = ["solid-js", "@solidjs/web", "@solidjs/vite-plugin", "vite"];
 
-/* Imports `entry` by name in a child node where the package's files cannot resolve the refused ones. */
+// Imports `entry` by name in a child node where the package's files cannot resolve the refused ones.
 function loadWithout(entry: string): { code: number | null; stderr: string } {
   const script = `
 		import { registerHooks } from "node:module"
 		const refused = new Set(${JSON.stringify(REFUSED)})
-		const dist = ${JSON.stringify(pathToFileURL(join(ROOT, "dist")).href + "/")}
+		const dist = ${JSON.stringify(`${pathToFileURL(join(ROOT, "dist")).href}/`)}
 		const name = (spec) => spec.startsWith("@") ? spec.split("/").slice(0, 2).join("/") : spec.split("/")[0]
 		registerHooks({
 			resolve(spec, context, next) {
@@ -29,7 +27,9 @@ function loadWithout(entry: string): { code: number | null; stderr: string } {
 		})
 		await import(${JSON.stringify(entry)})
 	`;
+
   const child = spawnSync(process.execPath, ["--input-type=module", "-e", script], { cwd: ROOT, encoding: "utf8" });
+
   return { code: child.status, stderr: child.stderr };
 }
 
@@ -38,6 +38,7 @@ describe("the web entries without the Solid peers", () => {
     const loaded = Object.fromEntries(
       ["@workerstack/testing/web", "@workerstack/testing/web/dom"].map((entry) => [entry, loadWithout(entry)]),
     );
+
     expect(loaded).toEqual({
       "@workerstack/testing/web": { code: 0, stderr: "" },
       "@workerstack/testing/web/dom": { code: 0, stderr: "" },

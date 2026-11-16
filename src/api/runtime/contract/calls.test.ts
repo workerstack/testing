@@ -7,7 +7,7 @@ import { madeByRun } from "./made-by-run.ts";
 
 const item = { properties: { id: { type: "string" } }, type: "object" };
 
-/* Things: a list, a create, a read under an id, a destructive purge, and a query-bound search. */
+// Things: a list, a create, a read under an id, a destructive purge, and a query-bound search.
 const things = doc({
   "/things": {
     get: { operationId: "things.list", responses: ok({ items: item, type: "array" }) },
@@ -50,6 +50,7 @@ describe("runContractCalls", () => {
     const { input, sent } = stage(things, (method, path) =>
       method === "POST" && path === "/things" ? { body: { id: "t1" }, status: 201 } : { body: [], status: 200 },
     );
+
     await runContractCalls(input);
     expect(input.checksRun.has("response.contract-call")).toBe(true);
     expect(sent.map((request) => `${request.method} ${request.path}`)).toEqual([
@@ -78,6 +79,7 @@ describe("runContractCalls", () => {
       mode: "targeted",
       inScope: (id) => id === "things.list",
     });
+
     input.client.transcript.push(
       exchangeOf(
         { method: "GET", options: { as: { principal: "alpha" }, operationId: "things.list" }, path: "/things" },
@@ -102,6 +104,7 @@ describe("runContractCalls and declared styles", () => {
         trace: { operationId: "m.trace", responses: ok() },
       },
     });
+
     const { input, sent } = stage(styled, () => ({ status: 200 }));
     await runContractCalls(input);
     expect(sent.map((request) => `${request.method} ${request.path}`)).toEqual(["GET /m;v=red"]);
@@ -117,6 +120,7 @@ describe("runContractCalls and security probes", () => {
       mode: "targeted",
       inScope: (id) => id === "things.list",
     });
+
     const probe = { as: { anonymous: true }, operationId: "things.list", probe: true } as const;
     input.client.transcript.push(
       exchangeOf({ method: "GET", options: probe, path: "/things" }, { body: [], status: 200 }),
@@ -130,6 +134,7 @@ describe("runContractCalls and security probes", () => {
       mode: "targeted",
       inScope: (id) => id === "things.list",
     });
+
     input.grades.probedBy(["things.list"], "auth.anonymous-operation-open");
     await runContractCalls(input);
     expect(sent.map((request) => `${request.method} ${request.path}`)).toEqual(["GET /things"]);
@@ -147,6 +152,7 @@ describe("runContractCalls and credential operations", () => {
       inScope: (id) => id === "things.list" || id === "things.search",
       mode: "targeted",
     });
+
     await runContractCalls(input);
     expect(sent.map((request) => [request.path, request.options.as])).toEqual([
       ["/things", { principal: "alpha#probe-1 for things.list", scheme: "jwt" }],
@@ -164,6 +170,7 @@ describe("runContractCalls and credential operations", () => {
       inScope: (id) => id === "things.list",
       mode: "targeted",
     });
+
     await runContractCalls(input);
     expect(sent).toEqual([]);
     expect([...(input.grades.needs.get("things.list") ?? [])]).toEqual([
@@ -172,7 +179,7 @@ describe("runContractCalls and credential operations", () => {
   });
 });
 
-/* The caller's own account, untagged, and another user's: what the principal signs in with is on both. */
+// The caller's own account, untagged, and another user's: what the principal signs in with is on both.
 const account = (required: string[] = []) =>
   json({
     properties: {
@@ -183,6 +190,7 @@ const account = (required: string[] = []) =>
     required,
     type: "object",
   });
+
 const accounts = (required?: string[]) =>
   doc({
     "/users/me": { put: { operationId: "me.update", requestBody: account(required), responses: ok() } },
@@ -195,6 +203,7 @@ const accounts = (required?: string[]) =>
       },
     },
   });
+
 const guarding = (more: { identity?: Record<string, unknown>; disposable?: string } = {}) => ({
   ownRecords: {
     disposable: async () => more.disposable ?? { blocked: "the document marks no x-fresh-principal operation" },
@@ -210,6 +219,7 @@ describe("runContractCalls and the principal's own record", () => {
       hooks: { resolvePathValue: async () => "u-2" },
       madeByRun: () => true,
     });
+
     await runContractCalls(input);
     expect(sent.map((request) => [request.path, Object.keys(request.options.body as object).toSorted()])).toEqual([
       ["/users/me", ["display_name"]],
@@ -222,6 +232,7 @@ describe("runContractCalls and the principal's own record", () => {
       ...guarding({ disposable: "disposable-own-record" }),
       hooks: { resolvePathValue: async () => "u-1" },
     });
+
     await runContractCalls(input);
     expect(
       sent.map((request) => [request.path, request.options.as, Object.keys(request.options.body as object).toSorted()]),
@@ -237,6 +248,7 @@ describe("runContractCalls and the principal's own record", () => {
       inScope: (id) => id === "me.update",
       mode: "targeted",
     });
+
     await runContractCalls(input);
     expect(sent).toEqual([]);
     expect([...(input.grades.needs.get("me.update") ?? [])]).toEqual([
@@ -257,14 +269,17 @@ describe("runContractCalls and whom the own-record guard covers", () => {
       inScope: (id) => id === "me.update",
       mode: "targeted",
     });
+
     await runContractCalls(input);
     expect(Object.keys(sent[0]?.options.body as object).toSorted()).toEqual(["display_name", "email", "password"]);
+
     const anyone = stage(accounts(), () => ({ status: 200 }), {
       ...guarding(),
       inScope: (id) => id === "me.update",
       mode: "targeted",
       principal: "beta",
     });
+
     await runContractCalls(anyone.input);
     expect(Object.keys(anyone.sent[0]?.options.body as object).toSorted()).toEqual([
       "display_name",
@@ -274,7 +289,7 @@ describe("runContractCalls and whom the own-record guard covers", () => {
   });
 });
 
-/* A sign-in whose document examples name a real-looking account, which failed attempts could lock. */
+// A sign-in whose document examples name a real-looking account, which failed attempts could lock.
 const signIn = doc({
   "/auth/login": {
     post: {
@@ -306,10 +321,13 @@ describe("runContractCalls and sign-in operations", () => {
       const { input, sent } = stage(signIn, () => ({ status: 401 }), {
         credentials: { ...signInCredentials, identityFields },
       });
+
       await runContractCalls(input);
       expect(sent).toHaveLength(1);
+
       return sent[0]?.options.body as Record<string, unknown>;
     };
+
     const generated = await bodyOf(new Map());
     expect(generated["email"]).toBe("admin@company.com");
     const body = await bodyOf(signInCredentials.identityFields);
@@ -334,7 +352,7 @@ describe("runContractCalls and sign-in operations", () => {
   });
 });
 
-/* Records the API already held, listed, and a delete that would remove one. */
+// Records the API already held, listed, and a delete that would remove one.
 const held = doc({
   "/records": { get: { operationId: "records.list", responses: ok({ items: item, type: "array" }) } },
   "/records/{id}": { delete: { operationId: "records.delete", parameters: [pathParam("id")], responses: ok() } },
@@ -347,6 +365,7 @@ describe("runContractCalls and records the run did not make", () => {
       madeByRun: () => false,
       mode: "targeted",
     });
+
     input.client.transcript.push(
       exchangeOf(
         { method: "GET", options: { as: { principal: "alpha" }, operationId: "records.list" }, path: "/records" },
@@ -361,7 +380,7 @@ describe("runContractCalls and records the run did not make", () => {
   });
 });
 
-/* Keys the credential store mints, and the revoke the floor would call. */
+// Keys the credential store mints, and the revoke the floor would call.
 const minted = doc({
   "/keys": { post: { operationId: "keys.create", responses: { "201": { description: "made" } } } },
   "/keys/{id}": { delete: { operationId: "keys.revoke", parameters: [pathParam("id")], responses: ok() } },
@@ -373,17 +392,21 @@ describe("runContractCalls and the credentials the store holds", () => {
       inScope: (id) => id === "keys.revoke",
       mode: "targeted",
     });
+
     const mint = exchangeOf(
       { method: "POST", options: { as: { principal: "alpha" }, operationId: "keys.create" }, path: "/keys" },
       { body: { id: "key_alpha", key: "v-alpha" }, status: 201 },
     );
+
     input.client.transcript.push({ ...mint, issuedBy: "credentials" });
+
     const alpha = {
       credential: { expiresAt: null, value: "v-alpha" },
       principal: "alpha",
       scheme: "apiKey",
       scopes: [],
     };
+
     input.madeByRun = madeByRun({
       client: input.client,
       held: [alpha as never],
@@ -403,6 +426,7 @@ describe("runContractCalls on what it leaves alone", () => {
     const { input, sent } = stage(things, () => ({ status: 200 }), {
       owned: new Set(["things.list"]),
     });
+
     input.grades.graded(["things.create"], "some.check");
     input.grades.prove("things.search", { call: 1 });
     input.grades.suppress(["things.get"], "x");
@@ -424,11 +448,14 @@ describe("runContractCalls on what it leaves alone", () => {
     const { input } = stage(things, () => {
       throw new Error("fenced");
     });
+
     await runContractCalls(input);
     expect([...(input.grades.needs.get("things.list") ?? [])]).toEqual(["contract call could not be sent: fenced"]);
+
     const odd = stage(things, () => {
       throw "dropped";
     });
+
     await runContractCalls(odd.input);
     expect([...(odd.input.grades.needs.get("things.list") ?? [])]).toEqual([
       "contract call could not be sent: dropped",

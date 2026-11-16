@@ -19,6 +19,7 @@ function created(input: {
 }) {
   const model = modelOf(notes({ create: input.create ?? {} }));
   const fake = fakeClient(() => input.read ?? { status: 404 });
+
   const result = createdRecord({
     client: fake.client,
     createOp: op(model, input.operation ?? "note.create"),
@@ -30,6 +31,7 @@ function created(input: {
     ...(input.readable === undefined ? {} : { readable: input.readable }),
     ...(input.wants === undefined ? {} : { wants: input.wants }),
   });
+
   return { result, sent: fake.sent };
 }
 
@@ -44,11 +46,13 @@ describe("createdRecord", () => {
     const create = {
       "x-entity": { action: "create", createdIdFrom: "$.meta.ref", name: "note", recordPath: "$.data" },
     };
+
     const { result } = created({
       answer: { body: { data: { name: "a" }, meta: { ref: 9 } }, status: 201 },
       create,
       sent: { name: "a" },
     });
+
     expect(await result).toEqual({ acknowledged: false, record: { id: 9, name: "a" } });
     const empty = created({ answer: { body: { meta: { ref: 9 } }, status: 201 }, create, sent: { name: "a" } });
     expect(await empty.result).toEqual({
@@ -82,6 +86,7 @@ describe("createdRecord, from an answer that is not the record", () => {
       read,
       sent: { name: "a" },
     });
+
     expect(await result).toEqual({ acknowledged: false, record: { id: "n1", name: "a", size: 2 } });
     expect(sent.map((request) => request.path)).toEqual(["/projects/p1/notes/n1"]);
   });
@@ -92,6 +97,7 @@ describe("createdRecord, from an answer that is not the record", () => {
       read,
       sent: { name: "a", size: 2 },
     });
+
     expect(await result).toEqual({ acknowledged: false, record: read.body });
   });
 
@@ -116,12 +122,14 @@ describe("createdRecord, unconfirmed", () => {
       await created({ answer: { body: { ok: true }, status: 200 }, sent: { id: "c1", name: "a" } }).result,
     ).toBeNull();
     expect(await created({ answer: { status: 200 }, sent: "name=a" }).result).toBeNull();
+
     const unreadable = created({
       answer: { status: 200 },
       read: { body: { id: "c1", name: "a" }, status: 200 },
       readable: () => false,
       sent: { id: "c1", name: "a" },
     });
+
     expect(await unreadable.result).toBeNull();
   });
 
@@ -131,9 +139,11 @@ describe("createdRecord, unconfirmed", () => {
       openapi: "3.1.0",
       paths: { "/v1/pay": { post: { operationId: "pay.start", responses: { "200": { description: "ok" } } } } },
     } as OpenApiDocument);
+
     const createOp = op(model, "pay.start");
     expect(createOp.entity).toBeNull();
     const { client } = fakeClient(() => ({ status: 200 }));
+
     const made = (body: unknown) =>
       createdRecord({
         client,
@@ -144,9 +154,10 @@ describe("createdRecord, unconfirmed", () => {
         scope,
         sent: { amount: 1 },
       });
+
     expect(await made({ ok: true })).toBeNull();
     expect(await made({ amount: 1, id: 4 })).toEqual({ acknowledged: false, record: { amount: 1, id: 4 } });
-    /* Nothing to read it back by: what was sent, under the id it names. */
+    // Nothing to read it back by: what was sent, under the id it names.
     expect(await made({ id: 4 })).toEqual({
       acknowledged: false,
       record: { amount: 1, id: 4 },

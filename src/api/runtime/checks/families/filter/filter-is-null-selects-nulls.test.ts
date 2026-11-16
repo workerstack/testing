@@ -8,6 +8,7 @@ import { filterIsNullSelectsNulls as check } from "./filter-is-null-selects-null
 
 const COHORT = [{ id: "w-1", note: "kept" }, { id: "w-2", note: null }, { id: "w-3", note: "kept" }, { note: null }];
 const DOC = { xQuery: { filterable: [{ field: "note", ops: ["eq", "is"] }] } };
+
 /** FILTER_IS_NULL_MATCHES_ALL: is.null matches every row. */
 const MATCHES_ALL = {
   ops: { is: (value: unknown, arg: string) => arg === "null" || (OPS["is"]?.(value, arg) ?? false) },
@@ -23,7 +24,7 @@ describe("filter.is-null-selects-nulls: run", () => {
 
   it("reports an is.null that matches every row, and the rows on both sides", async () => {
     const { ctx, findings } = stage({ behavior: MATCHES_ALL, doc: DOC, records: COHORT });
-    /* The finding is reported along the way; the outcome stays asserted. */
+    // The finding is reported along the way; the outcome stays asserted.
     expect(await runCheck(check, ctx)).toEqual({ kind: "asserted" });
     expect(only(findings).detail).toBe("is.null returned 3 record(s); 1 cohort rows are null. 2 appear on both sides.");
   });
@@ -34,6 +35,7 @@ describe("filter.is-null-selects-nulls: run", () => {
       doc: DOC,
       records: COHORT,
     });
+
     await runCheck(check, ctx);
     expect(only(findings).detail).toBe("is.null returned 0 record(s); 1 cohort rows are null. ");
   });
@@ -61,6 +63,7 @@ describe("filter.is-null-selects-nulls: plan", () => {
         { id: "w-2", note: "b" },
       ],
     });
+
     expect(check.plan(allSet.ctx).ok).toBe(false);
     expect(check.plan(stage({ doc: DOC, fields: { softDelete: "note" }, records: COHORT }).ctx).ok).toBe(false);
     expect(

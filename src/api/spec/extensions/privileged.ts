@@ -14,26 +14,31 @@ export const PRIVILEGED = "x-privileged";
 const TAG = PRIVILEGED;
 
 /** Where the marker is read from: the operation's request body, and where its gaps go. */
-export interface PrivilegedSource {
+export type PrivilegedSource = {
   body: JsonSchema | null;
   operationId: string;
   gaps: GapCollector;
-}
+};
 
 /** The request body properties marked privileged, nested ones by dotted path, in schema order. */
 export function readPrivileged(op: OperationObject, source: PrivilegedSource): string[] {
   const { body, gaps, operationId } = source;
+
   const misplaced = (where: string): void =>
     gaps.record(
       operationId,
       TAG,
       `${TAG} belongs on a request body property, not on ${where}; the API tester cannot use it`,
     );
+
   if ((op as Record<string, unknown>)[TAG] !== undefined) misplaced("the operation");
+
   if (body === null) return [];
+
   if (body[TAG] !== undefined) misplaced("the body itself");
   const marked: string[] = [];
   walk(body, { gaps, marked, operationId, prefix: "", seen: new Set() });
+
   return marked;
 }
 
@@ -45,10 +50,12 @@ export function readPrivileged(op: OperationObject, source: PrivilegedSource): s
 export function requiredPrivileged(body: JsonSchema | null, marked: readonly string[]): string[] {
   return marked.filter((path) => {
     let at: JsonSchema | undefined = body ?? undefined;
+
     for (const name of path.split(".")) {
       if (at === undefined || !requiredAt(at).includes(name)) return false;
       at = propertyAt(at, name);
     }
+
     return true;
   });
 }
@@ -56,44 +63,51 @@ export function requiredPrivileged(body: JsonSchema | null, marked: readonly str
 /** The schema of the property at a dotted path, a marked one say, allOf members included; undefined when none. */
 export function propertySchema(body: JsonSchema | null, path: string): JsonSchema | undefined {
   let at: JsonSchema | undefined = body ?? undefined;
+
   for (const name of path.split(".")) at = at === undefined ? undefined : propertyAt(at, name);
+
   return at;
 }
 
-/* The names an object schema requires, its allOf members' included. */
+// The names an object schema requires, its allOf members' included.
 function requiredAt(schema: JsonSchema): unknown[] {
   return [schema, ...schemas(schema.allOf)].flatMap((part) => (Array.isArray(part.required) ? part.required : []));
 }
 
-/* The schema of property `name`, declared by the object or one of its allOf members. */
+// The schema of property `name`, declared by the object or one of its allOf members.
 function propertyAt(schema: JsonSchema, name: string): JsonSchema | undefined {
   return [schema, ...schemas(schema.allOf)].map((part) => schemaMap(part.properties)[name]).find(isSchema);
 }
 
-interface Walk {
+type Walk = {
   gaps: GapCollector;
   operationId: string;
   marked: string[];
   prefix: string;
   seen: Set<JsonSchema>;
-}
+};
 
-/* Each property of `schema` and of its allOf members, then each nested object's. */
+// Each property of `schema` and of its allOf members, then each nested object's.
 function walk(schema: JsonSchema, at: Walk): void {
   if (at.seen.has(schema)) return;
   at.seen.add(schema);
+
   for (const member of schemas(schema.allOf)) walk(member, at);
+
   for (const [name, property] of Object.entries(schemaMap(schema.properties))) {
     const path = `${at.prefix}${name}`;
     const marker = property[TAG];
-    if (marker === true) at.marked.push(path);
-    else if (marker !== undefined && marker !== false) {
+
+    if (marker === true) {
+      at.marked.push(path);
+    } else if (marker !== undefined && marker !== false) {
       at.gaps.record(
         at.operationId,
         TAG,
         `${TAG} on property "${path}" must be true or false; the API tester cannot use it`,
       );
     }
+
     walk(property, { ...at, prefix: `${path}.` });
   }
 }
@@ -108,5 +122,6 @@ function schemas(value: unknown): JsonSchema[] {
 
 function schemaMap(value: unknown): Record<string, JsonSchema> {
   if (!isSchema(value)) return {};
+
   return Object.fromEntries(Object.entries(value).filter((entry): entry is [string, JsonSchema] => isSchema(entry[1])));
 }

@@ -18,13 +18,13 @@ import { type AnswerFor, type ConformanceAnswer, type ConformanceTask, runTask }
 
 export type { AnswerFor, ConformanceTask } from "./tasks.ts";
 
-export interface ConformancePool {
+export type ConformancePool = {
   run<T extends ConformanceTask>(task: T): Promise<AnswerFor<T>>;
   close(): Promise<void>;
-}
+};
 
 /** One worker as the pool drives it: a forked process, or anything that answers like one. */
-export interface PoolWorker {
+export type PoolWorker = {
   send(task: ConformanceTask): unknown;
   once(event: "message", listener: (reply: TaskReply) => void): unknown;
   once(event: "error", listener: (error: Error) => void): unknown;
@@ -35,22 +35,22 @@ export interface PoolWorker {
   kill(): unknown;
   readonly exitCode: number | null;
   readonly signalCode: string | null;
-}
+};
 
-export interface PoolOptions {
+export type PoolOptions = {
   /** Run every task in the caller's own process, one at a time. */
   inProcess?: boolean;
   /** Starts one worker; a forked `worker.js` unless a test brings its own. */
   spawn?: () => PoolWorker;
   /** How in-process tasks reach the reference: behind a socket, as the workers do, unless a test says otherwise. */
   via?: Via;
-}
+};
 
-interface Job {
+type Job = {
   task: ConformanceTask;
   resolve: (answer: ConformanceAnswer) => void;
   reject: (error: Error) => void;
-}
+};
 
 /** Threads used when `--jobs` is not given: most of the machine, never more than four. */
 export function defaultJobs(): number {
@@ -59,7 +59,7 @@ export function defaultJobs(): number {
 
 /** A worker process running `script`, the built `worker.js` beside this module by default. */
 export function forkWorker(script: URL = new URL("./worker.js", import.meta.url)): PoolWorker {
-  /* Structured clone, as between threads: results carry Maps and Sets. */
+  // Structured clone, as between threads: results carry Maps and Sets.
   return fork(script, { serialization: "advanced", stdio: ["ignore", "inherit", "inherit", "ipc"] });
 }
 
@@ -69,6 +69,7 @@ export function createPool(
   { inProcess = false, spawn = forkWorker, via = listening }: PoolOptions = {},
 ): ConformancePool {
   if (inProcess) return inProcessPool(via);
+
   return processPool(Array.from({ length: Math.max(1, jobs) }, () => spawn()));
 }
 
@@ -76,18 +77,22 @@ export function createPool(
 function processPool(workers: readonly PoolWorker[]): ConformancePool {
   const idle = [...workers];
   const queue: Job[] = [];
+
   const next = (worker: PoolWorker): void => {
     const job = queue.shift();
+
     if (job === undefined) idle.push(worker);
     else assign(worker, job, next);
   };
+
   return {
     close: () => closeAll(workers),
-    /* A worker answers each task with its own kind of answer: the IPC boundary is where that is trusted. */
+    // A worker answers each task with its own kind of answer: the IPC boundary is where that is trusted.
     run: <T extends ConformanceTask>(task: T) =>
       new Promise<AnswerFor<T>>((resolve, reject) => {
         queue.push({ reject, resolve: resolve as (answer: ConformanceAnswer) => void, task });
         const worker = idle.shift();
+
         if (worker !== undefined) next(worker);
       }),
   };
@@ -98,20 +103,24 @@ function assign(worker: PoolWorker, job: Job, next: (worker: PoolWorker) => void
   const settle = (reply: TaskReply): void => {
     worker.off("error", fail);
     worker.off("exit", died);
+
     if (reply.ok) job.resolve(reply.answer);
     else job.reject(new Error(reply.error));
     next(worker);
   };
+
   const fail = (error: Error): void => {
     worker.off("message", settle);
     worker.off("exit", died);
     job.reject(error);
   };
+
   const died = (code: number | null, signal: string | null): void => {
     worker.off("message", settle);
     worker.off("error", fail);
     job.reject(new Error(`conformance worker exited (${signal ?? code}) during a task`));
   };
+
   worker.once("message", settle);
   worker.once("error", fail);
   worker.once("exit", died);
@@ -136,15 +145,17 @@ async function closeAll(workers: readonly PoolWorker[]): Promise<void> {
 function inProcessPool(via: Via): ConformancePool {
   let sequence = 0;
   let previous: Promise<unknown> = Promise.resolve();
+
   return {
     close: async () => {
-      await previous.catch(() => undefined);
+      await previous.catch(() => {});
     },
     run: <T extends ConformanceTask>(task: T) => {
       sequence += 1;
       const turn = sequence;
-      const answer = previous.catch(() => undefined).then(() => runTask(task, turn, via) as Promise<AnswerFor<T>>);
+      const answer = previous.catch(() => {}).then(() => runTask(task, turn, via) as Promise<AnswerFor<T>>);
       previous = answer;
+
       return answer;
     },
   };

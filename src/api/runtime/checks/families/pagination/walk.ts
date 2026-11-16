@@ -22,6 +22,7 @@ export async function walkPages(
   maxPages: number = MAX_WALK_PAGES,
 ): Promise<Walk> {
   const read = await readSet(ctx, {}, { fresh: true, keepRepeats: true, maxPages, order, size: perPage });
+
   return {
     exchanges: read.pages.map((page) => page.exchange),
     ids: ids(read.items, ctx.identity),

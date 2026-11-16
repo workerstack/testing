@@ -12,6 +12,7 @@ export async function rootRead(ctx: RunContext, entity: EntityModel): Promise<vo
   startedTest(ctx, entity, ROOT_READ_CHECK_ID);
   const ids = rootReadIds(entity);
   let outcome: Outcome;
+
   try {
     outcome = await runRootRead({
       client,
@@ -24,16 +25,19 @@ export async function rootRead(ctx: RunContext, entity: EntityModel): Promise<vo
   } catch (error) {
     outcome = await stoppedBy(ctx, entity.name, ids, error);
   }
+
   graded(ctx, ids, ROOT_READ_CHECK_ID, outcome);
 }
 
-/* An error stops the root read as it stops any check: a stand-down where it has a cause, else a gap. */
+// An error stops the root read as it stops any check: a stand-down where it has a cause, else a gap.
 async function stoppedBy(ctx: RunContext, entity: string, ids: string[], error: unknown): Promise<Outcome> {
-  /* A stop is reported under its own id (the fence, a blocked credential), never the check's. */
+  // A stop is reported under its own id (the fence, a blocked credential), never the check's.
   const attributed = ctx.findings.attributed(ids);
   const stopped = { attributed, checkId: ROOT_READ_CHECK_ID, ctx, entity };
   const reason = await unresolvedBy(stopped, error);
+
   if (reason !== undefined) return { kind: "unresolved", reason };
+
   return attributed.gap(ROOT_READ_CHECK_ID, entity, {
     summary: `check "${ROOT_READ_CHECK_ID}" could not complete`,
     detail: messageOf(error),

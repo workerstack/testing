@@ -9,14 +9,14 @@ import { assertAllowedReferences, pruneToAllow } from "./allow.ts";
 import { applyOverlay, type SpecOverlay } from "./overlay.ts";
 import type { OpenApiDocument } from "./types.ts";
 
-export interface DocumentConfig {
+export type DocumentConfig = {
   overlay?: SpecOverlay;
   allow?: readonly string[];
   /** Recipes and principal overrides: the operations their steps, mints and revokes call must survive `allow`. */
   security?: Readonly<Record<string, Partial<Recipe>>>;
   principals?: Readonly<Record<string, PrincipalEntry>>;
   scenarios?: readonly Scenario[];
-}
+};
 
 export function prepareDocument(
   raw: OpenApiDocument,
@@ -24,9 +24,11 @@ export function prepareDocument(
   onRemoved?: (removed: string[]) => void,
 ): OpenApiDocument {
   const overlaid = config.overlay === undefined ? raw : applyOverlay(raw, config.overlay);
+
   if (config.allow === undefined) return overlaid;
   const { doc, kept, removed } = pruneToAllow(overlaid, config.allow);
   assertAllowedReferences(kept, config);
   onRemoved?.(removed);
+
   return doc;
 }

@@ -7,15 +7,18 @@ import { describe, expect, it } from "vitest";
 import { forEachInvocation, resolveEachInvocations } from "./upload-each.ts";
 import { type UploadContext, uploadMemory } from "./upload.ts";
 
-/* A folder holding `names`, each a one-byte file. */
+// A folder holding `names`, each a one-byte file.
 function folder(names: string[]): string {
   const root = mkdtempSync(join(tmpdir(), "testing-each-"));
+
   for (const name of names) writeFileSync(join(root, name), "x");
+
   return root;
 }
 
 function each(root: string | undefined, patterns: string[], more: Partial<UploadContext> = {}) {
   const warnings: string[] = [];
+
   const context: UploadContext = {
     seed: 1,
     uploads: { each: { "doc.create": patterns } },
@@ -23,6 +26,7 @@ function each(root: string | undefined, patterns: string[], more: Partial<Upload
     ...(root === undefined ? {} : { configDir: root }),
     ...more,
   };
+
   return { context, warnings };
 }
 
@@ -68,6 +72,7 @@ describe("resolveEachInvocations", () => {
       "b.pdf",
     ]);
     expect(capped.warnings).toEqual(["uploads.each capped doc.create at 2 of 3"]);
+
     for (const eachMax of [-1, 3]) {
       const loose = each(root, ["*.pdf"]);
       loose.context.uploads = { each: { "doc.create": ["*.pdf"] }, eachMax };
@@ -81,10 +86,12 @@ describe("forEachInvocation", () => {
   it("runs once per slot, each with the slot as its fixture", async () => {
     const root = folder(["a.pdf", "b.pdf"]);
     const { context } = each(root, ["*.pdf"]);
+
     const seen = await forEachInvocation("doc.create", context, async (next, slot) => [
       next.fixture?.filename,
       slot?.index,
     ]);
+
     expect(seen).toEqual([
       ["a.pdf", 0],
       ["b.pdf", 1],

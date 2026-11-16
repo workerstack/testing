@@ -10,6 +10,7 @@ import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 const DEFECT_VERDICTS = new Set(["BACKEND_BUG", "SECURITY", "SPEC_BUG"]);
 
 let open: Array<{ close: () => Promise<void> }> = [];
+
 afterEach(async () => {
   for (const server of open) await server.close();
   open = [];
@@ -49,25 +50,34 @@ function spec(): OpenApiDocument {
 
 async function serve(openToAnonymous: boolean): Promise<string> {
   const document = spec();
+
   const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
+
     if (url.pathname === "/openapi.json") {
       res.writeHead(200, { "content-type": "application/json" });
       res.end(JSON.stringify(document));
+
       return;
     }
+
     const authed = req.headers.authorization === "Bearer alpha";
+
     if (!authed && !openToAnonymous) {
       res.writeHead(401, { "content-type": "application/json" });
       res.end(JSON.stringify({ error: "unauthorized" }));
+
       return;
     }
+
     res.writeHead(200, { "content-type": "application/json" });
     res.end(JSON.stringify({ extractions: 0 }));
   });
+
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   open.push({ close: () => new Promise<void>((resolve) => server.close(() => resolve())) });
+
   return url;
 }
 

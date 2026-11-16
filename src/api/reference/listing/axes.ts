@@ -6,13 +6,13 @@ import type { ListingRequest } from "./types.ts";
  * Which axes a request combines. Each FILTER_DROPPED_WHEN_* defect keeps the filter while it is
  * alone and drops it once its named combination is present — the combination is the bug.
  */
-export interface Axes {
+export type Axes = {
   sorted: boolean;
   selected: boolean;
   searched: boolean;
-}
+};
 
-/* Each defect and the axes that, all present, drop the filter. */
+// Each defect and the axes that, all present, drop the filter.
 const FILTER_DROPS: ReadonlyArray<readonly [DefectName, ReadonlyArray<keyof Axes>]> = [
   ["FILTER_DROPPED_WHEN_SORTED_SEARCHED_AND_SELECTED", ["sorted", "searched", "selected"]],
   ["FILTER_DROPPED_WHEN_SORTED", ["sorted"]],

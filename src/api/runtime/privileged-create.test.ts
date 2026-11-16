@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { privilegedBar } from "./privileged-create.ts";
 
-/* Only the highest rank of a tenant sends a create whose body requires an x-privileged property. */
+// Only the highest rank of a tenant sends a create whose body requires an x-privileged property.
 
 const create = { operationId: "table.create", privilegedRequired: ["verified"] };
 const admin = { id: "alpha", rank: 2, tenant: "t1" };

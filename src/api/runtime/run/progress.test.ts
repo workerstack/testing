@@ -5,18 +5,18 @@ import type { Exchange } from "../exchange.ts";
 import type { ProgressSnapshot } from "../progress/types.ts";
 import { RunProgress } from "./progress.ts";
 
-/*
- * The live status: where the run is, the last answer, and the oldest request still out. Every
- * move publishes a snapshot; a field the run is not on is absent, never stale.
- */
+// The live status: where the run is, the last answer, and the oldest request still out. Every
+// move publishes a snapshot; a field the run is not on is absent, never stale.
 
 function staged(defects = 0) {
   const snaps: ProgressSnapshot[] = [];
+
   const progress = new RunProgress(
     (snap) => snaps.push(snap),
     Date.now(),
     () => defects,
   );
+
   return { progress, snaps };
 }
 

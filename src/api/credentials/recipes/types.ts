@@ -3,7 +3,7 @@ import type { SecurityScheme } from "../../spec/security/schemes.ts";
 import type { CredentialPorts, CredentialRecord, Hop } from "../ports.ts";
 
 /** What a recipe acquires a credential with: the run's ports, who it is for, and what it must carry. */
-export interface AcquireCtx {
+export type AcquireCtx = {
   ports: CredentialPorts;
   principal: CredentialPrincipal;
   /** The scheme the credential is for; an oauth2 scheme also names the token URL. */
@@ -12,10 +12,10 @@ export interface AcquireCtx {
   scopes: readonly string[];
   /** Epoch ms now; a run passes its clock so tests can move it. */
   now: () => number;
-}
+};
 
 /** A credential a recipe issued. */
-export interface Issued {
+export type Issued = {
   value: string;
   /** Epoch ms it lapses, or null when it never does as far as the API tester can tell. */
   expiresAt: number | null;
@@ -29,4 +29,4 @@ export interface Issued {
   identity?: Record<string, string>;
   /** The scopes it was issued for, when the recipe asked for them. */
   scopes?: readonly string[];
-}
+};

@@ -7,10 +7,10 @@ import { backend, NOTES, PARAMS, queryDoc, stage } from "../composition/__fixtur
 import { growing, ignoring, LATECOMER, refusingAfter, refusingOrder } from "./__fixtures__/sort-api.ts";
 import { sortDefaultOrderApplied } from "./sort-default-order-applied.ts";
 
-/* The cohort is served in insertion order, which is id ascending. */
+// The cohort is served in insertion order, which is id ascending.
 const declaring = (defaultOrder: string) => queryDoc({ sort: { defaultOrder } });
 
-/* Serves one more record whenever an order is given, on every read alike. */
+// Serves one more record whenever an order is given, on every read alike.
 const widerWhenOrdered: Responder = (method, path, options) =>
   backend(options.query?.["order"] === undefined ? NOTES : [...NOTES, LATECOMER])(method, path, options);
 

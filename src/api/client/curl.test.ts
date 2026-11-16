@@ -35,12 +35,14 @@ describe("toCurl", () => {
   it("puts a secret header behind $TOKEN, keeping its scheme, and scrubs issued values elsewhere", () => {
     const redactor = new Redactor();
     redactor.registerSecret("s3cr3t-value");
+
     const curl = toCurl(
       exchange({
         requestHeaders: { "x-api-key": "k", authorization: "Bearer abc", "x-note": "id s3cr3t-value" },
       }),
       { redactor },
     );
+
     expect(curl).toContain('-H "x-api-key: $TOKEN"');
     expect(curl).toContain('-H "authorization: Bearer $TOKEN"');
     expect(curl).not.toContain("s3cr3t-value");
@@ -51,6 +53,7 @@ describe("toCurl", () => {
       redact: ["x-custom"],
       redactor: new Redactor(),
     });
+
     expect(curl).toContain("-H 'authorization: Bearer abc'");
     expect(curl).toContain('-H "X-Custom: $TOKEN"');
   });
@@ -69,13 +72,16 @@ describe("toCurl bodies", () => {
     const redactor = new Redactor();
     redactor.registerSecret("hunter2-password");
     redactor.registerSecret("Bearer tok_live_123456");
+
     const requestBody = new URLSearchParams([
       ["username", "testing"],
       ["password", "hunter2-password"],
     ]);
+
     const curl = toCurl(exchange({ requestBody, requestHeaders: { authorization: "Bearer tok_live_123456" } }), {
       redactor,
     });
+
     expect(curl).not.toContain("hunter2-password");
     expect(curl).not.toContain("tok_live_123456");
     expect(curl).toContain("--data-urlencode 'username=testing'");
@@ -85,6 +91,7 @@ describe("toCurl bodies", () => {
     const curl = toCurl(exchange({ requestBody: new URLSearchParams({ a: "1", token: "t" }) }), {
       redactor: new Redactor(),
     });
+
     expect(curl).toContain("--data-urlencode 'a=1'");
     expect(curl).toContain("--data-urlencode 'token=<redacted>'");
   });
@@ -98,12 +105,14 @@ describe("toCurl bodies", () => {
     expect(live).toContain("-F 'title=scan'");
     expect(live).toContain("-F 'file=@a.bin;type=application/octet-stream'");
     expect(live).toContain("-F 'typed=@b.txt;type=text/plain'");
+
     const snapshot = {
       parts: [
         { field: "title", value: "scan" },
         { bytes: 1, field: "file", filename: "a.bin", mediaType: "image/png", sha256: "00" },
       ],
     };
+
     const compacted = toCurl(exchange({ requestBody: snapshot }), { redactor: new Redactor() });
     expect(compacted).toContain("-F 'title=scan'");
     expect(compacted).toContain("-F 'file=@a.bin;type=image/png'");
@@ -119,14 +128,17 @@ describe("toCurl form redaction", () => {
     form.append("password", "p");
     form.append("k", "placed");
     form.append("note", "has issued-value-1");
+
     const snapshot = {
       parts: [
         { field: "k", value: "placed" },
         { field: "note", value: "issued-value-1" },
       ],
     };
+
     const fields = new URLSearchParams({ k: "placed", note: "issued-value-1" });
     const written = [form, snapshot, fields].map((body) => toCurl(exchange({ requestBody: body }), { redactor }));
+
     for (const curl of written) expect(curl).not.toMatch(/placed|issued-value-1/);
     expect(written[0]).toContain("-F 'password=<redacted>'");
     expect(written[0]).toContain("-F 'note=has <redacted>'");

@@ -10,16 +10,17 @@ import type {
 import type { SecurityScheme } from "../../spec/security/schemes.ts";
 import { capturedBy, unfilledIn } from "../placeholders.ts";
 
-/*
- * Each recipe kind's own shape. A config written as .json or .mjs never meets the TypeScript types,
- * so this is the only thing standing between a typo and a crash at the first request.
- */
+// Each recipe kind's own shape. A config written as .json or .mjs never meets the TypeScript types,
+// so this is the only thing standing between a typo and a crash at the first request.
 
 type RawRecipe = RawOfUnion<Recipe>;
-/* What a login and a refresh both run. */
+
+// What a login and a refresh both run.
 type Chain = NonNullable<Recipe["refresh"]>;
+
 /** A login's revoke in its object form: the operation, and the body it sends. */
 export type RevokeOperation = Exclude<LoginRecipe["revoke"], string | undefined>;
+
 type BasicPair = Exclude<StaticRecipe, string>;
 
 const isString = (value: unknown): value is string => typeof value === "string";
@@ -43,16 +44,18 @@ export const validPlacement = (value: unknown): value is ExtraPlacement =>
 /** What is wrong with the options a recipe of any kind carries: its lifetime, held scopes and extra placements. */
 export function optionProblems(path: string, recipe: RawRecipe): string[] {
   const problems: string[] = [];
-  if (recipe.expiresIn !== undefined && !validExpiry(recipe.expiresIn)) {
+
+  if (recipe.expiresIn !== undefined && !validExpiry(recipe.expiresIn))
     problems.push(`${path}.expiresIn must be seconds above 0 or { from: <json path> }`);
-  }
+
   const holds = recipe.holds;
-  if (holds !== undefined && !(Array.isArray(holds) && holds.every((scope) => typeof scope === "string"))) {
+
+  if (holds !== undefined && !(Array.isArray(holds) && holds.every((scope) => typeof scope === "string")))
     problems.push(`${path}.holds must be a list of scope names`);
-  }
-  if (recipe.placements !== undefined && !Array.isArray(recipe.placements)) {
+
+  if (recipe.placements !== undefined && !Array.isArray(recipe.placements))
     problems.push(`${path}.placements must be a list`);
-  }
+
   const placements: unknown[] = Array.isArray(recipe.placements) ? recipe.placements : [];
   placements.forEach((placement, index) => {
     if (!validPlacement(placement)) {
@@ -61,12 +64,14 @@ export function optionProblems(path: string, recipe: RawRecipe): string[] {
       );
     }
   });
+
   return problems;
 }
 
 /** `steps` and `from`: what a login and a refresh both run. */
 function stepsShape(path: string, value: unknown): string[] {
   const raw: RawOf<Chain> = isRaw<Chain>(value) ? value : {};
+
   return [
     ...(Array.isArray(raw.steps) && raw.steps.length > 0 ? [] : [`${path}.steps must be a non-empty list of steps`]),
     ...(isString(raw.from) ? [] : [`${path}.from must be a JSON path string`]),
@@ -75,42 +80,46 @@ function stepsShape(path: string, value: unknown): string[] {
 
 const stepsOf = (value: unknown): unknown[] => (isRaw<Chain>(value) && Array.isArray(value.steps) ? value.steps : []);
 
-/*
- * A `{name}` the login's steps read that no earlier step binds, or the refresh's that neither the
- * login saves nor an earlier refresh step binds (`credential` is the session's own value): it
- * would be sent as written. Where the document signs principals up, a session may be taken from the
- * signup's answer and refresh from what it carries, which only the run sees: the store refuses it then.
- */
+// A `{name}` the login's steps read that no earlier step binds, or the refresh's that neither the
+// login saves nor an earlier refresh step binds (`credential` is the session's own value): it
+// would be sent as written. Where the document signs principals up, a session may be taken from the
+// signup's answer and refresh from what it carries, which only the run sees: the store refuses it then.
 function placeholderProblems(path: string, recipe: RawRecipe, signsUp: boolean): string[] {
   const login = stepsOf(recipe.login);
   const problems: string[] = [];
   const loginGap = unfilledIn(login, []);
+
   if (loginGap !== undefined) {
     problems.push(
       `${path}.login.steps[${loginGap.step - 1}] reads {${loginGap.name}}, which no earlier login step binds`,
     );
   }
+
   const refreshGap = signsUp ? undefined : unfilledIn(stepsOf(recipe.refresh), [...capturedBy(login), "credential"]);
+
   if (refreshGap !== undefined) {
     problems.push(
       `${path}.refresh.steps[${refreshGap.step - 1}] reads {${refreshGap.name}}, ` +
         "which neither the login saves nor an earlier refresh step binds",
     );
   }
+
   return problems;
 }
 
-/* A claim binds the principal's tenant, or one of its scope parameters: nothing else is the principal's to bind. */
+// A claim binds the principal's tenant, or one of its scope parameters: nothing else is the principal's to bind.
 const CLAIM_TARGET = /^(?:tenant|scope\.[\w-]+)$/;
 
 /** `login.claims`: target → the claim name or JSON path in the answer that fills it. */
 function claimsShape(path: string, login: unknown): string[] {
   if (!isRaw<LoginRecipe>(login) || login.claims === undefined) return [];
+
   if (!isRecord(login.claims)) return [`${path}.claims must be a map of target → claim`];
+
   return Object.entries(login.claims).flatMap(([target, claim]) => {
-    if (!CLAIM_TARGET.test(target)) {
+    if (!CLAIM_TARGET.test(target))
       return [`${path}.claims.${target} binds nothing: a claim binds tenant or scope.<parameter>`];
-    }
+
     return isString(claim) ? [] : [`${path}.claims.${target} must be a claim name or JSON path string`];
   });
 }
@@ -118,7 +127,9 @@ function claimsShape(path: string, login: unknown): string[] {
 /** `login.revoke`: the operation that revokes a session, for the dedicated sessions probes open. */
 function revokeShape(path: string, login: unknown): string[] {
   if (!isRaw<LoginRecipe>(login) || login.revoke === undefined || isString(login.revoke)) return [];
+
   if (isRaw<RevokeOperation>(login.revoke) && isString(login.revoke.operationId)) return [];
+
   return [`${path}.revoke must be an operationId, or { operationId, body? }`];
 }
 
@@ -132,27 +143,32 @@ function mintShape(path: string, mint: RawOf<MintRecipe>): string[] {
 function staticShape(path: string, value: unknown, scheme: SecurityScheme): string[] {
   if (scheme.kind === "basic") {
     const pair = isRaw<BasicPair>(value) && isString(value.username) && isString(value.password);
+
     return pair ? [] : [`${path}.static must be { username, password } for a basic scheme`];
   }
+
   return isString(value) ? [] : [`${path}.static must be a string for ${article(scheme.kind)} ${scheme.kind} scheme`];
 }
 
 function oauth2Shape(path: string, oauth2: RawOf<OAuth2Recipe>): string[] {
   const problems: string[] = [];
+
   if (!isString(oauth2.clientId)) problems.push(`${path}.oauth2.clientId must be a string`);
-  if (oauth2.scopes !== undefined && !stringList(oauth2.scopes)) {
+
+  if (oauth2.scopes !== undefined && !stringList(oauth2.scopes))
     problems.push(`${path}.oauth2.scopes must be a list of scope names`);
-  }
+
   if (oauth2.flow === "password") {
-    for (const field of ["username", "password"] as const) {
+    for (const field of ["username", "password"] as const)
       if (!isString(oauth2[field])) problems.push(`${path}.oauth2.${field} must be a string for the password flow`);
-    }
   }
+
   return problems;
 }
 
 function hookShape(path: string, hook: unknown, hasHook: boolean): string[] {
   if (hook !== true) return [`${path}.hook must be true`];
+
   return hasHook ? [] : [`${path}.hook needs hooks.resolveCredential in the config`];
 }
 
@@ -161,13 +177,17 @@ const KINDS = ["login", "mint", "static", "hook", "oauth2"] as const;
 /** What is wrong with a recipe that names no kind, or more than one. */
 export function kindProblems(path: string, recipe: RawRecipe): string[] {
   const present = KINDS.filter((kind) => recipe[kind] !== undefined);
+
   if (present.length === 1) return [];
+
   if (present.length === 0) return [`${path} needs exactly one of ${KINDS.join(", ")}`];
+
   return [`${path} has ${present.join(" and ")}; keep exactly one`];
 }
+
 type Kind = (typeof KINDS)[number];
 
-/* Why `holds` does not fit a kind whose credential's scopes come from elsewhere. */
+// Why `holds` does not fit a kind whose credential's scopes come from elsewhere.
 const HOLDS_ELSEWHERE: Readonly<Record<string, string>> = {
   login: "holds is for a static or hook recipe",
   mint: "holds is not for a mint recipe: it holds the scopes its body asks for",
@@ -178,21 +198,25 @@ const HOLDS_ELSEWHERE: Readonly<Record<string, string>> = {
 function fitProblems(path: string, recipe: RawRecipe): string[] {
   const kind = KINDS.find((name) => recipe[name] !== undefined) as Kind;
   const problems: string[] = [];
+
   if (recipe.refresh !== undefined && kind !== "login") problems.push(`${path}.refresh is for a login recipe only`);
-  if (isRecord(recipe.expiresIn) && (kind === "static" || kind === "hook")) {
+
+  if (isRecord(recipe.expiresIn) && (kind === "static" || kind === "hook"))
     problems.push(`${path}.expiresIn.from reads the answer that issued the credential; a ${kind} recipe has none`);
-  }
+
   const elsewhere = HOLDS_ELSEWHERE[kind];
+
   if (stringList(recipe.holds) && elsewhere !== undefined) problems.push(`${path}.${elsewhere}`);
+
   return problems;
 }
 
 /** What a recipe's shape is checked for: its scheme, whether a credential hook exists, and whether the document signs principals up. */
-export interface ShapeFor {
+export type ShapeFor = {
   scheme: SecurityScheme;
   hasHook: boolean;
   signsUp: boolean;
-}
+};
 
 /** What is wrong with the shape of a recipe of exactly one kind, for its scheme. */
 export function kindShapeProblems(path: string, recipe: RawRecipe, { hasHook, scheme, signsUp }: ShapeFor): string[] {

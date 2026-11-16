@@ -7,6 +7,7 @@ const token = {
   operationId: "auth.token",
   saveAs: { refresh_token: "$.refresh_token" },
 };
+
 const renew = { body: { refresh_token: "{refresh_token}" }, operationId: "auth.refresh" };
 
 describe("unfilledIn", () => {

@@ -8,12 +8,14 @@ import { type NotesOptions, notesDocument } from "./__fixtures__/notes.ts";
 import { crossTenantItemWrite } from "./tenant-item-not-writable-cross-tenant.ts";
 
 const MEMBERS = { other: "o2", owner: "o1" };
+
 /** A create that answers with `record`, and a read that answers it back; nothing else. */
 const creating = (record: Record<string, unknown>) => (method: string, path: string) =>
   method === "POST" || (method === "GET" && path.endsWith(`/${String(record["id"])}`))
     ? { body: record, status: method === "POST" ? 201 : 200 }
     : { status: 404 };
-/* A note whose only string is empty, and one whose string field the request schema does not know. */
+
+// A note whose only string is empty, and one whose string field the request schema does not know.
 const createsBlank = creating({ id: "s1", title: "" });
 const createsUnschemed = creating({ id: "s1", slug: "made" });
 const modelWith = (options: NotesOptions = {}) => modelOf(notesDocument(options));
@@ -30,7 +32,7 @@ describe("tenant.item-not-writable-cross-tenant", () => {
       "DELETE /orgs/o2/notes/s1 other",
       "GET /orgs/o1/notes/s1 owner",
     ]);
-    /* Every request names its operation, so each is sent the credential its own security asks for. */
+    // Every request names its operation, so each is sent the credential its own security asks for.
     expect(sent.map((s) => s.options.operationId)).toEqual([
       "createNote",
       "updateNote",
@@ -64,8 +66,10 @@ describe("tenant.item-not-writable-cross-tenant", () => {
 describe("tenant.item-not-writable-cross-tenant: writes that did not take", () => {
   it("does not count a delete the owner still reads past, or a refused one", async () => {
     const respondLeaky = notesBackend({ members: MEMBERS });
+
     const answers: Backend = (method, path, options) =>
       method === "DELETE" ? { status: 204 } : respondLeaky(method, path, options);
+
     const { ctx, findings } = notesContext(modelWith({ without: ["updateNote"] }), answers);
     expect(await runCheck(crossTenantItemWrite, ctx)).toEqual({ kind: "asserted" });
     expect(findings.findings).toEqual([]);
@@ -73,8 +77,10 @@ describe("tenant.item-not-writable-cross-tenant: writes that did not take", () =
 
   it("does not count a change the owner cannot read back", async () => {
     const backend = notesBackend({ members: MEMBERS, writesById: true });
+
     const answers: Backend = (method, path, options) =>
       method === "GET" ? { status: 500 } : backend(method, path, options);
+
     const { ctx, findings } = notesContext(modelWith({ without: ["deleteNote"] }), answers);
     expect(await runCheck(crossTenantItemWrite, ctx)).toEqual({ kind: "asserted" });
     expect(findings.findings).toEqual([]);
@@ -111,15 +117,15 @@ describe("tenant.item-not-writable-cross-tenant planning", () => {
   it("stands down without a second tenant, a read, a create, or a tenant-scoped write", () => {
     const shared = modelWith({ tenant: false });
     const backend = notesBackend({ members: MEMBERS });
+
     for (const { ctx } of [
       notesContext(modelWith(), backend, { peer: undefined }),
       notesContext(modelWith(), backend, { readOp: undefined }),
       notesContext(modelWith(), backend, { createOp: undefined }),
       notesContext(modelWith({ without: ["updateNote", "deleteNote"] }), backend),
       notesContext(shared, backend),
-    ]) {
+    ])
       expect(crossTenantItemWrite.plan(ctx)).toEqual({ ok: false });
-    }
   });
 
   it("grades the entity's update and delete", () => {

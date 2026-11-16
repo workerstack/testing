@@ -29,13 +29,14 @@ describe("withDeclared", () => {
       paramStyles: { header: { "X-Range": { explode: true } } },
       requiredHeaders: { "X-Range": { max: 5, min: 1 }, "X-Version": "2", "x-mine": "doc" },
     });
+
     expect(withDeclared(operation, NOTHING_PLACED, [{ "X-Mine": "caller" }])).toEqual([
       { "X-Range": "max=5,min=1", "X-Version": "2" },
       { "X-Mine": "caller" },
     ]);
   });
 
-  /* Ruling A4: the declared value is an example; the credential placed under that name is the operation's security. */
+  // Ruling A4: the declared value is an example; the credential placed under that name is the operation's security.
   it("never sends a declared header or cookie under a name the credential is placed in, whatever its case", () => {
     const operation = resolved({ requiredCookies: { sid: "doc" }, requiredHeaders: { "x-token": "doc" } });
     expect(withDeclared(operation, placing({ "X-Token": "live" }, { sid: "live" }), [])).toEqual([{}]);
@@ -46,6 +47,7 @@ describe("withDeclared", () => {
       paramStyles: { cookie: { tags: { explode: false } } },
       requiredCookies: { lang: "en", tags: ["a", "b"], theme: "dark" },
     });
+
     expect(withDeclared(operation, NOTHING_PLACED, [])).toEqual([{ cookie: "lang=en; tags=a,b; theme=dark" }]);
     expect(withDeclared(operation, NOTHING_PLACED, [{ Cookie: "theme=light" }, { a: "1" }])).toEqual([
       {},

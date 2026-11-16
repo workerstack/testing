@@ -11,6 +11,7 @@ describe("JSONPath", () => {
       ],
       ok: { columns_json: [{ name: "a" }, { name: "b" }] },
     };
+
     expect(readJsonPathList(undefined, "$")).toEqual([]);
     expect(readJsonPathList(body, "")).toEqual([body]);
     expect(readJsonPathList(body, "$.ok.columns_json[*].name")).toEqual(["a", "b"]);

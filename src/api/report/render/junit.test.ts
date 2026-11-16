@@ -4,39 +4,40 @@ import type { Inconclusive } from "../../runtime/finding.ts";
 import { BASE, exchange, finding, operation, reportOf, scopeOf } from "./__fixtures__/report.ts";
 import { renderJunit } from "./junit.ts";
 
-/*
- * The run as JUnit XML, the common denominator CI tools read: a suite per entity, a case per
- * (operation, check), and an outcome that agrees with the exit code. Every test reads the file
- * back through a strict parser, so a test that passes also proves the file well-formed.
- */
+// The run as JUnit XML, the common denominator CI tools read: a suite per entity, a case per
+// (operation, check), and an outcome that agrees with the exit code. Every test reads the file
+// back through a strict parser, so a test that passes also proves the file well-formed.
 
-interface Element {
+type Element = {
   name: string;
   attrs: Record<string, string>;
   children: Element[];
   text: string;
-}
+};
 
 const ENTITIES: Record<string, string> = { amp: "&", apos: "'", gt: ">", lt: "<", quot: '"' };
 
-/* Throws, naming what is not well-formed: the parser fails the test that reads a bad file. */
+// Throws, naming what is not well-formed: the parser fails the test that reads a bad file.
 function wellFormed(holds: boolean, why: string): void {
   if (!holds) throw new Error(`not well-formed: ${why}`);
 }
 
 function decoded(raw: string): string {
   wellFormed(!/[<>]|&(?!(amp|lt|gt|quot|apos|#\d+);)/.test(raw), `unescaped markup in ${JSON.stringify(raw)}`);
-  return raw.replace(/&(#\d+|\w+);/g, (_, ref: string) =>
+
+  return raw.replaceAll(/&(#\d+|\w+);/g, (_, ref: string) =>
     ref.startsWith("#") ? String.fromCodePoint(Number(ref.slice(1))) : (ENTITIES[ref] as string),
   );
 }
 
 function attributes(attrText: string): Record<string, string> {
   const attrs: Record<string, string> = {};
+
   for (const [, key, value] of attrText.matchAll(/([\w:-]+)="([^"]*)"/g)) {
     wellFormed(!((key as string) in attrs), `attribute ${key} twice`);
     attrs[key as string] = decoded(value as string);
   }
+
   return attrs;
 }
 
@@ -48,28 +49,35 @@ function parseXml(xml: string): Element {
   const tokens = /<(\/?)([\w.:-]+)((?:\s+[\w:-]+="[^"<]*")*)\s*(\/?)>|([^<]+)/gy;
   const body = xml.slice(xml.indexOf("\n") + 1);
   let at = 0;
+
   for (const match of body.matchAll(tokens)) {
     at += match[0].length;
     const [, closing, name, attrText, selfClosing, text] = match;
     const top = stack.at(-1) as Element;
-    if (text !== undefined) top.text += decoded(text);
-    else if (closing === "/") {
+
+    if (text !== undefined) {
+      top.text += decoded(text);
+    } else if (closing === "/") {
       wellFormed(top.name === name, `</${name}> closes <${top.name}>`);
       stack.pop();
     } else {
       const element: Element = { attrs: attributes(attrText as string), children: [], name: name as string, text: "" };
       top.children.push(element);
+
       if (selfClosing !== "/") stack.push(element);
     }
   }
+
   wellFormed(at === body.length, `unreadable at ${at}: ${body.slice(at, at + 40)}`);
   wellFormed(stack.length === 1 && root.children.length === 1 && root.text.trim() === "", "one root element");
+
   return root.children[0] as Element;
 }
 
 function suites(xml: string): Element[] {
   const root = parseXml(xml);
   expect(root.name).toBe("testsuites");
+
   return root.children;
 }
 
@@ -82,11 +90,12 @@ function cases(element: Element): string[] {
   return element.children.map((c) => {
     const result = c.children[0];
     const said = result === undefined ? "passed" : `${result.name} ${result.attrs["message"] ?? ""}`.trim();
+
     return `${c.attrs["classname"]} ${c.attrs["name"]}: ${said}`;
   });
 }
 
-/* What the run records for a check that could not conclude, operations included. */
+// What the run records for a check that could not conclude, operations included.
 const unresolved = (entries: Inconclusive[]): Inconclusive[] => entries;
 
 const known = (reason: string) => finding({ check: "c", known: { reason }, operations: ["row.list"], summary: reason });
@@ -129,6 +138,7 @@ describe("renderJunit", () => {
     const evidence = Array.from({ length: 7 }, (_, i) =>
       exchange({ method: "PATCH", status: 500 + i, url: `${BASE}/v1/rows/${i}` }),
     );
+
     const xml = renderJunit(
       reportOf({
         findings: [
@@ -145,6 +155,7 @@ describe("renderJunit", () => {
         }),
       }),
     );
+
     const failure = (suite(xml, "row").children[0] as Element).children[0] as Element;
     expect(failure.name).toBe("failure");
     expect(failure.attrs).toEqual({ message: "broke", type: "BACKEND_BUG" });
@@ -177,6 +188,7 @@ describe("renderJunit, a case per (operation, check)", () => {
         }),
       }),
     );
+
     expect(cases(suite(xml, "row"))).toEqual([
       "row.list c: skipped known (baseline): tracked in #12; known (baseline): vendor bug",
     ]);
@@ -201,6 +213,7 @@ describe("renderJunit, a case per (operation, check)", () => {
         }),
       }),
     );
+
     expect(cases(suite(xml, "row"))).toEqual([
       "row.list g: skipped coverage gap: needs a second tenant",
       "row.list i: skipped inconclusive: listing was empty",
@@ -221,6 +234,7 @@ describe("renderJunit, a missing record", () => {
         }),
       }),
     );
+
     expect(cases(suite(xml, "row"))).toEqual([
       "row.list f: skipped graded failed, but no finding on record names it",
       "row.list g: skipped coverage gap",
@@ -248,6 +262,7 @@ describe("renderJunit, cases outside an operation", () => {
         }),
       }),
     );
+
     expect(cases(suite(xml, "operations"))).toEqual(["ping graded: skipped no check applies"]);
     expect(cases(suite(xml, "row"))).toEqual(["row.blocked graded: skipped blocked"]);
   });
@@ -259,6 +274,7 @@ describe("renderJunit, cases outside an operation", () => {
         scope: scopeOf({ operations: [operation({ checks: { ...operation().checks, passed: ["a"] } })] }),
       }),
     );
+
     const outcome = suite(xml, "testing.api.run");
     expect(cases(outcome)).toEqual(["run outcome: error the network went away before the run finished"]);
     expect((outcome.children[0] as Element).children[0]?.attrs["type"]).toBe("failed");
@@ -283,6 +299,7 @@ describe("renderJunit, the testing.api.run suite", () => {
         scope: scopeOf({ operations: [] }),
       }),
     );
+
     expect(cases(suite(xml, "testing.api.run"))).toEqual([
       "run network: skipped blocked: stalled",
       "run old: skipped known (baseline): #4",
@@ -312,8 +329,10 @@ describe("renderJunit, the file", () => {
         }),
       }),
     );
+
     const root = parseXml(xml);
     let total = 0;
+
     for (const s of root.children) {
       const outcomes = s.children.map((c) => c.children[0]?.name);
       expect(s.attrs).toMatchObject({
@@ -324,6 +343,7 @@ describe("renderJunit, the file", () => {
       });
       total += s.children.length;
     }
+
     expect(root.attrs).toMatchObject({ errors: "1", failures: "2", tests: String(total) });
     expect(cases(suite(xml, "row"))).toEqual([
       "row x: skipped stood down: n",
@@ -336,6 +356,7 @@ describe("renderJunit, the file", () => {
 describe("renderJunit, escaping", () => {
   it("escapes markup and drops XML-invalid control characters", () => {
     const detail = "a <b> & \"c\" 'd' ]]> e\u0000f\u0007g\u000bh\u001fi\u{fffe}j\ud800k\udc00l 😀\ttab\r\nend";
+
     const xml = renderJunit(
       reportOf({
         findings: [finding({ check: "c", detail, operations: ["row.list"], summary: 'line one\nsays <"&">\u0001' })],
@@ -349,6 +370,7 @@ describe("renderJunit, escaping", () => {
         }),
       }),
     );
+
     expect(xml).not.toContain("]]>");
     expect(xml).not.toContain("CDATA");
     expect([...xml].filter((c) => c < " " && !"\t\n\r".includes(c))).toEqual([]);
@@ -381,6 +403,7 @@ describe("renderJunit, redaction", () => {
         ],
       }),
     });
+
     input.client.redactor.registerSecret("sk-live-123456");
     const xml = renderJunit(input);
     expect(xml).not.toContain("sk-live-123456");
@@ -417,6 +440,7 @@ describe("renderJunit, secondary origins", () => {
         }),
       }),
     );
+
     expect(suites(xml).map((s) => s.attrs["name"])).toEqual(["billing:invoice", "testing.api.run"]);
     expect(cases(suite(xml, "billing:invoice"))).toEqual([
       "billing:invoice x: skipped stood down: n",

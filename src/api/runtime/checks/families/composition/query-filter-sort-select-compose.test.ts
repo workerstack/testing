@@ -4,20 +4,20 @@ import { dropWhen, endlessWhen, fleetingSelect, pagedDoc, rewriting } from "./__
 import { NOTES, queryDoc, REJECT, stage } from "./__fixtures__/query-api.ts";
 import { filterSortSelectCompose } from "./query-filter-sort-select-compose.ts";
 
-/* The triple answered under a narrower filter: one of the filter's records goes missing. */
+// The triple answered under a narrower filter: one of the filter's records goes missing.
 const narrowedTriple = rewriting((query) =>
   "order" in query && "select" in query ? { ...query, filter: "and(status.eq.open,rank.eq.10)" } : query,
 );
 
-/* The triple answered under another filter: records go missing and others appear. */
+// The triple answered under another filter: records go missing and others appear.
 const swappedTriple = rewriting((query) =>
   "order" in query && "select" in query ? { ...query, filter: "status.eq.closed" } : query,
 );
 
-/* The triple refused outright. */
+// The triple refused outright.
 const refusedTriple = rewriting((query) => ("order" in query ? REJECT : query));
 
-/* The triple projected without the identity. */
+// The triple projected without the identity.
 const anonymousTriple = rewriting((query) => ("order" in query ? { ...query, select: "title" } : query));
 
 describe("query.filter-sort-select-compose judges", () => {

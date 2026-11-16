@@ -12,15 +12,18 @@ export const searchCaseInsensitive: Check<{ token: string; flipped: string }> = 
 }>({
   plan: (ctx) => {
     if (conv(ctx).search === undefined) return cannot();
-    /* The first word with a letter, searchable field by field and record by record: a word of
-     * the first text value that holds a letter at all. */
+
+    // The first word with a letter, searchable field by field and record by record: a word of
+    // the first text value that holds a letter at all.
     const token = (ctx.query?.searchable ?? [])
       .flatMap((field) => ctx.records.map((row) => row[field]))
       .filter((value): value is string => typeof value === "string")
       .flatMap((value) => value.split(/\s+/))
       .find((part) => /[A-Za-z]/.test(part));
+
     if (token === undefined) return cannot();
     const flipped = token.replace(/[A-Za-z]/, (ch) => (ch === ch.toLowerCase() ? ch.toUpperCase() : ch.toLowerCase()));
+
     return ready({ flipped, token });
   },
   dependsOn: ["pagination.page-walk-covers-set", "search.q-narrows-result"],
@@ -33,13 +36,14 @@ export const searchCaseInsensitive: Check<{ token: string; flipped: string }> = 
     const query = (term: string) => q(ctx, { limit, search: term });
     const first = await listAll(ctx, query(token));
     const second = await listAll(ctx, query(flipped));
-    if (first.exchange.status >= 400 || second.exchange.status >= 400) {
+
+    if (first.exchange.status >= 400 || second.exchange.status >= 400)
       return ctx.findings.unresolved(this.id, ctx.entityName, "a case-flipped search was rejected");
-    }
-    if (!first.complete || !second.complete) {
+
+    if (!first.complete || !second.complete)
       return ctx.findings.unresolved(this.id, ctx.entityName, "the sets are larger than a read covers");
-    }
-    /* A record written between the two searches is the collection moving, not case mattering. */
+
+    // A record written between the two searches is the collection moving, not case mattering.
     const settled = await settlePair(
       ctx.identity,
       { first, second },
@@ -48,12 +52,16 @@ export const searchCaseInsensitive: Check<{ token: string; flipped: string }> = 
         second: () => listAgain(ctx, query(flipped)),
       },
     );
+
     if (settled === null) return ctx.findings.unresolved(this.id, ctx.entityName, "a case-flipped search was rejected");
+
     if (settled === "moving") return ctx.findings.unresolved(this.id, ctx.entityName, MOVING);
     const { first: original, second: other } = settled;
     const a = setOf(original.items, ctx.identity);
     const b = setOf(other.items, ctx.identity);
+
     if (sameSet(a, b)) return ASSERTED;
+
     if (resolvedCaps(ctx).searchCase === "insensitive") {
       return ctx.findings.backend(this.id, ctx.entityName, {
         summary: "search is not case-insensitive",
@@ -61,6 +69,7 @@ export const searchCaseInsensitive: Check<{ token: string; flipped: string }> = 
         evidence: [original.exchange, other.exchange],
       });
     }
+
     return ctx.findings.unresolved(
       this.id,
       ctx.entityName,

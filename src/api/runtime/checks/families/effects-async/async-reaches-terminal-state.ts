@@ -25,21 +25,24 @@ export const asyncReachesTerminalState: Check = defineCheck({
   subjects: subjectsOf.async,
   async run(all): Promise<Outcome> {
     const notes: string[] = [];
+
     for (const op of all.asyncOps) {
       const ctx = forOperation(all, op);
       const spec = op.async;
+
       if (spec === null) continue;
 
       await forEachInvocation(op.operationId, ctx.uploads, (uploads, slot) =>
         watchJob({ check: this.id, ctx, fixture: slot?.filename, notes, op, spec }, uploads),
       );
     }
+
     return notes.length === 0 ? ASSERTED : asserted([...new Set(notes)].join("; "));
   },
 });
 
 /** One invocation of one async operation: what every step reports against. */
-interface Invocation {
+type Invocation = {
   check: string;
   ctx: WriteContext;
   /** Where a job that settled only past its budget leaves its note. */
@@ -47,7 +50,7 @@ interface Invocation {
   op: OperationModel;
   spec: AsyncSpec;
   fixture: string | undefined;
-}
+};
 
 function about(run: Invocation): string {
   return subject(run.ctx.entityName, run.op.operationId, run.fixture);
@@ -57,17 +60,21 @@ function about(run: Invocation): string {
 async function watchJob(run: Invocation, uploads: UploadContext): Promise<void> {
   const { ctx, op, spec } = run;
   const start = await startJob(run, uploads);
+
   if (start === undefined) return;
 
   const streamed = isEventStream(start, op);
   const fromStream = streamed ? inspectStreamAsync(start.responseBody, spec) : null;
+
   if (fromStream?.terminal !== null && fromStream?.terminal !== undefined) {
     judgeStreamedTerminal(run, fromStream.terminal);
+
     return;
   }
 
   const receipt =
     fromStream?.idRecord !== null && fromStream?.idRecord !== undefined ? fromStream.idRecord : start.responseBody;
+
   if (streamed && fromStream !== null && (fromStream.id === undefined || fromStream.id === null)) {
     ctx.findings.backend(run.check, about(run), {
       summary: `${op.operationId} job disappeared before completing`,
@@ -75,6 +82,7 @@ async function watchJob(run: Invocation, uploads: UploadContext): Promise<void> 
       evidence: [start],
       fixture: run.fixture,
     });
+
     return;
   }
 
@@ -87,6 +95,7 @@ async function watchJob(run: Invocation, uploads: UploadContext): Promise<void> 
     spec,
     start,
   });
+
   recordJob(run, receipt, start);
   judgePolled(run, start, outcome);
 }
@@ -95,34 +104,42 @@ async function watchJob(run: Invocation, uploads: UploadContext): Promise<void> 
 async function startJob(run: Invocation, uploads: UploadContext): Promise<Exchange | undefined> {
   const { ctx, op } = run;
   const body = op.hasRequestBody ? bodyForOp(ctx, op) : undefined;
+
   const start = await ctx.client.request(op.method, fillPath(op.path, ctx.scope), {
     as: { principal: ctx.actor.id },
     ...(body === undefined ? {} : await encodeOpBody(ctx, op, body, { variant: "baseline", index: 0, uploads })),
   });
+
   if (standDownForFeatureGate(ctx, op, start, run.check)) return undefined;
-  /* A start that crashed started nothing: the lifecycle cannot be judged, and the crash
-   * itself is failed by the server-error rule. Say so rather than stand down quietly. */
+
+  // A start that crashed started nothing: the lifecycle cannot be judged, and the crash
+  // itself is failed by the server-error rule. Say so rather than stand down quietly.
   if (start.status === 0 || start.status >= 500) {
     ctx.findings.unresolved(
       run.check,
       about(run),
       `${op.operationId} answered ${start.status === 0 ? "nothing" : start.status}, so no job was started to watch`,
     );
+
     return undefined;
   }
+
   if (start.status >= 400) {
     ctx.findings.gap(run.check, about(run), {
       summary: `${op.operationId} could not be started`,
       detail: `returned ${start.status}; the async lifecycle after it is untested`,
       fixture: run.fixture,
     });
+
     return undefined;
   }
+
   return start;
 }
 
 function judgeStreamedTerminal(run: Invocation, terminal: Record<string, unknown>): void {
   const { successWhen } = run.spec;
+
   if (successWhen === undefined || matchesPredicate(terminal, successWhen)) return;
   run.ctx.findings.gap(run.check, about(run), {
     summary: `${run.op.operationId} reached a non-success terminal state`,
@@ -136,14 +153,17 @@ function recordJob(run: Invocation, receipt: unknown, start: Exchange): void {
   const { ctx, op, spec } = run;
   const jobId = spec.idFrom === undefined ? undefined : receiptId(receipt, spec.idFrom);
   const polled = (ctx.model.byRoute.get(spec.poll) ?? ctx.model.byOperationId.get(spec.poll))?.entity;
+
   if (polled === null || polled === undefined) return;
-  /* A receipt that names no id still made a job, and nothing can remove it. */
+
+  // A receipt that names no id still made a job, and nothing can remove it.
   if (jobId === undefined) ctx.recordUnidentified?.(polled, op.operationId, start);
   else ctx.recordCreated?.({ entity: polled, id: jobId, scope: { ...ctx.scope } }, start.principal);
 }
 
 function judgePolled(run: Invocation, start: Exchange, outcome: AsyncOutcome): void {
   const { ctx, op, spec } = run;
+
   if (outcome.state === "timed-out") {
     ctx.findings.backend(run.check, about(run), {
       summary: `${op.operationId} never reached a terminal state`,
@@ -154,17 +174,21 @@ function judgePolled(run: Invocation, start: Exchange, outcome: AsyncOutcome): v
       evidence: [start, ...outcome.exchanges.slice(-2)],
       fixture: run.fixture,
     });
+
     return;
   }
+
   if (outcome.state === "unfillable") {
-    /* The API tester could not name the job to ask about it: nothing the backend did. */
+    // The API tester could not name the job to ask about it: nothing the backend did.
     ctx.findings.unresolved(
       run.check,
       about(run),
       `the poll route ${spec.poll} could not be filled from the receipt: ${outcome.unfillable}`,
     );
+
     return;
   }
+
   if (outcome.state === "vanished") {
     ctx.findings.backend(run.check, about(run), {
       summary: `${op.operationId} job disappeared before completing`,
@@ -174,17 +198,22 @@ function judgePolled(run: Invocation, start: Exchange, outcome: AsyncOutcome): v
       evidence: [start, ...outcome.exchanges.slice(-2)],
       fixture: run.fixture,
     });
+
     return;
   }
+
   if (outcome.succeeded) {
     const late = overBudget(run.op.operationId, {
       elapsedMs: outcome.elapsedMs,
       kind: "x-async",
       timeoutMs: run.spec.timeoutMs,
     });
+
     if (late !== undefined) run.notes.push(late);
+
     return;
   }
+
   ctx.findings.gap(run.check, about(run), {
     summary: `${op.operationId} reached a non-success terminal state`,
     detail: `terminal state did not satisfy "${outcome.unmet}"; downstream effects of this operation are untested`,

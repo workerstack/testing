@@ -9,6 +9,7 @@ import { type Resending, resilient, type StatusRetry, untilAnswered } from "./re
 
 const answer = (status: number, headers: Record<string, string> = {}): Exchange =>
   ({ responseHeaders: headers, status }) as Exchange;
+
 const failure = (kind: NetworkKind): NetworkError =>
   new NetworkError({ attempts: 1, kind, message: kind, method: "GET", url: "http://api.test/" });
 
@@ -26,9 +27,12 @@ async function settled<T>(work: Promise<T>): Promise<T> {
     (value) => ({ value }),
     (error: unknown) => ({ error }),
   );
+
   await vi.runAllTimersAsync();
   const result = await outcome;
+
   if ("error" in result) throw result.error;
+
   return result.value;
 }
 
@@ -63,13 +67,17 @@ describe("resilient", () => {
       ["timeout", { headers: () => ({ "Idempotency-Key": "k" }), method: "POST" }],
     ] as const) {
       const sent: number[] = [];
+
       const exchange = await settled(
         resilient(async (attempt) => {
           sent.push(attempt);
+
           if (attempt < 2) throw failure(kind);
+
           return answer(200);
         }, policy(more)),
       );
+
       expect([kind, exchange.status, sent]).toEqual([kind, 200, [0, 1, 2]]);
     }
   });
@@ -98,13 +106,17 @@ describe("resilient within its deadline", () => {
     const last = failure("unreachable");
     const recovering = policy({ network: { awaitRecovery: async (error) => error === last, retries: 1 } });
     const sent: number[] = [];
+
     const exchange = await settled(
       resilient(async (attempt) => {
         sent.push(attempt);
+
         if (attempt < 2) throw last;
+
         return answer(200);
       }, recovering),
     );
+
     expect([exchange.status, sent]).toEqual([200, [0, 1, 2]]);
     const lost = policy({ network: { awaitRecovery: async () => false, retries: 0 } });
     await expect(resilient(() => Promise.reject(last), lost)).rejects.toBe(last);
@@ -114,9 +126,11 @@ describe("resilient within its deadline", () => {
 function retrying(answers: Exchange[], method = "GET"): StatusRetry & { log: string[] } {
   const log: string[] = [];
   let next = 0;
+
   return {
     again: async (previous) => {
       log.push(`again after ${previous.status}`);
+
       return answers[next++] as Exchange;
     },
     backedOff: (waitMs) => log.push(`backoff ${waitMs}`),
@@ -124,6 +138,7 @@ function retrying(answers: Exchange[], method = "GET"): StatusRetry & { log: str
     method,
     reauthorized: async (exchange) => {
       log.push(`reauthorized ${exchange.status}`);
+
       return exchange;
     },
   };
@@ -156,7 +171,7 @@ describe("untilAnswered", () => {
     const silent = retrying([], "POST");
     expect((await settled(untilAnswered(answer(503), silent))).status).toBe(503);
     expect(silent.log).toEqual([]);
-    /* A header-less 503 on a read is still asked once more, as a gateway's. */
+    // A header-less 503 on a read is still asked once more, as a gateway's.
     const read = retrying([answer(503)]);
     expect((await settled(untilAnswered(answer(503), read))).status).toBe(503);
     expect(read.log).toEqual(["again after 503"]);
@@ -177,17 +192,18 @@ describe("untilAnswered", () => {
     expect((await settled(untilAnswered(answer(502), { ...write, method: "POST" }))).status).toBe(502);
     const fine = retrying([]);
     expect((await untilAnswered(answer(200), fine)).status).toBe(200);
-    /* A QUERY carries its question in a body, which may be a stream already spent. */
+    // A QUERY carries its question in a body, which may be a stream already spent.
     const query = retrying([]);
     expect((await settled(untilAnswered(answer(502), { ...query, method: "QUERY" }))).status).toBe(502);
     expect([...write.log, ...fine.log, ...query.log]).toEqual([]);
   });
 });
 
-/* A backend that sheds load with a 503 and then rate-limits the retry with a 429 (anyrow's D1 under a
- * teardown burst): each answer names its wait, and the API tester follows whichever one came last. */
+// A backend that sheds load with a 503 and then rate-limits the retry with a 429 (anyrow's D1 under a
+// teardown burst): each answer names its wait, and the API tester follows whichever one came last.
 const shed = (): Exchange => answer(503, { "retry-after": "1" });
 const throttled = (): Exchange => answer(429, { "retry-after": "1" });
+
 describe("untilAnswered when a 503 and a 429 follow each other", () => {
   it("waits out a 429 that answers a 503's retry", async () => {
     const retry = retrying([answer(429, { "retry-after": "1" }), answer(200)], "DELETE");
@@ -208,7 +224,7 @@ describe("untilAnswered when a 503 and a 429 follow each other", () => {
     const retry = retrying(answers, "DELETE");
     const final = await settled(untilAnswered(shed(), retry));
     const after = (status: number) => retry.log.filter((line) => line === `again after ${status}`).length;
-    /* a 503 opens and the two alternate, so the 503's cap ends it with as many 429s waited out */
+    // a 503 opens and the two alternate, so the 503's cap ends it with as many 429s waited out
     expect(after(503)).toBe(MAX_UNAVAILABLE_RETRIES);
     expect(after(429)).toBe(MAX_UNAVAILABLE_RETRIES);
     expect(final).toBe(answers[after(503) + after(429) - 1]);
@@ -224,9 +240,11 @@ describe("untilAnswered while a 429 holds the route", () => {
     retry.again = async () => {
       await limiter.waitImplicit("DELETE");
       resentAt = performance.now();
+
       return answer(200);
     };
-    /* Another write's 429 holds every untagged write for 60 s, 5 s into the 503's 14 s wait. */
+
+    // Another write's 429 holds every untagged write for 60 s, 5 s into the 503's 14 s wait.
     setTimeout(() => limiter.noteBackoff({ method: "DELETE", pathname: "/webhooks/1" }, 60_000), 5_000);
     await settled(untilAnswered(answer(503, { "retry-after": "14" }), retry));
     expect(resentAt).toBe(65_000);
@@ -244,6 +262,7 @@ describe("untilAnswered against the Retry-After limit", () => {
 
   it("lets a 429 or a 503 stand at once when its wait is past the limit", async () => {
     const exceeded = { limitMs: 60_000, waitMs: 86_400_000 };
+
     for (const status of [429, 503]) {
       const marked = { ...answer(status, { "retry-after": "86400" }), retryAfterExceeded: exceeded } as Exchange;
       const retry = retrying([answer(200)]);

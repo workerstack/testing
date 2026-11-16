@@ -17,9 +17,11 @@ function setup(
 ): { following: Following; asked: string[]; sent: ReturnType<typeof transport>["sent"] } {
   const wire = transport(answer);
   const asked: string[] = [];
+
   const fence: FenceAsk = async (url, method, body) => {
-    asked.push(`${method} ${url} ${JSON.stringify(body) ?? "-"}`);
+    asked.push(`${method} ${url.href} ${JSON.stringify(body) ?? "-"}`);
   };
+
   const following: Following = {
     body: undefined,
     callerCookie: undefined,
@@ -30,6 +32,7 @@ function setup(
     send: wire.fetch,
     ...more,
   };
+
   return { asked, following, sent: wire.sent };
 }
 
@@ -58,6 +61,7 @@ describe("sendFollowing", () => {
         request.url.endsWith("/a") ? redirect(302, "/b", { "set-cookie": "sid=1; Path=/" }) : json({ at: "b" }),
       { callerCookie: "pref=dark" },
     );
+
     const landed = await sendFollowing(first({ headers: { cookie: "pref=dark" } }), following);
     expect(landed.parsed).toEqual({ at: "b" });
     expect(landed.landing.toString()).toBe(`${API}/b`);
@@ -79,6 +83,7 @@ describe("sendFollowing", () => {
         body: { n: 1 },
       },
     );
+
     const headers = { "content-length": "7", "content-type": "application/json" };
     await sendFollowing(first({ body: '{"n":1}', headers, method: "POST" }), following);
     expect(sent[1]).toMatchObject({ body: undefined, headers: {}, method: "GET" });
@@ -92,6 +97,7 @@ describe("sendFollowing", () => {
         body: { n: 1 },
       },
     );
+
     await sendFollowing(first({ body: '{"n":1}', method: "PUT" }), following);
     expect(sent[1]).toMatchObject({ body: '{"n":1}', method: "PUT" });
     expect(asked).toEqual([`PUT ${API}/b {"n":1}`]);
@@ -104,6 +110,7 @@ describe("sendFollowing across origins and limits", () => {
       (request) => (request.url.startsWith(API) ? redirect(302, "http://cdn.test/f") : json({})),
       { callerCookie: "pref=dark", credentialNames: credentialHeaderNames(["x-key"]) },
     );
+
     const headers = { authorization: "Bearer t", cookie: "pref=dark", "x-key": "k", "x-other": "o" };
     const landed = await sendFollowing(first({ headers }), following);
     expect(sent[1]?.headers).toEqual({ "x-other": "o" });
@@ -115,6 +122,7 @@ describe("sendFollowing across origins and limits", () => {
       (request) => (request.url.startsWith(API) ? redirect(302, "http://cdn.test/f") : json({})),
       { credentialNames: credentialHeaderNames(["x-key"]) },
     );
+
     const headers = { Authorization: "Bearer t", "X-Key": "k", "X-Other": "o" };
     await sendFollowing(first({ headers }), following);
     expect(sent[1]?.headers).toEqual({ "X-Other": "o" });
@@ -124,11 +132,14 @@ describe("sendFollowing across origins and limits", () => {
     const { following, sent } = setup(
       (request) => {
         if (request.url.startsWith(`${API}/a`)) return redirect(302, `${API}/b?k=same&x=1`);
+
         if (request.url.startsWith(`${API}/b`)) return redirect(302, "http://cdn.test/f?k=echoed&x=1");
+
         return json({});
       },
       { credentialQuery: new Set(["k"]) },
     );
+
     await sendFollowing(first({ url: new URL(`${API}/a?k=placed`) }), following);
     expect(sent.map((request) => request.url)).toEqual([
       `${API}/a?k=placed`,

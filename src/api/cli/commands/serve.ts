@@ -6,16 +6,17 @@ import type { Writer } from "../writer.ts";
 type Factory = (options: ReferenceOptions) => Promise<Pick<ReferenceServer, "close" | "url">>;
 
 /** What `serve` needs from outside: the server factory for a store, and the signal to stop. */
-export interface ServeDeps {
+export type ServeDeps = {
   factoryFor(backend: string): Promise<Factory>;
   /** Resolves when the process is asked to stop. */
   stopped(): Promise<void>;
-}
+};
 
 /** The reference backend's factory for `backend`'s store; the in-memory one for any other name. */
 export async function referenceFactory(backend: string): Promise<Factory> {
   const { createMemoryServer, createPostgresServer, createSqliteServer } =
     await import("../../reference/http/engines.ts");
+
   return backend === "sqlite" ? createSqliteServer : backend === "postgres" ? createPostgresServer : createMemoryServer;
 }
 
@@ -27,6 +28,7 @@ export function untilSignal(): Promise<void> {
       process.off("SIGTERM", done);
       stop();
     };
+
     process.on("SIGINT", done);
     process.on("SIGTERM", done);
   });
@@ -58,10 +60,11 @@ export async function commandServe(writer: Writer, flags: Args["flags"], deps: S
       `    testing api run --config labs/api/local.config.ts --base-url ${server.url}\n\n` +
       "  ctrl-c to stop\n\n",
   );
-  /* Node buffers stdout when it is not a TTY, so a piped `testing api serve` would print nothing until
-   * exit — indistinguishable from a hang. */
+  // Node buffers stdout when it is not a TTY, so a piped `testing api serve` would print nothing until
+  // exit — indistinguishable from a hang.
   writer.flush();
   await deps.stopped();
   await server.close();
+
   return 0;
 }

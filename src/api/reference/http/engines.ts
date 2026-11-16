@@ -17,6 +17,7 @@ import type { ReferenceOptions } from "./state.ts";
 /** In memory: no dependencies, no flags, nothing to have running. */
 export const memoryStore: StoreFactory = async () => {
   const { MemoryStore } = await import("../stores/memory.ts");
+
   return new MemoryStore();
 };
 
@@ -24,6 +25,7 @@ export const memoryStore: StoreFactory = async () => {
 export const sqliteStore: StoreFactory = async (defects, entities) => {
   const { SqlStore } = await import("../stores/sqlite.ts");
   const { nodeSqliteDriver } = await import("../stores/sqlite-driver.ts");
+
   return SqlStore.create(defects, await nodeSqliteDriver(), { entities });
 };
 
@@ -37,19 +39,20 @@ export async function postgresStore(
   connect?: PgConnect,
 ): Promise<Store> {
   const { PgStore } = await loadPostgres(() => import("../stores/postgres.ts"));
+
   return PgStore.create(defects, entities, connect);
 }
 
 /** What a Postgres-backed server is made from: the reference's options, and how to reach the server. */
-export interface PostgresServerOptions extends ReferenceOptions {
+export type PostgresServerOptions = ReferenceOptions & {
   connect?: PgConnect;
-}
+};
 
-export interface D1Credentials {
+export type D1Credentials = {
   accountId?: string;
   databaseId?: string;
   apiToken?: string;
-}
+};
 
 /**
  * Cloudflare D1 — the same SQL over the network, against someone else's build.
@@ -62,21 +65,26 @@ export function d1Store(credentials: D1Credentials = {}): StoreFactory {
   const accountId = credentials.accountId ?? process.env["CLOUDFLARE_ACCOUNT_ID"];
   const databaseId = credentials.databaseId ?? process.env["CLOUDFLARE_D1_DATABASE_ID"];
   const apiToken = credentials.apiToken ?? process.env["CLOUDFLARE_API_TOKEN"];
+
   const missing = [
     accountId === undefined ? "CLOUDFLARE_ACCOUNT_ID" : null,
     databaseId === undefined ? "CLOUDFLARE_D1_DATABASE_ID" : null,
     apiToken === undefined ? "CLOUDFLARE_API_TOKEN" : null,
   ].filter((name): name is string => name !== null);
+
   if (missing.length > 0) throw new Error(`D1 backend needs ${missing.join(", ")} in the environment`);
   const prefix = `testing_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}_`;
+
   return async (defects, entities) => {
     const { SqlStore } = await import("../stores/sqlite.ts");
     const { d1Driver } = await import("../stores/sqlite-driver.ts");
+
     const driver = d1Driver({
       accountId: accountId as string,
       apiToken: apiToken as string,
       databaseId: databaseId as string,
     });
+
     return SqlStore.create(defects, driver, { entities, prefix });
   };
 }

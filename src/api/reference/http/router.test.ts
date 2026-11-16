@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { cellText } from "../cell.ts";
 import { api, JOBS, TABLES } from "./__fixtures__/api.ts";
 
 describe("handle", () => {
@@ -15,7 +16,7 @@ describe("handle", () => {
     const { call, table } = await api();
     const made = await table("t");
     expect((await call("PUT", TABLES)).body["message"]).toBe("method PUT not supported here");
-    expect(await call("POST", `${TABLES}/${String(made["id"])}`)).toMatchObject({
+    expect(await call("POST", `${TABLES}/${cellText(made["id"])}`)).toMatchObject({
       body: { error_key: "method_not_allowed" },
       status: 405,
     });
@@ -23,7 +24,7 @@ describe("handle", () => {
 
   it("sends an item's update and delete to their handlers", async () => {
     const { call, table } = await api();
-    const at = `${TABLES}/${String((await table("t"))["id"])}`;
+    const at = `${TABLES}/${cellText((await table("t"))["id"])}`;
     expect(await call("PATCH", at, { body: { name: "u" } })).toMatchObject({ body: { name: "u" }, status: 200 });
     expect((await call("DELETE", at)).status).toBe(200);
     expect((await call("GET", at)).status).toBe(404);
@@ -35,7 +36,7 @@ describe("handle", () => {
     expect((await call("GET", TABLES, { token: null })).status).toBe(401);
     expect((await call("GET", "/v1/projects/proj_beta/tables")).status).toBe(403);
     expect((await call("GET", `${TABLES}/missing/rows`)).status).toBe(404);
-    expect((await call("GET", `/v1/projects/proj_beta/tables/${String(made["id"])}`)).status).toBe(404);
+    expect((await call("GET", `/v1/projects/proj_beta/tables/${cellText(made["id"])}`)).status).toBe(404);
   });
 
   it("advances started jobs before a job is read", async () => {
@@ -80,7 +81,7 @@ describe("handle for an entity with no list", () => {
     });
     const made = await call("POST", webhooks, { body: { name: "w", url: "https://hooks.test/w" } });
     expect(made.status).toBe(201);
-    const at = `${webhooks}/${String(made.body["id"])}`;
+    const at = `${webhooks}/${cellText(made.body["id"])}`;
     expect(await call("GET", at)).toMatchObject({ body: { name: "w" }, status: 200 });
     expect((await call("DELETE", at)).status).toBe(200);
     expect((await call("GET", at)).status).toBe(404);

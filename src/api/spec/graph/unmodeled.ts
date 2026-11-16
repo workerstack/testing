@@ -9,12 +9,12 @@ import type { GapCollector } from "../extensions/gaps.ts";
 import type { OpenApiDocument } from "../types.ts";
 import type { OperationModel } from "./types.ts";
 
-/* The keys of a map the document declares; anything that is not a map declares none. */
+// The keys of a map the document declares; anything that is not a map declares none.
 function keysOf(value: unknown): string[] {
   return value !== null && typeof value === "object" && !Array.isArray(value) ? Object.keys(value) : [];
 }
 
-/* One member of an untyped object, or undefined when there is no object to read. */
+// One member of an untyped object, or undefined when there is no object to read.
 function member(value: unknown, key: string): unknown {
   return value !== null && typeof value === "object" ? (value as Record<string, unknown>)[key] : undefined;
 }
@@ -28,7 +28,9 @@ function recordCallsOut(doc: OpenApiDocument, gaps: GapCollector): void {
         `declares callback "${name}", a call the API makes back to a URL the request names`,
       );
     }
+
     const responses = member(op, "responses");
+
     for (const status of keysOf(responses)) {
       for (const name of keysOf(member(member(responses, status), "links"))) {
         gaps.record(
@@ -41,10 +43,11 @@ function recordCallsOut(doc: OpenApiDocument, gaps: GapCollector): void {
   }
 }
 
-/* OAS 3.2 methods outside the fixed Path Item fields, keyed as they are sent. */
+// OAS 3.2 methods outside the fixed Path Item fields, keyed as they are sent.
 function recordAdditionalOperations(doc: OpenApiDocument, gaps: GapCollector): void {
   for (const [path, item] of Object.entries(doc.paths ?? {})) {
     const additional = member(item, "additionalOperations");
+
     for (const method of keysOf(additional)) {
       const id = member(member(additional, method), "operationId");
       gaps.record(
@@ -85,6 +88,7 @@ export function recordUnmodeled(doc: OpenApiDocument, gaps: GapCollector): void 
       "is a call the API sends to a subscriber's URL; the API tester receives no inbound call",
     );
   }
+
   recordCallsOut(doc, gaps);
   recordAdditionalOperations(doc, gaps);
 }

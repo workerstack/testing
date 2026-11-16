@@ -10,16 +10,20 @@ import { scopeEnforced } from "./auth-scope-enforced.ts";
 
 const model = modelOf(securedDoc());
 const principals = [actorOf("alpha", { scope: { project_id: "proj_a" } })] as [ReturnType<typeof actorOf>];
+
 const minting = {
   held: (request: { scopes?: readonly string[] }) => ({ value: `ak_${(request.scopes ?? []).join("+") || "bare"}` }),
   recipes: { apiKey: { issue: "apiKey.create", kind: "mint" as const }, jwt: { kind: "login" as const } },
 };
+
 const answering =
   (status: number): SentResponder =>
   () => ({ status });
-/* Refuses the key issued without a scope, and lets in every other credential. */
+
+// Refuses the key issued without a scope, and lets in every other credential.
 const scoping: SentResponder = (sent) => {
   const forged = (sent.options.as as { forged?: { value: string } } | undefined)?.forged;
+
   return { status: forged?.value === "ak_bare" || forged?.value === "k1" ? 403 : 200 };
 };
 
@@ -30,6 +34,7 @@ describe("auth.scope-enforced", () => {
       probe: minting,
       respond: scoping,
     });
+
     expect(await runOperationCheck(scopeEnforced, ctx)).toEqual({ kind: "asserted" });
     expect(calls.held).toEqual([
       { principal: "alpha", scheme: "apiKey", scopes: [] },
@@ -49,6 +54,7 @@ describe("auth.scope-enforced", () => {
       probe: { recipes: minting.recipes },
       respond: answering(200),
     });
+
     expect(await runOperationCheck(scopeEnforced, ctx)).toEqual({
       kind: "stood-down",
       reason: "no held credential in this test",
@@ -58,12 +64,14 @@ describe("auth.scope-enforced", () => {
 
   it("probes a write only on the run-created record, with its current state", async () => {
     const backend = applyingBackend();
+
     const { ctx, sent } = operationContextFor(model, "notes.update", {
       principals,
       probe: minting,
       respond: backend.respond,
       target: NOTE_TARGET,
     });
+
     expect(await runOperationCheck(scopeEnforced, ctx)).toEqual({ kind: "finding", verdict: "SECURITY" });
     expect(sent.map((s) => [s.method, s.path, s.options.body])).toEqual([
       ["PATCH", NOTE_TARGET.path, { title: "first" }],
@@ -79,6 +87,7 @@ describe("auth.scope-enforced's control", () => {
       probe: minting,
       respond: answering(401),
     });
+
     expect(await runOperationCheck(scopeEnforced, ctx)).toEqual({
       kind: "unresolved",
       reason:
@@ -94,6 +103,7 @@ describe("auth.scope-enforced's control", () => {
       probe: minting,
       respond: answering(200),
     });
+
     expect(await runOperationCheck(scopeEnforced, ctx)).toEqual({ kind: "finding", verdict: "SECURITY" });
     expect(findings.findings.map((f) => [f.summary, f.detail])).toEqual([
       [
@@ -109,6 +119,7 @@ describe("auth.scope-enforced's control", () => {
         (request.scopes ?? []).length === 0 ? { value: "ak_bare" } : { untested: "no key for notes:read" },
       recipes: minting.recipes,
     };
+
     const { ctx } = operationContextFor(model, "notes.list", { principals, probe: bareOnly, respond: scoping });
     expect(await runOperationCheck(scopeEnforced, ctx)).toEqual({
       kind: "stood-down",
@@ -117,7 +128,7 @@ describe("auth.scope-enforced's control", () => {
   });
 });
 
-/* A stage whose actor's apiKey recipe is `apiKey`. */
+// A stage whose actor's apiKey recipe is `apiKey`.
 const recipes = (apiKey: unknown) => ({ principals, probe: { recipes: { apiKey } as never } });
 
 describe("auth.scope-enforced planning", () => {

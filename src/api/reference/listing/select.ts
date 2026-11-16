@@ -16,15 +16,22 @@ export function selectEntries(select: string): string[] {
   const out: string[] = [];
   let depth = 0;
   let current = "";
+
   for (const ch of select) {
     if (ch === "(") depth++;
+
     if (ch === ")") depth--;
+
     if (ch === "," && depth === 0) {
       out.push(current.trim());
       current = "";
-    } else current += ch;
+    } else {
+      current += ch;
+    }
   }
+
   out.push(current.trim());
+
   return out.filter(Boolean);
 }
 
@@ -36,22 +43,26 @@ export function nestedFields(list: string): string[] {
 /** Validates a sparse fieldset against the entity before any row is read. */
 export function checkSelect(select: string | undefined, entity: EntityDef, defects: DefectSet): void {
   if (wholeRow(select)) return;
+
   for (const entry of selectEntries(select as string)) {
     const nested = NESTED.exec(entry);
+
     if (nested !== null) {
       const relation = entity.relations?.[nested[1] as string];
       const fields = nestedFields(nested[2] as string);
-      if (relation === undefined || fields.some((field) => !relation.fields.includes(field))) {
+
+      if (relation === undefined || fields.some((field) => !relation.fields.includes(field)))
         throw new SqlError("invalid_select", `"${entry}" is not a selectable relation`);
-      }
+
       continue;
     }
-    if (defects.has("SPEC_OVERCLAIMS_SELECTABLE") && entry === OVERCLAIMED_FIELD) {
+
+    if (defects.has("SPEC_OVERCLAIMS_SELECTABLE") && entry === OVERCLAIMED_FIELD)
       throw new SqlError("invalid_select", `field "${OVERCLAIMED_FIELD}" is not selectable`);
-    }
+
     const known = entity.fields.some((field) => field.name === entry);
-    if (!known && entity.filterCatalog?.selectUnknown === "reject" && !defects.has("SELECT_UNKNOWN_IGNORED")) {
+
+    if (!known && entity.filterCatalog?.selectUnknown === "reject" && !defects.has("SELECT_UNKNOWN_IGNORED"))
       throw new SqlError("invalid_select", `field "${entry}" is not selectable`);
-    }
   }
 }

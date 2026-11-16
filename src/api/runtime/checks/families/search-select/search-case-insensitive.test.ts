@@ -7,19 +7,23 @@ import { searchCaseInsensitive } from "./search-case-insensitive.ts";
 
 const INSENSITIVE = { doc: queryDoc({ searchCase: "insensitive" }) };
 
-/* Case-sensitive, and "Alpha" is refused once it has been answered. */
+// Case-sensitive, and "Alpha" is refused once it has been answered.
 function refusingRepeat(): Responder {
   let reads = 0;
+
   return (method, path, options) =>
     queryOf(options)["q"] === "Alpha" && reads++ > 0 ? REJECT : caseSensitive(method, path, options);
 }
 
-/* Case-sensitive, and a record lands between the first and the repeat read of "Alpha". */
+// Case-sensitive, and a record lands between the first and the repeat read of "Alpha".
 function movingSensitive(): Responder {
   let reads = 0;
+
   return (method, path, options) => {
     if (queryOf(options)["q"] === "Alpha") reads += 1;
+
     if (reads < 2) return caseSensitive(method, path, options);
+
     return backend([...NOTES, { id: "n7", title: "Alpha late" }])(method, path, options);
   };
 }
@@ -82,6 +86,7 @@ describe("search.case-insensitive plans", () => {
       { id: "b", title: "123 456" },
       { id: "c", title: "7 bravo Charlie" },
     ];
+
     expect(stage(searchCaseInsensitive, { rows }).plan()).toEqual({
       ok: true,
       value: { flipped: "Bravo", token: "bravo" },
@@ -95,6 +100,7 @@ describe("search.case-insensitive plans", () => {
         PARAMS.filter((name) => name !== "q"),
       ),
     });
+
     expect(await noParam.run()).toEqual({ kind: "stood-down", reason: "a searchable string with a letter" });
     expect(stage(searchCaseInsensitive, { rows: [{ id: "a", title: "123" }] }).plan().ok).toBe(false);
     expect(stage(searchCaseInsensitive, { fields: { query: null } }).plan().ok).toBe(false);

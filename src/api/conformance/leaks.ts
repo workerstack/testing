@@ -12,15 +12,19 @@ export type StoreSnapshot = Record<string, Array<Record<string, unknown>>>;
 
 export function leftBehind(before: StoreSnapshot, after: StoreSnapshot): string[] {
   const out: string[] = [];
+
   for (const [entity, rows] of Object.entries(after)) {
     const existed = new Set((before[entity] ?? []).map((row) => JSON.stringify(row["id"])));
+
     for (const row of rows) {
       if (existed.has(JSON.stringify(row["id"]))) continue;
-      /* A tombstone is a removal: the API no longer serves it. */
+
+      // A tombstone is a removal: the API no longer serves it.
       if (row["deleted_at"] !== null && row["deleted_at"] !== undefined) continue;
       out.push(`${entity} ${String(row["id"])}`);
     }
   }
+
   return out;
 }
 
@@ -30,20 +34,26 @@ export function leftBehind(before: StoreSnapshot, after: StoreSnapshot): string[
  */
 export function damagedBystanders(before: StoreSnapshot, after: StoreSnapshot): string[] {
   const out: string[] = [];
+
   for (const [entity, rows] of Object.entries(before)) {
     const now = new Map((after[entity] ?? []).map((row) => [String(row["id"]), row]));
+
     for (const row of rows) {
       const later = now.get(String(row["id"]));
+
       if (later === undefined) {
         out.push(`${entity} ${String(row["id"])} deleted`);
         continue;
       }
+
       const changed = [...new Set([...Object.keys(row), ...Object.keys(later)])].filter(
         (key) => JSON.stringify(row[key]) !== JSON.stringify(later[key]),
       );
+
       if (changed.length > 0) out.push(`${entity} ${String(row["id"])} changed ${changed.join(", ")}`);
     }
   }
+
   return out;
 }
 
@@ -71,15 +81,18 @@ export function unreportedLeftovers(
 ): string[] {
   const named = new Set((teardown?.failed ?? []).map((failure) => `${failure.entity} ${failure.id}`));
   const unidentified = new Map<string, number>();
-  for (const create of teardown?.unidentified ?? []) {
+
+  for (const create of teardown?.unidentified ?? [])
     unidentified.set(create.entity, (unidentified.get(create.entity) ?? 0) + 1);
-  }
+
   return leaked.filter((row) => {
     if (named.has(row)) return false;
     const entity = row.slice(0, row.indexOf(" "));
     const left = unidentified.get(entity) ?? 0;
+
     if (left === 0) return true;
     unidentified.set(entity, left - 1);
+
     return false;
   });
 }

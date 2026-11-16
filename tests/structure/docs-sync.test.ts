@@ -9,11 +9,9 @@ import { DEFECTS } from "../../src/api/reference/defects/table.ts";
 import { RUN_FINDING_IDS } from "../../src/api/runtime/check-ids.ts";
 import { CHECKS } from "../../src/api/runtime/checks/registry.ts";
 
-/*
- * Every name a user can meet (a check id, a defect, a CLI flag, a top-level config field, an `x-*`
- * tag the API tester reads, a public export) appears in the doc that explains it. Names undocumented today
- * are listed below; the lists only shrink: documenting one fails the test until it leaves its list.
- */
+// Every name a user can meet (a check id, a defect, a CLI flag, a top-level config field, an `x-*`
+// tag the API tester reads, a public export) appears in the doc that explains it. Names undocumented today
+// are listed below; the lists only shrink: documenting one fails the test until it leaves its list.
 
 const ROOT = join(import.meta.dirname, "..", "..");
 const doc = (name: string): string => readFileSync(join(ROOT, "docs", "api", name), "utf8");
@@ -25,20 +23,22 @@ function sourcesUnder(dir: string): string[] {
     .map((entry) => readFileSync(join(entry.parentPath, entry.name), "utf8"));
 }
 
-/* `x-testing-*` is the API tester's own namespace: keys the loader writes into the working document, never a tag a user writes. */
+// `x-testing-*` is the API tester's own namespace: keys the loader writes into the working document, never a tag a user writes.
 const reserved = (tag: string): boolean => tag === "x-testing" || tag.startsWith("x-testing-");
 
-/* The tags the API tester reads: every `"x-…"` literal in the spec layer, less the one media type and the reserved namespace. */
+// The tags the API tester reads: every `"x-…"` literal in the spec layer, less the one media type and the reserved namespace.
 function tagsRead(): string[] {
   const tags = sourcesUnder("src/api/spec").flatMap((text) =>
     [...text.matchAll(/"(x-[a-z0-9-]+)"/g)].map((m) => m[1] ?? ""),
   );
+
   return [...new Set(tags)].filter((tag) => tag !== "x-www-form-urlencoded" && !reserved(tag)).toSorted();
 }
 
-/* The names an entry module exports, values and types alike: `src/api/index.ts` by default. */
+// The names an entry module exports, values and types alike: `src/api/index.ts` by default.
 function publicExports(entry: readonly string[] = ["src", "api", "index.ts"]): string[] {
   const text = readFileSync(join(ROOT, ...entry), "utf8");
+
   const names = [...text.matchAll(/export (?:type )?\{([^}]*)\}/g)].flatMap((m) =>
     (m[1] ?? "")
       .split(",")
@@ -46,23 +46,24 @@ function publicExports(entry: readonly string[] = ["src", "api", "index.ts"]): s
       .filter((part) => part !== "")
       .map((part) => part.split(/\s+as\s+/).at(-1) ?? part),
   );
+
   return [...new Set(names)].toSorted();
 }
 
-interface Surface {
+type Surface = {
   doc: string;
   names: () => string[];
   /** How a documented name appears in its doc. */
   written: (name: string) => string;
   /** Undocumented today. Shrink only. */
   undocumented: readonly string[];
-}
+};
 
 const code = (name: string): string => `\`${name}\``;
 
-/* `token` as a whole word: `env` is not found inside "environment". */
+// `token` as a whole word: `env` is not found inside "environment".
 const mentions = (text: string, token: string): boolean =>
-  new RegExp(`(?<![\\w-])${token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w-])`).test(text);
+  new RegExp(`(?<![\\w-])${token.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w-])`).test(text);
 
 const SURFACES: Readonly<Record<string, Surface>> = {
   "check ids": {
@@ -104,7 +105,7 @@ const SURFACES: Readonly<Record<string, Surface>> = {
   "public exports": {
     doc: "api.md",
     names: () => publicExports(),
-    /* An export may be named in prose or in an example's code. */
+    // An export may be named in prose or in an example's code.
     written: (name) => name,
     undocumented: [],
   },
@@ -124,7 +125,7 @@ describe("docs stay in sync with the code", () => {
   });
 });
 
-/* The reverse: a doc that names a check or a tag the code no longer has teaches a shape that does nothing. */
+// The reverse: a doc that names a check or a tag the code no longer has teaches a shape that does nothing.
 describe("docs name nothing the code lacks", () => {
   it("every id in the checks.md tables is a registered check or a run-level finding", () => {
     const ids = new Set<string>([...CHECKS.map((check) => check.id), ...RUN_FINDING_IDS]);
@@ -135,9 +136,11 @@ describe("docs name nothing the code lacks", () => {
 
   it("every x-* name tags.md mentions is one the API tester reads", () => {
     const read = new Set(tagsRead());
+
     const mentioned = new Set(
       [...doc("tags.md").matchAll(/(?<![\w-])(x-[a-z0-9]+(?:-[a-z0-9]+)*)/g)].map((m) => m[1] ?? ""),
     );
+
     expect([...mentioned].filter((tag) => !read.has(tag) && !reserved(tag))).toEqual([]);
   });
 });

@@ -97,13 +97,16 @@ describe("locatedId", () => {
 
 const createOpOf = (over: Partial<OperationModel> = {}): OperationModel =>
   ({ createdIdFrom: null, entity: "table", operationId: "table.create", recordPath: null, ...over }) as never;
+
 const routeNames = (routes: Record<string, string>) =>
   Object.fromEntries(Object.keys(routes).map((id) => [id.split(".")[1], id]));
+
 const modelWith = (routes: Record<string, string>): SpecModel =>
   ({
     byOperationId: new Map(Object.entries(routes).map(([id, path]) => [id, { operationId: id, path }])),
     entities: new Map([["table", { identity: "table_id", name: "table", ...routeNames(routes) }]]),
   }) as never;
+
 const answer = (responseBody: unknown, location?: string) => ({
   responseBody,
   responseHeaders: location === undefined ? {} : { Location: location },
@@ -155,7 +158,9 @@ describe("answeredIdOf", () => {
     byOperationId: new Map([["table.read", { operationId: "table.read", path: ITEM }]]),
     entities: new Map([["table", { identity: "table_id", name: "table", read: "table.read" }]]),
   } as never as SpecModel;
+
   const createOp = { entity: "table" } as OperationModel;
+
   const answered = (responseBody: unknown, headers: Record<string, string> = {}) =>
     answeredIdOf({
       createOp,

@@ -20,16 +20,19 @@ export function errorResponse(error: unknown, defects: DefectSet): ReferenceResp
   if (error instanceof HttpError) {
     if (defects.has("ERROR_SCHEMA_DRIFT"))
       return respond(error.status, { detail: error.message, error: error.errorKey });
+
     return failure(error.status, error.errorKey, error.message);
   }
+
   if (error instanceof SqlError) {
-    /* Correct behavior is a 400. The defect lets the filter parser's own exception escape, which
-     * the transport surfaces as a 500 — validation confused with crashing. */
-    if (defects.has("ERROR_500_ON_BAD_FILTER") && error.code === "invalid_filter") {
+    // Correct behavior is a 400. The defect lets the filter parser's own exception escape, which
+    // the transport surfaces as a 500 — validation confused with crashing.
+    if (defects.has("ERROR_500_ON_BAD_FILTER") && error.code === "invalid_filter")
       return failure(500, "internal_error", error.message);
-    }
+
     return failure(400, "invalid_input", error.message);
   }
+
   return failure(500, "internal_error", messageOf(error));
 }
 
@@ -44,6 +47,7 @@ export function preconditionFailed(defects: DefectSet, detail: string): Referenc
     title: "Precondition Failed",
     type: "about:blank",
   };
+
   return respond(412, problem, { "content-type": "application/problem+json" });
 }
 

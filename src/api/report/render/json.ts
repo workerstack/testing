@@ -9,8 +9,9 @@ import { costByCheck, latency, utf8Total } from "./traffic.ts";
 import { byVerdict } from "./verdicts.ts";
 
 function evidenceJson(exchange: Exchange, redactor: Redactor): Record<string, unknown> {
-  /* A secret the response issues may sit in the request or URL rendered first. */
+  // A secret the response issues may sit in the request or URL rendered first.
   redactor.learn(exchange.responseBody);
+
   return {
     at: new Date(exchange.at).toISOString(),
     durationMs: exchange.durationMs,
@@ -46,9 +47,10 @@ function findingJson(finding: Finding, redactor: Redactor): Record<string, unkno
 /** The verdict, and what the run did and did not check. */
 function runJson(input: ReportInput): Record<string, unknown> {
   const { outcome, reason } = runVerdict(input);
+
   return {
     backend: input.baseUrl,
-    /* The same verdict the process exit code states. */
+    // The same verdict the process exit code states.
     outcome: { exitCode: EXIT[outcome], reason, result: outcome },
     checksRun: input.checksRun,
     checksSkipped: input.checksSkipped ?? [],
@@ -87,6 +89,7 @@ function contextJson(input: ReportInput, redactor: Redactor): Record<string, unk
 /** What the run cost and observed, the findings per severity, and the coverage it fell short of. */
 function tallyJson(input: ReportInput): Record<string, unknown> {
   const coverage = coverageByCheck(input);
+
   return {
     requestBytes: utf8Total(input.client.transcript, "request"),
     responseBytes: utf8Total(input.client.transcript, "response"),
@@ -110,6 +113,7 @@ export const REPORT_SCHEMA_VERSION = 1;
 /** Machine-readable output for CI gating and diffing between runs. */
 export function renderJson(input: ReportInput): string {
   const redactor = input.client.redactor;
+
   return `${JSON.stringify(
     {
       schemaVersion: REPORT_SCHEMA_VERSION,

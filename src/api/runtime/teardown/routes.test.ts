@@ -18,6 +18,7 @@ describe("deletedEarlierIn", () => {
     exchange("DELETE", "/api/kept/1", { status: 404 }),
     exchange("GET", "/api/read/1", { status: 200 }),
   ];
+
   const deletedEarlier = deletedEarlierIn(transcript);
 
   it("matches the path or an ancestor removed earlier, by segments", () => {
@@ -89,9 +90,11 @@ describe("deleteOperationFor", () => {
   it("passes over a cleanup it cannot read or find", () => {
     expect(deleteOperationFor("widget", notesModel("none", cleanup("nonsense")))).toBeNull();
     expect(deleteOperationFor("widget", notesModel("none", cleanup("DELETE /nowhere/{id}")))).toBeNull();
+
     const purge = {
       "/admin/purge": { post: { operationId: "widgets.purge", responses: { "204": { description: "gone" } } } },
     };
+
     expect(
       deleteOperationFor("widget", notesModel("none", { ...cleanup("POST /admin/purge"), ...purge }))?.operationId,
     ).toBe("widgets.purge");

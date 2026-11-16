@@ -93,6 +93,7 @@ describe("query.filter-search-select-compose plans", () => {
       queryDoc({}, ["filter", "q", "limit"]),
       queryDoc({ searchable: [] }),
     ];
+
     for (const doc of docs) expect(await stage(filterSearchSelectCompose, { doc }).run()).toEqual(NEEDS);
     expect(await stage(filterSearchSelectCompose, { fields: { query: null } }).run()).toEqual(NEEDS);
     const few = stage(filterSearchSelectCompose, { rows: NOTES.slice(0, 2) });

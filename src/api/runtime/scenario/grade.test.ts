@@ -39,10 +39,12 @@ describe("gradeScenario", () => {
     const created = exchange("POST", "/notes", { status: 201 });
     run.calls.set("notes.create", created);
     const evidence = [exchange("PATCH", "/notes/n1", { status: 500 })];
+
     const stop = {
       failure: new StepFailure("PATCH /notes/n1 returned 500", evidence, ["notes.rename", "auth.token"]),
       index: 1,
     };
+
     gradeScenario(run, ["notes.create", "notes.rename", "notes.list"], stop);
     expect(run.input.grades.ran.get("auth.token")?.has(CHECK)).toBe(true);
     expect(run.input.findings.findings.map((finding) => `${finding.verdict} ${finding.summary}`)).toEqual([

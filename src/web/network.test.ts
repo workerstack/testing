@@ -3,21 +3,23 @@ import { describe, expect, it } from "vitest";
 
 import { createNetwork } from "./network.ts";
 
-interface FakeRequest {
+type FakeRequest = {
   url: string;
   method?: string;
   navigation?: boolean;
   from?: string;
   mainFrame?: boolean;
-}
+};
 
-/* A routed request, and what the gate did with it. */
+// A routed request, and what the gate did with it.
 function route(request: FakeRequest): { route: Route; did: () => Array<[string, unknown]> } {
   const did: Array<[string, unknown]> = [];
+
   const frame = {
     parentFrame: () => (request.mainFrame === false ? {} : null),
     url: () => request.from ?? "http://127.0.0.1:4000/home.html",
   };
+
   const fake = {
     abort: async (code: string) => void did.push(["abort", code]),
     continue: async () => void did.push(["continue", undefined]),
@@ -29,6 +31,7 @@ function route(request: FakeRequest): { route: Route; did: () => Array<[string, 
       url: () => request.url,
     }),
   };
+
   return { did: () => did, route: fake as unknown as Route };
 }
 
@@ -38,6 +41,7 @@ async function through(
 ): Promise<Array<[string, unknown]>> {
   const routed = route(request);
   await gate.handle(routed.route);
+
   return routed.did();
 }
 
@@ -46,6 +50,7 @@ const BASE = "http://127.0.0.1:4000/";
 describe("the network gate", () => {
   it("lets the app's own origin through, and data, blob and about URLs", async () => {
     const gate = createNetwork({ firstParty: BASE });
+
     for (const url of [
       "http://127.0.0.1:4000/app.js",
       "data:text/plain,hi",
@@ -58,10 +63,12 @@ describe("the network gate", () => {
 
   it("aborts a request to an undeclared origin and reports it after the test", async () => {
     const gate = createNetwork({ firstParty: BASE });
+
     const did = await through(gate, {
       from: "http://127.0.0.1:4000/external.html",
       url: "https://cdn.example.invalid/x.js",
     });
+
     expect(did).toEqual([["abort", "blockedbyclient"]]);
     await through(gate, { method: "POST", url: "https://api.example.invalid/track" });
     expect(gate.breaches()).toEqual([
@@ -131,6 +138,7 @@ describe("a breach line", () => {
     const gate = createNetwork({ firstParty: BASE });
     const routed = route({ url: "https://cdn.example.invalid/x.js" });
     const request = routed.route.request();
+
     const blind = {
       ...routed.route,
       abort: routed.route.abort,
@@ -141,6 +149,7 @@ describe("a breach line", () => {
         },
       }),
     } as unknown as Route;
+
     await gate.handle(blind);
     expect(gate.breaches()).toEqual([
       "network: GET https://cdn.example.invalid/x.js: origin not declared; call network.allow",

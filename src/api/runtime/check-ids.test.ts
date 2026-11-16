@@ -12,15 +12,16 @@ describe("check ids", () => {
   it("each outside the security set belongs to the family of its prefix", () => {
     expect(familyOf("filter.empty-in")).toBe(FAMILY_OF_PREFIX.filter);
     const security = new Set<string>(SECURITY_CHECK_IDS);
-    for (const id of CHECK_IDS.filter((checkId) => !security.has(checkId))) {
+
+    for (const id of CHECK_IDS.filter((checkId) => !security.has(checkId)))
       expect(Object.values(FAMILY_OF_PREFIX)).toContain(familyOf(id));
-    }
   });
 });
 
 describe("the security family", () => {
   it("is an explicit set: its ids are check ids, each in the security family", () => {
     const checks = new Set<string>(CHECK_IDS);
+
     for (const id of SECURITY_CHECK_IDS) {
       expect(checks.has(id)).toBe(true);
       expect(familyOf(id)).toBe("security");

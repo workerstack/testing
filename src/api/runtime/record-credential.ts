@@ -20,7 +20,7 @@ import { fillPath } from "./fill-path.ts";
 import { isProbeExchange } from "./probe-judging.ts";
 
 /** What the adopter reads answers against, and where it holds what it adopts. */
-export interface RecordCredentialInput {
+export type RecordCredentialInput = {
   model: SpecModel;
   store: Pick<CredentialStore, "adopt" | "enroll" | "principals">;
   records: RecordScopes;
@@ -31,12 +31,10 @@ export interface RecordCredentialInput {
    * `origins[].security`), which the store holds credentials under. Undefined, a scheme is its own.
    */
   mapping: Readonly<Record<string, string>> | undefined;
-}
+};
 
-/*
- * The record's own path, encoded as a request sends it: the entity's item route filled from the
- * create's own parameters and the id it answered, else the create's path and the id below it.
- */
+// The record's own path, encoded as a request sends it: the entity's item route filled from the
+// create's own parameters and the id it answered, else the create's path and the id below it.
 function recordPathOf(
   input: RecordCredentialInput,
   made: { exchange: Exchange; op: OperationModel; id: string },
@@ -45,21 +43,25 @@ function recordPathOf(
   const below = `${input.relativePath(exchange.url).replace(/\/$/, "")}/${encodeURIComponent(id)}`;
   const item = itemPathOf(input.model, op.entity);
   const last = item === undefined ? undefined : /\{([^}]+)\}[^{]*$/.exec(item)?.[1];
+
   if (item === undefined || last === undefined) return below;
+
   try {
     return fillPath(item, { ...exchange.pathParams, [last]: id });
   } catch {
-    /* The item route names a parameter the create's path does not give it. */
+    // The item route names a parameter the create's path does not give it.
     return below;
   }
 }
 
-/* The create and the credential its answer carries, when it declares one and carried one. */
+// The create and the credential its answer carries, when it declares one and carried one.
 function issued(input: RecordCredentialInput, exchange: Exchange): { op: OperationModel; value: string } | undefined {
   if (exchange.status < 200 || exchange.status >= 300 || isProbeExchange(exchange)) return undefined;
   const op = input.model.byOperationId.get(exchange.operationId ?? "");
+
   if (op?.credentialFrom == null) return undefined;
   const value = readPath(exchange.responseBody, op.credentialFrom);
+
   return typeof value === "string" && value !== "" ? { op, value } : undefined;
 }
 
@@ -70,18 +72,22 @@ export function createRecordAdopter(input: RecordCredentialInput): { observe: (e
     const { principal } = exchange;
     const sent = exchange.schemes?.[0];
     const scheme = sent === undefined || input.mapping === undefined ? sent : own(input.mapping, sent);
+
     if (found === undefined || principal === undefined || scheme === undefined) return;
     const entry = input.store.principals[principal];
     const id = createdIdOf({ createOp: found.op, exchange, model: input.model, sent: exchange.requestBody });
+
     if (entry === undefined || id === undefined) return;
     const holder = input.records.nextHolder(principal);
     input.store.enroll(holder, entry);
-    /* What the answer carried beside the credential, a refresh token say, is what its refresh runs from. */
+    // What the answer carried beside the credential, a refresh token say, is what its refresh runs from.
     const scope = stringsOf(exchange.responseBody);
     const held = await input.store.adopt({ principal: holder, scheme, scope, value: found.value });
+
     if ("blocked" in held) return;
     const path = recordPathOf(input, { exchange, id: String(id.value), op: found.op });
     input.records.add({ holder, path, principal, scheme });
   };
+
   return { observe };
 }

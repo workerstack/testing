@@ -23,7 +23,7 @@ export type ReportFormat = "junit";
 export const REPORT_FORMATS: readonly ReportFormat[] = ["junit"];
 
 /** What a finished run reports: the result, and where and when it ran. */
-export interface Finished {
+export type Finished = {
   result: RunResult;
   baseUrl: string;
   startedAt: Date;
@@ -31,7 +31,7 @@ export interface Finished {
   outDir: string;
   /** The reports `--report` asked for beside the run's own; absent, none. */
   formats?: readonly ReportFormat[];
-}
+};
 
 /** The report's input: the result as the renderers read it. */
 export function reportInput({ result, baseUrl, startedAt, durationMs }: Finished): ReportInput {
@@ -66,7 +66,7 @@ export function reportInput({ result, baseUrl, startedAt, durationMs }: Finished
 /** Where `--keep-credentials` writes, from the working directory: beside the default runs root, never in a run folder. */
 export const KEPT_CREDENTIALS = ".testing/api/credentials.json";
 
-/* Readable by its owner alone, even where the file was already there. */
+// Readable by its owner alone, even where the file was already there.
 async function writePrivate(path: string, text: string): Promise<void> {
   await writeFile(path, text, { mode: 0o600 });
   await chmod(path, 0o600);
@@ -80,6 +80,7 @@ export async function keepCredentials(result: RunResult, path: string): Promise<
   if (result.credentials === undefined) return false;
   await mkdir(dirname(path), { recursive: true });
   await writePrivate(path, `${JSON.stringify({ credentials: result.credentials }, null, 2)}\n`);
+
   return true;
 }
 
@@ -94,6 +95,7 @@ export async function writeReports(finished: Finished, input: ReportInput): Prom
   await writePrivate(at("principals.json"), `${JSON.stringify({ principals: result.principals }, null, 2)}\n`);
   await writeFile(at("report.md"), renderMarkdown(input));
   await writeFile(at("report.json"), renderJson(input));
+
   if (junitAsked(finished)) await writeFile(at("junit.xml"), renderJunit(input));
   const graph = buildMatrixGraphFromReport(input);
   await writeFile(at("matrix.html"), renderPoster(graph));
@@ -105,8 +107,10 @@ export async function writeReports(finished: Finished, input: ReportInput): Prom
     renderConfidenceHtml({ baseUrl, generatedAt: startedAt.toISOString(), scope: result.scope }, files),
   );
   const scripts = renderRepros(result.findings, baseUrl, result.client.redactor);
+
   if (scripts.length === 0) return;
   await mkdir(at(ISSUE_REPRO_DIR), { recursive: true });
+
   for (const script of scripts)
     await writeFile(resolve(at(ISSUE_REPRO_DIR), script.filename), script.content, { mode: 0o755 });
 }
@@ -125,7 +129,9 @@ export async function appendStepSummary(
   where: { path: string | undefined; runDir: string },
 ): Promise<void> {
   const { path, runDir } = where;
+
   if (path === undefined || path === "") return;
+
   try {
     await appendFile(path, renderStepSummary(input, { runDir }));
   } catch (error) {
@@ -138,13 +144,17 @@ export function printSummary(writer: Writer, finished: Finished, input: ReportIn
   const { result, outDir } = finished;
   const at = (name: string): string => resolve(outDir, name);
   writer.out(renderConsole(input));
+
   for (const line of renderTeardown(result.teardown, result.created)) writer.out(`${line}\n`);
   writer.out(`  confidence: ${at("report.html")}\n`);
   writer.out(`  report: ${at("report.md")}\n`);
   writer.out(`  matrix: ${at("matrix.html")}\n`);
   writer.out(`  graph:  ${at("matrix.json")}\n`);
+
   if (junitAsked(finished)) writer.out(`  junit: ${at("junit.xml")}\n`);
   writer.out(`  progress: ${at("progress.log")} · ${at("progress.jsonl")}\n`);
+
   if (result.exchanges !== undefined) writer.out(`  exchanges: ${result.exchanges.count} → ${at("exchanges")}\n`);
+
   if (result.network?.incomplete === true) writer.out(`  network: ${result.network.kind} — run incomplete\n`);
 }

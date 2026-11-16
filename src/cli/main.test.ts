@@ -4,10 +4,8 @@ import { bufferWriter } from "../api/cli/writer.ts";
 import { EXIT } from "../api/runtime/exit.ts";
 import { main, start } from "./main.ts";
 
-/*
- * `testing` is the package's one command line: its first word names a subpath, and the rest is that
- * subpath's own command line. `api` is the only subpath today.
- */
+// `testing` is the package's one command line: its first word names a subpath, and the rest is that
+// subpath's own command line. `api` is the only subpath today.
 
 describe("testing", () => {
   it("prints the subpaths for nothing, help and --help", async () => {
@@ -30,13 +28,14 @@ describe("testing", () => {
   it("runs as the process: argv after the script, its exit code the process's", async () => {
     const argv = process.argv;
     const code = process.exitCode;
+
     try {
       process.argv = ["node", "testing", "web"];
       const writer = bufferWriter();
       await start({ writer });
       expect(process.exitCode).toBe(EXIT.usage);
       expect(writer.text()).toMatch(/^testing: unknown subpath "web"/);
-      /* With no writer given, it writes to the process's own stderr. */
+      // With no writer given, it writes to the process's own stderr.
       const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
       await start();
       expect(String(stderr.mock.calls[0]?.[0])).toMatch(/^testing: unknown subpath "web"/);

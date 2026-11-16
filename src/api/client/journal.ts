@@ -38,20 +38,26 @@ export class Journal {
   async record(exchange: Exchange, entity: string | undefined): Promise<void> {
     const stored: Exchange = { ...exchange };
     await releaseTranscriptBodies(stored, this.redactor);
+
     if (isBodyRef(stored.responseBody) && !isBodyRef(exchange.responseBody)) {
       const verdict = this.validateAtCapture?.(exchange);
+
       if (verdict !== undefined) stored.schemaVerdict = verdict;
     }
+
     this.transcript.push(stored);
     this.stored.set(exchange.seq, stored);
     await this.spool.keep(stored);
+
     if (stored.operationId !== undefined) append(this.byOperationId, stored.operationId, stored);
+
     if (entity !== undefined) append(this.byEntity, entity, stored);
   }
 
   /** Marks an answer that was asked again: only the final answer is the backend's verdict. */
   supersede(exchange: Exchange): void {
     const stored = this.stored.get(exchange.seq);
+
     if (stored !== undefined) stored.superseded = true;
   }
 

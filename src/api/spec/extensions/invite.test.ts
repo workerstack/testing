@@ -54,13 +54,13 @@ describe("x-invite without a usable value", () => {
     const read = readInvite(
       op({ ...flow, acceptFrom: "token", credentialFrom: "", grants: "", tokenFrom: "mail", tokenKind: "" }),
     );
+
     expect(read).toEqual(readInvite(op(flow)));
   });
 
   it("ignores a revoke staleness that is not positive whole seconds", () => {
-    for (const revokeStaleness of [0, -5, 1.5, "300s", "300", null]) {
+    for (const revokeStaleness of [0, -5, 1.5, "300s", "300", null])
       expect(readInvite(op({ ...flow, revokeStaleness }))).toEqual(readInvite(op(flow)));
-    }
   });
 
   it("is null without all three operations", () => {

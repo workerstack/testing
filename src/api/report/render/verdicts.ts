@@ -33,6 +33,7 @@ export function byVerdict(findings: readonly Finding[]): Array<[Verdict, Finding
 export function findingSubject(finding: Finding): string {
   const entityLabel =
     finding.origin === undefined || finding.origin === "" ? finding.entity : `${finding.origin}/${finding.entity}`;
+
   return finding.fixture !== undefined && finding.fixture !== "" && !entityLabel.includes(" · ")
     ? `${entityLabel} · ${finding.fixture}`
     : entityLabel;

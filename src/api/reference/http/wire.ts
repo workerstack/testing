@@ -1,8 +1,11 @@
 /** A request and its answer as the reference sees them, whichever transport carried them. */
 
-export type Json = Record<string, unknown>;
+import type { Row } from "../cell.ts";
 
-export interface ReferenceRequest {
+/** A JSON object as the reference reads and answers it. */
+export type Json = Row;
+
+export type ReferenceRequest = {
   /** Upper-cased. */
   method: string;
   /** Below the base path, when the shape mounts one. */
@@ -11,16 +14,17 @@ export interface ReferenceRequest {
   headers: Readonly<Record<string, string>>;
   /** The body as text; read once, however often asked. */
   text: () => Promise<string>;
-}
+};
 
-export interface ReferenceResponse {
+export type ReferenceResponse = {
   status: number;
   headers: Record<string, string>;
   body: string;
-}
+};
 
 export function respond(status: number, body: unknown, extraHeaders: Record<string, string> = {}): ReferenceResponse {
   const payload = JSON.stringify(body);
+
   return {
     body: payload,
     headers: {
@@ -38,13 +42,14 @@ export function noContent(): ReferenceResponse {
 }
 
 /** What a request carries beside its method and URL: its headers, and how to read its body. */
-export interface ReferenceInit {
+export type ReferenceInit = {
   headers: Readonly<Record<string, string>>;
   read: () => Promise<string>;
-}
+};
 
 /** A request whose body is read at most once. */
 export function referenceRequest(method: string, url: URL, { headers, read }: ReferenceInit): ReferenceRequest {
   let body: Promise<string> | undefined;
+
   return { headers, method: method.toUpperCase(), text: () => (body ??= read()), url };
 }

@@ -27,6 +27,7 @@ describe("runFixtureWalkCases", () => {
       },
       FIXTURE_WALK[0] as (typeof FIXTURE_WALK)[number],
     ]);
+
     expect(results.map((r) => [r.name, r.ok, r.detail.slice(0, 10)])).toEqual([
       ["throws", false, "walked off"],
       ["default: {} on a column object seeds", true, '{"columns"'],

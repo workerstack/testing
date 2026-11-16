@@ -5,18 +5,18 @@ import { runCheck } from "../../core/run.ts";
 import { GATED, notesContext, notesModel, notesServer } from "./__fixtures__/notes.ts";
 import { softDeleteHidden } from "./softdelete-absent-from-default-list.ts";
 
-/*
- * A record deleted under `x-soft-delete` is a tombstone: the default listing must not return it.
- * Defect: softdelete-leaks — the delete answers 204 and the record stays in the list.
- */
+// A record deleted under `x-soft-delete` is a tombstone: the default listing must not return it.
+// Defect: softdelete-leaks — the delete answers 204 and the record stays in the list.
 
 const MODEL = notesModel({ softDelete: "deleted_at" });
 
 /** A correct backend, with `override` answering first where it returns something. */
-function backend(override: Responder = () => undefined) {
+function backend(override: Responder = () => {}) {
   const server = notesServer();
+
   const respond: Responder = (method, path, options) =>
     override(method, path, options) ?? server.respond(method, path, options);
+
   return { server, ...notesContext(MODEL, respond, { softDelete: "deleted_at" }) };
 }
 
@@ -66,9 +66,11 @@ describe("softdelete.absent-from-default-list without a verdict", () => {
 
   it("is unresolved when the record is absent from a listing the read could not cover", async () => {
     const crowd = Array.from({ length: 500 }, (_, index) => ({ id: `other-${index}`, name: "x" }));
+
     const { ctx } = backend((method, path) =>
       method === "GET" && path === "/notes" ? { body: crowd, status: 200 } : undefined,
     );
+
     const outcome = await runCheck(softDeleteHidden, ctx);
     expect(outcome).toEqual({ kind: "unresolved", reason: "the listing is larger than a read covers" });
   });

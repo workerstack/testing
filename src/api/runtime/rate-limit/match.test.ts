@@ -22,6 +22,7 @@ describe("compilePathPattern", () => {
 describe("operationTest", () => {
   it("matches by operationId when the request has one, by method and path otherwise", () => {
     const get = rateLimitedModel().byOperationId.get("items.get");
+
     if (get === undefined) throw new Error("fixture lost items.get");
     const test = operationTest(get);
     expect(test("POST", "/elsewhere", "items.get")).toBe(true);

@@ -27,9 +27,11 @@ describe("schema type inference", () => {
     expect(inferTypesFromSchema({}).size).toBe(0);
     expect(inferTypesFromSchema({ properties: null }).size).toBe(0);
     expect(inferTypesFromSchema({ properties: "x" }).size).toBe(0);
+
     const types = inferTypesFromSchema({
       properties: { blob: { type: "object" }, id: { type: "string" }, n: null, skip: 1 },
     });
+
     expect([...types]).toEqual([["id", "string"]]);
   });
 });

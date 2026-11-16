@@ -19,11 +19,12 @@ import {
   sqliteStore,
 } from "./engines.ts";
 
-/* Every server the engines make binds nothing; Postgres is reached through a fake connection. */
+// Every server the engines make binds nothing; Postgres is reached through a fake connection.
 const fakes = vi.hoisted(() => ({ servers: [] as FakeServer[] }));
 
 vi.mock("node:http", async () => {
   const { fakeCreate } = await import("./__fixtures__/fake-http.ts");
+
   return { createServer: fakeCreate(fakes.servers) };
 });
 
@@ -31,21 +32,25 @@ const CREDENTIALS = { accountId: "acct", apiToken: "secret", databaseId: "db" };
 const ENV = ["CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_D1_DATABASE_ID", "CLOUDFLARE_API_TOKEN"] as const;
 const D1_QUERY = "https://api.cloudflare.com/client/v4/accounts/env-acct/d1/database/env-db/query";
 
-interface D1Call {
+type D1Call = {
   url: string;
   sql: string;
   authorization: string;
-}
+};
 
-/* D1's query API, answering every statement with success and no rows. */
+// D1's query API, answering every statement with success and no rows.
 function stubD1(): D1Call[] {
   const calls: D1Call[] = [];
+
   const answer = async (url: string, init: RequestInit) => {
     const { sql } = JSON.parse(String(init.body)) as { sql: string };
     calls.push({ authorization: (init.headers as Record<string, string>)["authorization"] ?? "", sql, url });
+
     return Response.json({ result: [{ results: [] }], success: true });
   };
+
   vi.stubGlobal("fetch", answer);
+
   return calls;
 }
 
@@ -113,12 +118,14 @@ describe("the servers", () => {
   it("serve the reference on each engine, behind Node's server", async () => {
     const d1 = stubD1();
     const pg = fakePostgres();
+
     const servers = [
       await createMemoryServer(),
       await createSqliteServer({ shape: "path-prefix" }),
       await createPostgresServer({ connect: pg.connect }),
       await createD1Server({ ...CREDENTIALS, dialect: "classic" }),
     ];
+
     expect(servers.map((server) => server.url)).toEqual([
       "http://127.0.0.1:4321",
       "http://127.0.0.1:4321/api",
@@ -129,18 +136,23 @@ describe("the servers", () => {
       Array.from({ length: 4 }, () => ({ host: "127.0.0.1", port: 0 })),
     );
     const sqlite = fakes.servers[1] as FakeServer;
+
     const signedIn = await serve(sqlite.listener, {
       chunks: [JSON.stringify({ key: "key_alpha" })],
       method: "POST",
       url: "/api/v1/auth/token",
     });
+
     const { access_token: token } = JSON.parse(signedIn.body) as { access_token: string };
+
     const listed = await serve(sqlite.listener, {
       headers: { authorization: `Bearer ${token}` },
       url: "/api/v1/projects/proj_alpha/tables",
     });
+
     expect(JSON.parse(listed.body)).toMatchObject({ count: 0, tables: [] });
     expect(d1.length).toBeGreaterThan(0);
+
     for (const server of servers) await server.close();
     expect(pg.statements.at(-1)?.query).toMatch(/^DROP DATABASE IF EXISTS "testing_ref_/);
   });

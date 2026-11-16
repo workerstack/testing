@@ -12,6 +12,7 @@ export function noticePaths(ctx: SpecContext): Json {
     required: ["id", "title"],
     type: "object",
   };
+
   return {
     "/v1/notices": {
       get: {

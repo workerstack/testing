@@ -11,7 +11,7 @@ import { type Args, str, USAGE } from "../flags.ts";
 import type { Writer } from "../writer.ts";
 import { renderInitConfig } from "./init-config.ts";
 
-/* A config the API tester can import: one module, never JSON, which cannot call env(). */
+// A config the API tester can import: one module, never JSON, which cannot call env().
 const MODULES: ReadonlySet<string> = /* @__PURE__ */ new Set([".ts", ".mts", ".js", ".mjs"]);
 
 /**
@@ -20,6 +20,7 @@ const MODULES: ReadonlySet<string> = /* @__PURE__ */ new Set([".ts", ".mts", ".j
  */
 export function specFromConfig(spec: string, out: string): string {
   if (/^[a-z][a-z0-9+.-]*:\/\//i.test(spec) || isAbsolute(spec)) return spec;
+
   return relative(dirname(resolve(out)), resolve(spec))
     .split(sep)
     .join("/");
@@ -31,31 +32,43 @@ export function specFromConfig(spec: string, out: string): string {
  */
 export async function commandInit(writer: Writer, flags: Args["flags"]): Promise<number> {
   const spec = str(flags, "spec");
+
   if (spec === undefined) {
     writer.err(`testing api: init requires --spec\n\n${USAGE}`);
+
     return EXIT.usage;
   }
+
   const out = str(flags, "out") ?? "testing.api.config.ts";
+
   if (!MODULES.has(extname(out))) {
     writer.err(`testing api: init writes a module config (.ts, .mts, .js or .mjs), got ${out}\n`);
+
     return EXIT.usage;
   }
+
   let doc: OpenApiDocument;
+
   try {
     doc = dereference(await loadSpec(spec, { fetchText: fetchSpecText })).doc;
   } catch (error) {
     if (!(error instanceof UsageError)) throw error;
     writer.err(`${error.message}\n`);
+
     return EXIT.usage;
   }
+
   const config = renderInitConfig(doc, { out, spec: specFromConfig(spec, out) });
+
   try {
     await writeFile(out, config.text, { flag: flags.force === true ? "w" : "wx" });
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
     writer.err(`testing api: ${out} exists; --force overwrites it\n`);
+
     return EXIT.usage;
   }
+
   const schemes = `${config.schemes} scheme${config.schemes === 1 ? "" : "s"}`;
   writer.out(
     [
@@ -66,5 +79,6 @@ export async function commandInit(writer: Writer, flags: Args["flags"]): Promise
       "",
     ].join("\n"),
   );
+
   return 0;
 }

@@ -25,7 +25,7 @@ import type { TargetVersion, TargetVersionSpec } from "../target-version.ts";
 import type { TeardownReport } from "../teardown/types.ts";
 import type { SpoolOptions } from "../transcript/spool.ts";
 
-export interface RunOptions {
+export type RunOptions = {
   spec: string;
   baseUrl: string;
   /** The config's principals, by id. */
@@ -141,16 +141,16 @@ export interface RunOptions {
     /** The transport every request goes through. The global `fetch` unless given, e.g. an in-process app's handler. */
     fetch?: typeof fetch;
   };
-}
+};
 
 /** One check's wall time on one entity. Its requests are counted from the transcript. */
-export interface CheckTiming {
+export type CheckTiming = {
   check: string;
   entity: string;
   ms: number;
-}
+};
 
-export interface RunResult {
+export type RunResult = {
   findings: Finding[];
   model: SpecModel;
   client: Client;
@@ -211,4 +211,4 @@ export interface RunResult {
     incomplete: boolean;
     url: string;
   };
-}
+};

@@ -23,14 +23,14 @@ import { createdRecord } from "./world/created-record.ts";
 import { idOf, recordsFromList } from "./world/records.ts";
 
 /** A configured principal as the tracker needs it: who removes the record, and its roots. */
-interface TrackedOwner {
+type TrackedOwner = {
   owner: Owner;
   /** The principal's root values: path parameters a create's own path may not name. */
   roots: Record<string, string>;
-}
+};
 
 /** What the tracker reads answers against. */
-export interface TrackerInput {
+export type TrackerInput = {
   model: SpecModel;
   ledger: Ledger;
   /** Configured principals by id. A credential none of them holds is not tracked. */
@@ -45,49 +45,56 @@ export interface TrackerInput {
    * is never tracked.
    */
   stranger?: TrackedOwner;
-}
+};
 
 /** Each entity's create, read, delete and list, by operation. */
-interface Routes {
+type Routes = {
   creates: Map<string, { entity: string; identity: string; op: OperationModel }>;
   reads: Map<string, { entity: string; op: OperationModel }>;
   deletes: Map<string, { entity: string; op: OperationModel }>;
   lists: Map<string, { entity: string; identity: string; op: OperationModel }>;
-}
+};
 
-interface Tracker {
+type Tracker = {
   input: TrackerInput;
   routes: Routes;
-}
+};
 
-/* The caller's own account is teardownPrincipal's. */
+// The caller's own account is teardownPrincipal's.
 function routesOf(model: SpecModel): Routes {
   const routes: Routes = { creates: new Map(), deletes: new Map(), lists: new Map(), reads: new Map() };
+
   const opOf = (operationId: string | undefined): OperationModel | undefined =>
     operationId === undefined ? undefined : model.byOperationId.get(operationId);
+
   for (const entity of model.entities.values()) {
     if (entity.identity === SELF_IDENTITY) continue;
     const identity = entity.identity ?? "id";
     const create = opOf(entity.create);
+
     if (create !== undefined) routes.creates.set(create.operationId, { entity: entity.name, identity, op: create });
     const read = opOf(entity.read);
+
     if (read !== undefined) routes.reads.set(read.operationId, { entity: entity.name, op: read });
     const remove = opOf(entity.delete);
+
     if (remove !== undefined) routes.deletes.set(remove.operationId, { entity: entity.name, op: remove });
     const list = opOf(entity.list);
+
     if (list !== undefined) routes.lists.set(list.operationId, { entity: entity.name, identity, op: list });
   }
+
   return routes;
 }
 
-/* The parameters an exchange's path gave the operation's own template. */
+// The parameters an exchange's path gave the operation's own template.
 function paramsOf(client: Client, exchange: Exchange, op: OperationModel): Record<string, string> | null {
   return exchange.template === op.path && exchange.pathParams !== undefined
     ? exchange.pathParams
     : pathTemplateParams(op.path, client.relativePath(exchange.url));
 }
 
-/* The record an item route (a read, a delete) names by its id, with the route's entity. */
+// The record an item route (a read, a delete) names by its id, with the route's entity.
 function namedBy(
   tracker: Tracker,
   routes: Routes["reads"],
@@ -95,51 +102,68 @@ function namedBy(
 ): { entity: string; id: string } | undefined {
   const route = routes.get(exchange.operationId ?? "");
   const param = route?.op.pathParams.at(-1);
+
   const id =
     route === undefined || param === undefined
       ? undefined
       : paramsOf(tracker.input.client, exchange, route.op)?.[param];
+
   return route === undefined || id === undefined ? undefined : { entity: route.entity, id };
 }
 
-/* A principal read records back: under the read's id, or as the rows of a listing. */
+// A principal read records back: under the read's id, or as the rows of a listing.
 function sight(tracker: Tracker, exchange: Exchange, principal: string): void {
   const { input, routes } = tracker;
   const operationId = exchange.operationId ?? "";
+
   if (routes.reads.has(operationId)) {
     const named = namedBy(tracker, routes.reads, exchange);
+
     if (named !== undefined) input.ledger.sighted(named.entity, named.id, principal);
+
     return;
   }
+
   const list = routes.lists.get(operationId);
+
   if (list === undefined) return;
+
   for (const row of recordsFromList(exchange.responseBody, list.op.collection)) {
     const id = idOf(row, list.identity);
+
     if (id !== undefined) input.ledger.sighted(list.entity, id, principal);
   }
 }
 
-/* A create a principal sent, ledgered as theirs where its own path put it. */
+// A create a principal sent, ledgered as theirs where its own path put it.
 async function recordCreate(tracker: Tracker, exchange: Exchange, owned: TrackedOwner): Promise<void> {
   const { input, routes } = tracker;
   const { ledger } = input;
   const create = exchange.operationId === undefined ? undefined : routes.creates.get(exchange.operationId);
-  /* The account a sign-up makes is the account ledger's, which removes it as itself or names it. */
+
+  // The account a sign-up makes is the account ledger's, which removes it as itself or names it.
   if (create !== undefined && madeAccount(create.op, input.model, exchange)) return;
+
   if (create === undefined) {
     await recordInferred(tracker, exchange, owned);
+
     return;
   }
+
   const { entity, identity, op } = create;
-  /* The exchange's parameters belong to the template it resolved to: the create's, unless the
-   * caller named the create for another path. */
+  // The exchange's parameters belong to the template it resolved to: the create's, unless the
+  // caller named the create for another path.
   const params = paramsOf(input.client, exchange, op);
+
   if (params === null) {
     ledger.unidentified(entity, op.operationId, exchange);
+
     return;
   }
-  /* Where the record lives is where its path put it: a root the path names is the path's. */
+
+  // Where the record lives is where its path put it: a root the path names is the path's.
   const scope = { ...owned.roots, ...params };
+
   const made = await createdRecord({
     client: input.client.view({ purpose: "assertion", subject: entity }),
     createOp: op,
@@ -151,29 +175,33 @@ async function recordCreate(tracker: Tracker, exchange: Exchange, owned: Tracked
     sent: exchange.requestBody,
     wants: "id",
   });
+
   const id = made === null ? undefined : returnedId(made.record, identity);
-  /* An empty identity names nothing a delete could reach. */
+
+  // An empty identity names nothing a delete could reach.
   if (id === undefined || id === "") {
     ledger.unidentified(entity, op.operationId, exchange);
+
     return;
   }
+
   ledger.record({ entity, id, scope }, owned.owner);
   input.onRecorded?.(entity, id);
 }
 
-/*
- * A POST that is not a create, ledgered as its sender's when its answer shows it made a record. One a
- * stranger's probe sent was applied whatever it made, so without that evidence it is reported as a
- * record that may remain.
- */
+// A POST that is not a create, ledgered as its sender's when its answer shows it made a record. One a
+// stranger's probe sent was applied whatever it made, so without that evidence it is reported as a
+// record that may remain.
 async function recordInferred(tracker: Tracker, exchange: Exchange, owned: TrackedOwner): Promise<void> {
   const { input } = tracker;
   const stranger = exchange.principal === undefined || !input.owners.has(exchange.principal);
   const op = exchange.operationId === undefined ? undefined : input.model.byOperationId.get(exchange.operationId);
   const params = op === undefined ? null : paramsOf(input.client, exchange, op);
   const sender = { principal: owned.owner.id, roots: owned.roots };
+
   const made =
     op === undefined || params === null ? undefined : await inferredCreate(input, { exchange, op, params, sender });
+
   if (made !== undefined) {
     input.ledger.record(made, owned.owner);
     input.onRecorded?.(made.entity, made.id);
@@ -183,45 +211,58 @@ async function recordInferred(tracker: Tracker, exchange: Exchange, owned: Track
   }
 }
 
-/* Whose read and removal an answer falls to: its sender's, or the stranger's for a probe POST no principal sent. */
+// Whose read and removal an answer falls to: its sender's, or the stranger's for a probe POST no principal sent.
 function ownerOf(input: TrackerInput, exchange: Exchange): TrackedOwner | undefined {
   if (exchange.principal !== undefined && input.owners.has(exchange.principal))
     return input.owners.get(exchange.principal);
+
   return isProbeExchange(exchange) && exchange.method === "POST" ? input.stranger : undefined;
 }
 
-/* What a read answers for a record that is not there. */
+// What a read answers for a record that is not there.
 const GONE: ReadonlySet<number> = /* @__PURE__ */ new Set([404, 410]);
 
 export function createTracker(input: TrackerInput): { observe: (exchange: Exchange) => Promise<void> } {
   const tracker: Tracker = { input, routes: routesOf(input.model) };
+
   const observe = async (exchange: Exchange): Promise<void> => {
-    /* Teardown reads back what it needs itself. */
+    // Teardown reads back what it needs itself.
     if (exchange.purpose === "teardown") return;
     const owned = ownerOf(input, exchange);
+
     if (owned === undefined) return;
+
     if (exchange.status < 200 || exchange.status >= 300) {
-      /* A read that answers the record is not there takes back what an earlier one showed. */
+      // A read that answers the record is not there takes back what an earlier one showed.
       const named =
         exchange.method === "GET" && GONE.has(exchange.status)
           ? namedBy(tracker, tracker.routes.reads, exchange)
           : undefined;
+
       if (named !== undefined) input.ledger.unsighted(named.entity, named.id, owned.owner.id);
+
       return;
     }
+
     if (exchange.method === "GET") {
       sight(tracker, exchange, owned.owner.id);
+
       return;
     }
-    /* A record a delete removed is gone by the API tester's hand, whoever's credential the delete carried. */
+
+    // A record a delete removed is gone by the API tester's hand, whoever's credential the delete carried.
     const removed = exchange.method === "DELETE" ? namedBy(tracker, tracker.routes.deletes, exchange) : undefined;
+
     if (removed !== undefined) input.ledger.deleted(removed.entity, removed.id);
-    /* Seeding ledgers each create it makes through its own callbacks. */
+
+    // Seeding ledgers each create it makes through its own callbacks.
     if (exchange.purpose === "seed") return;
-    /* What the credential store issued, a mint say, is the store's to revoke, never the ledger's. The
-     * same operation sent any other way, by a scenario or a raw request, is ledgered as usual. */
+
+    // What the credential store issued, a mint say, is the store's to revoke, never the ledger's. The
+    // same operation sent any other way, by a scenario or a raw request, is ledgered as usual.
     if (exchange.issuedBy === "credentials") return;
     await recordCreate(tracker, exchange, owned);
   };
+
   return { observe };
 }

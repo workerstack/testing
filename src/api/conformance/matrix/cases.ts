@@ -12,7 +12,7 @@ import { acceptableOf, primaryOf } from "./expected.ts";
 import { optInFor } from "./opt-in.ts";
 import { PRINCIPALS, SECURITY } from "./principals.ts";
 
-export interface CaseResult {
+export type CaseResult = {
   label: string;
   defect: DefectName | null;
   expected: string | null;
@@ -40,10 +40,10 @@ export interface CaseResult {
   /** Checks this defect may legitimately trip, primary first. */
   acceptable?: string[];
   error?: string;
-}
+};
 
 /** What one run against the reference showed, findings and the backend's own state both. */
-interface Observed {
+type Observed = {
   findings: Finding[];
   entitiesTested: string[];
   checksRun: string[];
@@ -54,7 +54,7 @@ interface Observed {
   missingValues: string[];
   unreported: string[];
   reported: string[];
-}
+};
 
 /**
  * Checks that would have sent a value the API tester did not have, as `check@entity`. A request made from a
@@ -69,11 +69,13 @@ export function missingValuesOf(inconclusive: readonly Inconclusive[]): string[]
 
 /** testing api run once against the reference with `defects` injected, and what it left in the backend. */
 async function observe(defects: DefectName[], target: Target, untagged: boolean): Promise<Observed> {
-  /* A defect behind an opt-in shows only with it on, in the reference and in the API tester both. */
+  // A defect behind an opt-in shows only with it on, in the reference and in the API tester both.
   const optIn = optInFor(defects);
   const server = await launch(target, { defects, untagged, ...optIn.reference });
+
   try {
     const before = await server.snapshot();
+
     const result = await run({
       ...optIn.run,
       baseUrl: server.url,
@@ -83,12 +85,14 @@ async function observe(defects: DefectName[], target: Target, untagged: boolean)
       spec: `${server.url}/v1/openapi/spec`,
       ...reach(server),
     });
-    /* A tester that litters is one nobody runs twice against anything real, so this is asserted,
-     * not assumed — and read from the backend, not from the API tester's ledger. */
+
+    // A tester that litters is one nobody runs twice against anything real, so this is asserted,
+    // not assumed — and read from the backend, not from the API tester's ledger.
     const after = await server.snapshot();
     const leakedRecords = leftBehind(before, after);
+
     return {
-      /* The API tester changes only what it made, and ledgers only what the backend made for it. */
+      // The API tester changes only what it made, and ledgers only what the backend made for it.
       bystanders: damagedBystanders(before, after),
       checksRun: result.checksRun,
       entitiesTested: result.entitiesTested,
@@ -98,7 +102,7 @@ async function observe(defects: DefectName[], target: Target, untagged: boolean)
       missingValues: missingValuesOf(result.inconclusive),
       reported: (result.teardown?.failed ?? []).map((failure) => `${failure.entity} ${failure.id}`),
       strayLedger: ledgeredNotCreated(result.teardown?.records ?? [], server.createdIds()),
-      /* Whatever the defect let through, a record the API tester leaves behind is one it must name. */
+      // Whatever the defect let through, a record the API tester leaves behind is one it must name.
       unreported: unreportedLeftovers(leakedRecords, result.teardown),
     };
   } finally {
@@ -108,9 +112,10 @@ async function observe(defects: DefectName[], target: Target, untagged: boolean)
 
 export async function runSuite(target: Target, filter?: string[]): Promise<CaseResult[]> {
   const results = await runBaselines(target);
-  for (const defect of defectsFor(target.backend, target.dialect, filter)) {
+
+  for (const defect of defectsFor(target.backend, target.dialect, filter))
     results.push(await judgeDefect(defect, target));
-  }
+
   return results;
 }
 
@@ -140,9 +145,11 @@ export async function runBaselines(target: Target): Promise<CaseResult[]> {
 async function baseline(target: Target, untagged: boolean): Promise<CaseResult> {
   const label = untagged ? "baseline (untagged spec)" : "baseline (correct backend)";
   const empty = { defect: null, expected: null, label };
+
   try {
     const { leaked, inconclusive, findings, ...observed } = await observe([], target, untagged);
     const real = findings.filter((f) => f.verdict !== "COVERAGE_GAP");
+
     return {
       ...empty,
       ...observed,
@@ -150,7 +157,7 @@ async function baseline(target: Target, untagged: boolean): Promise<CaseResult> 
       detected: real.length === 0,
       findings,
       inconclusive: inconclusive.map((item) => `${item.check}@${item.entity}: ${item.reason}`),
-      /* The untagged run strips the very tags teardown leans on; only the tagged one is held to it. */
+      // The untagged run strips the very tags teardown leans on; only the tagged one is held to it.
       ...(untagged ? {} : { leaked }),
       spurious: real,
     };
@@ -168,14 +175,14 @@ async function baseline(target: Target, untagged: boolean): Promise<CaseResult> 
 }
 
 /** What a defect case is judged by beyond its run, and the name it is shown under; the defaults are the suite's own. */
-export interface Judging {
+export type Judging = {
   /** The case's name in the report; the defect's own by default. */
   label?: string;
   /** Defects that damage bystanders by design. */
   excused?: ReadonlySet<DefectName>;
   /** Each generated reproducer's problems; none when every one is runnable. */
   checkRepros?: (findings: Finding[]) => Promise<string[]>;
-}
+};
 
 /** One defect, injected alone: detected, and nothing reported that it does not explain. */
 export async function judgeDefect(
@@ -186,21 +193,27 @@ export async function judgeDefect(
   const expected = EXPECTED[defect];
   const acceptable = acceptableOf(expected);
   const verdict = { acceptable, defect, expected: primaryOf(expected), label };
+
   try {
     const { findings, entitiesTested, checksRun, bystanders, strayLedger, missingValues, unreported } = await observe(
       [defect],
       target,
       false,
     );
+
     const reproFailures = await checkRepros(findings);
+
     if (reproFailures.length > 0) {
       const error = `generated reproducer is not runnable — ${reproFailures[0]}`;
+
       return { ...verdict, checksRun, detected: false, entitiesTested, error, findings, spurious: [] };
     }
+
     const real = findings.filter((f) => f.verdict !== "COVERAGE_GAP");
+
     return {
       ...verdict,
-      /* A defect that by design rewrites other rows is the backend's doing, not the API tester's. */
+      // A defect that by design rewrites other rows is the backend's doing, not the API tester's.
       bystanders: excused.has(defect) ? [] : bystanders,
       checksRun,
       detected: real.some((f) => f.check === verdict.expected),

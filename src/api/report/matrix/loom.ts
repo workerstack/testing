@@ -67,16 +67,19 @@ const LABEL = 'fill="#9aa3b2" font-size="11" letter-spacing="2" font-family="IBM
 
 export function loomSvg(focus: EntityMatrix): string {
   const status = (id: string): CellStatus => nodeOf(focus, id).status;
-  /* Every `from` names a warp or weft station. */
+  // Every `from` names a warp or weft station.
   const at = (id: string): Point => [...WARP, ...WEFT].find((node) => node.id === id) as Point;
+
   const lines = [
     ...WARP.map((node) => link(COHORT, node, status(node.id))),
     ...WEFT.flatMap((node) => node.from.map((src) => link(at(src), node, status(node.id)))),
   ];
-  /* Every station is a poster cell. */
+
+  // Every station is a poster cell.
   const stations = [...WARP, ...WEFT].map((pt) =>
     box(pt, NODE_ORDER.find((s) => s.id === pt.id) as CellSpec, status(pt.id)),
   );
+
   return `<svg viewBox="0 0 1120 540" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Query checks for ${esc(focus.name)}">
     <text x="48" y="24" ${LABEL}>READS</text>
     <text x="360" y="24" ${LABEL}>AXES</text>
@@ -108,6 +111,7 @@ function dashed(status: CellStatus): boolean {
 
 function link(from: Point, to: Point, status: CellStatus): string {
   const dash = dashed(status) ? 'stroke-dasharray="5 5"' : "";
+
   return `<line x1="${from.x}" y1="${from.y}" x2="${to.x}" y2="${to.y}" stroke="${strokeOf(status)}" stroke-width="1.6" ${dash}/>`;
 }
 
@@ -118,10 +122,12 @@ function box(pt: Point, spec: CellSpec, status: CellStatus): string {
   const ink = status === "failed" ? "#243044" : status === "passed" ? "#7dcea0" : "#9aa3b2";
   const dash = dashed(status) ? 'stroke-dasharray="3 3"' : "";
   const w = Math.max(92, spec.label.length * 7.4 + 22);
+
   const cap =
     caption === ""
       ? ""
       : `<text x="${pt.x}" y="${pt.y + 28}" text-anchor="middle" fill="#9aa3b2" font-size="10" font-family="IBM Plex Mono, monospace">${esc(caption)}</text>`;
+
   return `<g>
     <rect x="${pt.x - w / 2}" y="${pt.y - 15}" width="${w}" height="30" rx="2" fill="${fill}" stroke="${strokeOf(status)}" ${dash}/>
     <text x="${pt.x}" y="${pt.y + 5}" text-anchor="middle" fill="${ink}" font-size="12" font-family="Syne, sans-serif" font-weight="700">${esc(spec.label)}</text>

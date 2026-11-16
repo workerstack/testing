@@ -1,45 +1,54 @@
-/* The slice of oxlint's plugin API the API tester's rules use (oxlint ships no importable plugin types). */
+// The slice of oxlint's plugin API the API tester's rules use (oxlint ships no importable plugin types).
 
-export interface Node {
+export type Node = {
   type: string;
   start: number;
   end: number;
   parent?: Node | null;
-}
-export interface Identifier extends Node {
+};
+
+export type Identifier = Node & {
   name?: string;
-}
-export interface Literal extends Node {
+};
+
+export type Literal = Node & {
   value?: unknown;
-}
-export interface Member extends Node {
+};
+
+export type Member = Node & {
   object: Identifier;
   property: Identifier;
   computed?: boolean;
-}
-export interface Call extends Node {
+};
+
+export type Call = Node & {
   callee: Identifier | Member;
   arguments: Node[];
-}
-export interface Assertion extends Node {
+};
+
+export type Assertion = Node & {
   typeAnnotation: Node;
-}
-export interface Binary extends Node {
+};
+
+export type Binary = Node & {
   operator: string;
   left: Node;
   right: Node;
-}
-export interface ImportNode extends Node {
+};
+
+export type ImportNode = Node & {
   source: { value: string };
   specifiers: Array<{ type: string; imported?: Identifier & Literal }>;
-}
-export interface Comment {
+};
+
+export type Comment = {
   type: string;
   value: string;
   start: number;
   end: number;
-}
-export interface Context {
+};
+
+export type Context = {
   filename: string;
   sourceCode: {
     getText: (node?: Node) => string;
@@ -48,8 +57,10 @@ export interface Context {
     getCommentsAfter: (node: Node) => Comment[];
   };
   report: (diagnostic: { message: string; node: Node | Comment }) => void;
-}
+};
+
 export type Visitors = Record<string, ((node: never) => void) | undefined>;
-export interface Rule {
+
+export type Rule = {
   create: (context: Context) => Visitors;
-}
+};

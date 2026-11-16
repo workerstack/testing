@@ -7,6 +7,7 @@ import { runParserSuite } from "./parser.ts";
 function articles(names: string[], envelope = ["articles"]): Record<string, unknown> {
   const array = { items: { properties: { id: { type: "string" } }, type: "object" }, type: "array" };
   const schema = { properties: Object.fromEntries(envelope.map((key) => [key, array])), type: "object" };
+
   return {
     openapi: "3.1.0",
     paths: {
@@ -52,6 +53,7 @@ describe("runParserSuite", () => {
         throw new Error("unreadable");
       },
     };
+
     expect(details("broken", unreadable)).toEqual(["false threw: unreadable"]);
   });
 

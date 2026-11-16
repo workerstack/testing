@@ -12,9 +12,11 @@ export function fillPath(
   values: Record<string, string>,
   styles: Readonly<Record<string, ParamStyle>> = {},
 ): string {
-  return template.replace(/\{([^}]+)\}/g, (_, name: string) => {
+  return template.replaceAll(/\{([^}]+)\}/g, (_, name: string) => {
     const value = values[name];
+
     if (value === undefined) throw new SeedError(name, `no value for path parameter {${name}}`);
+
     return serializeParam({ ...styles[name], in: "path", name }, value);
   });
 }

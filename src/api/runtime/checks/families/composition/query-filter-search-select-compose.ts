@@ -46,18 +46,21 @@ export const filterSearchSelectCompose: Check<
   subjects: subjectsOf.list,
   async run(ctx, { extra, field, projection, term, token }): Promise<Outcome> {
     const limit = pageSize(ctx);
+
     const pair = await collectSet(ctx, limit, {
       ...term,
       ...q(ctx, { search: token }),
     });
+
     const triple = await collectSet(ctx, limit, {
       ...term,
       ...q(ctx, { search: token }),
       ...projection,
     });
-    if (pair === null || triple === null) {
+
+    if (pair === null || triple === null)
       return ctx.findings.unresolved(this.id, ctx.entityName, "combining a filter, a search and a select was rejected");
-    }
+
     if (!pair.complete || !triple.complete) {
       return ctx.findings.unresolved(
         this.id,
@@ -65,6 +68,7 @@ export const filterSearchSelectCompose: Check<
         "a side of the comparison is larger than the walk covers",
       );
     }
+
     if (triple.items.some((item) => item[ctx.identity] === undefined)) {
       return ctx.findings.unresolved(
         this.id,
@@ -77,7 +81,9 @@ export const filterSearchSelectCompose: Check<
     const got = new Set(ids(triple.items, ctx.identity));
     const missing = [...expected].filter((id) => !got.has(id));
     const extraIds = [...got].filter((id) => !expected.has(id));
+
     if (missing.length === 0 && extraIds.length === 0) return ASSERTED;
+
     const moved = await unlessMoved(ctx, this.id, {
       reads: [pair, triple],
       terms: [
@@ -85,17 +91,19 @@ export const filterSearchSelectCompose: Check<
         { query: { ...term, ...q(ctx, { search: token }), ...projection } },
       ],
     });
+
     if (moved !== null) return moved;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
       summary: "adding a select changes which records a filter and a search return",
       detail:
         `filter on "${field}" with q=${JSON.stringify(token)} matched ${expected.size}; ` +
-        `the same request with select=${[ctx.identity, extra].join(",")} matched ${got.size}. ` +
-        (missing.length > 0 ? `Dropped: ${missing.slice(0, 3).join(", ")}. ` : "") +
-        (extraIds.length > 0 ? `Appeared: ${extraIds.slice(0, 3).join(", ")}. ` : "") +
-        "A projection must change columns, never the intersection a filter and a search " +
-        "already agreed on.",
+        `the same request with select=${[ctx.identity, extra].join(",")} matched ${got.size}. ${
+          missing.length > 0 ? `Dropped: ${missing.slice(0, 3).join(", ")}. ` : ""
+        }${
+          extraIds.length > 0 ? `Appeared: ${extraIds.slice(0, 3).join(", ")}. ` : ""
+        }A projection must change columns, never the intersection a filter and a search ` +
+        `already agreed on.`,
       evidence: [pair.last.exchange, triple.last.exchange],
     });
   },

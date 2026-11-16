@@ -14,6 +14,7 @@ function world(respond: Responder, options: Partial<WorldOptions> = {}, document
   const model = modelOf(document);
   const fake = fakeClient(respond);
   const created: string[] = [];
+
   return {
     created,
     model,
@@ -37,10 +38,12 @@ const cache = (): AncestorCache => ({ creating: new Map(), made: new Map() });
 describe("resolvePathScope", () => {
   it("takes roots and values already in scope, creating nothing", async () => {
     const run = world(tableMade);
+
     const scope = await resolvePathScope(op(run.model, "row.create"), run.seeding, {
       created: [],
       values: { table_id: "t0" },
     });
+
     expect(scope).toEqual({ created: [], values: { project_id: "p1", table_id: "t0" } });
     expect(run.sent).toEqual([]);
   });
@@ -58,10 +61,12 @@ describe("resolvePathScope", () => {
   it("shares one parent per principal and parent path through the cache", async () => {
     const ancestors = cache();
     const run = world(tableMade, { ancestors, principal: "alpha" });
+
     const [first, second] = await Promise.all([
       resolvePathScope(op(run.model, "row.create"), run.seeding),
       resolvePathScope(op(run.model, "row.create"), run.seeding),
     ]);
+
     const again = await resolvePathScope(op(run.model, "row.create"), run.seeding);
     expect([first.values["table_id"], second.values["table_id"], again.values["table_id"]]).toEqual(["t1", "t1", "t1"]);
     expect(run.sent.filter((request) => request.method === "POST")).toHaveLength(1);
@@ -83,6 +88,7 @@ describe("resolvePathScope, refused or adopted", () => {
     const run = world((method) =>
       method === "POST" ? { body: { error: "payment_required" }, status: 402 } : { body: [{ id: "t5" }], status: 200 },
     );
+
     const scope = await resolvePathScope(op(run.model, "row.create"), run.seeding);
     expect(scope.values["table_id"]).toBe("t5");
     expect(run.created).toEqual([]);
@@ -94,6 +100,7 @@ describe("resolvePathScope, refused or adopted", () => {
       {},
       COUNTERS,
     );
+
     const scope = await resolvePathScope(op(run.model, "tick.create"), run.seeding);
     expect(scope.values).toEqual({ counter_id: "c1" });
   });
@@ -117,14 +124,13 @@ describe("resolvePathScope, refused or adopted", () => {
   });
 });
 
-/*
- * A create whose own path names the record it makes — `PUT /projects/{project_id}/things/{thing_id}`
- * — cannot be seeded by making a parent first: the parameter's owner is the record itself, and
- * resolving it means resolving the same create again, without end. Seeding refuses it, naming the
- * parameter and what supplies it instead.
- */
+// A create whose own path names the record it makes — `PUT /projects/{project_id}/things/{thing_id}`
+// — cannot be seeded by making a parent first: the parameter's owner is the record itself, and
+// resolving it means resolving the same create again, without end. Seeding refuses it, naming the
+// parameter and what supplies it instead.
 
 const ITEM = { properties: { id: { type: "string" }, name: { type: "string" } }, type: "object" };
+
 const PATH = [
   { in: "path", name: "project_id", required: true, schema: { type: "string" } },
   { in: "path", name: "thing_id", required: true, schema: { type: "string" } },
@@ -168,7 +174,7 @@ describe("seeding a create whose path names its own record", () => {
     expect((refused as Error).message).toBe(
       '{thing_id} names the "thing" thing.create makes, so the API tester cannot seed it; supply it as a root or create it in a scenario',
     );
-    /* Nothing is sent: the refusal comes before any request. */
+    // Nothing is sent: the refusal comes before any request.
     expect(run.sent).toEqual([]);
   });
 });

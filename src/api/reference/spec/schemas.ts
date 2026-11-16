@@ -6,39 +6,56 @@ import { writableFields } from "../model/fields.ts";
 import type { EntityDef, FieldDef } from "../model/types.ts";
 import type { Json, SpecContext } from "./types.ts";
 
-/* A string's lengths and patterns: one pattern as itself, more as an `allOf`, as generators emit them. */
+// A string's lengths and patterns: one pattern as itself, more as an `allOf`, as generators emit them.
 function stringBounds(field: FieldDef, base: JsonSchema): void {
   if (field.maxLength !== undefined) base.maxLength = field.maxLength;
+
   if (field.minLength !== undefined) base.minLength = field.minLength;
   const patterns = field.patterns ?? [];
+
   if (patterns.length === 1) base.pattern = patterns[0];
+
   if (patterns.length > 1) base.allOf = patterns.map((pattern) => ({ pattern }));
 }
 
 export function fieldSchema(field: FieldDef): JsonSchema {
   const base: JsonSchema =
     field.ref === undefined ? { type: field.type } : { $ref: `#/components/schemas/${field.ref}` };
+
   if (field.type === "array") {
     base.items = { enum: [...(field.items ?? [])], type: "string" };
     base.maxItems = 5;
   }
+
   if (field.format !== undefined) base.format = field.format;
+
   if (field.minimum !== undefined) base.minimum = field.minimum;
+
   if (field.maximum !== undefined) base.maximum = field.maximum;
+
   if (field.multipleOf !== undefined) base.multipleOf = field.multipleOf;
+
   if (field.const !== undefined) base.const = field.const;
+
   if (field.enum !== undefined) base.enum = [...field.enum];
   stringBounds(field, base);
+
   if (field.generated === true) base.readOnly = true;
+
   if (field.writeOnly === true) base.writeOnly = true;
+
   if (field.privileged === true) base["x-privileged"] = true;
+
   if (field.nullable === true) return { oneOf: [base, { type: "null" }] };
+
   return base;
 }
 
 export function itemSchema(entity: EntityDef): JsonSchema {
   const properties: Json = {};
+
   for (const field of entity.fields) properties[field.name] = fieldSchema(field);
+
   return {
     additionalProperties: false,
     properties,
@@ -55,6 +72,7 @@ export function schemaName(entity: EntityDef): string {
 export function itemSchemaRef(ctx: SpecContext, entity: EntityDef): JsonSchema {
   if (ctx.shape.specLayout === true) return { $ref: `#/components/schemas/${schemaName(entity)}` };
   const schema = itemSchema(entity) as { properties: Record<string, JsonSchema>; required: string[] };
+
   if (ctx.shape.relatedRecord === true) {
     const id = ctx.shape.identityField ?? "id";
     schema.properties["Status"] = {
@@ -66,10 +84,11 @@ export function itemSchemaRef(ctx: SpecContext, entity: EntityDef): JsonSchema {
     };
     schema.required.push("Status");
   }
+
   return schema;
 }
 
-/* Under `recordEnvelope`: the answers' shapes, and where the document says the record is. */
+// Under `recordEnvelope`: the answers' shapes, and where the document says the record is.
 const FIELD_LIST: JsonSchema = {
   items: {
     additionalProperties: false,
@@ -82,14 +101,18 @@ const FIELD_LIST: JsonSchema = {
 
 function identitySchema(entity: EntityDef): JsonSchema {
   const field = entity.fields.find((candidate) => candidate.name === entity.identity);
+
   return field === undefined ? { type: "string" } : fieldSchema(field);
 }
-/* The async job is an action's receipt, not a record: its answers stay plain. */
+
+// The async job is an action's receipt, not a record: its answers stay plain.
 function wraps(ctx: SpecContext, entity: EntityDef): boolean {
   return ctx.shape.recordEnvelope === true && entity.name !== "job";
 }
+
 export function createdSchema(ctx: SpecContext, entity: EntityDef): JsonSchema {
   if (!wraps(ctx, entity)) return itemSchemaRef(ctx, entity);
+
   return {
     additionalProperties: false,
     properties: {
@@ -102,6 +125,7 @@ export function createdSchema(ctx: SpecContext, entity: EntityDef): JsonSchema {
     type: "object",
   };
 }
+
 /** Under `createAnswer: "id-message"`: the acknowledgment a create answers instead of the record. */
 export function acknowledgmentSchema(entity: EntityDef): JsonSchema {
   return {
@@ -111,8 +135,10 @@ export function acknowledgmentSchema(entity: EntityDef): JsonSchema {
     type: "object",
   };
 }
+
 export function readSchema(ctx: SpecContext, entity: EntityDef): JsonSchema {
   if (!wraps(ctx, entity)) return itemSchemaRef(ctx, entity);
+
   return {
     additionalProperties: false,
     properties: { data: itemSchemaRef(ctx, entity), fields: FIELD_LIST },
@@ -120,8 +146,10 @@ export function readSchema(ctx: SpecContext, entity: EntityDef): JsonSchema {
     type: "object",
   };
 }
+
 export function writtenSchema(ctx: SpecContext, entity: EntityDef): JsonSchema {
   if (!wraps(ctx, entity)) return itemSchemaRef(ctx, entity);
+
   return {
     additionalProperties: false,
     properties: { id: identitySchema(entity), message: { type: "string" }, success: { type: "boolean" } },
@@ -129,18 +157,22 @@ export function writtenSchema(ctx: SpecContext, entity: EntityDef): JsonSchema {
     type: "object",
   };
 }
+
 export function located(ctx: SpecContext, entity: EntityDef, action: "create" | "read" | "list"): Json {
   if (!wraps(ctx, entity)) return {};
+
   return action === "create" ? { createdIdFrom: "$.id", recordPath: "$.data" } : { recordPath: "$.data" };
 }
 
 export function bodySchema(entity: EntityDef, phase: "create" | "update", replace = false): JsonSchema {
   const properties: Json = {};
+
   for (const field of writableFields(entity, phase)) properties[field.name] = fieldSchema(field);
+
   return {
     additionalProperties: false,
     properties,
-    /* A create, and a replacing update, must carry every required field; a PATCH need not. */
+    // A create, and a replacing update, must carry every required field; a PATCH need not.
     required:
       phase === "create" || replace
         ? writableFields(entity, phase)
@@ -156,9 +188,10 @@ function collectionKey(entity: EntityDef, dialect: Dialect): string {
   return dialect.envelope?.collection ?? entity.plural;
 }
 
-/* Under `wrappedRows`: a listed row, its record under `document` beside the search's highlights. */
+// Under `wrappedRows`: a listed row, its record under `document` beside the search's highlights.
 function wrappedRow(ctx: SpecContext, entity: EntityDef): JsonSchema {
   const highlight = { properties: { field: { type: "string" }, snippet: { type: "string" } }, type: "object" };
+
   return {
     additionalProperties: false,
     properties: { document: itemSchemaRef(ctx, entity), highlights: { items: highlight, type: "array" } },
@@ -170,28 +203,34 @@ function wrappedRow(ctx: SpecContext, entity: EntityDef): JsonSchema {
 /** Where the list says its records are: inside each row under `wrappedRows`, an envelope's `data` under `recordEnvelope`. */
 export function listLocated(ctx: SpecContext, entity: EntityDef, dialect: Dialect): Json {
   if (ctx.shape.wrappedRows !== true) return located(ctx, entity, "list");
+
   return dialect.envelope === null ? {} : { recordPath: `$.${collectionKey(entity, dialect)}[*].document` };
 }
 
 export function listSchema(ctx: SpecContext, entity: EntityDef, dialect: Dialect): JsonSchema {
   const env = dialect.envelope;
-  /* No envelope: the response *is* the array. A document that says so is the only place the API tester can
-   * learn it, so the schema has to say it rather than describe a wrapper that does not exist. */
+
+  // No envelope: the response *is* the array. A document that says so is the only place the API tester can
+  // learn it, so the schema has to say it rather than describe a wrapper that does not exist.
   if (env === null) return { items: itemSchemaRef(ctx, entity), type: "array" };
   const key = collectionKey(entity, dialect);
   const row = ctx.shape.wrappedRows === true ? wrappedRow(ctx, entity) : itemSchemaRef(ctx, entity);
   const properties: Json = { [key]: { items: row, type: "array" } };
   const required = [key];
+
   const declare = (name: string | undefined, schema: JsonSchema): void => {
     if (name === undefined) return;
     properties[name] = schema;
     required.push(name);
   };
+
   declare(env.hasMore, { type: "boolean" });
   declare(env.limit, { minimum: 1, type: "integer" });
   declare(env.page, { oneOf: [{ minimum: 1, type: "integer" }, { type: "null" }] });
   declare(env.total, { minimum: 0, type: "integer" });
   declare(env.nextCursor, { oneOf: [{ type: "string" }, { type: "null" }] });
+
   if (wraps(ctx, entity)) declare("fields", FIELD_LIST);
+
   return { additionalProperties: false, properties, required, type: "object" };
 }

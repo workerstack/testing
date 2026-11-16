@@ -17,14 +17,14 @@ export const CONSISTENCY_EXPECTED: Record<ConsistencyDefect, FindingId | Finding
   PARENT_PROJECTION_STALE: "invalidation.declared-route-changes",
   LIST_DETAIL_DISAGREE: [
     "consistency.projections-agree",
-    /* A listing serving a different value for a searchable field also breaks every predicate
-     * evaluated against the stored value: the record comes back under a name the caller can
-     * see but cannot search or filter for. */
+    // A listing serving a different value for a searchable field also breaks every predicate
+    // evaluated against the stored value: the record comes back under a name the caller can
+    // see but cannot search or filter for.
     "search.q-narrows-result",
     "filter.equality-selects-exactly-one",
     "select.projection-honored",
     "sort.order-is-applied",
-    /* The listing's suffix carries a name at its maxLength past it: a value its schema forbids. */
+    // The listing's suffix carries a name at its maxLength past it: a value its schema forbids.
     "schema.read-response-matches-document",
   ],
   STALE_LIST: "list.read-after-write",

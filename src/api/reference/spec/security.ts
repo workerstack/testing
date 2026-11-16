@@ -16,9 +16,11 @@ export const ROOT_SECURITY: Json[] = [{ jwt: [] }];
 /** A record route's path item, each operation taking a JWT or an API key with the entity's read or write scope. */
 export function securedByEntity(entity: EntityDef, item: Json): Json {
   const out: Json = {};
+
   for (const [method, operation] of Object.entries(item)) {
     const access = SAFE.has(method.toUpperCase()) ? "read" : "write";
     out[method] = { ...(operation as Json), security: [{ jwt: [] }, { apiKey: [`${entity.name}:${access}`] }] };
   }
+
   return out;
 }

@@ -18,66 +18,85 @@ type Rule = (value: unknown, path: string) => string[];
 
 const string: Rule = (value, path) => (typeof value === "string" ? [] : [`${path} must be a string`]);
 const boolean: Rule = (value, path) => (typeof value === "boolean" ? [] : [`${path} must be true or false`]);
+
 const object: Rule = (value, path) =>
   value !== null && typeof value === "object" && !Array.isArray(value) ? [] : [`${path} must be an object`];
-/* An object whose named keys, when set, hold functions; the rest are not checked here. */
+
+// An object whose named keys, when set, hold functions; the rest are not checked here.
 const functionsAt =
   (...keys: string[]): Rule =>
   (value, path) => {
     const notObject = object(value, path);
+
     if (notObject.length > 0) return notObject;
     const record = value as Record<string, unknown>;
+
     return keys
       .filter((key) => record[key] !== undefined && typeof record[key] !== "function")
       .map((key) => `${path}.${key} must be a function`);
   };
+
 const integer =
   (min: number): Rule =>
   (value, path) =>
     Number.isSafeInteger(value) && (value as number) >= min
       ? []
       : [`${path} must be an integer${min >= 0 ? ` of at least ${min}` : ""}`];
+
 const positive: Rule = (value, path) =>
   typeof value === "number" && Number.isFinite(value) && value > 0 ? [] : [`${path} must be a number above 0`];
+
 const oneOf =
   (...allowed: string[]): Rule =>
   (value, path) =>
     allowed.includes(value as string) ? [] : [`${path} must be one of ${allowed.map((a) => `"${a}"`).join(", ")}`];
+
 const arrayOf =
   (item: Rule): Rule =>
   (value, path) =>
     Array.isArray(value)
       ? value.flatMap((entry, index) => item(entry, `${path}[${index}]`))
       : [`${path} must be an array`];
+
 const recordOf =
   (item: Rule): Rule =>
   (value, path) =>
     object(value, path).length > 0
       ? object(value, path)
       : Object.entries(value as Record<string, unknown>).flatMap(([key, entry]) => item(entry, `${path}.${key}`));
+
 const shape =
   (fields: Record<string, Rule>, required: readonly string[] = []): Rule =>
   (value, path) => {
     const notObject = object(value, path);
+
     if (notObject.length > 0) return notObject;
     const record = value as Record<string, unknown>;
     const problems: string[] = [];
+
     for (const key of required) if (record[key] === undefined) problems.push(`${path}.${key} is required`);
+
     for (const [key, entry] of Object.entries(record)) {
       const rule = fields[key];
+
       if (rule === undefined) problems.push(`${path}.${key} is not a config key`);
       else if (entry !== undefined) problems.push(...rule(entry, `${path}.${key}`));
     }
+
     return problems;
   };
-/* A profile: the kinds it excludes, when set, are strings. Its other fields are read where the run uses them. */
+
+// A profile: the kinds it excludes, when set, are strings. Its other fields are read where the run uses them.
 const profile: Rule = (value, path) => {
   const notObject = object(value, path);
+
   if (notObject.length > 0) return notObject;
   const kinds = (value as Record<string, unknown>)["excludeExternalKinds"];
+
   return kinds === undefined ? [] : arrayOf(string)(kinds, `${path}.excludeExternalKinds`);
 };
-/* A key checked as a whole by its own validator in `credentialProblems`, which reads other keys too. */
+
+// A key checked as a whole by its own validator in `credentialProblems`, which reads other keys too.
 const checkedWhole: Rule = () => [];
 
 const objectOrNull: Rule = (value, path) =>
@@ -99,10 +118,11 @@ function overlayRule(): Rule {
 /** The rule for each top-level config key; its keys are the config keys the API tester knows. */
 export function configRules(): Record<string, Rule> {
   const overlay = overlayRule();
+
   return {
     baseUrl: string,
     cache: shape({ bypass: boolean }),
-    /* Opt-in checks by id: an unknown id is named, so a misspelled switch never reads as off. */
+    // Opt-in checks by id: an unknown id is named, so a misspelled switch never reads as off.
     checks: shape({ "auth.login-throttled": boolean }),
     cohortSize: integer(1),
     entities: recordOf(object),
@@ -153,15 +173,17 @@ export function configRules(): Record<string, Rule> {
 }
 
 const CREDENTIAL_HEADER = "a credential is sent by its scheme; declare security.<scheme>";
+
 const REMOVED_HOOKS: Readonly<Record<string, string>> = {
   resolvePrincipalAuth:
     "declare security.<scheme>: { hook: true } and return the credential from hooks.resolveCredential",
 };
 
-/* Keys a 0.25.0 credential recipe replaced: a credential header in globalHeaders, a hook no recipe calls. */
+// Keys a 0.25.0 credential recipe replaced: a credential header in globalHeaders, a hook no recipe calls.
 function carrierProblems(config: RawOf<ApiConfig>): string[] {
   const headers = isRecord(config.globalHeaders) ? Object.keys(config.globalHeaders) : [];
   const hooks: RawOf<Hooks> = isRaw<Hooks>(config.hooks) ? config.hooks : {};
+
   return [
     ...headers
       .filter((name) => CREDENTIAL_HEADERS.has(name.toLowerCase()))
@@ -172,14 +194,16 @@ function carrierProblems(config: RawOf<ApiConfig>): string[] {
   ];
 }
 
-/* A writer that names no principal: the run would write as someone the config does not declare. */
+// A writer that names no principal: the run would write as someone the config does not declare.
 function writerProblems(config: RawOf<ApiConfig>): string[] {
   const { principals, writer } = config;
+
   if (typeof writer !== "string" || !isRecord(principals) || writer in principals) return [];
+
   return [`writer names no principal: "${writer}" (principals: ${Object.keys(principals).join(", ")})`];
 }
 
-/* The credentials config, by the validators that also run against the document, minus what needs it. */
+// The credentials config, by the validators that also run against the document, minus what needs it.
 function credentialProblems(config: RawOf<ApiConfig>): string[] {
   return [
     ...(config.principals === undefined ? [] : principalMapProblems(config)),
@@ -195,8 +219,10 @@ function credentialProblems(config: RawOf<ApiConfig>): string[] {
 export function configProblems(config: unknown, options: { forRun?: boolean } = {}): string[] {
   const required = options.forRun === true ? ["spec", "baseUrl", "principals"] : [];
   const rules = shape(configRules(), required);
+
   if (!isRecord(config)) return rules(config, "config");
-  /* A removed key is named with its replacement below, not as a key the API tester does not know. */
+  // A removed key is named with its replacement below, not as a key the API tester does not know.
   const current = Object.fromEntries(Object.entries(config).filter(([key]) => !REMOVED_KEYS.includes(key)));
+
   return [...rules(current, "config"), ...credentialProblems(config).map((problem) => `config.${problem}`)];
 }

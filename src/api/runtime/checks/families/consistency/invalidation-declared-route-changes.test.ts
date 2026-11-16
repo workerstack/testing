@@ -14,12 +14,15 @@ const declaring = (invalidate: readonly string[]) => notesDoc({ invalidate });
 /** A note context over `doc`, whose create declares FOREIGN unless the document says otherwise. */
 function stage(respond: Responder, fields: Partial<Listed> = {}, doc = declaring(FOREIGN)) {
   const model = modelOf(doc);
+
   return contextFor(model, "notes.list", { respond, fields: { createOp: op(model, "notes.create"), ...fields } });
 }
 
 async function drive(staged: ReturnType<typeof stage>) {
   const planned = declaredInvalidationHappens.plan(staged.ctx);
+
   if (!planned.ok) throw new Error(`the plan did not apply: ${planned.needs}`);
+
   return declaredInvalidationHappens.run(staged.ctx, planned.value);
 }
 
@@ -32,19 +35,24 @@ function derived(
 ): Responder {
   const notes: Record_[] = [];
   const frozen = new Map<string, Answer>();
+
   const live = (path: string): Answer =>
     path === "/boards"
       ? { body: [{ count: notes.length, id: "b1" }], status: 200 }
       : { body: { count: notes.length, id: "s" }, status: 200 };
+
   return (method, path, options_) => {
     const scripted = options.override?.(method, path);
+
     if (scripted !== undefined) return scripted;
-    if (method !== "GET" || (path !== "/boards" && path !== "/stats")) {
+
+    if (method !== "GET" || (path !== "/boards" && path !== "/stats"))
       return notesBackend(notes)(method, path, options_);
-    }
+
     if (path !== options.stale) return live(path);
     const first = frozen.get(path) ?? live(path);
     frozen.set(path, first);
+
     return first;
   };
 }
@@ -69,6 +77,7 @@ describe("invalidation.declared-route-changes plan", () => {
   it("probes only other entities' read routes the document has", () => {
     const invalidate = ["GET /missing", "GET /notes", "POST /boards", ...FOREIGN, "GET /orgs/{org_id}/summary"];
     const planned = declaredInvalidationHappens.plan(stage(derived(), {}, declaring(invalidate)).ctx);
+
     if (!planned.ok) throw new Error("the plan did not apply");
     expect(routes(planned.value.foreign)).toEqual([...FOREIGN, "GET /orgs/{org_id}/summary"]);
     expect(planned.value.schema).toMatchObject({ type: "object" });
@@ -99,6 +108,7 @@ describe("invalidation.declared-route-changes plan", () => {
   it("judges the create and the foreign reads", () => {
     const model = modelOf(notesDoc({ invalidate: FOREIGN }));
     const note = model.entities.get("note");
+
     if (note === undefined) throw new Error("the document lost the note entity");
     expect(declaredInvalidationHappens.subjects(note, model)).toEqual(["notes.create", "boards.list", "stats.get"]);
   });
@@ -168,11 +178,15 @@ describe("invalidation.declared-route-changes unreadable routes", () => {
 
   it("judges only routes it read on both sides of the write", async () => {
     let stats = 0;
+
     const flaky = (method: string, path: string): Answer | undefined => {
       if (path === "/boards" && method === "GET") return { body: [{ id: "b1" }], status: 503 };
+
       if (path === "/stats") stats += 1;
+
       return path === "/stats" && stats === 2 ? { status: 500 } : undefined;
     };
+
     const staged = stage(derived({ override: flaky }));
     expect(await drive(staged)).toEqual({ kind: "asserted" });
     expect(staged.sent.filter((sent) => sent.path === "/boards")).toHaveLength(1);
@@ -180,8 +194,10 @@ describe("invalidation.declared-route-changes unreadable routes", () => {
 
   it("does not snapshot a collection it cannot read whole", async () => {
     const many = Array.from({ length: 500 }, (_, index) => ({ id: `b${index}` }));
+
     const huge = (method: string, path: string) =>
       method === "GET" && path === "/boards" ? { body: many, status: 200 } : undefined;
+
     const staged = stage(derived({ override: huge, stale: "/stats" }), {}, declaring(["GET /boards"]));
     expect(await drive(staged)).toEqual({
       kind: "unresolved",
@@ -216,6 +232,7 @@ describe("invalidation.declared-route-changes create", () => {
     const gated = { ...op(staged.ctx.model, "notes.create"), featureGate: "notes" };
     const ctx = { ...staged.ctx, createOp: gated };
     const planned = declaredInvalidationHappens.plan(ctx);
+
     if (!planned.ok) throw new Error("the plan did not apply");
     expect(await declaredInvalidationHappens.run(ctx, planned.value)).toEqual({
       kind: "stood-down",
@@ -230,10 +247,12 @@ describe("invalidation.declared-route-changes as a principal a higher rank outra
     const staged = stage(derived());
     const low = { ...staged.ctx.actor, id: "low", rank: 0 };
     const createOp = { ...(staged.ctx.createOp as OperationModel), privilegedRequired: ["title"] };
+
     const outranked = {
       ...staged,
       ctx: { ...staged.ctx, actor: low, actors: [{ ...low, id: "top", rank: 2 }, low], createOp },
     };
+
     expect(await drive(outranked)).toEqual({
       kind: "stood-down",
       reason:

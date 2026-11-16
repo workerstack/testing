@@ -2,14 +2,16 @@
 
 /** Normalizes `/things/:id` to `/things/{id}` so both path syntaxes compare equal. */
 export function normalizePath(path: string): string {
-  return path.replace(/:([A-Za-z_][A-Za-z0-9_]*)/g, "{$1}");
+  return path.replaceAll(/:([A-Za-z_][A-Za-z0-9_]*)/g, "{$1}");
 }
 
 /** `"GET /things/:id"` → `{ method: "GET", path: "/things/{id}" }` */
 export function parseRouteRef(ref: string): { method: string; path: string } | null {
   const match = /^\s*([A-Za-z]+)\s+(\S+)\s*$/.exec(ref);
+
   if (match === null) return null;
   const [, method, path] = match as unknown as [string, string, string];
+
   return { method: method.toUpperCase(), path: normalizePath(path) };
 }
 
@@ -24,18 +26,24 @@ export function pathTemplateMatches(template: string, pathname: string): boolean
  */
 export function pathTemplateParams(template: string, pathname: string): Record<string, string> | null {
   const names: string[] = [];
+
   const compiled = normalizePath(template)
     .split("/")
     .map((segment) => {
       if (segment.startsWith("{") && segment.endsWith("}")) {
         names.push(segment.slice(1, -1));
+
         return "([^/]+)";
       }
-      return segment.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+
+      return segment.replaceAll(/[.+^${}()|[\]\\]/g, "\\$&");
     })
     .join("/");
+
   const match = new RegExp(`^${compiled}$`).exec(pathname);
+
   if (match === null) return null;
+
   return Object.fromEntries(names.map((name, index) => [name, decodePathValue(match[index + 1] as string)]));
 }
 

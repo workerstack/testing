@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- The reference SQLite store now refuses a blob in a declared column with an error that names the column, instead of handing the bytes back as a field value no schema declares.
+
 ## [0.35.0] - 2026-11-09
 
 ### Added

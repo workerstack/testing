@@ -6,7 +6,7 @@ import type { AncestorCache, Scope } from "../../world/types.ts";
 import type { RunContext } from "../context.ts";
 
 /** One entity under test: what it is, and what its seeding has learned so far. */
-export interface EntityRun {
+export type EntityRun = {
   ctx: RunContext;
   entity: EntityModel;
   /** The entity's place in the model: half of what keeps one check run's salts its own. */
@@ -38,10 +38,10 @@ export interface EntityRun {
    * which variants never arrived, so the gap points at the seed rather than the API.
    */
   lostVariants: string[];
-}
+};
 
 /** The records the entity's checks run against, and what the API tester knows about them. */
-export interface World {
+export type World = {
   scope: Scope;
   records: Record_[];
   /** Records the API tester did not write: every write-path check sits out rather than assert against them. */
@@ -52,7 +52,7 @@ export interface World {
   createAcknowledged: boolean;
   /** The records are the bodies the API tester sent: no read showed what the server stored. */
   recordsUnverified?: true;
-}
+};
 
 /** A world of records the API tester did not create: read from what the list already returns. */
 export function degradedWorld(existing: { records: Record_[]; scope: Record<string, string> }): World {

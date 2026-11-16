@@ -9,8 +9,9 @@ import { isTerm, listTerm } from "./term-list.ts";
 const list = (op: string, raw: string, ctx: ParseContext = context()) =>
   listTerm(termRead({ ctx, field: field("status"), op, raw }));
 
-/* Every value but "x" is of the field's type. */
+// Every value but "x" is of the field's type.
 const typed = (text: string) => (text === "x" ? undefined : text);
+
 const is = (raw: string, name = "description", ctx: ParseContext = context()) =>
   isTerm(termRead({ ctx, field: field(name, ctx.entity), op: "is", raw }));
 

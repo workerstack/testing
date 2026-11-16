@@ -64,7 +64,7 @@ describe("pagination.limit-bounds-enforced", () => {
     expect(findings.findings).toEqual([]);
   });
 
-  /* A 401 or 403 tells nothing about the bound: the check must not go on to assert it. */
+  // A 401 or 403 tells nothing about the bound: the check must not go on to assert it.
   it("does not assert the bound when every probe was turned away for another reason", async () => {
     const { ctx } = stage(doc, () => ({ status: 401 }), rows);
     expect((await runCheck(limitBoundsEnforced, ctx)).kind).toBe("unresolved");

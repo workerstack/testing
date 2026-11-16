@@ -83,6 +83,7 @@ describe("query.filter-search-sort-compose plans", () => {
       queryDoc({ searchable: [] }),
       queryDoc({ sortable: [] }),
     ];
+
     for (const doc of docs) expect(await stage(filterSearchSortCompose, { doc }).run()).toEqual(NEEDS);
     expect(await stage(filterSearchSortCompose, { fields: { query: null } }).run()).toEqual(NEEDS);
     const few = stage(filterSearchSortCompose, { rows: NOTES.slice(0, 2) });

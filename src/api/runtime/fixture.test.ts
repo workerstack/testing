@@ -18,7 +18,7 @@ import { codePointCount } from "./payloads.ts";
 
 const length = (value: unknown) => codePointCount(String(value ?? ""));
 
-/* The variants whose `field` fails `ok`: empty when every member passes. */
+// The variants whose `field` fails `ok`: empty when every member passes.
 function failing(members: CohortMember[], field: string, ok: (value: unknown) => boolean): string[] {
   return members.filter((member) => !ok(member.body[field])).map((member) => member.variant);
 }
@@ -26,14 +26,16 @@ function failing(members: CohortMember[], field: string, ok: (value: unknown) =>
 describe("buildCohort and a field its document gives examples of", () => {
   it("seeds every variant with a documented example where the pattern alone admits values the API refuses", () => {
     const zone = { maxLength: 64, pattern: "^[A-Za-z0-9_+-]+(?:/[A-Za-z0-9_+-]+){0,2}$", type: "string" };
+
     const body = (field: Record<string, unknown>) => ({
       properties: { name: { type: "string" }, zone: { ...zone, ...field } },
       required: ["name", "zone"],
       type: "object",
     });
+
     const listed = buildCohort(body({ examples: ["Europe/Zagreb", "America/New_York"] }), 1);
     expect(failing(listed, "zone", (value) => value === "Europe/Zagreb" || value === "America/New_York")).toEqual([]);
-    /* OpenAPI 3.0 writes one `example`; it counts the same. */
+    // OpenAPI 3.0 writes one `example`; it counts the same.
     const single = buildCohort(body({ example: "Europe/Zagreb" }), 1);
     expect(failing(single, "zone", (value) => value === "Europe/Zagreb")).toEqual([]);
     expect(failing(buildCohort(body({}), 1), "zone", (value) => value === "Europe/Zagreb")).toEqual(COHORT);
@@ -62,6 +64,7 @@ describe("buildCohort on nested and cyclic schemas", () => {
       1,
       { variants: ["baseline"], operationId: "table.create" },
     );
+
     expect(members[0]?.body).toBeDefined();
     expect(Array.isArray(members[0]?.body["columns"])).toBe(true);
   });
@@ -85,9 +88,11 @@ describe("buildCohort on nested and cyclic schemas", () => {
         },
       },
     } as OpenApiDocument);
+
     const schema = (
       doc.paths?.["/tables"] as { post?: { requestBody?: { content?: Record<string, { schema?: unknown }> } } }
     )?.post?.requestBody?.content?.["application/json"]?.schema as Record<string, unknown>;
+
     expect(() =>
       buildCohort(schema ?? {}, 1, { variants: ["baseline"], defs: documentDefs(doc), operationId: "table.create" }),
     ).not.toThrow();
@@ -105,6 +110,7 @@ describe("buildCohort strings", () => {
       1,
       { variants: ["unicode"], operationId: "table.create" },
     );
+
     const name = String(member?.body["name"] ?? "");
     expect(name).toContain("äöüß");
     expect(name).toContain("čćžšđ");
@@ -125,6 +131,7 @@ describe("buildCohort account names", () => {
       required: ["email", "title", "username"],
       type: "object",
     };
+
     const [first] = buildCohort(schema, 1, { nonce: "n1", variants: ["baseline"] });
     const [second] = buildCohort(schema, 1, { nonce: "n2", variants: ["baseline"] });
     expect([first?.body["email"], first?.body["username"]]).not.toEqual([
@@ -146,6 +153,7 @@ describe("buildCohort string formats", () => {
       1,
       { variants: ["baseline"], operationId: "user.create" },
     );
+
     expect(member?.body["email"]).toMatch(/^[^@]+@[^@]+\.[^@]+$/);
   });
 
@@ -159,12 +167,14 @@ describe("buildCohort string formats", () => {
       1,
       { variants: COHORT, operationId: "thing.create" },
     );
+
     expect(members).toHaveLength(COHORT.length);
     expect(failing(members, "name", (value) => length(value) >= 3 && length(value) <= 32)).toEqual([]);
   });
 
   it("pads a handle pattern to minLength instead of emitting a", () => {
     const pattern = "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$";
+
     const members = buildCohort(
       {
         properties: { handle: { maxLength: 32, minLength: 3, pattern, type: "string" } },
@@ -174,6 +184,7 @@ describe("buildCohort string formats", () => {
       1,
       { variants: COHORT, operationId: "user.create" },
     );
+
     const re = new RegExp(pattern);
     const handle = (value: unknown) => typeof value === "string" && re.test(value) && codePointCount(value) >= 3;
     expect(failing(members, "handle", handle)).toEqual([]);
@@ -193,6 +204,7 @@ describe("generateBody", () => {
       },
       { index: 0, rand: mulberry32(1), variant: "baseline" },
     );
+
     expect(body["opt"]).toBeUndefined();
     expect(body["req"]).toBeUndefined();
     expect(missingRequired).toContain("/req");
@@ -210,6 +222,7 @@ describe("buildCohort padding", () => {
       1,
       { variants: ["baseline"], operationId: "user.create" },
     );
+
     const email = String(member?.body["email"] ?? "");
     expect(codePointCount(email)).toBeGreaterThanOrEqual(40);
     expect(email).toMatch(/^[^@]+@[^@]+\.[^@]+$/);
@@ -225,6 +238,7 @@ describe("buildCohort padding", () => {
       1,
       { variants: COHORT, operationId: "thing.create" },
     );
+
     expect(failing(members, "name", (value) => codePointCount(String(value ?? "")) >= 5)).toEqual([]);
   });
 
@@ -237,6 +251,7 @@ describe("buildCohort padding", () => {
       },
       { index: 0, rand: mulberry32(1), variant: "baseline" },
     );
+
     expect(body["code"]).toBeUndefined();
     expect(missingRequired).toContain("/code");
   });
@@ -252,7 +267,7 @@ describe("overflow", () => {
   });
 });
 
-/* A schema whose reading throws: what a hook-built or proxied document can hand over. */
+// A schema whose reading throws: what a hook-built or proxied document can hand over.
 function throwing(key: string): Record<string, unknown> {
   return Object.defineProperty({ type: "object" }, key, {
     enumerable: true,
@@ -353,13 +368,14 @@ describe("generateBody's partial bodies", () => {
       properties: { a: impossible, b: { type: "string" } },
       type: "object",
     };
+
     const { body, missingRequired } = generateBody(schema, { index: 0, rand: mulberry32(1), variant: "baseline" });
     expect(missingRequired).toEqual(["/a"]);
     expect(Object.keys(body).toSorted()).toEqual(["a", "b"]);
   });
 });
 
-/* A body schema with an optional x-privileged property, a nested one, and `required` besides. */
+// A body schema with an optional x-privileged property, a nested one, and `required` besides.
 const marked = (required: string[]) => ({
   properties: {
     name: { type: "string" },
@@ -382,6 +398,7 @@ describe("bodies an ordinary writer sends", () => {
       expect(body).not.toHaveProperty("verified");
       expect(body["nested"]).not.toHaveProperty("plan");
     }
+
     expect(generateBody(marked([]), draw).body).not.toHaveProperty("verified");
   });
 
@@ -442,6 +459,7 @@ describe("generateBody on a field required through allOf", () => {
     const schema = {
       allOf: [{ properties: { a: { maxLength: 1, minLength: 5, type: "string" } }, required: ["a"], type: "object" }],
     };
+
     expect(generateBody(schema, { index: 0, rand: () => 0.5, variant: "baseline" }).missingRequired).toEqual(["/a"]);
   });
 });

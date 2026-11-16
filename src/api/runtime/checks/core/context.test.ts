@@ -5,7 +5,7 @@ import { checkMemo, isListed } from "./context.ts";
 
 describe("checkMemo", () => {
   it("gives each entity a fresh table and shares the run's", () => {
-    const run = new Map<string, unknown>();
+    const run = new Map<string>();
     const first = checkMemo(run);
     const second = checkMemo(run);
     first.entity.set("fact", 1);

@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
+import type { Row } from "../cell.ts";
 import { DefectSet } from "../defects/defect-set.ts";
 import type { DefectName } from "../defects/table.ts";
 import { ENTITIES } from "../model/entities.ts";
 import type { EntityDef } from "../model/types.ts";
 import type { SelectPlan } from "../query-types.ts";
-import type { Row } from "../store-api.ts";
 import { fakePostgres, type Statement } from "./__fixtures__/postgres.ts";
 import { connectPostgres, PgStore } from "./postgres.ts";
 
@@ -36,10 +36,11 @@ const SELECT = `SELECT "id" AS "id", "name" AS "name", "count" AS "count", "pric
 async function store(answer?: (statement: Statement) => Row[], defects: DefectName[] = []) {
   const pg = fakePostgres(answer);
   const created = await PgStore.create(new DefectSet(defects), [ITEM], pg.connect);
+
   return { pg, store: created };
 }
 
-/* Statements after the store's own setup: the database and its tables. */
+// Statements after the store's own setup: the database and its tables.
 function since(statements: Statement[]): Statement[] {
   return statements.slice(2);
 }
@@ -143,6 +144,7 @@ async function selected(selectPlan: SelectPlan): Promise<Statement | undefined> 
   expect(await created.select(ITEM, selectPlan)).toEqual([
     { active: null, count: null, id: "a", meta: null, name: null, price: null, tags: null },
   ]);
+
   return since(pg.statements)[0];
 }
 
@@ -161,6 +163,7 @@ describe("PgStore.select", () => {
       ],
       kind: "and",
     };
+
     const statement = await selected(plan(where));
     expect(statement?.args).toEqual(["n", true, "a\\%%", "_", "red", "red", "q", "1"]);
     expect(statement?.query).toBe(
@@ -194,8 +197,10 @@ describe("PgStore.close", () => {
   it("still ends the admin session when the drop fails", async () => {
     const { pg, store: created } = await store(({ query }) => {
       if (query.startsWith("DROP")) throw new Error("drop refused");
+
       return [];
     });
+
     await expect(created.close()).rejects.toThrow("drop refused");
     expect(pg.ended.map(({ database }) => database)).toEqual([expect.any(String), "postgres"]);
   });

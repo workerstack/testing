@@ -6,20 +6,22 @@ import { describe, expect, it } from "vitest";
 import { run } from "../../../src/api/runtime/run/index.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 
-/* Two collections nested under one parent kind, the parent itself not under test: each should get
- * its own scratch parent and run in its own lane. */
+// Two collections nested under one parent kind, the parent itself not under test: each should get
+// its own scratch parent and run in its own lane.
 
 const item = {
   properties: { id: { type: "string" }, name: { type: "string" }, note: { type: "string" } },
   required: ["id", "name"],
   type: "object",
 };
+
 const json = (schema: unknown) => ({ "application/json": { schema } });
 
 function collection(name: string, base: string, param: string | null): NonNullable<OpenApiDocument["paths"]> {
   const parameters = param === null ? [] : [{ in: "path", name: param, required: true, schema: { type: "string" } }];
   const withId = [...parameters, { in: "path", name: "id", required: true, schema: { type: "string" } }];
   const tag = (action: string) => ({ action, identity: "id", name });
+
   return {
     [base]: {
       get: {
@@ -76,39 +78,46 @@ const SPEC = {
 } as OpenApiDocument;
 
 type Send = (status: number, body?: unknown) => void;
+
 type Hit = { at: number; kind: string; parent: string | undefined };
+
 type World = { hits: Hit[]; rows: Map<string, Map<string, Record<string, unknown>>>; seq: number };
 
-/* The item a request names, and its method. */
-interface ItemRequest {
+// The item a request names, and its method.
+type ItemRequest = {
   id: string;
   method: string | undefined;
-}
+};
 
 function itemAnswer(store: Map<string, Record<string, unknown>>, { id, method }: ItemRequest, send: Send) {
   const record = store.get(id);
+
   if (record === undefined) return send(404, { error: "not found" });
+
   if (method === "GET") return send(200, record);
+
   if (method !== "DELETE") return send(405, { error: "method" });
   store.delete(id);
   send(204);
 }
 
-/* A path under a parent names the kind after it; a top-level path names its own. */
+// A path under a parent names the kind after it; a top-level path names its own.
 function hitOf(parts: string[]): Hit {
   const nested = parts.length >= 4;
+
   return { at: performance.now(), kind: (nested ? parts[3] : parts[1]) ?? "", parent: nested ? parts[2] : undefined };
 }
 
-/* A request and the body read from it. */
-interface Received {
+// A request and the body read from it.
+type Received = {
   req: IncomingMessage;
   body: Buffer;
-}
+};
 
-/* Records by collection path; any path works, so one handler serves all three kinds. */
+// Records by collection path; any path works, so one handler serves all three kinds.
 function answer(world: World, { body, req }: Received, send: Send): void {
   const path = new URL(req.url ?? "/", "http://x").pathname;
+
   if (path === "/v1/openapi/spec") return send(200, SPEC);
   const parts = path.split("/").filter(Boolean);
   world.hits.push(hitOf(parts));
@@ -116,29 +125,37 @@ function answer(world: World, { body, req }: Received, send: Send): void {
   const base = `/${(isItem ? parts.slice(0, -1) : parts).join("/")}`;
   const store = world.rows.get(base) ?? new Map<string, Record<string, unknown>>();
   world.rows.set(base, store);
+
   if (!isItem && req.method === "GET") return send(200, { items: [...store.values()] });
+
   if (!isItem && req.method === "POST") {
     const fields = JSON.parse(body.toString("utf8") || "{}") as Record<string, unknown>;
     const record = { ...fields, id: `r${(world.seq += 1)}` };
     store.set(record.id, record);
+
     return send(201, record);
   }
+
   itemAnswer(store, { id: parts.at(-1) ?? "", method: req.method }, send);
 }
 
 async function startWorld() {
   const world: World = { hits: [], rows: new Map(), seq: 0 };
   const { hits } = world;
+
   const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     const send: Send = (status, body) => {
       if (body === undefined) res.writeHead(status).end();
       else res.writeHead(status, { "content-type": "application/json" }).end(JSON.stringify(body));
     };
+
     const chunks: Buffer[] = [];
     req.on("data", (chunk: Buffer) => chunks.push(chunk));
     req.on("end", () => answer(world, { body: Buffer.concat(chunks), req }, send));
   });
+
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+
   return {
     close: () => new Promise<void>((resolve) => server.close(() => resolve())),
     hits,
@@ -149,6 +166,7 @@ async function startWorld() {
 describe("siblings under one parent kind", () => {
   it("each get their own scratch parent, and run side by side", async () => {
     const world = await startWorld();
+
     try {
       const result = await run({
         baseUrl: world.url,
@@ -157,9 +175,12 @@ describe("siblings under one parent kind", () => {
         seed: 1,
         spec: `${world.url}/v1/openapi/spec`,
       });
+
       expect(result.entitiesTested.sort()).toEqual(["apple", "banana"]);
+
       const parentsOf = (kind: string) =>
         new Set(world.hits.filter((hit) => hit.kind === kind).map((hit) => hit.parent));
+
       const apples = parentsOf("apples");
       const bananas = parentsOf("bananas");
       expect(apples.size).toBeGreaterThan(0);

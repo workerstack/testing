@@ -39,9 +39,9 @@ describe("stalenessSchedule", () => {
   });
 
   it("never reads more than 12 times, however long the bound", () => {
-    for (const cap of [1000, 30_000, 600_000, 86_400_000]) {
+    for (const cap of [1000, 30_000, 600_000, 86_400_000])
       expect(stalenessSchedule(cap).length).toBeLessThanOrEqual(MAX_STALENESS_READS);
-    }
+
     expect(MAX_STALENESS_READS).toBe(12);
     expect(stalenessSchedule(86_400_000).at(-1)).toBe(86_400_000);
   });

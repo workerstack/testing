@@ -165,7 +165,7 @@ This repo has these `package.json` scripts. Hooks and CI call only these names a
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | `fmt` / `fmt:check` | `repo fmt`, with the standards pack's generated `.oxfmtrc.jsonc`                                                                |
 | `lint` / `lint:fix` | `repo lint`: oxlint with the generated `.oxlintrc.jsonc`, plus the repo's own rule plugin in `lint/`, registered in `repo.config.ts` |
-| `typecheck`         | `tsc --noEmit` over every root `tsconfig*.json`                                                                                 |
+| `typecheck`         | `tsc --noEmit` over each `tsconfig.json` (the root, `src/web`, `tests/web`) and each build config                               |
 | `test`              | the build, then the unit and integration suites and the conformance self-test                                                  |
 
 ### Where each gate runs

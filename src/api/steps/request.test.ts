@@ -4,9 +4,10 @@ import { RequestBuilder } from "./request.ts";
 
 const call = (): RequestBuilder<string> => new RequestBuilder({ operationId: "auth.reauthenticate" });
 
-/* Every own key of every object in `value`, deep, whose value is undefined. */
+// Every own key of every object in `value`, deep, whose value is undefined.
 function undefinedKeys(value: unknown, at = "$"): string[] {
   if (value === null || typeof value !== "object") return [];
+
   return Object.entries(value).flatMap(([key, child]) =>
     child === undefined ? [`${at}.${key}`] : undefinedKeys(child, `${at}.${key}`),
   );
@@ -26,6 +27,7 @@ describe("RequestBuilder", () => {
       .scheme("apiKey")
       .keepAccount()
       .toStep();
+
     expect(step).toStrictEqual({
       expect: [200, 201, 409],
       keepAccount: true,
@@ -53,6 +55,7 @@ describe("RequestBuilder asserts", () => {
       assert: { equals: "pro", from: "$.plan" },
       operationId: "auth.reauthenticate",
     });
+
     const step = call()
       .equals("$.a", "1")
       .contains("$.b", "2")
@@ -60,6 +63,7 @@ describe("RequestBuilder asserts", () => {
       .omits("$", '"token":')
       .atLeast("$.n", 4)
       .toStep();
+
     expect(step.assert).toStrictEqual([
       { equals: "1", from: "$.a" },
       { contains: "2", from: "$.b" },
@@ -77,6 +81,7 @@ describe("RequestBuilder asserts", () => {
       .observes("org.delete")
       .observes("auth.logout")
       .toStep();
+
     expect(step.assert).toStrictEqual([
       { equals: "1", from: "$.a", observes: ["billing.checkout"] },
       { contains: "2", from: "$.b", observes: ["org.delete", "auth.logout"] },

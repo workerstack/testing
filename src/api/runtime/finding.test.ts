@@ -62,11 +62,14 @@ describe("a check's own findings", () => {
 
 describe("what a finding may say", () => {
   const cwd = process.cwd();
+
   const stack =
     "TypeError: x is not a function\n    at run (/home/ann/testing/src/a.ts:3:9)\n\tat async /Users/bo/b.ts:1:1";
+
   const pathy = `open '${cwd}/specs/a.yaml' then /home/ann/x/spec.yaml:3 and C:\\Users\\cy\\c.ts, file:///root/d.ts`;
   const clean = "open './specs/a.yaml' then spec.yaml:3 and c.ts, d.ts";
   const evidence: Exchange[] = [];
+
   const recorders: Record<string, (findings: FindingCollector) => unknown> = {
     backend: (f) => f.backend("c", "row", { detail: pathy, evidence, summary: stack }),
     blocked: (f) => f.blocked("c", "row", { cause: pathy, summary: stack }),

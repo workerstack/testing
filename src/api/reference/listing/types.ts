@@ -1,8 +1,8 @@
+import type { Row } from "../cell.ts";
 import type { QueryConventions } from "../query/conventions.ts";
-import type { Row } from "../store-api.ts";
 
 /** A listing request with every parameter already rewritten into the canonical grammar. */
-export interface ListingRequest {
+export type ListingRequest = {
   filter?: string | undefined;
   order?: string | undefined;
   select?: string | undefined;
@@ -12,9 +12,9 @@ export interface ListingRequest {
   page?: string | undefined;
   offset?: string | undefined;
   cursor?: string | undefined;
-}
+};
 
-export interface ListingOptions {
+export type ListingOptions = {
   /** Parent constraints from the path: `{ project_id, table_id }`. */
   scope: Record<string, string | number>;
   conventions: QueryConventions;
@@ -27,9 +27,9 @@ export interface ListingOptions {
   transform?: ((row: Row) => Row) | undefined;
   /** Loads the record a relation names for `row`, for a nested select such as `table(name)`. */
   embed?: ((relation: string, row: Row) => Promise<Row | null>) | undefined;
-}
+};
 
-export interface ListingResult {
+export type ListingResult = {
   items: Row[];
   count: number;
   hasMore: boolean;
@@ -37,4 +37,4 @@ export interface ListingResult {
   page: number | null;
   offset: number;
   limit: number;
-}
+};

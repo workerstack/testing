@@ -4,13 +4,15 @@ import type { LikeSegment } from "../query-types.ts";
 export function likePattern(raw: string, unescaped: boolean): LikeSegment[] {
   const segments: LikeSegment[] = [];
   let text = "";
+
   const flush = (): void => {
     if (text !== "") segments.push({ kind: "text", text });
     text = "";
   };
+
   for (const ch of raw) {
-    /* `*` is the grammar's wildcard. `%` and `_` are literals — unless the backend interpolates
-     * the value into a LIKE pattern without escaping it, which is the LIKE_UNESCAPED defect. */
+    // `*` is the grammar's wildcard. `%` and `_` are literals — unless the backend interpolates
+    // the value into a LIKE pattern without escaping it, which is the LIKE_UNESCAPED defect.
     if (ch === "*" || (unescaped && ch === "%")) {
       flush();
       segments.push({ kind: "any" });
@@ -21,7 +23,9 @@ export function likePattern(raw: string, unescaped: boolean): LikeSegment[] {
       text += ch;
     }
   }
+
   flush();
+
   return segments;
 }
 
@@ -32,8 +36,9 @@ export function likeToRegExp(pattern: LikeSegment[], insensitive: boolean): RegE
         ? "[\\s\\S]*"
         : segment.kind === "one"
           ? "[\\s\\S]"
-          : segment.text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+          : segment.text.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&"),
     )
     .join("");
+
   return new RegExp(`^${source}$`, insensitive ? "iu" : "u");
 }

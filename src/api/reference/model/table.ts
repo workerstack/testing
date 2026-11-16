@@ -28,17 +28,15 @@ export const TABLE: EntityDef = {
     },
     { filterable: true, name: "position", sortable: true, type: "integer" },
     { filterable: true, maxLength: 256, name: "description", nullable: true, sortable: true, type: "string" },
-    /* Set by an admin alone: the field the privileged-field check writes as a lower rank. */
+    // Set by an admin alone: the field the privileged-field check writes as a lower rank.
     { name: "verified", privileged: true, type: "boolean" },
     ...TIMESTAMPS,
     { filterable: true, generated: true, name: "deleted_at", nullable: true, sortable: true, type: "integer" },
-    /*
-     * Derived from another entity: the number of rows this table holds.
-     *
-     * Its purpose is to make `x-invalidate` mean something testable. Without a field whose
-     * value depends on a *different* entity's writes, "creating a row invalidates the tables
-     * listing" is a claim no observation can contradict.
-     */
+    // Derived from another entity: the number of rows this table holds.
+    //
+    // Its purpose is to make `x-invalidate` mean something testable. Without a field whose
+    // value depends on a *different* entity's writes, "creating a row invalidates the tables
+    // listing" is a claim no observation can contradict.
     { filterable: true, generated: true, name: "row_count", sortable: true, type: "integer" },
   ],
   identity: "id",

@@ -5,12 +5,14 @@ import { referenceRequest } from "./wire.ts";
 
 export function asFetch(handle: Handle): typeof fetch {
   return async (input, init) => {
-    /* A streamed body must say it is sent half-duplex; any other body is unaffected. */
+    // A streamed body must say it is sent half-duplex; any other body is unaffected.
     const request = new Request(input, { ...init, duplex: "half" } as RequestInit);
     const read = (): Promise<string> => request.text();
+
     const answer = await handle(
       referenceRequest(request.method, new URL(request.url), { headers: Object.fromEntries(request.headers), read }),
     );
+
     return new Response(answer.status === 204 ? null : answer.body, { headers: answer.headers, status: answer.status });
   };
 }

@@ -8,13 +8,15 @@ export function fieldOf(entity: EntityDef, name: string): FieldDef | undefined {
 
 export function filterableFields(entity: EntityDef, defects: DefectSet): string[] {
   const declared = fieldsWhere(entity, "filterable");
-  /* Under the overclaim the backend refuses a field the document still declares filterable. The
-   * backend is not wrong to refuse — the document is wrong to promise. */
+
+  // Under the overclaim the backend refuses a field the document still declares filterable. The
+  // backend is not wrong to refuse — the document is wrong to promise.
   return defects.has("SPEC_OVERCLAIMS_FILTERABLE") ? declared.filter((f) => f !== OVERCLAIMED_FIELD) : declared;
 }
 
 export function sortableFields(entity: EntityDef, defects: DefectSet): string[] {
   const declared = fieldsWhere(entity, "sortable");
+
   return defects.has("SPEC_OVERCLAIMS_SORTABLE") ? declared.filter((f) => f !== OVERCLAIMED_FIELD) : declared;
 }
 

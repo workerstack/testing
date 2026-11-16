@@ -30,8 +30,10 @@ describe("placeholderNames", () => {
 describe("the three patterns", () => {
   it("spell one name alike", () => {
     const names = ["user-id", "a_b-c-1", "-a", "a-", "a--b", "a.b", ""];
+
     const read = (pattern: RegExp, text: (name: string) => string): boolean[] =>
       names.map((name) => [...text(name).matchAll(new RegExp(pattern.source, "g"))].length === 1);
+
     const plain = read(PLACEHOLDER, (name) => `{${name}}`);
     expect(plain).toEqual([true, true, false, false, false, false, false]);
     expect(read(WHOLE_PLACEHOLDER, (name) => `{${name}}`)).toEqual(plain);

@@ -1,7 +1,8 @@
 import type { RawOf } from "../../config/types/raw.ts";
 import type { SortGrammarSpec } from "../../spec/render/sort.ts";
+
 /** The names, envelope and grammars one API speaks; see `presets.ts` for why there are several. */
-export interface Dialect {
+export type Dialect = {
   name: string;
   /**
    * The dialect names its parameters on `x-query.params` and its paging fields on `x-query.envelope`,
@@ -34,7 +35,7 @@ export interface Dialect {
   envelope: {
     /** Property holding the array. `null` means "named after the entity" — `tables`, `rows`. */
     collection: string | null;
-    /* Each pagination fact is optional: a correct API may publish any subset of them. */
+    // Each pagination fact is optional: a correct API may publish any subset of them.
     total?: string;
     hasMore?: string;
     nextCursor?: string;
@@ -58,4 +59,4 @@ export interface Dialect {
   sortTemplate?: RawOf<SortGrammarSpec>;
   /** How a sparse fieldset is written. Defaults to comma-separated names. */
   selectGrammar?: "csv" | "bracketed";
-}
+};

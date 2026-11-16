@@ -16,11 +16,13 @@ describe("prepareDocument", () => {
 
   it("applies the overlay, then removes everything outside allow, reporting what went", () => {
     const removed: string[][] = [];
+
     const out = prepareDocument(
       source,
       { allow: ["notes.list"], overlay: { operations: { "notes.list": { summary: "patched" } } } },
       (ids) => removed.push(ids),
     );
+
     expect(out.paths).toEqual({ "/notes": { get: { operationId: "notes.list", summary: "patched" } } });
     expect(removed).toEqual([["notes.create", "tags.list"]]);
     expect(prepareDocument(source, { allow: ["tags.list"] }).paths).toEqual({

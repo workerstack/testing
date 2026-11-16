@@ -15,9 +15,9 @@
 
 export type SqlValue = string | number | null | Uint8Array;
 
-export type SqlRow = Record<string, unknown>;
+export type SqlRow = Record<string, SqlValue>;
 
-export interface SqliteDriver {
+export type SqliteDriver = {
   /** Human-readable engine name, used in reports so a finding names where it was observed. */
   readonly engine: string;
   /**
@@ -37,15 +37,15 @@ export interface SqliteDriver {
   /** Statement returning rows. */
   all(sql: string, args: SqlValue[]): Promise<SqlRow[]>;
   close(): Promise<void>;
-}
+};
 
 /** In-process SQLite via `node:sqlite`, which needs no flag from Node 22.13 (below the API tester's floor). */
 export async function nodeSqliteDriver(): Promise<SqliteDriver> {
   const { DatabaseSync } = await import("node:sqlite");
   const db = new DatabaseSync(":memory:");
   db.exec("PRAGMA foreign_keys = OFF");
-  /* Default SQLite LIKE is case-insensitive for ASCII, which makes `ilike` vs `like`
-   * indistinguishable. Honor the grammar's distinction the way Postgres does. */
+  // Default SQLite LIKE is case-insensitive for ASCII, which makes `ilike` vs `like`
+  // indistinguishable. Honor the grammar's distinction the way Postgres does.
   db.exec("PRAGMA case_sensitive_like = ON");
 
   return {
@@ -66,17 +66,17 @@ export async function nodeSqliteDriver(): Promise<SqliteDriver> {
   };
 }
 
-export interface D1Config {
+export type D1Config = {
   accountId: string;
   databaseId: string;
   apiToken: string;
-}
+};
 
-interface D1Response {
+type D1Response = {
   success: boolean;
   errors?: Array<{ code: number; message: string }>;
   result?: Array<{ results?: SqlRow[]; success?: boolean }>;
-}
+};
 
 /**
  * Cloudflare D1 over its HTTP query API.
@@ -100,14 +100,17 @@ export function d1Driver(config: D1Config): SqliteDriver {
     });
 
     const body = (await response.json()) as D1Response;
+
     if (!response.ok || !body.success) {
       const detail =
         body.errors?.map((error) => `${error.code}: ${error.message}`).join("; ") ?? `HTTP ${response.status}`;
-      /* Deliberately a plain Error, not SqlError: a transport or quota failure is not the
-       * backend rejecting the caller's input, and dressing it up as a 400 would let an
-       * outage read as a well-behaved validation response. */
+
+      // Deliberately a plain Error, not SqlError: a transport or quota failure is not the
+      // backend rejecting the caller's input, and dressing it up as a 400 would let an
+      // outage read as a well-behaved validation response.
       throw new Error(`D1 query failed (${detail}) for: ${sql.slice(0, 160)}`);
     }
+
     return body.result?.[0]?.results ?? [];
   }
 
@@ -116,10 +119,10 @@ export function d1Driver(config: D1Config): SqliteDriver {
       return send(sql, args);
     },
     async close() {
-      /* Stateless HTTP — nothing to release. Table teardown is the store's job. */
+      // Stateless HTTP — nothing to release. Table teardown is the store's job.
     },
-    /* Verified against a live D1, not assumed: `SELECT "no_such_col"` returns the string
-     * "no_such_col" for every row, where node:sqlite raises "no such column". */
+    // Verified against a live D1, not assumed: `SELECT "no_such_col"` returns the string
+    // "no_such_col" for every row, where node:sqlite raises "no such column".
     dqs: true,
     engine: "d1",
     async exec(sql) {
@@ -138,6 +141,8 @@ export function d1Driver(config: D1Config): SqliteDriver {
  */
 function encode(value: SqlValue): string | number | null {
   if (value === null) return null;
+
   if (value instanceof Uint8Array) return Buffer.from(value).toString("base64");
+
   return value;
 }

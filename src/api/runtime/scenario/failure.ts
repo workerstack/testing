@@ -23,6 +23,7 @@ export class ScenarioStopped extends Error {
 /** What a step threw, as a failure: its own, or one with no evidence that blames nothing. */
 export function failureOf(error: unknown): StepFailure {
   if (error instanceof StepFailure) return error;
+
   return new StepFailure(error instanceof Error ? error.message : String(error), [], []);
 }
 

@@ -5,11 +5,9 @@ import { modelOf } from "../__fixtures__/harness.ts";
 import { notesContext, notesDoc, notesModel } from "../query/__fixtures__/notes.ts";
 import { readRecord, scratchRecord, updateRequest } from "./scratch.ts";
 
-/*
- * A mutating check writes to a record made for it, never to the cohort every read-only oracle
- * planned against. When that record cannot be made the check says why: no create to make it with,
- * a documented feature gate, or a create that did not name the record it made.
- */
+// A mutating check writes to a record made for it, never to the cohort every read-only oracle
+// planned against. When that record cannot be made the check says why: no create to make it with,
+// a documented feature gate, or a create that did not name the record it made.
 
 const CHECK = "patch.minimality";
 
@@ -18,7 +16,7 @@ const creating =
   (method) =>
     method === "POST" ? answer : undefined;
 
-/* A create that answers with the record it was sent, under the id n9. */
+// A create that answers with the record it was sent, under the id n9.
 const echoing: Responder = (method, _path, options) =>
   method === "POST" ? { body: { ...(options.body as object), id: "n9" }, status: 201 } : undefined;
 
@@ -48,11 +46,15 @@ describe("scratchRecord", () => {
 
   it("confirms by a read the identity the API tester chose when the create answers none", async () => {
     let made: unknown;
+
     const respond: Responder = (method, path, options) => {
       if (method === "POST") made = options.body;
+
       if (method === "POST") return { body: { ok: true }, status: 201 };
+
       return path.startsWith("/notes/") ? { body: made, status: 200 } : undefined;
     };
+
     const { ctx, sent } = notesContext(respond, { takenIdentities: new Set() });
     const input = { properties: { id: { type: "string" }, name: { type: "string" } }, required: ["id", "name"] };
     const rawOperations = new Map(ctx.model.rawOperations);
@@ -67,7 +69,7 @@ describe("scratchRecord", () => {
       "POST /notes",
       `GET /notes/${encodeURIComponent(id)}`,
     ]);
-    /* The record is the actor's: it makes it, and reads it back, as itself. */
+    // The record is the actor's: it makes it, and reads it back, as itself.
     expect(sent.map((request) => request.options.as)).toEqual([{ principal: "alpha" }, { principal: "alpha" }]);
   });
 });
@@ -89,6 +91,7 @@ describe("scratchRecord, when no record can be made", () => {
     const body = { vars: { feature: "notes", type: "feature_gate" } };
     const { ctx, findings } = notesContext(creating({ body, status: 403 }));
     const createOp = ctx.createOp;
+
     if (createOp === undefined) throw new Error("the notes have a create");
     const gated = { ...ctx, createOp: { ...createOp, featureGate: "notes" } };
     expect(await scratchRecord(gated, CHECK)).toEqual({
@@ -169,7 +172,7 @@ describe("updateRequest", () => {
   });
 });
 
-/* Notes whose PUT body marks `plan` x-privileged, required as `required` says. */
+// Notes whose PUT body marks `plan` x-privileged, required as `required` says.
 function markedPut(required: string[]) {
   const doc = structuredClone(notesDoc());
   const paths = doc.paths as Record<string, Record<string, { requestBody: unknown }>>;
@@ -186,6 +189,7 @@ function markedPut(required: string[]) {
     },
   };
   const { ctx } = notesContext(undefined, {}, modelOf(doc));
+
   return { ctx, updateOp: { ...(ctx.updateOp ?? ctx.listOp), method: "PUT" } };
 }
 

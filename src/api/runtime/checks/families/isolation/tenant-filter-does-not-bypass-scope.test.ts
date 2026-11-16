@@ -7,6 +7,7 @@ import { type NotesOptions, notesDocument } from "./__fixtures__/notes.ts";
 import { crossTenantFilterBypass } from "./tenant-filter-does-not-bypass-scope.ts";
 
 const FILTER = { in: "query", name: "filter", schema: { type: "string" } };
+
 const filtered = (options: NotesOptions = {}) =>
   modelOf(notesDocument({ listQuery: [FILTER], query: { filterable: ["id"], grammar: "postgrest" }, ...options }));
 
@@ -50,6 +51,7 @@ describe("tenant.filter-does-not-bypass-scope", () => {
     const unfiltered = modelOf(notesDocument());
     const shared = filtered({ tenant: false });
     const titleOnly = filtered({ query: { filterable: ["title"], grammar: "postgrest" } });
+
     for (const { ctx } of [
       notesContext(filtered(), listing(200, []), { peer: undefined }),
       notesContext(filtered(), listing(200, []), { peerScope: undefined }),
@@ -57,9 +59,8 @@ describe("tenant.filter-does-not-bypass-scope", () => {
       notesContext(unfiltered, listing(200, [])),
       notesContext(shared, listing(200, [])),
       notesContext(titleOnly, listing(200, [])),
-    ]) {
+    ])
       expect(crossTenantFilterBypass.plan(ctx)).toEqual({ ok: false });
-    }
   });
 
   it("names what is missing when the record has no id or the grammar cannot say equality", () => {

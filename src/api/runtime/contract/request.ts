@@ -18,18 +18,18 @@ import { guardWrite, protectedReason } from "../own-record.ts";
 import { exampleOf, newestSeen, seenValue } from "./params.ts";
 import type { ContractCall, ContractInput } from "./types.ts";
 
-/*
- * Why `{name}` has no value, and what supplies one: a prefix root no create makes is the config's
- * (a principal's scope, or the hook); any other id comes from a response this run saw, or the hook.
- */
+// Why `{name}` has no value, and what supplies one: a prefix root no create makes is the config's
+// (a principal's scope, or the hook); any other id comes from a response this run saw, or the hook.
 function unresolvedBecause(
   input: Pick<ContractInput, "client" | "model">,
   op: ContractCall["op"],
   name: string,
 ): string {
   if (refusedWrite(input, op, name)) return "a write is sent only to a record this run created";
+
   if (input.model.roots.includes(name) && scopingParams(op, input.model).includes(name))
     return "set it in the principal's scope, or answer it from hooks.resolvePathValue";
+
   return "no response this run saw carried one, and hooks.resolvePathValue did not answer";
 }
 
@@ -39,114 +39,122 @@ export async function pathValues(
   { op, params }: Pick<ContractCall, "op" | "params">,
 ): Promise<Record<string, string> | null> {
   const values: Record<string, string> = {};
+
   for (const name of op.pathParams) {
     const declared = params.find((param) => param.in === "path" && param.name === name);
+
     const value =
       input.roots[name] ??
       (declared?.schema?.enum === undefined ? undefined : exampleOf(declared.schema)) ??
       (await askHook(input, { declared, name, op })) ??
       seenFor(input, op, name);
+
     if (value === undefined || value === null) {
       input.grades.skipped([op.operationId], `unresolved param ${name}: ${unresolvedBecause(input, op, name)}`);
+
       return null;
     }
+
     values[name] = value;
   }
+
   return values;
 }
 
-/* A path template with its parameter names dropped: `/projects/{project_id}/jobs` is `/projects/{}/jobs`. */
+// A path template with its parameter names dropped: `/projects/{project_id}/jobs` is `/projects/{}/jobs`.
 const shapeOf = (path: string): string => path.replaceAll(/\{[^}]*\}/g, "{}");
 
-/* Where a parameter's records live: the collection's path shape, and one of its items'. */
-interface Collection {
+// Where a parameter's records live: the collection's path shape, and one of its items'.
+type Collection = {
   path: string;
   item: string;
-}
+};
 
-/* What a value is drawn from: the parameter's name, its collection, and the answers it may come from. */
-interface Seen {
+// What a value is drawn from: the parameter's name, its collection, and the answers it may come from.
+type Seen = {
   name: string;
   collection: Collection;
   pool: readonly Exchange[];
-}
+};
 
-/*
- * The value an earlier success returned under `name`. A bare record key (`id`, `uuid`, `slug`) names
- * the record of the body it sits in, so only an answer about the parameter's own collection holds
- * one: its list or create, or one of its items. Any other resource's newest record answers `id`
- * too, and is the wrong record. A qualified name (`thing_id`, `thingId`) names its entity, and any
- * answer's value under it will do. A read prefers a live record (`liveValue`); a write takes only a
- * record the run made (`madeValue`).
- */
+// The value an earlier success returned under `name`. A bare record key (`id`, `uuid`, `slug`) names
+// the record of the body it sits in, so only an answer about the parameter's own collection holds
+// one: its list or create, or one of its items. Any other resource's newest record answers `id`
+// too, and is the wrong record. A qualified name (`thing_id`, `thingId`) names its entity, and any
+// answer's value under it will do. A read prefers a live record (`liveValue`); a write takes only a
+// record the run made (`madeValue`).
 function seenFor(
   input: Pick<ContractInput, "client" | "madeByRun" | "model">,
   op: ContractCall["op"],
   name: string,
 ): string | undefined {
   const seen = seenOf(input, op, name);
-  /* A method that changes nothing may go to any record the run saw. */
+
+  // A method that changes nothing may go to any record the run saw.
   if (SAFE.has(op.method)) return liveValue(input, seen);
+
   return madeValue(input, seen);
 }
 
-/*
- * A read's value: a record the run has not deleted, else a deleted one. A read of a deleted record
- * can only answer 404, and a live one can answer what the document promises.
- */
+// A read's value: a record the run has not deleted, else a deleted one. A read of a deleted record
+// can only answer 404, and a live one can answer what the document promises.
 function liveValue(input: Pick<ContractInput, "client" | "model">, seen: Seen): string | undefined {
   const { redactor } = input.client;
   const gone = deletedIn(input, seen.collection);
+
   return (
     newestSeen(seen.pool, seen.name, (value) => !redactor.holdsSecret(value) && !gone.has(value)) ??
     seenValue(seen.pool, seen.name, redactor)
   );
 }
 
-/* Whether a write's parameter went unresolved though an answer showed a value: one the run did not make. */
+// Whether a write's parameter went unresolved though an answer showed a value: one the run did not make.
 function refusedWrite(input: Pick<ContractInput, "client" | "model">, op: ContractCall["op"], name: string): boolean {
   return !SAFE.has(op.method) && seenValue(seenOf(input, op, name).pool, name, input.client.redactor) !== undefined;
 }
 
-/* The parameter's collection, and the answers its value may come from. */
+// The parameter's collection, and the answers its value may come from.
 function seenOf(input: Pick<ContractInput, "client" | "model">, op: ContractCall["op"], name: string): Seen {
   const { transcript } = input.client;
-  /* A built model's path parameters each stand in its path. */
+  // A built model's path parameters each stand in its path.
   const at = op.path.indexOf(`{${name}}`);
   const path = shapeOf(op.path.slice(0, op.path.lastIndexOf("/", at)));
   const collection = { item: `${path}/{}`, path };
+
   const pool = /^[a-z0-9]+$/.test(name)
     ? transcript.filter((exchange) => [path, collection.item].includes(shapeAt(input.model, exchange) ?? ""))
     : transcript;
+
   return { collection, name, pool };
 }
 
-/* The path shape of the operation an exchange was sent to; none for a raw request or another document's. */
+// The path shape of the operation an exchange was sent to; none for a raw request or another document's.
 function shapeAt(model: ContractInput["model"], exchange: Exchange): string | undefined {
   const id = exchange.operationId;
   const path = id === undefined ? undefined : model.byOperationId.get(id)?.path;
+
   return path === undefined ? undefined : shapeOf(path);
 }
 
-/*
- * A write's value: a record this run made and has deleted since, where the write answers a harmless
- * 404, else a live one it made. Never one an answer merely showed: a list or a read shows records
- * the run did not make, and a write there would change one.
- */
+// A write's value: a record this run made and has deleted since, where the write answers a harmless
+// 404, else a live one it made. Never one an answer merely showed: a list or a read shows records
+// the run did not make, and a write there would change one.
 function madeValue(input: Pick<ContractInput, "client" | "madeByRun" | "model">, seen: Seen): string | undefined {
-  /* A route of no entity names records of none: nothing there is the run's. */
+  // A route of no entity names records of none: nothing there is the run's.
   const entity = input.model.operations.find((op) => shapeOf(op.path) === seen.collection.item)?.entity ?? undefined;
+
   if (entity === undefined) return undefined;
   const { redactor } = input.client;
   const made = (value: string): boolean => !redactor.holdsSecret(value) && input.madeByRun(entity, value);
   const gone = deletedIn(input, seen.collection);
+
   return (
     newestSeen(seen.pool, seen.name, (value) => made(value) && gone.has(value)) ??
     newestSeen(seen.pool, seen.name, made)
   );
 }
 
-/* Every record of the collection a successful DELETE removed, by the id its URL ends in. */
+// Every record of the collection a successful DELETE removed, by the id its URL ends in.
 function deletedIn(input: Pick<ContractInput, "client" | "model">, collection: Collection): Set<string> {
   const removed = input.client.transcript.filter(
     (exchange) =>
@@ -155,20 +163,23 @@ function deletedIn(input: Pick<ContractInput, "client" | "model">, collection: C
       exchange.status < 300 &&
       shapeAt(input.model, exchange) === collection.item,
   );
+
   return new Set(
     removed.map((exchange) => decodeURIComponent(new URL(exchange.url).pathname.split("/").at(-1) as string)),
   );
 }
 
-/* `hooks.resolvePathValue`, told who acts and what the operation would send as it: never raw headers. */
+// `hooks.resolvePathValue`, told who acts and what the operation would send as it: never raw headers.
 async function askHook(
   input: Pick<ContractInput, "acting" | "hooks" | "principal" | "roots">,
   asked: { op: ContractCall["op"]; name: string; declared: ContractCall["params"][number] | undefined },
 ): Promise<string | null | undefined> {
   const hook = input.hooks.resolvePathValue;
+
   if (hook === undefined) return undefined;
   const { op, name, declared } = asked;
   const sending = await input.acting.sending(op.operationId);
+
   return hook({
     enumValues: (declared?.schema?.enum ?? []).map(String),
     identity: input.acting.identity,
@@ -194,17 +205,22 @@ export function queryValues(
 ): Record<string, unknown> | null {
   const bound = applyActionBind(bind, { records: [], beforeBody: undefined }, undefined).query;
   const query: Record<string, unknown> = {};
+
   for (const param of params) {
     if (param.in !== "query" || param.required !== true) continue;
-    /* A built model's query parameters are named: a nameless one fails the build. */
+    // A built model's query parameters are named: a nameless one fails the build.
     const name = param.name as string;
     const value = bound[name] ?? op.requiredQuery[name] ?? exampleOf(param.schema);
+
     if (value === undefined) {
       grades.skipped([op.operationId], `unresolved query param ${name}`);
+
       return null;
     }
+
     query[name] = value;
   }
+
   return query;
 }
 
@@ -220,34 +236,41 @@ export function bodyOf(
 ): { body: unknown } | null {
   const { model } = input;
   const content = requestContent(raw);
+
   if (content === null) return { body: undefined };
+
   if (!content.mediaType.includes("json")) {
     input.grades.skipped(
       [op.operationId],
       `needs a ${content.mediaType} body the API tester cannot build without a scenario`,
     );
+
     return null;
   }
-  /* The schema `requestSchemaOf` reads, from the same raw operation. One variant asked for, one
-   * member back, and its body is always an object. */
+
+  // The schema `requestSchemaOf` reads, from the same raw operation. One variant asked for, one
+  // member back, and its body is always an object.
   const [member] = buildCohort(content.schema, input.seed, {
     variants: ["baseline"],
     defs: model.defs,
-    /* By operation, not by how many requests came before: the same run sends the same body. */
+    // By operation, not by how many requests came before: the same run sends the same body.
     nonce: `${input.nonce}c${op.operationId}`,
     operationId: op.operationId,
   }) as [CohortMember];
+
   const body = applyActionBind(bind, { records: [], beforeBody: undefined }, member.body).body;
   const fields = input.credentials.identityFields.get(op.operationId) ?? [];
+
   for (const path of fields) placeIdentity(body, { nonce: input.nonce, path, schema: content.schema });
+
   return { body };
 }
 
 /** Who sends a floor call, and the body it carries. */
-export interface Sending {
+export type Sending = {
   as: Actor;
   body: unknown;
-}
+};
 
 /**
  * Who sends the call and what it carries, once its write to the principal's own record is guarded
@@ -262,35 +285,46 @@ export async function guardedSend(
   sending: Sending & { values: Readonly<Record<string, string>> },
 ): Promise<Sending | null> {
   const { as, body, values } = sending;
-  /* A recipe's own operation signs in, never as the principal: its identity fields are `placeIdentity`'s. */
+  // A recipe's own operation signs in, never as the principal: its identity fields are `placeIdentity`'s.
   const principal = "principal" in as && !input.credentials.operations.has(op.operationId) ? as.principal : undefined;
   const identity = principal === undefined ? undefined : input.ownRecords.identityOf(principal);
+
   if (identity === undefined) return { as, body };
   const schema = requestContent(raw)?.schema;
   const guarded = guardWrite(input.ownRecords.signIn, { identity, op, path: values }, { body, schema });
+
   if ("body" in guarded) return { as, body: guarded.body };
   const reason = protectedReason(op.operationId, principal as string, guarded.needs);
+
   if (op.pathParams.length > 0) {
     input.grades.skipped([op.operationId], `${reason}, and its path names the principal's own record`);
+
     return null;
   }
+
   const disposable = await input.ownRecords.disposable();
+
   if (typeof disposable === "string") return { as: { principal: disposable }, body };
   input.grades.skipped([op.operationId], `${reason}, and no disposable principal could send it: ${disposable.blocked}`);
+
   return null;
 }
 
-/* The nonexistent identity at `path`, made where the generated body left the field out. */
+// The nonexistent identity at `path`, made where the generated body left the field out.
 function placeIdentity(body: unknown, at: { nonce: string; path: readonly string[]; schema: unknown }): void {
   const [name, ...rest] = at.path as [string, ...string[]];
-  /* A dereferenced request schema; a field it does not declare has no schema to read. */
+  // A dereferenced request schema; a field it does not declare has no schema to read.
   const schema = (at.schema as { properties?: Record<string, unknown> }).properties?.[name];
   const record = body as Record<string, unknown>;
+
   if (rest.length === 0) {
     record[name] = nonexistentIdentity({ name, schema }, at.nonce);
+
     return;
   }
+
   const inner = record[name];
+
   if (inner === null || typeof inner !== "object" || Array.isArray(inner)) record[name] = {};
   placeIdentity(record[name], { nonce: at.nonce, path: rest, schema: schema ?? {} });
 }

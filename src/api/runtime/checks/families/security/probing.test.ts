@@ -103,6 +103,7 @@ describe("send", () => {
         },
       }),
     );
+
     const { ctx, sent } = operationContextFor(withQuery, "notes.search");
     await send(ctx, { path: "/search" }, { anonymous: true });
     await send(ctx, { body: "{", contentType: "application/json", path: "/search" }, { principal: "alpha" }, "answer");
@@ -134,6 +135,7 @@ describe("security shapes", () => {
     const list = operationContextFor(model, "notes.list").ctx.security;
     expect(allowsAnonymous(list)).toBe(false);
     expect(allowsAnonymous(operationContextFor(model, "auth.login").ctx.security)).toBe(true);
+
     const paired = {
       alternatives: [
         [
@@ -143,6 +145,7 @@ describe("security shapes", () => {
       ],
       source: "root",
     };
+
     expect(singleSchemes(paired as never)).toEqual([]);
     const twice = { alternatives: [[{ scheme: "jwt", scopes: [] }], [{ scheme: "jwt", scopes: ["x"] }]] };
     expect(singleSchemes(twice as never)).toEqual([{ scheme: "jwt", scopes: [] }]);
@@ -164,6 +167,7 @@ describe("security shapes", () => {
         },
       }),
     );
+
     expect(documentSchemes(ghost).map((r) => r.scheme)).toEqual(["jwt", "apiKey"]);
   });
 
@@ -171,6 +175,7 @@ describe("security shapes", () => {
     expect(describeSecurity(operationContextFor(model, "notes.list").ctx.security)).toBe(
       "jwt, or apiKey with notes:read",
     );
+
     const both = {
       alternatives: [
         [
@@ -180,11 +185,12 @@ describe("security shapes", () => {
         [],
       ],
     };
+
     expect(describeSecurity(both as never)).toBe("jwt and apiKey with a b, or no credential");
   });
 });
 
-/* A probe of notes.list that must be refused, answered with `status`. */
+// A probe of notes.list that must be refused, answered with `status`.
 const probe = (status: number, sent = "a request with no credential") => ({
   exchange: exchange("GET", "/projects/proj_a/notes", { status }),
   sent,

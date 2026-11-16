@@ -16,6 +16,7 @@ export const deleteMissingIs404: Check<{ deleteOp: OperationModel; missing: stri
   plan: (ctx) => {
     if (ctx.deleteOp === undefined) return cannot();
     const missing = absentId(ctx);
+
     return missing === null ? cannot(NO_ABSENT_ID) : ready({ deleteOp: ctx.deleteOp, missing });
   },
   mutates: true,
@@ -24,12 +25,16 @@ export const deleteMissingIs404: Check<{ deleteOp: OperationModel; missing: stri
   subjects: subjectsOf.delete,
   async run(ctx, { deleteOp, missing }): Promise<Outcome> {
     const params = { ...ctx.scope, ...itemParamFor(ctx, missing) };
+
     const exchange = await asProbe(ctx).client.request("DELETE", fillPath(deleteOp.path, params), {
       as: { principal: ctx.actor.id },
     });
+
     if (standDownForFeatureGate(ctx, deleteOp, exchange, this.id))
       return standDown("a documented feature gate refused the request");
+
     if (exchange.status === 404 || exchange.status === 410 || exchange.status === 400) return ASSERTED;
+
     if (exchange.status >= 500) {
       return ctx.findings.backend(this.id, ctx.entityName, {
         summary: "deleting a nonexistent record crashes",
@@ -37,12 +42,15 @@ export const deleteMissingIs404: Check<{ deleteOp: OperationModel; missing: stri
         evidence: [exchange],
       });
     }
-    if (exchange.status >= 300)
+
+    if (exchange.status >= 300) {
       return ctx.findings.unresolved(
         this.id,
         ctx.entityName,
         "deleting an absent record was refused for another reason",
       );
+    }
+
     return ctx.findings.backend(this.id, ctx.entityName, {
       summary: "deleting a nonexistent record reports success",
       detail:

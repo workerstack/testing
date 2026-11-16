@@ -7,16 +7,16 @@ import { selectUnknownFieldRejected } from "./select-unknown-field-rejected.ts";
 const UNKNOWN = "testing_no_such_select_xyz";
 const policy = (unknown: string) => ({ doc: queryDoc({ select: { unknown } }) });
 
-/* Serves the identity and drops a field it does not know: the ignore policy, followed. */
+// Serves the identity and drops a field it does not know: the ignore policy, followed.
 const dropsUnknown: Responder = () => ({ body: NOTES.map((row) => ({ id: row["id"] })), status: 200 });
 
-/* Echoes the undeclared name back as a field. */
+// Echoes the undeclared name back as a field.
 const echoesUnknown: Responder = () => ({
   body: NOTES.map((row) => ({ id: row["id"], [UNKNOWN]: null })),
   status: 200,
 });
 
-/* An empty listing, whatever is asked. */
+// An empty listing, whatever is asked.
 const empty: Responder = () => ({ body: [], status: 200 });
 
 describe("select.unknown-field-rejected under reject", () => {
@@ -70,12 +70,14 @@ describe("select.unknown-field-rejected plans", () => {
     const undeclared = stage(selectUnknownFieldRejected);
     expect(await undeclared.run()).toEqual({ kind: "stood-down", reason: "`select.unknown` declared" });
     expect(undeclared.sent).toEqual([]);
+
     const noParam = stage(selectUnknownFieldRejected, {
       doc: queryDoc(
         { select: { unknown: "reject" } },
         PARAMS.filter((name) => name !== "select"),
       ),
     });
+
     expect(noParam.plan().ok).toBe(false);
   });
 });

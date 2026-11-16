@@ -17,7 +17,7 @@ import { type Args, str, USAGE } from "../flags.ts";
 import type { Writer } from "../writer.ts";
 
 /** The document a command reads, modeled, with what its config said about it. */
-export interface Modeled {
+export type Modeled = {
   model: SpecModel;
   /** `$ref`s left unresolved: a URL, an anchor, or any ref of a fetched document. */
   externalRefs: string[];
@@ -29,29 +29,33 @@ export interface Modeled {
   configPath: string | undefined;
   /** Variables the config names that are not set, read as their `${NAME}` literal. Undefined without a config. */
   unsetEnv: string[] | undefined;
-}
+};
 
-/* The config an offline command reads, if any: deferred, since nothing is sent. */
-interface OfflineConfig {
+// The config an offline command reads, if any: deferred, since nothing is sent.
+type OfflineConfig = {
   config: ApiConfig | undefined;
   unsetEnv: string[] | undefined;
-}
+};
 
-/* The config `--config` names, or none, or the exit code of a refusal already written. */
+// The config `--config` names, or none, or the exit code of a refusal already written.
 async function offlineConfig(writer: Writer, configPath: string | undefined): Promise<OfflineConfig | number> {
   if (configPath === undefined) return { config: undefined, unsetEnv: undefined };
   const read = await readConfig(configPath, false, { deferEnv: true });
+
   if ("problem" in read) {
     writer.err(`testing api: ${read.problem}\n`);
+
     return EXIT.usage;
   }
+
   return { config: read.config, unsetEnv: read.unsetEnv };
 }
 
-/* The base URL a relative document resolves against. One still holding an unset `${NAME}` is none. */
+// The base URL a relative document resolves against. One still holding an unset `${NAME}` is none.
 function baseUrlOf(flags: Args["flags"], { config, unsetEnv = [] }: OfflineConfig): string | undefined {
   const baseUrl = config?.baseUrl;
   const unresolved = unsetEnv.some((name) => baseUrl?.includes(`\${${name}}`));
+
   return str(flags, "base-url") ?? (unresolved ? undefined : baseUrl);
 }
 
@@ -63,39 +67,51 @@ function baseUrlOf(flags: Args["flags"], { config, unsetEnv = [] }: OfflineConfi
 export async function modeled(writer: Writer, flags: Args["flags"]): Promise<Modeled | number> {
   const configPath = str(flags, "config");
   const read = await offlineConfig(writer, configPath);
+
   if (typeof read === "number") return read;
   const { config, unsetEnv } = read;
   const flagged = str(flags, "spec");
   const source = flagged ?? config?.spec;
+
   if (source === undefined) {
     writer.err(`testing api: --spec (or --config) is required\n\n${USAGE}`);
+
     return EXIT.usage;
   }
+
   let removed: string[] = [];
+
   try {
-    /* A path the config holds is the config's, read from its folder; one on the command line is the shell's. */
+    // A path the config holds is the config's, read from its folder; one on the command line is the shell's.
     const configDir = configPath === undefined ? undefined : dirname(resolve(configPath));
+
     const raw = await loadSpec(source, {
       baseUrl: baseUrlOf(flags, read),
       dir: flagged === undefined ? configDir : undefined,
       fetchText: fetchSpecText,
     });
+
     const { danglingRefs, doc, externalRefs } = dereference(
       prepareDocument(raw, config ?? {}, (ids) => (removed = ids)),
     );
+
     const model = buildConfiguredModel(doc, config ?? {});
+
     if (config !== undefined) {
-      /* The names and credentials are checked as `run` checks them: against this document and each origin's. */
+      // The names and credentials are checked as `run` checks them: against this document and each origin's.
       const origins = await loadOrigins(config.origins ?? [], { dir: configDir, fetchText: fetchSpecText });
       assertQueryNamesDeclared(config, [model, ...[...origins.values()].map((origin) => origin.model)]);
       assertSecurity({ ...config }, { doc, model }, origins);
     }
-    /* A create whose fixtures cannot be built is recorded on the model as a gap. */
+
+    // A create whose fixtures cannot be built is recorded on the model as a gap.
     probeCreateFixtures(model);
+
     return { config, configPath, danglingRefs, externalRefs, model, removed, unsetEnv };
   } catch (error) {
     if (!(error instanceof UsageError)) throw error;
     writer.err(`${error.message}\n`);
+
     return EXIT.usage;
   }
 }

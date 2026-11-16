@@ -12,9 +12,11 @@ const COHORT = [
   { id: "w-3", status: "held" },
   { id: "w-4", status: null },
 ];
+
 /** A row the store holds that the API tester never seeded. */
 const OUTSIDE = { id: "x-1", status: "held" };
 const DOC = { xQuery: { filterable: [{ field: "status", ops: ["eq", "in", "nin"] }] } };
+
 /** FILTER_NIN_FIRST_ONLY: nin() excludes only the first listed value. */
 const FIRST_ONLY = {
   ops: { nin: (value: unknown, arg: string) => value !== null && value !== undefined && value !== members(arg)[0] },
@@ -41,6 +43,7 @@ describe("filter.nin-complements-in", () => {
       records: COHORT,
       store: [...COHORT, OUTSIDE],
     });
+
     expect(await runCheck(check, ctx)).toMatchObject({ kind: "finding" });
     const finding = only(findings);
     expect(finding.summary).toBe("in() and nin() do not cover the non-null set");

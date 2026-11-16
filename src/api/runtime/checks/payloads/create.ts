@@ -27,12 +27,15 @@ export async function createFresh(
 ): Promise<Fresh> {
   const sender = ctx.actors.find((actor) => actor.id === principal);
   const withheld = sender === undefined ? undefined : privilegedBar(createOp, sender, ctx.actors);
+
   if (withheld !== undefined) return { withheld };
+
   const send = async (body: Record<string, unknown>): Promise<Exchange> =>
     ctx.client.request("POST", fillPath(createOp.path, ctx.scope), {
       ...(await encodeOpBody(ctx, createOp, body)),
       as: { principal },
       operationId: createOp.operationId,
     });
+
   return createWithClientId(validBody(ctx, schema), send, clientIdentityOf(ctx, schema, `f${ctx.nonce ?? ""}`));
 }

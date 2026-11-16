@@ -4,20 +4,20 @@ import { dropWhen, endlessWhen, pagedDoc, rewriting } from "./__fixtures__/compo
 import { NOTES, queryDoc, REJECT, stage } from "./__fixtures__/query-api.ts";
 import { searchAndFilterCompose } from "./query-search-and-filter-compose.ts";
 
-/* The filter plus search answered under another filter: n1 goes missing and n3 appears. */
+// The filter plus search answered under another filter: n1 goes missing and n3 appears.
 const swappedBoth = rewriting((query) =>
   "q" in query && "filter" in query ? { ...query, filter: "status.eq.closed" } : query,
 );
 
-/* The filter plus search answered as nothing. */
+// The filter plus search answered as nothing.
 const emptiedBoth = rewriting((query) =>
   "q" in query && "filter" in query ? { ...query, filter: "status.eq.none" } : query,
 );
 
-/* The filter alone refused. */
+// The filter alone refused.
 const refusedFilter = rewriting((query) => ("filter" in query && !("q" in query) ? REJECT : query));
 
-/* Every search refused. */
+// Every search refused.
 const refusedSearch = rewriting((query) => ("q" in query ? REJECT : query));
 
 describe("query.search-and-filter-compose judges", () => {

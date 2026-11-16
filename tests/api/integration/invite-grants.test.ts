@@ -8,11 +8,9 @@ import { bearerSecurity } from "../../../src/api/conformance/harness/security.ts
 import { run } from "../../../src/api/runtime/run/index.ts";
 import type { JsonSchema, OpenApiDocument } from "../../../src/api/spec/types.ts";
 
-/*
- * An organization invite opens the organization, not the member records: a plain member reads the
- * organization but cannot read another member. The grant id is the new membership, which is also
- * what revoke removes, never the owner's membership the check happened to list first.
- */
+// An organization invite opens the organization, not the member records: a plain member reads the
+// organization but cannot read another member. The grant id is the new membership, which is also
+// what revoke removes, never the owner's membership the check happened to list first.
 
 const closers: Array<() => Promise<void>> = [];
 
@@ -25,6 +23,7 @@ const MEMBER = {
   required: ["id"],
   type: "object",
 };
+
 const ORG_PARAM = { in: "path", name: "org_id", required: true, schema: { type: "string" } };
 const MEMBER_PARAM = { in: "path", name: "member_id", required: true, schema: { type: "string" } };
 
@@ -152,8 +151,10 @@ function send(res: ServerResponse, status: number, body?: unknown): void {
 
 async function readJson(req: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = [];
+
   for await (const chunk of req) chunks.push(chunk as Buffer);
   const text = Buffer.concat(chunks).toString("utf8");
+
   return text === "" ? undefined : (JSON.parse(text) as unknown);
 }
 
@@ -169,7 +170,7 @@ type OrgExchange = {
   world: OrgWorld;
 };
 
-/* Matched in order; a route without a method answers every method. */
+// Matched in order; a route without a method answers every method.
 type OrgRoute = { handle: (exchange: OrgExchange) => unknown; method?: string; path: RegExp };
 
 async function inviteToOrg({ owner, req, res }: OrgExchange): Promise<void> {
@@ -180,6 +181,7 @@ async function inviteToOrg({ owner, req, res }: OrgExchange): Promise<void> {
 
 async function acceptInvite({ auth, req, res, world }: OrgExchange): Promise<void> {
   const body = (await readJson(req)) as { token?: string } | undefined;
+
   if (auth !== "Bearer b" || body?.token !== "tok") return send(res, 400);
   world.joined = true;
   send(res, 200, { access_token: "b-joined" });
@@ -187,6 +189,7 @@ async function acceptInvite({ auth, req, res, world }: OrgExchange): Promise<voi
 
 function readMember({ match, owner, res }: OrgExchange): void {
   if (!owner) return send(res, 403);
+
   if (match[1] === "m_owner") send(res, 200, { id: "m_owner" });
   else send(res, 404);
 }
@@ -194,8 +197,11 @@ function readMember({ match, owner, res }: OrgExchange): void {
 function removeMember({ match, owner, res, world }: OrgExchange): void {
   const item = match[1] ?? "";
   world.deletes.push(item);
+
   if (!owner) return send(res, 403);
+
   if (item === "m_owner") return send(res, 403, { error_key: "member_last_owner" });
+
   if (item === "m_beta") world.joined = false;
   send(res, 204);
 }
@@ -209,7 +215,7 @@ const ORG_ROUTES: readonly OrgRoute[] = [
     method: "GET",
     path: /^\/v1\/projects\/p_1\/tables$/,
   },
-  /* Everything outside org_1 and the accept endpoint is unknown. */
+  // Everything outside org_1 and the accept endpoint is unknown.
   { handle: ({ res }) => send(res, 404), path: /^(?!\/v1\/orgs\/org_1|\/v1\/invites\/accept$)/ },
   {
     handle: ({ owner, res }) =>
@@ -227,6 +233,7 @@ async function routeOrg(world: OrgWorld, req: IncomingMessage, res: ServerRespon
   const url = new URL(req.url ?? "/", "http://127.0.0.1");
   const method = (req.method ?? "GET").toUpperCase();
   const auth = req.headers.authorization ?? "";
+
   const exchange = {
     auth,
     member: auth === "Bearer b-joined" && world.joined,
@@ -235,14 +242,18 @@ async function routeOrg(world: OrgWorld, req: IncomingMessage, res: ServerRespon
     res,
     world,
   };
+
   for (const route of ORG_ROUTES) {
     if (route.method !== undefined && route.method !== method) continue;
     const match = route.path.exec(url.pathname);
+
     if (match !== null) {
       await route.handle({ ...exchange, match });
+
       return;
     }
   }
+
   send(res, 404);
 }
 
@@ -252,11 +263,13 @@ async function routeOrg(world: OrgWorld, req: IncomingMessage, res: ServerRespon
  */
 async function orgServer(document: OpenApiDocument): Promise<{ deletes: string[]; url: string }> {
   const world: OrgWorld = { deletes: [], document, joined: false };
+
   const server = createServer((req, res) => {
     routeOrg(world, req, res).catch(() => {
       if (!res.headersSent) send(res, 500);
     });
   });
+
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   closers.push(
     () =>
@@ -264,11 +277,13 @@ async function orgServer(document: OpenApiDocument): Promise<{ deletes: string[]
         server.close((error) => (error ? reject(error) : resolve()));
       }),
   );
+
   return { deletes: world.deletes, url: `http://127.0.0.1:${(server.address() as AddressInfo).port}` };
 }
 
-/* Each principal's bearer token is its `token`; beta's becomes the one accept issues once it joins. */
+// Each principal's bearer token is its `token`; beta's becomes the one accept issues once it joins.
 const security: SecurityConfig = { bearer: { static: "{principal.token}" } };
+
 const principals: PrincipalsConfig = {
   alpha: { scope: { org_id: "org_1", project_id: "p_1" }, tenant: "org_1", token: "a" },
   beta: { inviteAs: "beta@x.test", scope: { org_id: "org_2", project_id: "p_2" }, tenant: "org_2", token: "b" },
@@ -277,6 +292,7 @@ const principals: PrincipalsConfig = {
 describe("invite grants", () => {
   it("judges access by the read x-invite.grants names, filled from the inviter's scope", async () => {
     const server = await orgServer(spec("table.list"));
+
     const result = await run({
       baseUrl: server.url,
       only: ["member"],
@@ -285,14 +301,17 @@ describe("invite grants", () => {
       seed: 1,
       spec: `${server.url}/v1/openapi/spec`,
     });
+
     expect(result.checksRun).toContain("auth.invite-grants-then-revokes");
     expect(result.findings.filter((finding) => finding.check === "auth.invite-grants-then-revokes")).toEqual([]);
+
     const reads = result.client.transcript.filter(
       (exchange) =>
         exchange.method === "GET" &&
         new URL(exchange.url).pathname === "/v1/projects/p_1/tables" &&
         exchange.principal !== "alpha",
     );
+
     expect(reads.map((exchange) => exchange.status)).toEqual([403, 403, 200, 403]);
   });
 

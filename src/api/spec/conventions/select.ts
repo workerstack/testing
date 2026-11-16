@@ -12,11 +12,14 @@ export function selectTerm(
   resource: string,
 ): Record<string, string> | null {
   const parameter = conventions.select;
+
   if (parameter === undefined) return null;
   const value = fields.join(",");
+
   if (conventions.selectGrammar === "csv") return { [parameter]: value };
-  /* Already bracketed in the document — `fields[articles]` — so the name is used verbatim.
-   * Otherwise the resource name is inserted, which is what the grammar requires. */
+  // Already bracketed in the document — `fields[articles]` — so the name is used verbatim.
+  // Otherwise the resource name is inserted, which is what the grammar requires.
   const name = /\[[^\]]+\]$/.test(parameter) ? parameter : `${parameter}[${resource}]`;
+
   return { [name]: value };
 }

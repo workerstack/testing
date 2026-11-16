@@ -36,6 +36,7 @@ describe("buildModel", () => {
       },
       { components: { securitySchemes: { jwt: { scheme: "bearer", type: "http" } } } },
     );
+
     expect([...model.byRoute.keys()]).toEqual([
       "POST /v1/auth/login",
       "GET /orgs/{org_id}/notes",
@@ -53,6 +54,7 @@ describe("buildModel", () => {
 
   it("carries the recursive schemas, and no auth or schemes where the document has none", () => {
     const recursive = { properties: { child: { $ref: "#/components/schemas/Node" } }, type: "object" };
+
     const model = buildModel(
       dereference(
         doc(
@@ -61,6 +63,7 @@ describe("buildModel", () => {
         ),
       ).doc,
     );
+
     expect(Object.keys(model.defs)).toEqual(["Node"]);
     expect(model.hasAuthOperations).toBe(false);
     expect(model.securitySchemes).toEqual([]);
@@ -68,6 +71,7 @@ describe("buildModel", () => {
 
   it("marks an operation whose only body is multipart as taking a request body", () => {
     const upload = { schema: { properties: { file: { format: "binary", type: "string" } }, type: "object" } };
+
     const model = modelOf({
       "/extract": {
         post: {
@@ -78,6 +82,7 @@ describe("buildModel", () => {
         },
       },
     });
+
     expect(model.byOperationId.get("extract.once")?.hasRequestBody).toBe(true);
   });
 });
@@ -91,6 +96,7 @@ describe("create per noun", () => {
       },
       "/v1/ping": { post: { operationId: "ping", responses: ok({ type: "object" }) } },
     });
+
     expect(model.entities.get("note")?.create).toBe("notes.create");
     expect(model.gaps.gaps.some((gap) => gap.operationId === "ping" && gap.tag === "x-entity")).toBe(true);
   });
@@ -102,6 +108,7 @@ describe("duplicate operation ids", () => {
       "/v1/notes": { get: { operationId: "same", responses: ok(list(member)) } },
       "/v1/tags": { get: { operationId: "same", responses: ok(list(member)) } },
     });
+
     expect(model.byOperationId.get("same")?.path).toBe("/v1/notes");
     expect(model.rawOperations.get("same")?.responses).toBeDefined();
     expect(model.gaps.gaps.find((gap) => gap.tag === "operationId")?.detail).toBe(
@@ -123,6 +130,7 @@ describe("tag validation", () => {
         },
       },
     });
+
     const found = model.gaps.gaps.map((gap) => gap.detail);
     expect(found).toContain("x-destructive must be true or false; the API tester cannot use it");
     expect(found.some((detail) => detail.startsWith("x-cost must be one of"))).toBe(true);
@@ -172,6 +180,7 @@ describe("x-cleanup routes", () => {
         trace: { operationId: "notes.trace", responses: ok(member), "x-entity": { action: "read", name: "note" } },
       },
     });
+
     const trace = model.byOperationId.get("notes.trace");
     expect(trace).toMatchObject({ action: null, entity: null });
     expect(model.entities.get("note")).toMatchObject({ read: "notes.get", reads: ["notes.get"] });
@@ -182,6 +191,7 @@ describe("x-cleanup routes", () => {
 
   it("reports a cleanup route the document does not have, and not one it has", () => {
     const purge = { post: { operationId: "notes.purge", responses: { "204": { description: "gone" } } } };
+
     const model = modelOf({
       "/v1/admin/purge": purge,
       "/v1/notes": {
@@ -191,6 +201,7 @@ describe("x-cleanup routes", () => {
         post: { operationId: "tags.create", responses: ok(member), "x-cleanup": "DELETE /v1/tags/{tag_id}" },
       },
     });
+
     expect(model.gaps.gaps.filter((gap) => gap.tag === "x-cleanup")).toEqual([
       {
         detail: 'names "DELETE /v1/tags/{tag_id}", which is not an operation in this document',
@@ -217,7 +228,9 @@ const searched = (xQuery?: Record<string, unknown>) =>
       },
     }),
   ).doc;
+
 const conventionsOf = (model: ReturnType<typeof buildModel>) => model.byOperationId.get("notes.list")?.conventions;
+
 const paramGaps = (model: ReturnType<typeof buildModel>) =>
   model.gaps.gaps.filter((gap) => gap.tag === "x-query" && gap.detail.startsWith("params.")).map((gap) => gap.detail);
 
@@ -249,7 +262,7 @@ describe("buildModel query parameter names", () => {
   });
 });
 
-/* A list answering its next page's cursor as `next_before`, which no alias finds. */
+// A list answering its next page's cursor as `next_before`, which no alias finds.
 const keyset = (xQuery?: Record<string, unknown>) =>
   dereference(
     doc({
@@ -269,6 +282,7 @@ const keyset = (xQuery?: Record<string, unknown>) =>
       },
     }),
   ).doc;
+
 const eventsOf = (model: ReturnType<typeof buildModel>) => model.byOperationId.get("events.list")?.conventions;
 
 describe("buildModel envelope field names", () => {
@@ -293,6 +307,7 @@ describe("buildModel envelope field names", () => {
     const configured = buildModel(keyset({ envelope: { nextCursor: "next_after" } }), {
       queryEnvelope: { nextCursor: "next_before" },
     });
+
     expect(eventsOf(configured)?.envelope).toEqual({ nextCursor: "next_before" });
     const elsewhere = buildModel(keyset(), { queryEnvelope: { total: "tally" } });
     expect(eventsOf(elsewhere)?.envelope).toEqual({});

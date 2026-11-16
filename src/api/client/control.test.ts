@@ -3,16 +3,16 @@ import { describe, expect, it } from "vitest";
 import type { Exchange } from "../runtime/exchange.ts";
 import { type ControlRead, createControls, type Sent } from "./control.ts";
 
-/*
- * A credential a renewal issued that is refused is sent once more on the last read that accepted its
- * principal × scheme. Refused there too, the pair is BLOCKED, unless a request accepted the value
- * first: then it lapsed. Accepted, the refusal is the route's own; with no such read, nothing is
- * decided. One verdict per renewed value.
- */
+// A credential a renewal issued that is refused is sent once more on the last read that accepted its
+// principal × scheme. Refused there too, the pair is BLOCKED, unless a request accepted the value
+// first: then it lapsed. Accepted, the refusal is the route's own; with no such read, nothing is
+// decided. One verdict per renewed value.
 
 const accepted = (over: Partial<Exchange> = {}, without?: "principal" | "schemes"): Exchange => {
   const exchange = { method: "GET", principal: "alpha", schemes: ["jwt"], seq: 1, status: 200, ...over } as Exchange;
+
   if (without !== undefined) delete exchange[without];
+
   return exchange;
 };
 
@@ -25,11 +25,13 @@ const READ: ControlRead = {
 
 function sent(value = "v2"): Sent & { blocked: string[] } {
   const blocked: string[] = [];
+
   return { block: (reason) => blocked.push(reason), blocked, principal: "alpha", sentValues: { jwt: value } };
 }
 
 const answering = (status: number) => {
   const reads: ControlRead[] = [];
+
   return { reads, send: async (read: ControlRead) => (reads.push(read), { status } as Exchange) };
 };
 
@@ -70,6 +72,7 @@ describe("createControls", () => {
   ] as const)("answers a control %i, on a value accepted first: %s, with %s", async (status, proven, verdict) => {
     const controls = createControls();
     controls.note(accepted(), READ);
+
     if (proven) controls.accepted(sent());
     const refused = sent();
     expect(await controls.confirm(refused, answering(status).send)).toBe(verdict);
@@ -82,10 +85,12 @@ describe("createControls: what it keeps", () => {
     const controls = createControls();
     controls.note(accepted(), READ);
     const control = answering(401);
+
     const verdicts = await Promise.all([
       controls.confirm(sent(), control.send),
       controls.confirm(sent(), control.send),
     ]);
+
     expect([control.reads.length, verdicts]).toEqual([1, ["blocked", "blocked"]]);
   });
 
@@ -98,6 +103,7 @@ describe("createControls: what it keeps", () => {
 
   it("keeps only a read that accepted a principal's credential, the latest, named by method and path without an id", async () => {
     const controls = createControls();
+
     for (const rejected of [
       accepted({ method: "POST" }),
       accepted({ status: 401 }),
@@ -105,9 +111,9 @@ describe("createControls: what it keeps", () => {
       accepted({}, "principal"),
       accepted({ forged: true }),
       accepted({}, "schemes"),
-    ]) {
+    ])
       controls.note(rejected, { ...READ, path: "/never" });
-    }
+
     const unnamed = { ...READ, operationId: undefined, path: "/later" };
     controls.note(accepted({ method: "QUERY" }), READ);
     controls.note(accepted({ method: "HEAD" }), unnamed);

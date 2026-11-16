@@ -8,10 +8,10 @@ const ORIGIN = "http://catalog.test";
 const AUTH = { authorization: "Bearer tok_alpha" };
 
 /** A request's body and headers: none, and the owner's token, unless given. */
-interface Sent {
+type Sent = {
   body?: string;
   headers?: Record<string, string>;
-}
+};
 
 function request(method: string, path: string, { body = "", headers = AUTH }: Sent = {}) {
   return referenceRequest(method, new URL(`${ORIGIN}${path}`), { headers, read: async () => body });

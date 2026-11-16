@@ -10,6 +10,7 @@ describe("doctor as text", () => {
     const { model, externalRefs } = await referenceModel();
     const { text, blocking } = doctor(model, { externalRefs });
     expect(blocking).toBe(1);
+
     const sections = [
       "  testable",
       "  2 check(s) cannot run",
@@ -19,6 +20,7 @@ describe("doctor as text", () => {
       "  query catalog",
       "  gaps by tag",
     ].map((heading) => text.indexOf(heading));
+
     expect(sections.every((index) => index >= 0)).toBe(true);
     expect(sections).toEqual([...sections].sort((a, b) => a - b));
     expect(text).not.toContain("no gaps");
@@ -42,12 +44,14 @@ describe("doctor as text", () => {
 describe("doctor as JSON", () => {
   it("carries the counts, declarations, gaps and catalog in a stable order", async () => {
     const { model } = await referenceModel();
+
     const { text, blocking } = doctor(model, {
       asJson: true,
       config: { allowRemoved: ["a.b"], entities: { ghost: {} } },
       danglingRefs: ["#/missing"],
       externalRefs: ["x.yaml"],
     });
+
     const json = readBack(text);
     expect(Object.keys(json)).toEqual([
       "blocking",
@@ -71,7 +75,7 @@ describe("doctor as JSON", () => {
       "untestableEntities",
       "unknownEntities",
     ]);
-    /* With no recipe minting API keys, api-key is an entity of its own, tested through its creates. */
+    // With no recipe minting API keys, api-key is an entity of its own, tested through its creates.
     expect(json).toMatchObject({
       allowRemoved: ["a.b"],
       blocking,
@@ -90,9 +94,10 @@ describe("doctor as JSON", () => {
 
   it("says how a link invite is accepted and its revoke bound, and leaves out an allow list config did not give", async () => {
     const { model } = await referenceModel();
-    for (const entity of model.entities.values()) {
+
+    for (const entity of model.entities.values())
       if (entity.invite !== null) entity.invite = { ...entity.invite, acceptFrom: "link", revokeStaleness: 300 };
-    }
+
     const json = readBack(doctor(model, { asJson: true }).text);
     expect(json.invites[0].acceptFrom).toBe("link");
     expect(json.invites[0].revokeStaleness).toBe(300);

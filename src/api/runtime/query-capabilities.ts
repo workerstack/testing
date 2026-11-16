@@ -40,13 +40,14 @@ export async function resolveEntityCapabilities(input: {
 
   const get = async (operationId: string, scope = input.scope): Promise<unknown> => {
     const op = resolveHarvestOp(input.model, operationId);
-    if (op === undefined) {
-      throw new Error(`testing api: harvest/get target "${operationId}" is not in the document`);
-    }
+
+    if (op === undefined) throw new Error(`testing api: harvest/get target "${operationId}" is not in the document`);
+
     const exchange = await input.client.request(op.method, fillPath(op.path, scope), {
       as: { principal: input.principal },
       operationId: op.operationId,
     });
+
     return exchange.responseBody;
   };
 
@@ -55,19 +56,25 @@ export async function resolveEntityCapabilities(input: {
     axis: "filterable" | "sortable" | "searchable" | "selectable",
   ): Promise<void> => {
     const target = from.operationId ?? from.route;
+
     if (target === undefined) return;
     const body = await get(target);
     const names = readJsonPathList(body, from.path).filter((value): value is string => typeof value === "string");
+
     const types =
       from.typePath === undefined
         ? []
         : readJsonPathList(body, from.typePath).map((value) => (typeof value === "string" ? value : undefined));
+
     caps = applyHarvest(caps, { axis, names, types });
   };
 
   if (caps.filterableFrom !== undefined) await harvest(caps.filterableFrom, "filterable");
+
   if (caps.sortableFrom !== undefined) await harvest(caps.sortableFrom, "sortable");
+
   if (caps.searchableFrom !== undefined) await harvest(caps.searchableFrom, "searchable");
+
   if (caps.selectableFrom !== undefined) await harvest(caps.selectableFrom, "selectable");
 
   if (input.hook !== undefined) {
@@ -80,13 +87,17 @@ export async function resolveEntityCapabilities(input: {
 
 export function capabilitiesFromTag(tag: QueryCapability | null): EffectiveQueryCapabilities {
   if (tag === null) return emptyCapabilities();
+
   return mergeQueryCapabilities({ tag });
 }
 
 function resolveHarvestOp(model: SpecModel, target: string): OperationModel | undefined {
   const byId = model.byOperationId.get(target);
+
   if (byId !== undefined) return byId;
   const parsed = parseRouteRef(target.startsWith("/") ? `GET ${target}` : target);
+
   if (parsed === null) return undefined;
+
   return model.byRoute.get(`${parsed.method} ${parsed.path}`);
 }

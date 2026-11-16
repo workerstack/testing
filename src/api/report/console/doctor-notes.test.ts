@@ -61,6 +61,7 @@ describe("catalogLines", () => {
       sortable: [{ field: "a" }],
       source: "mixed",
     });
+
     expect(catalogLines({ ...empty, catalogs: [full] }).slice(1, -1)).toEqual([
       "    note  source=mixed +hook harvest=filterableFrom,sortableFrom",
       "      grammar     template {field}",
@@ -88,6 +89,7 @@ describe("envelopeLines", () => {
     expect(lines).toContain(`    ${"table.get".padEnd(28)} record $.data`);
     const ids = lines.slice(1, -1).map((line) => line.trim().split(" ")[0] ?? "");
     expect(ids).toEqual([...ids].sort((a, b) => a.localeCompare(b)));
+
     const idOnly = modelOf(
       documentOf({
         "/a": {
@@ -99,6 +101,7 @@ describe("envelopeLines", () => {
         },
       }),
     ).model;
+
     expect(envelopeLines(idOnly)).toContain(`    ${"a.create".padEnd(28)} created id $.id`);
   });
 });
@@ -111,6 +114,7 @@ describe("authLines", () => {
       "    the document declares no security scheme; if the API needs a credential, declare it with overlay.securitySchemes and overlay.security (testing api init writes the stub)",
       "",
     ]);
+
     const secured = modelOf(
       documentOf(
         { "/a": { get: listOp("a", "a.list") } },
@@ -124,6 +128,7 @@ describe("authLines", () => {
         },
       ),
     ).model;
+
     expect(authLines(secured)).toEqual([
       "  auth",
       '    document declares "bearer", "key" but contains no',

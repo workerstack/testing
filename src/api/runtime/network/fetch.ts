@@ -13,7 +13,7 @@ import { refineNetworkKind } from "./interfaces.ts";
 import { DEFAULT_NETWORK_RETRIES, DEFAULT_NETWORK_WAIT_MS, networkRetryWaitMs } from "./policy.ts";
 import { probeOrigin } from "./probe.ts";
 
-export interface NetworkFetchOptions {
+export type NetworkFetchOptions = {
   retries?: number;
   waitMs?: number;
   requestTimeoutMs?: number;
@@ -22,27 +22,30 @@ export interface NetworkFetchOptions {
   onWait?: (info: NetworkWaitInfo) => void;
   fetchImpl?: typeof fetch;
   now?: () => number;
-}
+};
 
-interface FetchCall {
+type FetchCall = {
   url: string;
   init: RequestInit;
   method: string;
   fetchImpl: typeof fetch;
   options: NetworkFetchOptions;
-}
+};
 
 /** One attempt; a network failure comes back as a `NetworkError` naming its kind. */
 async function attemptOnce(call: FetchCall, attempt: number): Promise<Response> {
   const { url, init, method, fetchImpl, options } = call;
+
   try {
     const initWithTimeout: RequestInit =
       options.requestTimeoutMs === undefined
         ? init
         : { ...init, signal: AbortSignal.timeout(options.requestTimeoutMs) };
+
     return await fetchImpl(url, initWithTimeout);
   } catch (error) {
     const raw = classifyNetworkError(error);
+
     if (raw === null) throw error;
     const kind = refineNetworkKind(raw);
     throw new NetworkError({
@@ -58,6 +61,7 @@ async function attemptOnce(call: FetchCall, attempt: number): Promise<Response> 
 
 function gateOptions(call: FetchCall, pause: (ms: number) => Promise<void>): NetworkGateOptions {
   const { options, url, fetchImpl } = call;
+
   return {
     probe: options.probe ?? (() => probeOrigin(url, { fetchImpl })),
     sleep: pause,
@@ -99,13 +103,15 @@ export async function fetchWithNetworkRetry(
     } catch (error) {
       if (!isNetworkError(error)) throw error;
       last = error;
+
       if (attempt < retries) await pause(networkRetryWaitMs(attempt));
     }
   }
 
   const gate = createNetworkGate(gateOptions(call, pause));
-  /* The loop runs at least once and only falls through after a network failure. */
+  // The loop runs at least once and only falls through after a network failure.
   const failed = last as NetworkError;
+
   if (await gate.awaitRecovery(failed)) return attemptOnce(call, retries + 1);
   throw exhaustedError(failed, gate.waitedMs);
 }
@@ -117,6 +123,8 @@ export async function fetchSpecText(url: string, network?: NetworkFetchOptions):
     { headers: { accept: "application/json" } },
     { retries: DEFAULT_NETWORK_RETRIES, waitMs: 0, ...network },
   );
+
   if (!res.ok) throw new Error(`testing api: fetching ${url} returned ${res.status} ${res.statusText}`);
+
   return res.text();
 }

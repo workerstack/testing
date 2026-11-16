@@ -21,7 +21,7 @@ describe("tenant.item-not-readable-cross-tenant", () => {
       const { ctx, findings, sent } = notesContext(inferred, answering(status));
       expect(await runCheck(crossTenantItemRead, ctx)).toEqual({ kind: "asserted" });
       expect(sent.map((s) => `${s.method} ${s.path} ${caller(s)}`)).toEqual(["GET /orgs/o2/notes/n1 other"]);
-      /* Named, so the client sends the peer's credential for the read's own security. */
+      // Named, so the client sends the peer's credential for the read's own security.
       expect(sent[0]?.options.operationId).toBe("readNote");
       expect(findings.findings).toEqual([]);
     }
@@ -61,12 +61,14 @@ describe("tenant.item-not-readable-cross-tenant", () => {
 describe("tenant.item-not-readable-cross-tenant planning", () => {
   it("stands down without a second tenant, a read, a record or a boundary", async () => {
     const shared = modelOf(notesDocument({ tenant: false }));
+
     const cases = [
       notesContext(inferred, answering(200), { peer: undefined }),
       notesContext(inferred, answering(200), { readOp: undefined }),
       notesContext(inferred, answering(200), { records: [] }),
       notesContext(shared, answering(200)),
     ];
+
     for (const { ctx, sent } of cases) {
       expect((await runCheck(crossTenantItemRead, ctx)).kind).toBe("stood-down");
       expect(sent).toEqual([]);

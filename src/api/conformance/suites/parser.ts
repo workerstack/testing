@@ -21,47 +21,54 @@ type Operation = Model["operations"][number] | undefined;
 
 function querySource(op: Operation): string[] {
   const source = op?.query?.source;
+
   return source === "heuristic" ? [] : [`query source is ${source ?? "null"}, expected heuristic`];
 }
 
 function maxLimit(op: Operation): string[] {
   const limit = op?.query?.maxLimit;
+
   return limit === 50 ? [] : [`maxLimit is ${String(limit)}, expected 50 from per_page.maximum`];
 }
 
 function roles(op: Operation): string[] {
   const conventions = op?.conventions;
+
   if (conventions?.order === "sort" && conventions.select === "fields" && conventions.search === "q") return [];
+
   return [`roles resolved to order=${conventions?.order} select=${conventions?.select} search=${conventions?.search}`];
 }
 
 function rolesByAlias(model: Model): string[] {
   const op = model.operations[0];
+
   return [...querySource(op), ...maxLimit(op), ...roles(op)];
 }
 
-/* A schema ref to nothing reads as unconstrained with a gap; a parameter ref to nothing leaves its operation untested. */
+// A schema ref to nothing reads as unconstrained with a gap; a parameter ref to nothing leaves its operation untested.
 function danglingRef(model: Model): string[] {
   const problems: string[] = [];
-  if (!model.gaps.gaps.some((gap) => gap.tag === "$ref" && gap.operationId === "payment.list")) {
+
+  if (!model.gaps.gaps.some((gap) => gap.tag === "$ref" && gap.operationId === "payment.list"))
     problems.push("payment.list has no gap for the schema its $ref names but the document lacks");
-  }
-  if (model.byOperationId.get("refund.list")?.unsendable == null) {
+
+  if (model.byOperationId.get("refund.list")?.unsendable == null)
     problems.push("refund.list was modeled with a parameter its $ref names but the document lacks");
-  }
+
   return problems;
 }
 
-/* A requirement whose scopes are not a list reads as needing none, with a gap naming the scheme. */
+// A requirement whose scopes are not a list reads as needing none, with a gap naming the scheme.
 function scopesNotAList(model: Model): string[] {
   const problems: string[] = [];
   const scopes = model.byOperationId.get("RevokeToken")?.security.alternatives;
-  if (JSON.stringify(scopes) !== JSON.stringify([[{ scheme: "oauth2", scopes: [] }]])) {
+
+  if (JSON.stringify(scopes) !== JSON.stringify([[{ scheme: "oauth2", scopes: [] }]]))
     problems.push(`RevokeToken's requirement read as ${JSON.stringify(scopes)}, expected oauth2 with no scopes`);
-  }
-  if (!model.gaps.gaps.some((gap) => gap.tag === "security" && gap.operationId === "RevokeToken")) {
+
+  if (!model.gaps.gaps.some((gap) => gap.tag === "security" && gap.operationId === "RevokeToken"))
     problems.push("RevokeToken has no gap for the oauth2 scopes that are not a list");
-  }
+
   return problems;
 }
 
@@ -73,10 +80,12 @@ const PROBES: Readonly<Record<string, Probe>> = {
     MANGLED_PLURALS.filter((bad) => model.entities.has(bad)).map((bad) => `mangled plural produced entity "${bad}"`),
   "multiple-arrays-in-envelope": (model) => {
     const key = model.operations[0]?.collection?.key;
+
     return key === "reports" ? [] : [`collection key resolved to "${key ?? "none"}", expected "reports"`];
   },
   "pagination-only-is-not-query": (model) => {
     const query = model.operations[0]?.query;
+
     return query === null ? [] : [`query capability inferred from page/limit/status: ${query?.source ?? "unknown"}`];
   },
   "query-roles-by-alias": rolesByAlias,
@@ -86,12 +95,13 @@ const PROBES: Readonly<Record<string, Probe>> = {
 /** The operation and entity counts a fixture expects, where it states them. */
 function countProblems(fixture: SpecFixture, model: Model): string[] {
   const problems: string[] = [];
-  if (fixture.expectOperations !== undefined && model.operations.length !== fixture.expectOperations) {
+
+  if (fixture.expectOperations !== undefined && model.operations.length !== fixture.expectOperations)
     problems.push(`expected ${fixture.expectOperations} operation(s), modeled ${model.operations.length}`);
-  }
-  if (fixture.expectEntities !== undefined && model.entities.size !== fixture.expectEntities) {
+
+  if (fixture.expectEntities !== undefined && model.entities.size !== fixture.expectEntities)
     problems.push(`expected ${fixture.expectEntities} entity/entities, modeled ${model.entities.size}`);
-  }
+
   return problems;
 }
 
@@ -100,6 +110,7 @@ function parseFixture(fixture: SpecFixture): ParserResult {
     const { doc, externalRefs } = dereference(fixture.doc as OpenApiDocument);
     const model = buildModel(doc);
     const problems = [...countProblems(fixture, model), ...(PROBES[fixture.name]?.(model, externalRefs) ?? [])];
+
     return {
       detail: problems.join("; ") || `${model.operations.length} ops, ${model.entities.size} entities`,
       name: fixture.name,

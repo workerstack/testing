@@ -16,20 +16,25 @@ import {
 import { asyncReachesTerminalState as check } from "./async-reaches-terminal-state.ts";
 
 const lifecycle = { idFrom: "$.id", poll: "getJob", pollIntervalMs: 1, successWhen: "result.eq.ok", timeoutMs: 40 };
+
 const doc = withOperation(baseDocument(), "post /jobs", {
   operationId: "startJob",
   requestBody: withBody,
   "x-async": { ...lifecycle, until: "status.eq.done" },
 });
+
 withOperation(doc, "post /loose", {
   operationId: "startLoose",
   "x-async": { idFrom: "$.id", poll: "GET /jobs/{id}", pollIntervalMs: 1, timeoutMs: 20 },
 });
+
 withOperation(doc, "post /inbox-jobs", {
   operationId: "startInboxJob",
   "x-async": { poll: "GET /inbox", pollIntervalMs: 1, timeoutMs: 40, until: "status.eq.done" },
 });
+
 withOperation(doc, "post /gated", { operationId: "startGated", "x-async": lifecycle, "x-feature-gate": "pro" });
+
 const model = modelOf(doc);
 const startJob = op(model, "startJob");
 
@@ -39,21 +44,24 @@ const pending = { body: { status: "pending" }, status: 200 };
 /** Answers each poll in turn, repeating the last answer, each after 45ms of real time: a slow host. */
 function polls(...answers: ReturnType<Handler>[]): Handler {
   let at = 0;
+
   return () => {
     stall(45);
+
     return answers[Math.min(at++, answers.length - 1)];
   };
 }
 
-/* Blocks the thread for `ms` of real time, which no fake timer shortens. */
+// Blocks the thread for `ms` of real time, which no fake timer shortens.
 function stall(ms: number): void {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
 
-/* The poll budget is virtual time: a run's verdict never depends on how fast the host is. */
+// The poll budget is virtual time: a run's verdict never depends on how fast the host is.
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "performance"] });
 });
+
 afterEach(() => {
   vi.useRealTimers();
 });
@@ -61,12 +69,15 @@ afterEach(() => {
 async function watched(respond: Responder, asyncOps: OperationModel[] = [startJob], fields: Partial<Listed> = {}) {
   const recordCreated = vi.fn<NonNullable<CheckContext["recordCreated"]>>();
   const recordUnidentified = vi.fn<NonNullable<CheckContext["recordUnidentified"]>>();
+
   const stage = contextFor(model, "listWidgets", {
     respond,
     fields: { asyncOps, recordCreated, recordUnidentified, ...fields },
   });
+
   const running = check.run(stage.ctx, undefined);
   await vi.runAllTimersAsync();
+
   return { ...stage, outcome: await running, recordCreated, recordUnidentified };
 }
 
@@ -74,7 +85,7 @@ const started = (poll: Handler, start: Answer = { body: { id: "j1" }, status: 20
   routes({ "GET /jobs/j1": poll, "POST /jobs": () => start });
 
 const plan = (asyncOps: OperationModel[]) =>
-  check.plan(contextFor(model, "listWidgets", { respond: () => undefined, fields: { asyncOps } }).ctx).ok;
+  check.plan(contextFor(model, "listWidgets", { respond: () => {}, fields: { asyncOps } }).ctx).ok;
 
 describe("plan", () => {
   it("applies when some operation declares x-async", () => {
@@ -107,6 +118,7 @@ describe("a polled job", () => {
       "GET /jobs/j1": () => ({ status: 500 }),
       "POST /loose": () => ({ body: { id: "j1" }, status: 202 }),
     });
+
     const run = await watched(respond, [op(model, "startLoose")]);
     expect(run.findings.findings[0]?.detail).toContain('without satisfying "any terminal state"');
     expect(run.recordCreated).toHaveBeenCalledWith({ entity: "job", id: "j1", scope: {} }, "alpha");
@@ -202,10 +214,12 @@ describe("a streamed start", () => {
 
   it("accepts any terminal frame when no success predicate is declared", async () => {
     const { successWhen: _, ...lenient } = lifecycle;
+
     const run = await stream('event: complete\ndata: {"result":"boom"}\n\n', {
       ...startJob,
       async: { ...lenient, until: "status.eq.done" },
     });
+
     expect(run.findings.findings).toEqual([]);
   });
 
@@ -225,6 +239,7 @@ describe("a streamed start", () => {
         status: 200,
       }),
     });
+
     const run = await watched(respond);
     expect(run.findings.findings).toEqual([]);
     expect(run.sent.map((s) => s.path)).toEqual(["/jobs", "/jobs/j1"]);
@@ -242,6 +257,7 @@ describe("each fixture", () => {
     const run = await watched(started(polls(done), { body: {}, status: 422 }), [startJob], {
       uploads: eachFixture("startJob"),
     });
+
     expect(run.findings.findings).toMatchObject([{ entity: "startJob · documents.ts", fixture: "documents.ts" }]);
   });
 });
@@ -249,12 +265,15 @@ describe("each fixture", () => {
 describe("a polled job that settles past its budget", () => {
   it("notes a job that finished only after its budget, so a slow host stays visible", async () => {
     const slowly = polls(pending, done);
+
     const run = await watched(
       started((...request) => {
         vi.advanceTimersByTime(50);
+
         return slowly(...request);
       }),
     );
+
     expect(run.findings.findings).toEqual([]);
     expect(run.outcome).toEqual({
       kind: "asserted",

@@ -8,6 +8,7 @@ import { recordOf } from "./records.ts";
 
 function jsonText(sent: unknown): unknown {
   if (typeof sent !== "string") return sent;
+
   try {
     return JSON.parse(sent) as unknown;
   } catch {
@@ -43,19 +44,26 @@ export async function createdRecord(input: {
   const entity = createOp.entity;
   const identity = (entity === null ? undefined : model.entities.get(entity))?.identity ?? "id";
   const body = input.exchange.responseBody ?? {};
-  /* A probe may send the body as JSON text under another media type: compare what it said. */
+  // A probe may send the body as JSON text under another media type: compare what it said.
   const sent = jsonText(input.sent);
-  /* A declared record path wins; without one, the envelope is inferred from what was sent. */
+
+  // A declared record path wins; without one, the envelope is inferred from what was sent.
   const record =
     createOp.recordPath === null ? createdRecordOf(body, identity, sent) : (recordOf(createOp, body) ?? {});
+
   const resolved = createdIdOf({ createOp, exchange: input.exchange, model, sent });
+
   if (resolved?.trusted === true) {
     const answered = { ...record, [identity]: resolved.value };
+
     if (input.wants === "id" || answersRecord(answered, expectedFields(model, createOp, sent)))
       return { acknowledged: false, record: answered };
+
     return readBackCreated({ ...input, answered: declaredFields(model, createOp, record), id: resolved, sent });
   }
+
   if (entity === null) return null;
+
   const confirmed = await confirmSubmitted({
     client: input.client,
     entity,
@@ -67,5 +75,6 @@ export async function createdRecord(input: {
     ...(resolved === undefined ? {} : { id: resolved.id }),
     ...(input.readable === undefined ? {} : { readable: input.readable }),
   });
+
   return confirmed === null ? null : { acknowledged: resolved === undefined, record: confirmed };
 }

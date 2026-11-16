@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { UsageError } from "../../errors/usage-error.ts";
 import { isMissingPostgres, loadPostgres, POSTGRES_RANGE } from "./postgres-driver.ts";
 
-/* `postgres` is an optional peer: an install without it asks for it, and nothing else is excused. */
+// `postgres` is an optional peer: an install without it asks for it, and nothing else is excused.
 
 const missing = (name: string): Error =>
   Object.assign(new Error(`Cannot find package '${name}' imported from /app/dist/reference/stores/postgres.js`), {

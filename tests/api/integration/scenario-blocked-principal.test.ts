@@ -7,26 +7,27 @@ import { createMemoryServer } from "../../../src/api/reference/http/engines.ts";
 import { EXIT } from "../../../src/api/runtime/exit.ts";
 import { latestReport, tester, referenceConfig, tempDirs } from "../support/cli-run.ts";
 
-/*
- * A scenario that names a configured principal whose sign-in was refused cannot run: it is
- * BLOCKED by that principal, its operations stay ungraded, and the run still ends with a report.
- */
+// A scenario that names a configured principal whose sign-in was refused cannot run: it is
+// BLOCKED by that principal, its operations stay ungraded, and the run still ends with a report.
 
 const dirs = tempDirs("testing-scenario-blocked-");
+
 afterAll(dirs.removeAll);
 
 describe("a scenario as a principal BLOCKED at sign-in", () => {
   it("is reported BLOCKED by that principal, and the run reaches its report", async () => {
     const dir = await dirs.make();
     const server = await createMemoryServer({ defects: [] });
+
     try {
       const config = await referenceConfig(dir, server.url, {
         principals: { ...PRINCIPALS, beta: { ...PRINCIPALS["beta"], key: "key_refused" } },
         scenarios: [{ covers: ["table.get"], id: "peer", principal: "beta", steps: [{ operationId: "table.get" }] }],
       });
+
       const runs = join(dir, "runs");
       const { code, out } = await tester(["run", "--config", config, "--out", runs, "--ops", "table.get", "--quiet"]);
-      /* BLOCKED is no defect, as for a principal the matrix could not sign in: alpha still grades table.get. */
+      // BLOCKED is no defect, as for a principal the matrix could not sign in: alpha still grades table.get.
       expect(code).toBe(EXIT.clean);
       expect(out).toMatch(/BLOCKED \(2\)/);
       const report = await latestReport(runs);

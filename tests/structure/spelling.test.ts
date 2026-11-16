@@ -6,11 +6,9 @@ import { describe, expect, it } from "vitest";
 
 import { enGbWords, QUOTED_FILES } from "../api/support/spelling.ts";
 
-/*
- * The API tester is written in en-US: code, identifiers, messages, tests and docs. Each tracked text file is
- * split into words, camelCase and snake_case identifiers into their parts, and every word is looked
- * up in a list of en-GB spellings. Quoted third-party text keeps the spelling of its source.
- */
+// The API tester is written in en-US: code, identifiers, messages, tests and docs. Each tracked text file is
+// split into words, camelCase and snake_case identifiers into their parts, and every word is looked
+// up in a list of en-GB spellings. Quoted third-party text keeps the spelling of its source.
 
 const ROOT = join(import.meta.dirname, "..", "..");
 const TEXT = /\.(ts|mts|mjs|js|json|jsonc|md|sh|yml|yaml|snap|txt)$/;
@@ -33,10 +31,13 @@ describe("en-US spelling", () => {
     const files = execFileSync("git", ["ls-files"], { cwd: ROOT, encoding: "utf8" })
       .split("\n")
       .filter((file) => TEXT.test(file) && !QUOTED_FILES.some((quoted) => quoted.test(file)));
+
     const hits = files.flatMap((file) => {
       const words = [...new Set(enGbWords(readFileSync(join(ROOT, file), "utf8")))];
+
       return words.length === 0 ? [] : [`${file}: ${words.join(", ")}`];
     });
+
     expect(hits).toEqual([]);
   });
 });

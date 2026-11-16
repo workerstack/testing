@@ -1,15 +1,13 @@
 import { defineConfig, env } from "../../../../src/api/index.ts";
 
-/*
- * Immich v3.3.5 (spec vendored from open-api/immich-openapi-specs.json at that tag). Every operation
- * takes any of three schemes: bearer (the session token), cookie (the same token as
- * immich_access_token) and api_key (x-api-key). The API tester sends bearer first; the security checks grade
- * cookie and api_key as alternatives and probe each scheme with forged and revoked values.
- *
- * Scope: albums, tags, API keys and the caller's own user and preferences, the resources a user
- * owns that need no upload. `allow` keeps every other operation out of reach, so nothing outside
- * that scope is called, even as support.
- */
+// Immich v3.3.5 (spec vendored from open-api/immich-openapi-specs.json at that tag). Every operation
+// takes any of three schemes: bearer (the session token), cookie (the same token as
+// immich_access_token) and api_key (x-api-key). The API tester sends bearer first; the security checks grade
+// cookie and api_key as alternatives and probe each scheme with forged and revoked values.
+//
+// Scope: albums, tags, API keys and the caller's own user and preferences, the resources a user
+// owns that need no upload. `allow` keeps every other operation out of reach, so nothing outside
+// that scope is called, even as support.
 
 const login = {
   steps: [{ operationId: "login", body: { email: "{principal.email}", password: "{principal.password}" } }] as [
@@ -21,6 +19,7 @@ const login = {
 
 const albums = ["createAlbum", "getAllAlbums", "getAlbumInfo", "updateAlbumInfo", "deleteAlbum", "getAlbumStatistics"];
 const tags = ["createTag", "getAllTags", "getTagById", "updateTag", "deleteTag", "upsertTags"];
+
 const apiKeys = [
   "createApiKey",
   "getApiKeys",
@@ -30,6 +29,7 @@ const apiKeys = [
   "deleteApiKey",
   "rotateApiKey",
 ];
+
 const me = ["getMyUser", "updateMyUser", "getMyPreferences", "updateMyPreferences"];
 
 export default defineConfig({

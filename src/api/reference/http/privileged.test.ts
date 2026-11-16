@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { cellText } from "../cell.ts";
 import { TABLE } from "../model/table.ts";
 import { api, MEMBER, TABLES, VIEWER } from "./__fixtures__/api.ts";
 import { privilegedFields } from "./privileged.ts";
@@ -16,7 +17,7 @@ describe("the privileged field", () => {
     const { call, table } = await api();
     const created = await table("t");
     expect(created["verified"]).toBe(false);
-    const item = `${TABLES}/${String(created["id"])}`;
+    const item = `${TABLES}/${cellText(created["id"])}`;
     expect((await call("PATCH", item, { body: { verified: true }, token: MEMBER })).status).toBe(403);
     expect((await call("POST", TABLES, { body: { name: "u", verified: true }, token: MEMBER })).status).toBe(403);
     expect((await call("GET", item)).body["verified"]).toBe(false);
@@ -26,7 +27,7 @@ describe("the privileged field", () => {
 
   it("survives a non-admin's replacement, which leaves it out", async () => {
     const { call, table } = await api({ shape: { updateMethod: "PUT" } });
-    const item = `${TABLES}/${String((await table("t"))["id"])}`;
+    const item = `${TABLES}/${cellText((await table("t"))["id"])}`;
     await call("PUT", item, { body: { name: "t", verified: true } });
     expect((await call("PUT", item, { body: { name: "again" }, token: MEMBER })).status).toBe(200);
     expect((await call("GET", item)).body).toMatchObject({ name: "again", verified: true });
@@ -34,7 +35,7 @@ describe("the privileged field", () => {
 
   it("is set by a member's or a viewer's write under PRIVILEGED_FIELD_WRITABLE", async () => {
     const { call, table } = await api({ defects: ["PRIVILEGED_FIELD_WRITABLE", "ROLE_NOT_CHECKED"] });
-    const item = `${TABLES}/${String((await table("t"))["id"])}`;
+    const item = `${TABLES}/${cellText((await table("t"))["id"])}`;
     expect((await call("PATCH", item, { body: { verified: true }, token: MEMBER })).body["verified"]).toBe(true);
     expect((await call("PATCH", item, { body: { verified: false }, token: VIEWER })).body["verified"]).toBe(false);
   });
@@ -45,7 +46,7 @@ describe("ROLE_NOT_CHECKED", () => {
     const { call } = await api({ defects: ["ROLE_NOT_CHECKED"] });
     const created = await call("POST", TABLES, { body: { name: "v" }, token: VIEWER });
     expect(created.status).toBe(201);
-    const item = `${TABLES}/${String(created.body["id"])}`;
+    const item = `${TABLES}/${cellText(created.body["id"])}`;
     expect((await call("PATCH", item, { body: { name: "w" }, token: VIEWER })).status).toBe(200);
     expect((await call("DELETE", item, { token: VIEWER })).status).toBe(200);
   });

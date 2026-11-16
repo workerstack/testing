@@ -32,10 +32,11 @@ import type { RunOptions, RunResult } from "./types.ts";
  * a check left (a pending invite) would refuse the scenario's own as a duplicate.
  */
 export async function run(options: RunOptions): Promise<RunResult> {
-  /* A registry with a duplicate id or a dependency out of order would grade nothing correctly. */
+  // A registry with a duplicate id or a dependency out of order would grade nothing correctly.
   buildRegistry(CHECKS);
   const connected = connect(await load(options));
-  /* However the run ends (done, stopped or thrown), no client's spooled bodies stay on disk. */
+
+  // However the run ends (done, stopped or thrown), no client's spooled bodies stay on disk.
   try {
     return await runConnected(connected);
   } finally {
@@ -46,13 +47,14 @@ export async function run(options: RunOptions): Promise<RunResult> {
 async function runConnected(connected: Connected): Promise<RunResult> {
   const planned = planScope(connected);
   const principals = await resolvePrincipals(planned);
+
   if (principals === null) return earlyResult(planned);
   const authed = { ...planned, principals };
   const ctx: RunContext = { ...authed, exclusion: createExclusion(authed), targetVersion: await readVersion(authed) };
   trackCreates(ctx);
   await publicGets(ctx);
-  /* Read-only security probes before the lanes; the write and mutating ones after, while the
-   * records the lanes and disposable sessions created are still there to be targeted. */
+  // Read-only security probes before the lanes; the write and mutating ones after, while the
+  // records the lanes and disposable sessions created are still there to be targeted.
   await runReadSecurity(ctx);
   await runLanes(ctx);
   await disposable(ctx);
@@ -61,15 +63,16 @@ async function runConnected(connected: Connected): Promise<RunResult> {
   await scenarios(ctx);
   await contractFloor(ctx);
   noteLateStop(ctx);
-  /* What scenarios and contract calls created since. */
+  // What scenarios and contract calls created since.
   await unwind(ctx);
   serverErrors(ctx);
   reportUnremovable(ctx);
   const coverage = scopeReport(ctx);
   await closeOut(ctx, { coverage, runOrigin: run });
-  /* After the last calls, so they are journaled and the principals are snapshot as those calls left them. */
+  // After the last calls, so they are journaled and the principals are snapshot as those calls left them.
   const settled = await settle(ctx);
   ctx.progress.tick({ message: "done", phase: "done", requests: ctx.progress.requests });
+
   return finalResult(ctx, settled, coverage);
 }
 
@@ -80,6 +83,7 @@ async function runConnected(connected: Connected): Promise<RunResult> {
  */
 export async function closeOut(ctx: RunContext, runs: OriginRuns): Promise<void> {
   const { options } = ctx;
+
   if ((options.origins ?? []).length > 0 && options.skipPrincipalTeardown !== true) await secondaryOrigins(ctx, runs);
   await revokeCredentials(ctx);
   await teardownAccounts(ctx);

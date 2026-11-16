@@ -34,6 +34,7 @@ describe("seenValue", () => {
       exchange("GET", "/c", { body: { thing_id: "refused" }, status: 403 }),
       exchange("GET", "/d", { body: { other: "x" }, status: 200 }),
     ];
+
     expect(seenValue(transcript, "thing_id", new Redactor())).toBe("7");
     expect(seenValue(transcript, "missing", new Redactor())).toBeUndefined();
     expect(
@@ -49,6 +50,7 @@ describe("seenValue", () => {
     const redactor = new Redactor();
     redactor.registerSecret("acc-9f8e7d6c5b");
     redactor.registerSecret("ref-1a2b3c4d5e");
+
     const transcript = [
       exchange("GET", "/invites", { body: { token: "inv-0001", refresh_token: "plain-77" }, status: 200 }),
       exchange("POST", "/auth/login", {
@@ -56,6 +58,7 @@ describe("seenValue", () => {
         status: 200,
       }),
     ];
+
     expect(seenValue(transcript, "token", redactor)).toBe("inv-0001");
     expect(seenValue(transcript, "refresh_token", redactor)).toBe("plain-77");
     expect(seenValue(transcript, "access_token", redactor)).toBeUndefined();
@@ -63,6 +66,7 @@ describe("seenValue", () => {
 
   it("stops five levels down", () => {
     let deep: unknown = { thing_id: "deep" };
+
     for (let i = 0; i < 6; i++) deep = { nest: deep };
     expect(seenValue([exchange("GET", "/h", { body: deep, status: 200 })], "thing_id", new Redactor())).toBeUndefined();
   });

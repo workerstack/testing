@@ -5,16 +5,16 @@ import { PRINCIPALS, SECURITY } from "../../../src/api/conformance/matrix/princi
 import { createMemoryServer } from "../../../src/api/reference/http/engines.ts";
 import { run } from "../../../src/api/runtime/run/index.ts";
 
-/*
- * A defect a check catches can still leave records behind: a delete that keeps its row, a write
- * that moves a record out of the caller's reach, a replay that inserts a twin, a job whose receipt
- * names no id. Whatever the defect let through, a record the API tester leaves behind is one it reports.
- */
+// A defect a check catches can still leave records behind: a delete that keeps its row, a write
+// that moves a record out of the caller's reach, a replay that inserts a twin, a job whose receipt
+// names no id. Whatever the defect let through, a record the API tester leaves behind is one it reports.
 
 async function runWith(defect: string, shape?: string) {
   const server = await createMemoryServer({ defects: [defect], ...(shape === undefined ? {} : { shape }) });
+
   try {
     const before = await server.snapshot();
+
     const result = await run({
       baseUrl: server.url,
       principals: PRINCIPALS,
@@ -22,7 +22,9 @@ async function runWith(defect: string, shape?: string) {
       seed: 42,
       spec: `${server.url}/v1/openapi/spec`,
     });
+
     const leaked = leftBehind(before, await server.snapshot());
+
     return { leaked, result, unreported: unreportedLeftovers(leaked, result.teardown) };
   } finally {
     await server.close();

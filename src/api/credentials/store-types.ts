@@ -1,4 +1,4 @@
-/* What a run's credential store is given, holds and answers; `createStore` in store.ts makes one. */
+// What a run's credential store is given, holds and answers; `createStore` in store.ts makes one.
 
 import type { PrincipalEntry, PrincipalsConfig, SecurityConfig } from "../config/types/security.ts";
 import type { SecurityScheme } from "../spec/security/schemes.ts";
@@ -6,7 +6,7 @@ import type { SignupOperation } from "../spec/sign-up.ts";
 import type { Secrets } from "./placement.ts";
 import type { CredentialPorts, Sends } from "./ports.ts";
 
-export interface StoreOptions {
+export type StoreOptions = {
   security: SecurityConfig;
   principals: PrincipalsConfig;
   /** The document's schemes by name. */
@@ -18,70 +18,70 @@ export interface StoreOptions {
   refreshBufferMs?: number;
   /** The document's account makers (`accountMakersOf`): a login that calls one is never renewed by running it again. */
   signups?: readonly SignupOperation[];
-}
+};
 
 /** Which credential: whose, for which scheme, carrying which scopes. */
-export interface CredentialKey {
+export type CredentialKey = {
   principal: string;
   scheme: string;
   scopes?: readonly string[];
-}
+};
 
 /** A held credential, placed and ready to send. */
-export interface Credential {
+export type Credential = {
   value: string;
   expiresAt: number | null;
   sends: Sends;
   secrets: Secrets;
   /** The scopes it was issued for, when its recipe asked for them. */
   scopes?: readonly string[];
-}
+};
 
 /** A credential the run cannot have, and why. It stays blocked for the rest of the run. */
-export interface Blocked {
+export type Blocked = {
   blocked: string;
-}
+};
 
 export type Held = Credential | Blocked;
 
 /** A credential the store holds, and whose it is. */
-export interface HeldCredential {
+export type HeldCredential = {
   principal: string;
   scheme: string;
   /** The scope set it is keyed by, sorted: empty for a login, which holds whatever the server grants. */
   scopes: readonly string[];
   credential: Credential;
-}
+};
 
 /** A credential the run was handed, for whom and which scheme. */
-export interface Adopting {
+export type Adopting = {
   principal: string;
   scheme: string;
   value: string;
   /** What came with it, a signup's `refresh_token` say: a login recipe's declared refresh runs from it. */
   scope?: Readonly<Record<string, string>>;
-}
+};
 
 /** A dedicated session after its recipe's refresh rotated it. */
-export interface Rotated {
+export type Rotated = {
   credential: Credential;
   /** Runs the refresh again from before the rotation; rejects with the reason when it is refused. */
   replay(): Promise<void>;
-}
+};
 
 /**
  * How a probe uses a dedicated credential. `reusable`: it never spends it (no revoke, no rotation),
  * so one per principal, scheme and scope set serves every such probe of the run.
  */
-export interface DedicatedUse {
+export type DedicatedUse = {
   reusable?: boolean;
-}
+};
 
 /**
  * A credential for a probe alone, never the owner's own session: held under the probe principal
  * `<owner>#probe-<n>`, and revoked at teardown when its recipe declares how.
  */
-export interface DedicatedHeld {
+export type DedicatedHeld = {
   principal: string;
   owner: string;
   scheme: string;
@@ -90,16 +90,16 @@ export interface DedicatedHeld {
   revoke?: () => Promise<void>;
   /** Rotates it by the recipe's declared refresh; absent without one. */
   rotate?: () => Promise<Rotated>;
-}
+};
 
 /** A credential teardown could not revoke: a record the report lists as unremovable. */
-export interface RevokeFailure {
+export type RevokeFailure = {
   principal: string;
   scheme: string;
   reason: string;
-}
+};
 
-export interface CredentialStore {
+export type CredentialStore = {
   acquire(key: CredentialKey): Promise<Held>;
   /**
    * A credential of the principal's own that is not its session: a second login, a fresh mint, a new
@@ -147,4 +147,4 @@ export interface CredentialStore {
    * login that declares no revoke.
    */
   revokeSessions(of: (principal: string) => boolean): Promise<RevokeFailure[]>;
-}
+};

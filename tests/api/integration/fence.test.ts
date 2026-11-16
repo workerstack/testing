@@ -12,17 +12,16 @@ import { Fence, FencedError } from "../../../src/api/runtime/fence.ts";
 import { run } from "../../../src/api/runtime/run/index.ts";
 import { Redactor } from "../../../src/api/security/redact.ts";
 
-/*
- * A hook that sees every request before it leaves the process and may refuse it. A refused
- * request never reaches the backend, is never read as the backend's answer, and is listed in the
- * result; by default it fails the run, because what the API tester was asked to test was not all tested.
- */
+// A hook that sees every request before it leaves the process and may refuse it. A refused
+// request never reaches the backend, is never read as the backend's answer, and is listed in the
+// result; by default it fails the run, because what the API tester was asked to test was not all tested.
 
 const noDeletes = (request: FenceRequest): FenceDecision =>
   request.method === "DELETE" ? { allow: false, reason: "no deletes on the shared backend" } : { allow: true };
 
 async function runFenced(beforeRequest: (request: FenceRequest) => FenceDecision, failRun?: boolean) {
   const server = await createMemoryServer({});
+
   try {
     return await run({
       baseUrl: server.url,
@@ -41,7 +40,7 @@ async function runFenced(beforeRequest: (request: FenceRequest) => FenceDecision
 describe("Client with a fence", () => {
   it("refuses before any I/O and records what it refused", async () => {
     const fence = new Fence(noDeletes);
-    /* Nothing listens here: a request that left the process would fail with a network error. */
+    // Nothing listens here: a request that left the process would fail with a network error.
     const client = new Client({ baseUrl: "http://127.0.0.1:1", fence, redactor: new Redactor() });
     await expect(client.request("DELETE", "/v1/tables/1", { as: { anonymous: true } })).rejects.toBeInstanceOf(
       FencedError,
@@ -65,7 +64,7 @@ describe("a run with a fence", () => {
       true,
     );
     expect(result.teardown?.failed.some((leftover) => leftover.reason.startsWith("fenced"))).toBe(true);
-    /* Every delete was fenced, so the records remain: leftovers outrank a fenced run. */
+    // Every delete was fenced, so the records remain: leftovers outrank a fenced run.
     expect(exitCode(result)).toBe(EXIT.leftovers);
   }, 240_000);
 
@@ -80,6 +79,7 @@ describe("a run with a fence", () => {
         ? { allow: false, reason: "no new tables" }
         : { allow: true },
     );
+
     expect(
       result.findings.some(
         (finding) => finding.verdict === "BLOCKED" && finding.entity === "table" && finding.check === "world.seed",
@@ -90,7 +90,7 @@ describe("a run with a fence", () => {
 });
 
 describe("the report of a fenced run", () => {
-  /* A report needs only what it prints; the rest of a run result is irrelevant here. */
+  // A report needs only what it prints; the rest of a run result is irrelevant here.
   const input = {
     baseUrl: "http://x.test",
     checksRun: [],

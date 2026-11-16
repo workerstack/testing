@@ -80,9 +80,10 @@ describe("the caller's own record", () => {
 
   it("refuses a name that is missing, empty, too long or not a string, and a body that is not JSON", async () => {
     const { call } = await api();
-    for (const body of ["null", { first_name: "" }, { first_name: "x".repeat(65) }, { first_name: 3 }]) {
+
+    for (const body of ["null", { first_name: "" }, { first_name: "x".repeat(65) }, { first_name: 3 }])
       expect((await call("PATCH", "/v1/me", { body })).status).toBe(400);
-    }
+
     expect((await call("PATCH", "/v1/me", { form: "first_name=Grace" })).status).toBe(415);
     expect((await call("PATCH", "/v1/me", { body: {}, token: null })).status).toBe(401);
   });
@@ -91,8 +92,10 @@ describe("the caller's own record", () => {
 describe("the caller's own record, by what it may change", () => {
   it("changes the email and password the caller signs in by, and its display name", async () => {
     const { call } = await api();
+
     const login = (email: string, password: string) =>
       call("POST", "/v1/auth/login", { body: { email, password }, token: null });
+
     expect((await login("alpha@reference.test", "alpha-password")).status).toBe(200);
     const changed = { display_name: "Ada", email: "new@reference.test", password: "new-password" };
     expect((await call("PUT", "/v1/me/account", { body: changed })).body).toEqual({
@@ -101,7 +104,7 @@ describe("the caller's own record, by what it may change", () => {
     });
     expect((await login("alpha@reference.test", "alpha-password")).status).toBe(401);
     expect((await login("new@reference.test", "new-password")).status).toBe(200);
-    /* A fresh server signs alpha in as it always did: the change was this server's alone. */
+    // A fresh server signs alpha in as it always did: the change was this server's alone.
     expect(
       (
         await (
@@ -120,6 +123,7 @@ describe("the caller's own record, by what it may change", () => {
 
   it("refuses an account field it does not know, of the wrong type or invalid, and no credential", async () => {
     const { call } = await api();
+
     for (const body of [
       "null",
       { name: "x" },
@@ -127,9 +131,9 @@ describe("the caller's own record, by what it may change", () => {
       { email: "nobody" },
       { password: "short" },
       { display_name: "x".repeat(65) },
-    ]) {
+    ])
       expect((await call("PUT", "/v1/me/account", { body })).status).toBe(400);
-    }
+
     expect((await call("PUT", "/v1/me/account", { form: "email=a@b.c" })).status).toBe(415);
     expect((await call("PUT", "/v1/me/account", { body: {}, token: null })).status).toBe(401);
     expect((await call("GET", "/v1/me/account")).status).toBe(404);
@@ -151,14 +155,14 @@ describe("the caller's profile under the string guard", () => {
       phone_number: "+38591234567",
     });
     expect((await update({ first_name: "Grace", phone_number: null })).body).toEqual({ first_name: "Grace" });
+
     const refused = [
       { first_name: "Gr\u0000ace" },
       { first_name: "Grace", phone_number: "Tst" },
       { first_name: "Grace", phone_number: 38591234567 },
     ];
-    for (const body of refused) {
-      expect((await update(body)).status).toBe(400);
-    }
+
+    for (const body of refused) expect((await update(body)).status).toBe(400);
   });
 
   it("leaves the profile as it was without the shape", async () => {

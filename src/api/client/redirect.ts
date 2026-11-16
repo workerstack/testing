@@ -8,7 +8,7 @@ import type { ResponsePayload } from "../runtime/transcript/types.ts";
 import { stripCredentials, stripQuery } from "../security/strip.ts";
 import type { FenceAsk } from "./fence.ts";
 
-export interface FirstHop {
+export type FirstHop = {
   url: URL;
   method: string;
   body: RequestInit["body"];
@@ -16,9 +16,9 @@ export interface FirstHop {
   headers: Record<string, string>;
   /** `manual` when the caller or the operation handles redirects itself. */
   redirect: "manual" | undefined;
-}
+};
 
-export interface Following {
+export type Following = {
   /** Follow redirects here, through a cookie jar. Otherwise the first answer stands. */
   follow: boolean;
   send: (url: URL, init: RequestInit) => Promise<Response>;
@@ -31,20 +31,20 @@ export interface Following {
   credentialQuery: ReadonlySet<string>;
   /** What the caller asked to send, for the fence; a hop that drops the body sends none. */
   body: unknown;
-}
+};
 
-export interface Landed extends ResponsePayload {
+export type Landed = ResponsePayload & {
   response: Response;
   hops: RedirectHop[];
   landing: URL;
   jar: CookieJar;
-}
+};
 
-interface Hop {
+type Hop = {
   url: URL;
   method: string;
   body: RequestInit["body"];
-}
+};
 
 export async function sendFollowing(first: FirstHop, how: Following): Promise<Landed> {
   const jar = new CookieJar();
@@ -52,15 +52,20 @@ export async function sendFollowing(first: FirstHop, how: Following): Promise<La
   let current: Hop = { body: first.body, method: first.method, url: first.url };
   applyJarToHeaders(first.headers, { callerCookie: how.callerCookie, jar, url: first.url });
   const init: RequestInit = { headers: first.headers, method: first.method };
+
   if (first.body !== undefined) init.body = first.body;
+
   if (first.redirect !== undefined) init.redirect = first.redirect;
   let answer = await sendHop(jar, { init, url: current.url }, how);
+
   while (how.follow && isRedirectStatus(answer.response.status) && hops.length < MAX_REDIRECTS) {
     const { response } = answer;
+
     const next = redirectTarget(
       { location: response.headers.get("location"), status: response.status },
       { method: current.method, url: current.url },
     );
+
     if (next === null) break;
     hops.push({
       responseHeaders: recordResponseHeaders(response.headers),
@@ -73,10 +78,11 @@ export async function sendFollowing(first: FirstHop, how: Following): Promise<La
     await how.fence(current.url, current.method.toUpperCase(), next.dropBody ? undefined : how.body);
     answer = await sendHop(jar, { init: hopInit(first.headers, current), url: current.url }, how);
   }
+
   return { ...answer, hops, jar, landing: current.url };
 }
 
-/* Another origin — scheme, host or port — gets no credential of ours, and only the jar's cookies. */
+// Another origin — scheme, host or port — gets no credential of ours, and only the jar's cookies.
 function prepareHop(
   headers: Record<string, string>,
   hop: { crossOrigin: boolean; dropBody: boolean; jar: CookieJar; url: URL },
@@ -86,10 +92,12 @@ function prepareHop(
     stripCredentials(headers, how.credentialNames);
     stripQuery(hop.url, how.credentialQuery);
   }
+
   if (hop.dropBody) {
     omitHeader(headers, "content-type");
     omitHeader(headers, "content-length");
   }
+
   applyJarToHeaders(headers, {
     callerCookie: hop.crossOrigin ? undefined : how.callerCookie,
     jar: hop.jar,
@@ -99,15 +107,17 @@ function prepareHop(
 
 function hopInit(headers: Record<string, string>, hop: Hop): RequestInit {
   const init: RequestInit = { headers, method: hop.method, redirect: "manual" };
+
   if (hop.body !== undefined) init.body = hop.body;
+
   return init;
 }
 
-/* One hop's request: where it goes, and what fetch is handed. */
-interface HopRequest {
+// One hop's request: where it goes, and what fetch is handed.
+type HopRequest = {
   url: URL;
   init: RequestInit;
-}
+};
 
 async function sendHop(
   jar: CookieJar,
@@ -117,5 +127,6 @@ async function sendHop(
   const response = await how.send(url, init);
   const payload = await readResponsePayload(response);
   jar.absorb(url, setCookieHeadersFrom(response.headers));
+
   return { ...payload, response };
 }

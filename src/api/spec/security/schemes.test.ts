@@ -5,6 +5,7 @@ import { readSchemes, type SecurityScheme } from "./schemes.ts";
 
 function oauth2(scheme: SecurityScheme | undefined): Extract<SecurityScheme, { kind: "oauth2" }> {
   if (scheme?.kind !== "oauth2") throw new Error(`expected an oauth2 scheme, got ${scheme?.kind}`);
+
   return scheme;
 }
 

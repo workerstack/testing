@@ -19,7 +19,9 @@ export const refreshReuseRefused: OperationCheck<Lifecycle[]> = defineCheck<Life
   subject: "operation",
   async run(ctx, planned) {
     const outcomes: SchemeOutcome[] = [];
+
     for (const lifecycle of planned) outcomes.push(await rotateAndReplay(ctx, lifecycle));
+
     return settle(outcomes);
   },
 });
@@ -33,20 +35,27 @@ async function rotateAndReplay(
   const { method, operation, path, scopes } = route;
   const reads = operation.operationId;
   const dedicated = await ctx.probe.dedicated({ principal: actor, scheme, scopes });
+
   if (isUntested(dedicated)) return { untested: `${scheme}: ${dedicated.untested}` };
+
   if (dedicated.rotate === undefined)
     return { untested: `${scheme}: the dedicated credential has no declared refresh` };
   const rotation = await dedicated.rotate();
   const as = { principal: dedicated.actor.principal, scheme };
   const proven = await ctx.client.request(method, path, { as, operationId: reads, query: operation.requiredQuery });
+
   if (proven.status >= 300) {
     const reason =
       `the rotated ${scheme} session was refused (${proven.status}) on ${reads}, ` +
       "so a refused reuse would prove nothing";
+
     return ctx.findings.unresolved(CHECK, ctx.subject, reason);
   }
+
   const replayed = await rotation.replay();
+
   if (!replayed.accepted) return { kind: "asserted" };
+
   return ctx.findings.security(CHECK, ctx.subject, {
     detail:
       `${actor}'s ${scheme} session, issued for this probe alone, was rotated through ` +

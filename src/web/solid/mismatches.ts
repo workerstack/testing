@@ -1,9 +1,7 @@
 import type { GuardMatch } from "../guard.ts";
 
-/*
- * What Solid 2's client runtime says when hydration and the server HTML disagree. Development
- * builds log each of these; a production build only throws the first.
- */
+// What Solid 2's client runtime says when hydration and the server HTML disagree. Development
+// builds log each of these; a production build only throws the first.
 const MISMATCH =
   /Hydration (?:Mismatch\.|key miss|tag mismatch|structure mismatch|completed with \d+ unclaimed)|Failed attempt to create new DOM elements during hydration/;
 

@@ -9,21 +9,25 @@ import { runOperationCheck } from "./__fixtures__/run.ts";
 import { securedDoc, undeclaredDoc } from "./__fixtures__/secured-api.ts";
 import { LOGIN_ATTEMPTS, loginThrottled } from "./auth-login-throttled.ts";
 
-/* Opt-in: failed logins for one identity that does not exist must, before the cap, answer 429. */
+// Opt-in: failed logins for one identity that does not exist must, before the cap, answer 429.
 
 const model = modelOf(securedDoc());
 const alpha = actorOf("alpha", { scope: { project_id: "proj_a" }, tenant: "proj_a" });
 const JWT = { issue: "auth.login", kind: "login" } as const;
 
-/* A login that fails, and answers 429 from the `limit`-th failure on; `ok` lets a login succeed. */
+// A login that fails, and answers 429 from the `limit`-th failure on; `ok` lets a login succeed.
 function staged(operationId: string, { limit = 6, ok = false, recipes = { jwt: JWT } as object } = {}) {
   let failures = 0;
+
   const respond = (sent: Sent) => {
-    if (sent.path !== "/auth/login") return undefined;
+    if (sent.path !== "/auth/login") return;
+
     if (ok) return { status: 200 };
     failures += 1;
+
     return failures >= limit ? { headers: { "retry-after": "30" }, status: 429 } : { status: 401 };
   };
+
   return operationContextFor(model, operationId, {
     principals: [alpha],
     probe: { recipes: recipes as never },
@@ -68,17 +72,21 @@ describe("auth.login-throttled", () => {
     const doc = securedDoc();
     const paths = (doc as unknown as { paths: Record<string, Record<string, Record<string, unknown>>> }).paths;
     const login = paths["/auth/login"]?.["post"] as Record<string, unknown>;
+
     const schema = {
       properties: { remember: { const: true, type: "boolean" }, username: { type: "string" } },
       required: ["username", "remember"],
       type: "object",
     };
+
     login["requestBody"] = { content: { "application/json": { schema } }, required: true };
+
     const stage = operationContextFor(modelOf(doc), "auth.login", {
       principals: [alpha],
       probe: { recipes: { jwt: JWT } },
       respond: () => ({ status: 429 }),
     });
+
     await runOperationCheck(loginThrottled, stage.ctx);
     expect(stage.sent[0]?.options.body).toEqual({ remember: true, username: "testing-nonexistent-test" });
   });
@@ -111,6 +119,7 @@ describe("auth.login-throttled (3)", () => {
 describe("auth.login-throttled (2)", () => {
   it("stands down off the login step, for a non-login recipe or without declared security", async () => {
     const open = operationContextFor(modelOf(undeclaredDoc()), "auth.login", { principals: [alpha] });
+
     const outcomes = await Promise.all(
       [
         staged("notes.list"),
@@ -119,6 +128,7 @@ describe("auth.login-throttled (2)", () => {
         open,
       ].map((stage) => runOperationCheck(loginThrottled, stage.ctx)),
     );
+
     expect(outcomes.map((outcome) => ("reason" in outcome ? outcome.reason : outcome.kind))).toEqual([
       "the issue operation of a recipe; this check runs on auth.login",
       "apiKey: no apiKey recipe in this test; jwt: mint recipes have no login step",

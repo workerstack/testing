@@ -7,17 +7,17 @@
 
 type SqlValue = string | number | null;
 
-export interface Driver {
+export type Driver = {
   exec(sql: string): Promise<void>;
   run(sql: string, args: SqlValue[]): Promise<void>;
   all(sql: string, args: SqlValue[]): Promise<Record<string, unknown>[]>;
-}
+};
 
-interface D1HttpResponse {
+type D1HttpResponse = {
   success: boolean;
   errors?: Array<{ code: number; message: string }>;
   result?: Array<{ results?: Record<string, unknown>[]; success?: boolean }>;
-}
+};
 
 export function httpDriver(config: { accountId: string; databaseId: string; apiToken: string }): Driver {
   const endpoint = `https://api.cloudflare.com/client/v4/accounts/${config.accountId}/d1/database/${config.databaseId}/query`;
@@ -31,12 +31,16 @@ export function httpDriver(config: { accountId: string; databaseId: string; apiT
       },
       method: "POST",
     });
+
     const body = (await response.json()) as D1HttpResponse;
+
     if (!response.ok || !body.success) {
       const detail =
         body.errors?.map((error) => `${error.code}: ${error.message}`).join("; ") ?? `HTTP ${response.status}`;
+
       throw new Error(`D1 query failed (${detail}) for: ${sql.slice(0, 160)}`);
     }
+
     return body.result?.[0]?.results ?? [];
   }
 
@@ -54,16 +58,16 @@ export function httpDriver(config: { accountId: string; databaseId: string; apiT
 }
 
 /** Minimal D1 binding surface so the worker does not import workers-types. */
-interface D1Prepared {
+type D1Prepared = {
   bind(...args: SqlValue[]): D1Prepared;
   all(): Promise<{ results: Record<string, unknown>[] }>;
   run(): Promise<unknown>;
-}
+};
 
-export interface D1Binding {
+export type D1Binding = {
   prepare(sql: string): D1Prepared;
   exec(sql: string): Promise<unknown>;
-}
+};
 
 export function bindingDriver(db: D1Binding): Driver {
   return {
@@ -72,6 +76,7 @@ export function bindingDriver(db: D1Binding): Driver {
         .prepare(sql)
         .bind(...args)
         .all();
+
       return result.results ?? [];
     },
     async exec(sql) {

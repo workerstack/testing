@@ -7,10 +7,8 @@ import type { Scenario } from "../../../src/api/config/define/types.ts";
 import { run } from "../../../src/api/runtime/run/index.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 
-/*
- * A scenario that uploads the same document under two names (a merge, a dedup) names the file it
- * sends: a step body field holding `{ bytes, filename, mediaType }` is that multipart part.
- */
+// A scenario that uploads the same document under two names (a merge, a dedup) names the file it
+// sends: a step body field holding `{ bytes, filename, mediaType }` is that multipart part.
 
 const closers: Array<() => Promise<void>> = [];
 
@@ -49,13 +47,17 @@ function file(filename: string) {
 async function serve(received: string[]): Promise<string> {
   const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
     let raw = "";
+
     for await (const chunk of req) raw += chunk;
+
     if (req.url === "/v1/extract") received.push(raw);
     res.writeHead(200, { "content-type": "application/json" });
     res.end(JSON.stringify(req.url === "/openapi.json" ? spec : { ok: true }));
   });
+
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   closers.push(() => new Promise((resolve) => server.close(() => resolve())));
+
   return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 }
 
@@ -63,6 +65,7 @@ describe("a file part in a step body", () => {
   it("is sent as that part, under its own filename", async () => {
     const received: string[] = [];
     const url = await serve(received);
+
     const scenario: Scenario = {
       covers: ["file.extract"],
       id: "merge",
@@ -71,6 +74,7 @@ describe("a file part in a step body", () => {
         { body: { file: file("feb.pdf"), note: "second" }, operationId: "file.extract" },
       ],
     };
+
     await run({
       baseUrl: url,
       ops: ["file.extract"],

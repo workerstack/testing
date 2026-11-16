@@ -44,6 +44,7 @@ describe("error.malformed-filter-not-5xx", () => {
       conventions: without("eq"),
       records: COHORT,
     });
+
     expect(await runCheck(check, ctx)).toMatchObject({ kind: "unresolved" });
     expect(filters(sent)).toEqual(["(((("]);
     expect(findings.inconclusive[0]?.reason).toBe(
@@ -56,6 +57,7 @@ describe("error.malformed-filter-not-5xx", () => {
       doc: { filterParam: false, xQuery: { filterable: ["status"], grammar: "equality" } },
       records: COHORT,
     });
+
     expect(await runCheck(check, ctx)).toMatchObject({ kind: "stood-down" });
     expect(sent).toEqual([]);
   });

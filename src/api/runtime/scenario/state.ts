@@ -9,8 +9,10 @@ import type { ScenarioInput, ScenarioPrincipal, ScenarioRun } from "./types.ts";
 /** The configured principal `id`; a scenario that names another is refused. */
 export function principalOf(input: ScenarioInput, scenario: Scenario, id: string): ScenarioPrincipal {
   const found = input.principals.get(id);
+
   if (found === undefined)
     throw new Error(`testing api: scenario "${scenario.id}" names principal "${id}", which is not configured`);
+
   return found;
 }
 
@@ -21,8 +23,9 @@ export function startScenario(
 ): ScenarioRun {
   const principal = scenario.principal ?? input.defaultPrincipal;
   const own = principalOf(input, scenario, principal);
-  /* One map: what a step keeps, every later step's request and input send whole. */
-  const objects = new Map<string, unknown>();
+  // One map: what a step keeps, every later step's request and input send whole.
+  const objects = new Map<string>();
+
   return {
     calls: new Map(),
     context: {
@@ -40,7 +43,7 @@ export function startScenario(
     observations: new Map(),
     principal,
     scenario,
-    /* The parameters bound for the principal (organization, project …) are there from the first step, as in the matrix. */
+    // The parameters bound for the principal (organization, project …) are there from the first step, as in the matrix.
     scope: { ...own.scope },
     sent: [],
     sleep,

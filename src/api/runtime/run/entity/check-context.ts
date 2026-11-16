@@ -6,7 +6,7 @@ import { queryOf } from "./capabilities.ts";
 import type { EntityRun, World } from "./state.ts";
 
 /** The entity's operations as its checks may use them: an excluded route stands its checks down. */
-interface Routes {
+type Routes = {
   readOp: OperationModel | undefined;
   updateOp: OperationModel | undefined;
   deleteOp: OperationModel | undefined;
@@ -15,7 +15,7 @@ interface Routes {
   updateExcluded: boolean;
   deleteExcluded: boolean;
   inviteExcluded: boolean;
-}
+};
 
 /** What every check on the entity is given. */
 export async function checkContext(run: EntityRun, world: World, actors: [Actor, ...Actor[]]): Promise<WriteContext> {
@@ -23,6 +23,7 @@ export async function checkContext(run: EntityRun, world: World, actors: [Actor,
   const routes = routesOf(run);
   const { capabilities, query, withheld } = await queryOf(run, world.scope.values);
   const peer = peerOf(actors);
+
   return {
     ...declaredOps(run),
     ...writeOps(run, world, routes),
@@ -67,19 +68,20 @@ export async function checkContext(run: EntityRun, world: World, actors: [Actor,
   };
 }
 
-/* Checked independently of `degraded`: a profile can exclude one write route on an entity whose
- * create still ran cleanly, and that must not disable every other operation too. */
+// Checked independently of `degraded`: a profile can exclude one write route on an entity whose
+// create still ran cleanly, and that must not disable every other operation too.
 function routesOf({ ctx, entity }: EntityRun): Routes {
   const { model, exclusion } = ctx;
   const readOp = model.byOperationId.get(entity.read ?? "");
   const updateOp = model.byOperationId.get(entity.update ?? "");
   const deleteOp = model.byOperationId.get(entity.delete ?? "");
   const inviteOp = entity.invite === null ? undefined : model.byOperationId.get(entity.invite.invite);
-  /* In this order: each exclusion reports its gap the first time. */
+  // In this order: each exclusion reports its gap the first time.
   const readExcluded = exclusion.excludeOp(entity, readOp);
   const updateExcluded = exclusion.excludeOp(entity, updateOp);
   const deleteExcluded = exclusion.excludeOp(entity, deleteOp);
   const inviteExcluded = exclusion.excludeOp(entity, inviteOp);
+
   return { deleteExcluded, deleteOp, inviteExcluded, readExcluded, readOp, updateExcluded, updateOp };
 }
 
@@ -95,6 +97,7 @@ function writeOps(
 ): Pick<WriteContext, "createOp" | "deleteOp" | "readOp" | "uniqueCreateOp" | "uniqueUpdateOp" | "updateOp"> {
   const { degraded, uniqueAdopted } = world;
   const unique = (entity.unique?.length ?? 0) > 0 && (!degraded || uniqueAdopted);
+
   return {
     createOp: degraded ? undefined : createOp,
     deleteOp: degraded || routes.deleteExcluded ? undefined : routes.deleteOp,
@@ -112,11 +115,13 @@ function writeOps(
  */
 function declaredOps({ ctx, entity }: EntityRun): Pick<WriteContext, "asyncOps" | "effectOps" | "waitOps"> {
   const { model, exclusion, scope } = ctx;
+
   const of = (declares: (op: OperationModel) => boolean): OperationModel[] =>
     model.operations.filter(
       (op) =>
         op.entity === entity.name && declares(op) && !exclusion.excludeOp(entity, op) && scope.inScope(op.operationId),
     );
+
   return {
     asyncOps: of((op) => op.async !== null),
     effectOps: of((op) => op.effects.length > 0),
@@ -124,9 +129,9 @@ function declaredOps({ ctx, entity }: EntityRun): Pick<WriteContext, "asyncOps" 
   };
 }
 
-/* Taken from any operation on the entity, not just the list: authors naturally put x-soft-delete
- * on the delete route, and a tag that exists but is only read from list made
- * softdelete.absent-from-default-list stand down against a real document. */
+// Taken from any operation on the entity, not just the list: authors naturally put x-soft-delete
+// on the delete route, and a tag that exists but is only read from list made
+// softdelete.absent-from-default-list stand down against a real document.
 function softDeleteOf({ ctx, entity, listOp }: EntityRun): string | null {
   return (
     ctx.model.operations.find((op) => op.entity === entity.name && op.softDelete !== null)?.softDelete ??

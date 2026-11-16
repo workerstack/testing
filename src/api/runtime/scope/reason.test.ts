@@ -9,10 +9,11 @@ import type { CoverageInput } from "./types.ts";
 
 function reason(input: CoverageInput, inScope = false): string | null {
   const op = input.model.byOperationId.get("pay.start") as OperationModel;
+
   return reasonFor(input, { grading: gradingOf(input, "pay.start"), inScope, op });
 }
 
-/* The same input with no reason the scope settled in advance. */
+// The same input with no reason the scope settled in advance.
 const unsettled = (input: CoverageInput): CoverageInput => ({
   ...input,
   scope: { ...input.scope, untestable: new Map() },
@@ -20,7 +21,9 @@ const unsettled = (input: CoverageInput): CoverageInput => ({
 
 const needing = (...needs: string[]): GradeLedger => {
   const ledger = new GradeLedger();
+
   for (const need of needs) ledger.skipped(["pay.start"], need);
+
   return ledger;
 };
 
@@ -67,11 +70,13 @@ describe("reasonFor", () => {
   it("falls back to a coverage gap, then what the checks needed, then nothing at all", () => {
     const ledger = new GradeLedger();
     ledger.graded(["pay.start"], "a.check");
+
     const gap = coverageInput({
       findings: [finding("COVERAGE_GAP", "a.check", { summary: "no peer" })],
       ledger,
       transcript: [call({ operationId: "pay.start", status: 200 })],
     });
+
     expect(reason(unsettled(gap), true)).toBe("coverage gap: no peer");
     expect(reason(unsettled(coverageInput({ ledger: needing("a", "b", "c", "d") })), true)).toBe(
       "no check applied: needs a; b; c",

@@ -1,10 +1,8 @@
-/*
- * Input before a check proves anything about it: config as the user wrote it, an x-* tag, a file
- * The API tester wrote and reads back. It is read by the keys of the type it becomes, so a misspelled key
- * fails to compile, while every value stays `unknown` until a check narrows it. Maps whose keys
- * are data (scheme names, principal ids, header names) stay `Record<string, unknown>`, iterated,
- * never read by name.
- */
+// Input before a check proves anything about it: config as the user wrote it, an x-* tag, a file
+// The API tester wrote and reads back. It is read by the keys of the type it becomes, so a misspelled key
+// fails to compile, while every value stays `unknown` until a check narrows it. Maps whose keys
+// are data (scheme names, principal ids, header names) stay `Record<string, unknown>`, iterated,
+// never read by name.
 
 /** Every key of every member of a union, where `keyof` alone keeps only the shared ones. */
 type AllKeys<U> = U extends unknown ? keyof U : never;

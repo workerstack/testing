@@ -26,13 +26,11 @@ import type { RunProgress } from "./progress.ts";
 import type { RunState } from "./state.ts";
 import type { RunOptions } from "./types.ts";
 
-/*
- * The run's context, built stage by stage: each stage takes what the stages before it made and
- * adds its own part. A stage's input type names exactly what it may use.
- */
+// The run's context, built stage by stage: each stage takes what the stages before it made and
+// adds its own part. A stage's input type names exactly what it may use.
 
 /** The document read and modeled; nothing sent to the API yet. */
-export interface Loaded {
+export type Loaded = {
   options: RunOptions;
   hooks: Hooks;
   findings: FindingCollector;
@@ -46,16 +44,16 @@ export interface Loaded {
    */
   origins: ReadonlyMap<string, LoadedOrigin>;
   state: RunState;
-}
+};
 
 /** A secondary origin's document, after its overlay, and its model. */
-export interface LoadedOrigin {
+export type LoadedOrigin = {
   doc: OpenApiDocument;
   model: SpecModel;
-}
+};
 
 /** A client to talk to the API with, and what records the run's exchanges and fixtures. */
-export interface Connected extends Loaded {
+export type Connected = Loaded & {
   client: Client;
   /**
    * The run's credentials, one store for the run: the primary client and each origin's resolve
@@ -75,10 +73,10 @@ export interface Connected extends Loaded {
   /** Fresh per run: the seed reproduces a run, the nonce keeps two runs' records apart. */
   nonce: string;
   outOfBand: BackoffConfig;
-}
+};
 
 /** What this run grades, and what it may call. */
-export interface Planned extends Connected {
+export type Planned = Connected & {
   scope: TargetScope;
   grades: GradeLedger;
   /** Creates the principals' auth flows send: support, never seeded as fixtures. */
@@ -88,17 +86,17 @@ export interface Planned extends Connected {
   /** Operations a scenario covers: the matrix never generates a body for them. */
   scenarioOwned: Set<string>;
   uploads: UploadContext;
-}
+};
 
 /** Everything a stage after authentication may use. */
-export interface RunContext extends Planned {
+export type RunContext = Planned & {
   principals: RunPrincipals;
   exclusion: Exclusion;
   targetVersion: TargetVersion | undefined;
-}
+};
 
 /** A principal the run acts as: who it is, its tenant and rank, and the parameters bound for it. */
-export interface RunPrincipal {
+export type RunPrincipal = {
   id: string;
   /** What its recipes interpolate as `{principal.<key>}`: config data, a fresh signup's values, a login's claims. */
   identity: Readonly<Record<string, unknown>>;
@@ -114,10 +112,10 @@ export interface RunPrincipal {
   readOnly?: true;
   /** Signed up by this run through the document's `x-fresh-principal` operation. */
   fresh: boolean;
-}
+};
 
 /** The run's principals, who is isolated from whom, and who owns and may remove what they create. */
-export interface RunPrincipals {
+export type RunPrincipals = {
   /** Every principal not BLOCKED, in config order. */
   all: RunPrincipal[];
   /** The first: the one the matrix acts as. */
@@ -136,10 +134,10 @@ export interface RunPrincipals {
   /** Ledgers a record learned of another way, as whoever sent the request that made it. */
   recordCreated(created: Created, principal?: string): void;
   unidentified(entity: string, operationId: string, exchange: Exchange): void;
-}
+};
 
 /** What the active profile lets the run call. */
-export interface Exclusion {
+export type Exclusion = {
   /** Whether the API tester may call `op` at all: a read that confirms a create is still a call. */
   readable(op: OperationModel): boolean;
   /** Whether the profile excludes the operation by this id. */
@@ -150,4 +148,4 @@ export interface Exclusion {
    * data the API tester did not create through it.
    */
   excludeOp(entity: EntityModel, op: OperationModel | undefined): boolean;
-}
+};

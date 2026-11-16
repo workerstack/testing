@@ -1,13 +1,11 @@
-/*
- * One credential store per run, and the ports it is lent: login and refresh steps run through the
- * step engine as nobody, a mint or revoke calls its operation through the primary client as the
- * principal sending the `with` scheme, an OAuth 2 grant posts its form as nobody, and
- * `hooks.resolveCredential` answers a `{ hook: true }` recipe. A minted key's record is judged gone
- * from the primary client's transcript, or read back through it. An identity value a recipe sends
- * registers on the run's redactor. Every operation of the document that makes an account is a
- * signup the store never renews a login through. The ports send through the run's clients,
- * which are built over the store, so they reach them only once the run is connected.
- */
+// One credential store per run, and the ports it is lent: login and refresh steps run through the
+// step engine as nobody, a mint or revoke calls its operation through the primary client as the
+// principal sending the `with` scheme, an OAuth 2 grant posts its form as nobody, and
+// `hooks.resolveCredential` answers a `{ hook: true }` recipe. A minted key's record is judged gone
+// from the primary client's transcript, or read back through it. An identity value a recipe sends
+// registers on the run's redactor. Every operation of the document that makes an account is a
+// signup the store never renews a login through. The ports send through the run's clients,
+// which are built over the store, so they reach them only once the run is connected.
 
 import type { Client } from "../../client/client.ts";
 import { type OriginSchemes, recipeSchemes } from "../../credentials/origin-recipes.ts";
@@ -29,22 +27,22 @@ import type { RunNetwork } from "./network.ts";
 import { recordScope } from "./record-scope.ts";
 
 /** The run's clients, once connected. */
-interface RunClients {
+type RunClients = {
   client: Client;
   origins: ReadonlyMap<string, OriginClient>;
-}
+};
 
-export interface StoreWiring {
+export type StoreWiring = {
   network: RunNetwork;
   /** The run's, which every client scrubs with. */
   redactor: Pick<Redactor, "registerSecret">;
   /** Called only when a port sends, which is after the run is connected. */
   clients: () => RunClients;
-}
+};
 
 /** Each secondary origin's mapping and the schemes of its document as the run loaded it, in config order. */
 export function originSchemes(loaded: Pick<Loaded, "options" | "origins">): OriginSchemes[] {
-  /* Load read and modeled every declared origin. */
+  // Load read and modeled every declared origin.
   return (loaded.options.origins ?? []).map((origin) => ({
     mapping: origin.security,
     schemes: (loaded.origins.get(origin.id) as LoadedOrigin).model.schemes,
@@ -54,48 +52,55 @@ export function originSchemes(loaded: Pick<Loaded, "options" | "origins">): Orig
 /** The run's store: its own, or the primary run's when this run is a secondary origin's. */
 export function runStore(loaded: Loaded, wiring: StoreWiring): CredentialStore {
   const { options, model } = loaded;
+
   if (options.sharedCredentials !== undefined) return options.sharedCredentials.store;
+
   const store: CredentialStore = createStore({
     ports: runPorts(loaded, { ...wiring, scopeOf: (principal) => boundOf(store.identityOf(principal)).scope }),
     principals: options.principals,
-    /* A recipe only an origin's scheme uses is acquired by that scheme. */
+    // A recipe only an origin's scheme uses is acquired by that scheme.
     schemes: recipeSchemes(model.schemes, originSchemes(loaded)),
     security: options.security ?? {},
     signups: accountMakersOf(model),
   });
+
   return store;
 }
 
-/* What an OAuth 2 token answer holds (RFC 6749 §5.1), a rotated refresh token included. */
+// What an OAuth 2 token answer holds (RFC 6749 §5.1), a rotated refresh token included.
 const OAUTH2_TOKENS: readonly string[] = ["$.access_token", "$.refresh_token", "$.id_token"];
 
-interface PortWiring extends StoreWiring {
+type PortWiring = StoreWiring & {
   /** The parameters bound for a principal: its config scope and what its login's claims bound. */
   scopeOf: (principal: string) => Readonly<Record<string, string>>;
-}
+};
 
 function runPorts(loaded: Loaded, wiring: PortWiring): CredentialPorts {
   const { hooks, model, options } = loaded;
-  /* Every credential an answer holds is a secret before the answer is recorded. */
+
+  // Every credential an answer holds is a secret before the answer is recorded.
   const auth = (secrets: readonly string[] = []): Client =>
     wiring.clients().client.view({
       issuedBy: "credentials",
       purpose: "auth",
       ...(secrets.length === 0 ? {} : { secrets }),
     });
+
   const noted = <T>(work: () => Promise<T>): Promise<T> => noteOutage(wiring.network, work);
+
   return {
     operations: {
       call: (input) =>
         noted(async () => {
-          /* Validation refuses a recipe naming an operation the document lacks. */
+          // Validation refuses a recipe naming an operation the document lacks.
           const op = model.byOperationId.get(input.operationId) as OperationModel;
           const scope = recordScope(model, op, { ...wiring.scopeOf(input.as.principal), ...input.scope });
           const path = fillPath(op.path, scope);
           const body = input.body === undefined ? {} : { body: input.body };
-          /* A value of its own is the one session a revoke ends: sent as the principal's, exactly that value. */
+          // A value of its own is the one session a revoke ends: sent as the principal's, exactly that value.
           const as = input.value === undefined ? input.as : { ...input.as, value: input.value };
           const sent = { as, operationId: op.operationId, ...body };
+
           return answerOf(await auth(input.secrets).request(op.method, path, sent));
         }),
     },
@@ -104,6 +109,7 @@ function runPorts(loaded: Loaded, wiring: PortWiring): CredentialPorts {
         noted(() => {
           const { origins } = wiring.clients();
           const shared = { client: auth(secrets), hooks, model, outOfBand: resolveBackoff(options.outOfBand) };
+
           return stepRunner({ ...shared, originClients: origins }).run(steps, at);
         }),
     },
@@ -124,13 +130,14 @@ async function postForm(
     as: { anonymous: true },
     body: new URLSearchParams(post.form),
     contentType: "application/x-www-form-urlencoded",
-    /* A real exchange of the token URL, labeled a probe only when it is meant to be refused. */
+    // A real exchange of the token URL, labeled a probe only when it is meant to be refused.
     ...(post.probe ? { probe: post.probe } : {}),
   });
+
   return answerOf(exchange);
 }
 
-/* A login that never got an answer is the network going away, the run's outage, before it is BLOCKED. */
+// A login that never got an answer is the network going away, the run's outage, before it is BLOCKED.
 async function noteOutage<T>(network: RunNetwork, work: () => Promise<T>): Promise<T> {
   try {
     return await work();

@@ -1,9 +1,7 @@
 import { defineConfig } from "vitest/config";
 
-/*
- * The packed package, installed into a temp consumer and driven through its bin. Run after a build
- * (`bun run test:e2e` builds first); slow by nature, so it stays out of `test`.
- */
+// The packed package, installed into a temp consumer and driven through its bin. Run after a build
+// (`bun run test:e2e` builds first); slow by nature, so it stays out of `test`.
 export default defineConfig({
   test: {
     globalSetup: ["tests/api/support/temp-root.ts"],

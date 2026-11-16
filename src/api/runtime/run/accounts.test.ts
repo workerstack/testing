@@ -8,11 +8,9 @@ import { accountReport, teardownAccounts } from "./accounts.ts";
 import type { RunContext } from "./context.ts";
 import type { RunOptions } from "./types.ts";
 
-/*
- * Every account the run made is removed, as itself first, then by an admin, then by the hook; what
- * none of them removes is a leftover named by its email. An account a configured principal holds,
- * that the run did not make, is never removed.
- */
+// Every account the run made is removed, as itself first, then by an admin, then by the hook; what
+// none of them removes is a leftover named by its email. An account a configured principal holds,
+// that the run did not make, is never removed.
 
 /** A run whose `fresh` principal signs up on `respond`, then signs in by email. */
 function freshRun(respond = withSignup(() => ({ status: 201 })), extra: Partial<RunOptions> = {}) {
@@ -29,6 +27,7 @@ function freshRun(respond = withSignup(() => ({ status: 201 })), extra: Partial<
 async function torn(ctx: RunContext) {
   await teardownAccounts(ctx);
   const [entry] = ctx.accounts.entries();
+
   return { entry, failed: ctx.state.teardown?.failed ?? [], records: ctx.state.teardown?.records ?? [] };
 }
 
@@ -60,12 +59,14 @@ describe("teardownAccounts, as the account itself", () => {
 describe("teardownAccounts never deletes as someone else", () => {
   it("sends no delete-self with a credential a configured principal holds too, and removes the account by an admin", async () => {
     const state = accountsState();
+
     const ctx = await contextOf(
       optionsFor(accountsApi(state, accountsDoc({ adminDelete: true })), {
         principals: { alpha: { email: "alpha@x.test" } },
         security: { bearer: { static: "login-alpha@x.test" } },
       }),
     );
+
     const body = { email: "made@x.test", password: "pw-123456" };
     await ctx.client.request("POST", "/signup", { as: { anonymous: true }, body, operationId: "auth.signup" });
     ctx.store.enroll("disposable-0", { ...body });
@@ -80,12 +81,14 @@ describe("teardownAccounts never deletes as someone else", () => {
 describe("teardownAccounts never deletes as someone else, by what the delete-self sends", () => {
   it("sends no delete-self that takes a scheme whose recipe is static, though the account signs in by its own", async () => {
     const state = accountsState();
+
     const ctx = await contextOf(
       optionsFor(accountsApi(state, accountsDoc({ adminDelete: true, selfByApiKey: true })), {
         principals: { alpha: { email: "alpha@x.test" } },
         security: { ...EMAIL_LOGIN, apiKey: { static: "alpha-key" } },
       }),
     );
+
     const body = { email: "made@x.test", password: "pw-123456" };
     await ctx.client.request("POST", "/signup", { as: { anonymous: true }, body, operationId: "auth.signup" });
     await teardownAccounts(ctx);
@@ -106,12 +109,15 @@ describe("teardownAccounts never deletes as someone else, by what the delete-sel
   it("hands the hook no credential another principal holds too, and says why it did not call it", async () => {
     const removed: string[] = [];
     const signup = withSignup(() => ({ status: 201 }));
-    /* A login that answers everyone with alpha's token. */
+
+    // A login that answers everyone with alpha's token.
     const sameToken: typeof signup = (method, path, request) =>
       path === "/login" ? { body: { access_token: "login-alpha@x.test" }, status: 200 } : signup(method, path, request);
+
     const ctx = await freshRun(sameToken, {
       hooks: { teardownPrincipal: async (address) => void removed.push(address) },
     });
+
     const { entry } = await torn(ctx);
     expect(removed).toEqual([]);
     expect(entry?.note).toBe(
@@ -125,6 +131,7 @@ describe("a principal with no credential for an operation", () => {
     const ctx = await contextOf(
       optionsFor(accountsApi(accountsState()), { principals: { alpha: { email: "alpha@x.test" } }, security: {} }),
     );
+
     ctx.store.enroll("account-9", {});
     const request = { actor: { principal: "account-9" }, operationId: "me.delete", route: "DELETE /me" };
     expect(await ctx.client.credentialFor(request)).toMatchObject({ kind: "unsatisfied" });
@@ -139,12 +146,15 @@ describe("teardownAccounts never deletes as someone else, by its credential", ()
   it("sends no delete-self when the account's credential is another principal's too", async () => {
     const state = accountsState();
     const api = accountsApi(state, accountsDoc({ adminDelete: true }));
-    /* A login that answers everyone with alpha's token. */
+
+    // A login that answers everyone with alpha's token.
     const sameToken: typeof api = (method, path, request) =>
       path === "/login" ? { body: { access_token: "login-alpha@x.test" }, status: 200 } : api(method, path, request);
+
     const ctx = await contextOf(
       optionsFor(sameToken, { principals: { alpha: { email: "alpha@x.test" } }, security: EMAIL_LOGIN }),
     );
+
     const body = { email: "made@x.test", password: "pw-123456" };
     await ctx.client.request("POST", "/signup", {
       as: { anonymous: true },
@@ -162,10 +172,13 @@ describe("teardownAccounts when a removal cannot be sent", () => {
   it("goes on to the next way, saying why the one before was not sent", async () => {
     const state = accountsState();
     const api = accountsApi(state, accountsDoc({ adminDelete: true }));
+
     const ctx = await freshRun((method, path, request) => {
       if (method === "DELETE" && path === "/me") throw new Error("socket closed");
+
       return api(method, path, request);
     });
+
     const { entry } = await torn(ctx);
     expect(entry?.note).toBe("deleted by member.delete as alpha (204)");
     const [tried] = ctx.client.transcript.filter((exchange) => exchange.operationId === "me.delete");
@@ -205,9 +218,11 @@ describe("teardownAccounts, by an admin", () => {
 describe("teardownAccounts, by the hook", () => {
   it("hands the hook the account's address and its credential as its scheme places it", async () => {
     const removed: unknown[] = [];
+
     const ctx = await freshRun(undefined, {
       hooks: { teardownPrincipal: async (address, held) => void removed.push([address, held]) },
     });
+
     const { entry } = await torn(ctx);
     const email = emailOf(ctx);
     expect(entry).toMatchObject({ note: "removed by hooks.teardownPrincipal", status: "removed" });
@@ -227,6 +242,7 @@ describe("teardownAccounts, by the hook", () => {
     expect(bare.failed[0]?.reason).toBe(
       "the document has no delete-self, and no hooks.teardownPrincipal is configured",
     );
+
     const failing = await torn(
       await freshRun(undefined, {
         hooks: {
@@ -236,13 +252,16 @@ describe("teardownAccounts, by the hook", () => {
         },
       }),
     );
+
     expect(failing.failed[0]?.reason).toBe("hooks.teardownPrincipal threw: cannot delete");
+
     const keyless = await torn(
       await freshRun(undefined, {
-        hooks: { teardownPrincipal: async () => undefined },
+        hooks: { teardownPrincipal: async () => {} },
         principals: { alpha: { email: "alpha@x.test" }, fresh: { fresh: true, security: { bearer: { static: "s" } } } },
       }),
     );
+
     expect(keyless.failed[0]?.reason).toBe("hooks.teardownPrincipal needs a credential the run holds for it");
   });
 });
@@ -250,6 +269,7 @@ describe("teardownAccounts, by the hook", () => {
 /** What the hook removed, by a run whose principals are `principals`. */
 async function removedBy(principals: RunOptions["principals"], respond = withSignup(() => ({ status: 201 }))) {
   const removed: string[] = [];
+
   const ctx = await contextOf(
     optionsFor(respond, {
       hooks: { teardownPrincipal: async (address, held) => void removed.push(`${address} ${held.credential}`) },
@@ -257,7 +277,9 @@ async function removedBy(principals: RunOptions["principals"], respond = withSig
       security: EMAIL_LOGIN,
     }),
   );
+
   await teardownAccounts(ctx);
+
   return { failed: ctx.state.teardown?.failed ?? [], removed };
 }
 
@@ -267,6 +289,7 @@ describe("teardownAccounts: only what the run made", () => {
       { body: { email: "{principal.email}", password: "p4ssw0rd!", tenant: "t1" }, operationId: "auth.signup" },
       { body: { email: "{principal.email}" }, operationId: "auth.login" },
     ];
+
     const security = { bearer: { login: { from: "$.access_token", steps } } };
     expect(await removedBy({ alpha: { email: "reg@x.test", security } })).toEqual({
       failed: [],
@@ -278,13 +301,16 @@ describe("teardownAccounts: only what the run made", () => {
     expect((await removedBy({ alpha: { created: true, email: "c@x.test" } })).removed).toEqual([
       "c@x.test login-c@x.test",
     ]);
+
     const binding: [AuthStep] = [
       { bind: { address: "{principal.email}" }, body: { email: "{principal.email}" }, operationId: "auth.login" },
     ];
+
     const kept = await removedBy(
       { alpha: { email: "a@x.test", security: { bearer: { login: { from: "$.token", steps: binding } } } } },
       withLogin(),
     );
+
     expect(kept).toEqual({ failed: [], removed: [] });
   });
 
@@ -305,9 +331,11 @@ describe("teardownAccounts: only what the run made", () => {
 
   it("never removes an account whose name a configured principal holds, though a sign-up answered 2xx for it", async () => {
     const state = accountsState();
+
     const ctx = await contextOf(
       optionsFor(accountsApi(state), { principals: { alpha: { email: "alpha@x.test" } }, security: EMAIL_LOGIN }),
     );
+
     const body = { email: "alpha@x.test", password: "pw-123456" };
     await ctx.client.request("POST", "/signup", { as: { anonymous: true }, body, operationId: "auth.signup" });
     const { entry } = await torn(ctx);
@@ -317,12 +345,14 @@ describe("teardownAccounts: only what the run made", () => {
   });
 });
 
-/* A signup answers no credential, but alpha's own. */
+// A signup answers no credential, but alpha's own.
 const quiet = (state: AccountsState) => {
   const api = accountsApi(state);
+
   return (method: string, path: string, request: Parameters<typeof api>[2]) => {
     const answer = api(method, path, request);
     const email = (request.body as { email?: string } | undefined)?.email;
+
     return path === "/signup" && email !== "a@x.test" ? { status: 201 } : answer;
   };
 };
@@ -330,9 +360,11 @@ const quiet = (state: AccountsState) => {
 describe("teardownAccounts on an account no principal holds", () => {
   it("signs in as it from its own sign-up's answer, and removes it as itself", async () => {
     const state = accountsState();
+
     const ctx = await contextOf(
       optionsFor(accountsApi(state), { principals: { alpha: { email: "alpha@x.test" } }, security: EMAIL_LOGIN }),
     );
+
     const body = { email: "probe@x.test", password: "pw-123456" };
     await ctx.client.request("POST", "/signup", { as: { anonymous: true }, body, operationId: "auth.signup" });
     const { entry } = await torn(ctx);
@@ -342,12 +374,15 @@ describe("teardownAccounts on an account no principal holds", () => {
 
   it("signs in by its recipe when the answer carries no credential, and never by one that signs up again", async () => {
     const state = accountsState();
+
     const ctx = await contextOf(
       optionsFor(quiet(state), { principals: { alpha: { email: "alpha@x.test" } }, security: EMAIL_LOGIN }),
     );
+
     const body = { email: "quiet@x.test", password: "pw-123456" };
     await ctx.client.request("POST", "/signup", { as: { anonymous: true }, body, operationId: "auth.signup" });
     expect((await torn(ctx)).entry).toMatchObject({ principal: "account-1", status: "removed" });
+
     const signingUp = {
       bearer: {
         login: {
@@ -358,9 +393,11 @@ describe("teardownAccounts on an account no principal holds", () => {
         },
       },
     };
+
     const again = await contextOf(
       optionsFor(quiet(accountsState()), { principals: { alpha: { email: "a@x.test" } }, security: signingUp }),
     );
+
     await again.client.request("POST", "/signup", {
       as: { anonymous: true },
       body: { email: "other@x.test", password: "pw-123456" },
@@ -371,31 +408,35 @@ describe("teardownAccounts on an account no principal holds", () => {
   });
 });
 
-/* A signup whose answer names nothing. */
+// A signup whose answer names nothing.
 const QUIET = { "x-quiet": "1" };
 
 /** A run of alpha and beta, signing in by email unless `extra` says otherwise, that sent `bodies` to the signup. */
 async function sentUp(bodies: unknown[], extra: Partial<RunOptions> = {}, headers: Record<string, string> = {}) {
   const state = accountsState();
+
   const options = optionsFor(accountsApi(state, accountsDoc({ adminDelete: true })), {
     principals: { alpha: { email: "alpha@x.test", rank: 2 }, beta: { email: "beta@x.test", rank: 1 } },
     security: EMAIL_LOGIN,
     ...extra,
   });
-  /* An empty `security` in `extra` stands for none at all. */
+
+  // An empty `security` in `extra` stands for none at all.
   if (Object.keys(options.security ?? {}).length === 0) delete options.security;
   const ctx = await contextOf(options);
-  for (const body of bodies) {
+
+  for (const body of bodies)
     await ctx.client.request("POST", "/signup", { as: { anonymous: true }, body, headers, operationId: "auth.signup" });
-  }
+
   await teardownAccounts(ctx);
+
   return { ctx, state };
 }
 
 describe("teardownAccounts on an account it cannot sign in as", () => {
   it("leaves one its recipe refuses and no admin can name, telling the hook it holds no credential for it", async () => {
     const body = { email: "nologin@x.test", password: "pw-123456" };
-    const { ctx } = await sentUp([body], { hooks: { teardownPrincipal: async () => undefined } }, QUIET);
+    const { ctx } = await sentUp([body], { hooks: { teardownPrincipal: async () => {} } }, QUIET);
     expect(ctx.accounts.entries()[0]).toMatchObject({
       note:
         "me.delete needs the account signed in, and the run holds no credential for it; " +
@@ -408,19 +449,22 @@ describe("teardownAccounts on an account it cannot sign in as", () => {
     const { ctx } = await sentUp([["a@x.test"]], {}, QUIET);
     expect(ctx.accounts.entries()[0]).toMatchObject({ status: "left" });
     const api = accountsApi(accountsState());
+
     const dropped = await contextOf(
       optionsFor(
         (method, path, request) => {
           if (path === "/signup") throw new Error("connection reset");
+
           return api(method, path, request);
         },
         { principals: { alpha: { email: "alpha@x.test" } }, security: EMAIL_LOGIN },
       ),
     );
+
     const body = { email: "lost@x.test", password: "pw-123456" };
     await dropped.client
       .request("POST", "/signup", { as: { anonymous: true }, body, operationId: "auth.signup" })
-      .catch(() => undefined);
+      .catch(() => {});
     expect(dropped.accounts.entries()[0]?.status).toBe("sending");
     await teardownAccounts(dropped);
     expect(dropped.state.teardown?.failed).toEqual([
@@ -451,7 +495,7 @@ describe("teardownAccounts on an account it cannot sign in as", () => {
   });
 });
 
-/* A store that can no longer answer. */
+// A store that can no longer answer.
 const storeGone = () => Promise.reject(new Error("store gone"));
 
 describe("teardownAccounts, what it leaves alone", () => {
@@ -465,7 +509,7 @@ describe("teardownAccounts, what it leaves alone", () => {
   });
 
   it("names the account a leftover, and the run blocked, when removing it threw", async () => {
-    const ctx = await freshRun(undefined, { hooks: { teardownPrincipal: async () => undefined } });
+    const ctx = await freshRun(undefined, { hooks: { teardownPrincipal: async () => {} } });
     const broken = { ...ctx, store: { ...ctx.store, lastHeld: storeGone, snapshot: storeGone } };
     await teardownAccounts(broken);
     expect(ctx.accounts.entries()[0]?.note).toBe("teardown stopped on an unexpected error: store gone");
@@ -481,6 +525,7 @@ describe("accountReport", () => {
       { identity: { email: "a@x.test" }, n: 1, operationId: "auth.signup", principal: "p", status: "removed" },
       { identity: {}, n: 2, operationId: "auth.signup", status: "sending" },
     ]);
+
     expect(report).toEqual({
       failed: [{ entity: "account", id: "#2 by auth.signup", principal: "(none)", reason: "teardown did not run" }],
       records: [

@@ -18,12 +18,12 @@ import { listening, reach, type Via } from "./harness/launch.ts";
 import type { ParserResult } from "./harness/result.ts";
 
 /** One run of the API tester against the extract backend, and what it should have found. */
-interface ExtractCase {
+type ExtractCase = {
   name: string;
   why: string;
   rowCount: number;
   judge: (result: RunResult) => { ok: boolean; detail: string };
-}
+};
 
 const DECLARED = "effects.declared-effect-occurs";
 
@@ -33,12 +33,13 @@ const CASES: readonly ExtractCase[] = [
   {
     judge: ({ findings }) => {
       const effectBug = findings.find(isBug(DECLARED));
+
       return {
         detail:
           effectBug === undefined
             ? `no effect finding; findings=${findings.map((f) => `${f.verdict}:${f.check}`).join(",") || "none"}`
             : effectBug.detail,
-        /* "row" in either text: the space between them cannot make one. */
+        // "row" in either text: the space between them cannot make one.
         ok: effectBug !== undefined && `${effectBug.detail} ${effectBug.summary}`.includes("row"),
       };
     },
@@ -51,6 +52,7 @@ const CASES: readonly ExtractCase[] = [
       const effectBug = findings.find((finding) => finding.check === DECLARED);
       const waitBug = findings.find(isBug("effects.side-effect-arrives"));
       const ok = effectBug === undefined && waitBug === undefined;
+
       return {
         detail: ok
           ? "no effect/wait findings"
@@ -67,14 +69,17 @@ const CASES: readonly ExtractCase[] = [
 /** `count` and `min` on one effect: dropped with a gap at load, while the suite's own `min` is kept. */
 function contradictionCase(): ParserResult {
   const gaps = new GapCollector();
+
   const both = readEffects(
     { responses: {}, "x-effects": [{ count: 1, entity: "row", min: 1, op: "append" }] } as never,
     "extract.once",
     gaps,
   );
+
   const effects = buildModel(extractSpec())
     .operations.filter((op) => op.operationId === "extract.once")
     .flatMap((op) => op.effects);
+
   return {
     detail: `read=${JSON.stringify(both)} gaps=${JSON.stringify(gaps.gaps)} modeled=${JSON.stringify(effects)}`,
     name: "count and min together are rejected at load",
@@ -88,6 +93,7 @@ function contradictionCase(): ParserResult {
 
 async function runExtract(via: Via, rowCount: number): Promise<RunResult> {
   const hosted = await via.host(extractBackend(rowCount));
+
   try {
     return await run({
       baseUrl: hosted.url,
@@ -106,6 +112,7 @@ async function runExtract(via: Via, rowCount: number): Promise<RunResult> {
 
 export async function runEffectsSuite(via: Via = listening): Promise<ParserResult[]> {
   const results = [contradictionCase()];
+
   for (const { judge, name, rowCount, why } of CASES) {
     try {
       const { detail, ok } = judge(await runExtract(via, rowCount));
@@ -114,5 +121,6 @@ export async function runEffectsSuite(via: Via = listening): Promise<ParserResul
       results.push({ detail: messageOf(error), name, ok: false, why });
     }
   }
+
   return results;
 }

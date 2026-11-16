@@ -20,8 +20,8 @@ export const TAG_UNLOCKS: Record<string, readonly string[]> = {
   "x-effects": ["effects.declared-effect-occurs"],
   "x-immutable": ["patch.immutable-field-rejected"],
   "x-invalidate": ["invalidation.declared-route-changes"],
-  /* Declaring filterable fields is itself a claim, and a claim is testable: the API tester probes each
-   * one and reports the document — not the backend — when a declared filter is refused. */
+  // Declaring filterable fields is itself a claim, and a claim is testable: the API tester probes each
+  // one and reports the document — not the backend — when a declared filter is refused.
   "x-query": [
     "spec.declared-filterable-is-filterable",
     "spec.declared-sortable-is-sortable",
@@ -34,8 +34,8 @@ export const TAG_UNLOCKS: Record<string, readonly string[]> = {
     "filter.is-null-selects-nulls",
     "filter.alias-matches-canonical",
     "filter.illegal-op-rejected",
-    /* A malformed term is probed only on a grammar x-query declares. (An unknown sort direction
-     * needs a declared sort grammar, which the reference declares only for its template dialect.) */
+    // A malformed term is probed only on a grammar x-query declares. (An unknown sort direction
+    // needs a declared sort grammar, which the reference declares only for its template dialect.)
     "filter.malformed-term-rejected",
     "filter.empty-in",
     "filter.in-over-limit-rejected",
@@ -47,17 +47,17 @@ export const TAG_UNLOCKS: Record<string, readonly string[]> = {
     "select.unknown-field-rejected",
     "select.nested-honored",
     "sort.default-order-applied",
-    /* An out-of-range page size is judged only where x-query declares it refused. */
+    // An out-of-range page size is judged only where x-query declares it refused.
     "pagination.limit-bounds-enforced",
-    /* Membership needs an array the document marks filterable; untagged, no array is guessed. */
+    // Membership needs an array the document marks filterable; untagged, no array is guessed.
     "filter.contains-membership",
   ],
-  /* A declared rate is a claim the backend can break; an undeclared one is only the API tester's guess. */
+  // A declared rate is a claim the backend can break; an undeclared one is only the API tester's guess.
   "x-rate-limit": ["spec.declared-rate-limit-is-honored"],
   "x-soft-delete": ["softdelete.absent-from-default-list"],
   "x-wait": ["effects.side-effect-arrives"],
   "x-invite": ["auth.invite-grants-then-revokes"],
-  /* identity: self is an x-entity value. Strip the tag and the caller is no longer the record. */
+  // identity: self is an x-entity value. Strip the tag and the caller is no longer the record.
   "x-entity": ["auth.self-is-the-caller", "read.matches-caller-root"],
   "x-unique": ["create.unique-conflict-rejected", "update.unique-conflict-rejected"],
 };
@@ -87,7 +87,7 @@ export const TAG_REMEDY: Record<string, string> = {
   "x-unique": "declare the column sets that must stay unique so a 409 duplicate can be scored",
   security: "give each scheme in a security requirement a list of scopes, [] for none",
   $ref: "define what each pointer names: a missing schema reads as unconstrained, a missing anything else leaves its operation untested",
-  /* What the document declares but the API tester never calls: no declaration closes these. */
+  // What the document declares but the API tester never calls: no declaration closes these.
   webhooks: "not tested: the API tester makes no inbound or follow-up calls",
   callbacks: "not tested: the API tester makes no inbound or follow-up calls",
   links: "not tested: the API tester makes no inbound or follow-up calls",
@@ -107,14 +107,13 @@ export function declaredTags(model: SpecModel): Set<string> {
       ...(op.wait === null ? [] : ["x-wait"]),
       ...(op.tenantSource === "tag" ? ["x-tenant"] : []),
       ...(op.query?.source === "tag" ? ["x-query"] : []),
-      ...(op.unique !== null ? ["x-unique"] : []),
+      ...(op.unique === null ? [] : ["x-unique"]),
     ]),
   );
-  for (const entity of model.entities.values()) {
-    if (entity.invite !== null) declared.add("x-invite");
-  }
-  if (model.operations.some((op) => op.entitySource === "tag" && op.identity === "self")) {
-    declared.add("x-entity");
-  }
+
+  for (const entity of model.entities.values()) if (entity.invite !== null) declared.add("x-invite");
+
+  if (model.operations.some((op) => op.entitySource === "tag" && op.identity === "self")) declared.add("x-entity");
+
   return declared;
 }

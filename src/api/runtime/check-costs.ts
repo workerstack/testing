@@ -55,9 +55,9 @@ export const TYPICAL_REQUESTS: Partial<Record<CheckId, number>> = {
   "invalidation.declared-route-changes": 5,
   "list.item-matches-listed-row": 1,
   "list.read-after-write": 2,
-  /* A create, a read, the update, and a read past the cache. */
+  // A create, a read, the update, and a read past the cache.
   "update.persists-submitted-fields": 4,
-  /* Per write kind: a create, a priming read, the write, and one read against an API that serves it at once. */
+  // Per write kind: a create, a priming read, the write, and one read against an API that serves it at once.
   "consistency.staleness-within-bound": 8,
   "consistency.bypass-is-fresh": 4,
   "pagination.cursor-agrees-with-page": 10,
@@ -133,9 +133,11 @@ const DEFAULT_CHECK_COST = 2;
 export function estimateRequests(entity: EntityModel, model: SpecModel, cohortSize = 7): number {
   const seeding = entity.create === undefined ? 1 : cohortSize + 1;
   let checks = 0;
+
   for (const check of entityChecks(CHECKS)) {
     if (check.subjects(entity, model).length === 0) continue;
     checks += TYPICAL_REQUESTS[check.id] ?? DEFAULT_CHECK_COST;
   }
+
   return seeding + checks;
 }

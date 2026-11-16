@@ -8,6 +8,7 @@ const COHORT = [
   { id: "w-1", status: "open" },
   { id: "w-2", status: "shut" },
 ];
+
 const FIELDS = [{ field: "status", ops: ["eq", "in"] }];
 const REJECT = { xQuery: { emptyIn: "reject", filterable: FIELDS } };
 const MATCH_NONE = { xQuery: { emptyIn: "match-none", filterable: FIELDS } };
@@ -46,6 +47,7 @@ describe("filter.empty-in", () => {
       doc: MATCH_NONE,
       records: COHORT,
     });
+
     expect(await runCheck(check, ctx)).toMatchObject({ kind: "finding" });
     expect(only(findings).detail).toBe("emptyIn=match-none but status.in.() returned 1 record(s).");
   });

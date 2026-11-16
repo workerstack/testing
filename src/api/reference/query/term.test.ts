@@ -9,6 +9,7 @@ import { buildTerm } from "./term.ts";
 
 const position = field("position");
 const term = (op: string, raw: string, ctx: ParseContext = context()) => buildTerm({ ctx, field: position, op, raw });
+
 const cmp = (op: string, value: unknown, extra: object = {}) => ({
   asText: false,
   field: "position",
@@ -28,12 +29,14 @@ describe("buildTerm: arrays", () => {
       substring: false,
       value: "red",
     });
+
     const loose = buildTerm({
       ctx: context(["CONTAINS_MATCHES_SUBSTRING"], {}, ROW),
       field: tags,
       op: "contains",
       raw: "red",
     });
+
     expect(loose).toMatchObject({ substring: true });
   });
 
@@ -91,8 +94,10 @@ describe("buildTerm: ranges and patterns", () => {
 
   it("matches like and ilike on text only, case folded for ilike unless the defect drops it", () => {
     const name = field("name", TABLE);
+
     const like = (op: string, defects: DefectName[] = []) =>
       buildTerm({ ctx: context(defects), field: name, op, raw: "a%*" });
+
     expect(like("like")).toEqual({
       field: "name",
       insensitive: false,

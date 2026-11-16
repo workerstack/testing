@@ -6,12 +6,10 @@ import { runCheck } from "../../core/run.ts";
 import { notesContext, notesModel } from "./__fixtures__/notes.ts";
 import { createPersistsFields } from "./create-persists-submitted-fields.ts";
 
-/*
- * A create that answers 2xx must persist what it was sent. The check judges the create the
- * transcript already holds: its body, read as a form when it was one, against the record read back
- * by the created id through the item read, and the echoed record when the create answered one.
- * Defect: create-drops-field — the stored record leaves out a submitted field.
- */
+// A create that answers 2xx must persist what it was sent. The check judges the create the
+// transcript already holds: its body, read as a form when it was one, against the record read back
+// by the created id through the item read, and the echoed record when the create answered one.
+// Defect: create-drops-field — the stored record leaves out a submitted field.
 
 const MODEL = notesModel();
 const COHORT = [{ id: "n0", name: "zero" }];
@@ -32,10 +30,12 @@ async function afterCreate(
   { listed, read }: { read?: Answer | undefined; listed?: Answer | null } = {},
 ) {
   const listing = (path: string) => listed !== undefined && listed !== null && /^\/notes(\?|$)/.test(path);
+
   const respond = (method: string, path: string) =>
-    method !== "GET" ? answer : listing(path) ? (listed ?? undefined) : read;
+    method === "GET" ? (listing(path) ? (listed ?? undefined) : read) : answer;
+
   const readOp = read === undefined ? { readOp: undefined } : {};
-  /* `listed: null` is an entity with no listing at all. */
+  // `listed: null` is an entity with no listing at all.
   const listOp = listed === null ? ({ listOp: undefined } as unknown as Record<string, never>) : {};
   const stage = notesContext(MODEL, respond, { records: COHORT, ...readOp, ...listOp });
   await stage.ctx.client.request("POST", "/notes", {
@@ -43,6 +43,7 @@ async function afterCreate(
     as: { principal: "alpha" },
     operationId: "note.create",
   });
+
   return stage;
 }
 
@@ -57,10 +58,12 @@ async function judgeSeen(
   witnesses: { read?: Answer | undefined; listed?: Answer | null },
 ) {
   const stage = await afterCreate(options, answer, witnesses);
+
   const outcome = await createPersistsFields.run(stage.ctx, {
     createOp: MODEL.byOperationId.get("note.create") as never,
     properties: PROPERTIES,
   });
+
   return { ...stage, outcome };
 }
 
@@ -118,7 +121,7 @@ describe("create.persists-submitted-fields on JSON bodies", () => {
   });
 
   it("is unresolved when no create or no create body was observed", async () => {
-    const none = notesContext(MODEL, () => undefined, { records: COHORT });
+    const none = notesContext(MODEL, () => {}, { records: COHORT });
     expect((await runCheck(createPersistsFields, none.ctx)).kind).toBe("unresolved");
     const bodiless = await afterCreate({}, { body: { id: "n1" }, status: 201 });
     const outcome = await runCheck(createPersistsFields, bodiless.ctx);
@@ -177,6 +180,7 @@ describe("create.persists-submitted-fields on acknowledgment-only creates", () =
       { body: { message: "ok" }, status: 200 },
       { status: 200 },
     );
+
     expect(outcome).toEqual({
       kind: "stood-down",
       reason: "note.create answered an acknowledgment, not the record, and named no id to read it back by",
@@ -188,31 +192,37 @@ describe("create.persists-submitted-fields on acknowledgment-only creates", () =
 describe("create.persists-submitted-fields with an echo and a read back", () => {
   it("passes a create whose echo leaves out a field the read back holds", async () => {
     const body = { name: "a", size: 3 };
+
     const { outcome } = await judge(
       { body },
       { body: { id: "n1", name: "a" }, status: 201 },
       { body: { ...body, id: "n1" }, status: 200 },
     );
+
     expect(outcome).toEqual({ kind: "asserted" });
   });
 
   it("does not call a field the item read leaves out dropped when the create echoed it", async () => {
     const body = { name: "a", size: 3 };
+
     const { outcome } = await judge(
       { body },
       { body: { ...body, id: "n1" }, status: 201 },
       { body: { id: "n1", name: "a" }, status: 200 },
     );
+
     expect(outcome).toEqual({ kind: "asserted" });
   });
 
   it("fails a field neither the echo nor the read back holds as sent", async () => {
     const body = { name: "a", size: 3 };
+
     const { outcome, findings } = await judge(
       { body },
       { body: { id: "n1", name: "a" }, status: 201 },
       { body: { id: "n1", name: "a", size: 4 }, status: 200 },
     );
+
     expect(outcome).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     expect(findings.findings[0]?.detail).toContain(
       "the create response does not carry back 1 submitted field(s): size sent 3, got undefined",
@@ -249,6 +259,7 @@ describe("create.persists-submitted-fields on form bodies", () => {
       { body: new URLSearchParams([["size", "3"]]), headers: urlencoded },
       { body: { id: "n1", size: "3" }, status: 201 },
     );
+
     expect(outcome).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     expect(findings.findings[0]?.detail).toContain('size sent 3, got "3"');
   });
@@ -257,12 +268,14 @@ describe("create.persists-submitted-fields on form bodies", () => {
     const form = new FormData();
     form.append("name", "a");
     form.append("file", new Blob(["x"]));
+
     const parts = {
       parts: [
         { field: "name", value: "a" },
         { field: "file", filename: "f" },
       ],
     };
+
     for (const body of [form, parts]) {
       const { outcome } = await judge({ body }, { body: { id: "n1", name: "a" }, status: 201 });
       expect(outcome).toEqual({ kind: "asserted" });
@@ -274,6 +287,7 @@ describe("create.persists-submitted-fields on form bodies", () => {
       ["size", "1"],
       ["size", "2"],
     ]);
+
     const { outcome } = await judge({ body }, { body: { id: "n1", size: 2 }, status: 201 });
     expect(outcome).toEqual({ kind: "asserted" });
   });
@@ -285,11 +299,13 @@ describe("create.persists-submitted-fields, against the fields the record declar
   /** `judge` on an acknowledgment read back, with the plan's `declared` fields. */
   async function judgeDeclared(body: Record<string, unknown>, read: Answer, declared?: readonly string[]) {
     const stage = await afterCreate({ body }, ack, { read });
+
     const outcome = await createPersistsFields.run(stage.ctx, {
       createOp: MODEL.byOperationId.get("note.create") as never,
       properties: PROPERTIES,
       ...(declared === undefined ? {} : { declared }),
     });
+
     return { ...stage, outcome };
   }
 
@@ -312,42 +328,44 @@ describe("create.persists-submitted-fields, against the fields the record declar
 
 describe("create.persists-submitted-fields plan", () => {
   it("plans with the create's request properties", () => {
-    const { ctx } = notesContext(MODEL, () => undefined, { records: COHORT });
+    const { ctx } = notesContext(MODEL, () => {}, { records: COHORT });
     const planned = createPersistsFields.plan(ctx);
     expect(planned.ok && Object.keys(planned.value.properties)).toEqual(["code", "name", "size", "title"]);
   });
 
   it("plans with no properties when the create documents no body", () => {
     const model = notesModel({ createWithoutBody: true });
-    const { ctx } = notesContext(model, () => undefined, { records: COHORT });
+    const { ctx } = notesContext(model, () => {}, { records: COHORT });
     const planned = createPersistsFields.plan(ctx);
     expect(planned.ok && planned.value.properties).toEqual({});
   });
 
   it("plans the fields the record's schema declares", () => {
-    const { ctx } = notesContext(MODEL, () => undefined, { records: COHORT });
+    const { ctx } = notesContext(MODEL, () => {}, { records: COHORT });
     const planned = createPersistsFields.plan(ctx);
     expect(planned.ok && planned.value.declared).toEqual(["code", "created_at", "id", "name", "size", "title"]);
   });
 
   it("plans no declared fields when the record's schema is unknown", () => {
-    const { ctx } = notesContext(MODEL, () => undefined, { records: COHORT });
+    const { ctx } = notesContext(MODEL, () => {}, { records: COHORT });
+
     const planned = createPersistsFields.plan({
       ...ctx,
       readOp: undefined,
       listOp: undefined,
     } as unknown as typeof ctx);
+
     expect(planned.ok && planned.value.declared).toBeUndefined();
   });
 
   it("does not plan without a create or a cohort", () => {
-    const { ctx } = notesContext(MODEL, () => undefined, { records: COHORT });
+    const { ctx } = notesContext(MODEL, () => {}, { records: COHORT });
     expect(createPersistsFields.plan({ ...ctx, createOp: undefined }).ok).toBe(false);
     expect(createPersistsFields.plan({ ...ctx, records: [] }).ok).toBe(false);
   });
 
   it("plans for an acknowledgment-only create, which is read back", () => {
-    const { ctx } = notesContext(MODEL, () => undefined, { records: COHORT });
+    const { ctx } = notesContext(MODEL, () => {}, { records: COHORT });
     expect(createPersistsFields.plan({ ...ctx, createAcknowledged: true }).ok).toBe(true);
   });
 });
@@ -358,6 +376,7 @@ describe("create.persists-submitted-fields, with the listing as a witness", () =
   it("does not blame the create for a field the item read leaves out and the listing holds", async () => {
     const body = { name: "a", size: 3 };
     const read = { body: { id: 5, name: "a" }, status: 200 };
+
     const listed = {
       body: [
         { id: 0, name: "z" },
@@ -365,13 +384,16 @@ describe("create.persists-submitted-fields, with the listing as a witness", () =
       ],
       status: 200,
     };
+
     const cleared = await judgeSeen({ body }, ack, { listed, read });
     expect(cleared.outcome).toEqual({ kind: "asserted" });
     expect(cleared.findings.findings).toEqual([]);
+
     const lost = await judgeSeen({ body }, ack, {
       listed: { body: [{ id: 5, name: "a", size: null }], status: 200 },
       read,
     });
+
     expect(lost.outcome).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     expect(lost.findings.findings[0]?.detail).toContain("size sent 3, got undefined");
     const unlisted = await judgeSeen({ body }, ack, { listed: null, read });

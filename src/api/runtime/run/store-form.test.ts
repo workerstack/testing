@@ -7,36 +7,41 @@ import { connected, fetchOf, optionsFor, overriding, withLogin } from "./__fixtu
 import { keysApi, MINTED } from "./__fixtures__/keys.ts";
 import type { RunOptions } from "./types.ts";
 
-/*
- * A token endpoint that answers its pair as a form, `application/x-www-form-urlencoded` with a
- * charset, as some do: a login and an OAuth 2 grant read it by its media type, and renew by the
- * refresh token it carried. The same text under any other type stays unread, and says so.
- */
+// A token endpoint that answers its pair as a form, `application/x-www-form-urlencoded` with a
+// charset, as some do: a login and an OAuth 2 grant read it by its media type, and renew by the
+// refresh token it carried. The same text under any other type stays unread, and says so.
 
 const FORM = "application/x-www-form-urlencoded; charset=utf-8";
 
 /** `options`, with every 200 answer to `path` sent again as its fields' form text, under `type`. */
 function retyped<T extends RunOptions>(options: T, at: { path: string; type: string }): T {
   const serve = fetchOf(options);
+
   const fetch: typeof globalThis.fetch = async (input, init) => {
     const response = await serve(input, init);
+
     if (new URL(String(input)).pathname !== at.path || response.status !== 200) return response;
     const fields = Object.entries((await response.json()) as Record<string, unknown>);
+
     const text = new URLSearchParams(
       Object.fromEntries(fields.map(([name, value]) => [name, String(value)])),
     ).toString();
+
     return new Response(text, { headers: { "content-type": at.type }, status: 200 });
   };
+
   return { ...options, network: { ...options.network, fetch } };
 }
 
 /** An access and a refresh token, numbered by each issue, and an hour's lifetime. */
 function issuing(path: string): Responder {
   let issued = 0;
+
   return (_method, at) => {
-    if (at !== path) return undefined;
+    if (at !== path) return;
     issued += 1;
     const pair = { access_token: `acc-${issued}-9f8e7d`, refresh_token: `ref-${issued}-1a2b3c` };
+
     return { body: { ...pair, expires_in: 3600 }, status: 200 };
   };
 }

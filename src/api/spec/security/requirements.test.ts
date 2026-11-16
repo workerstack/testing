@@ -65,7 +65,7 @@ describe("resolveSecurity", () => {
   });
 });
 
-/* Square's api.json gives RevokeToken `{ "oauth2": null }`. */
+// Square's api.json gives RevokeToken `{ "oauth2": null }`.
 const secured = (security: unknown, at: "operation" | "root"): OpenApiDocument =>
   ({
     components: { securitySchemes: { oauth2: { type: "oauth2" }, key: { type: "apiKey" } } },

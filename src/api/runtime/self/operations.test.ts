@@ -6,12 +6,13 @@ import { modelOf } from "../checks/__fixtures__/harness.ts";
 import { me } from "./__fixtures__/me.ts";
 import { entityIsSelf, SELF_CHECK_ID, selfActionIds, selfOperationIds, selfReadIds } from "./operations.ts";
 
-/* The entity without the given operations, as a document that lacks them would model it. */
+// The entity without the given operations, as a document that lacks them would model it.
 const omit = <T extends object>(value: T, ...keys: Array<keyof T>): T =>
   Object.fromEntries(Object.entries(value).filter(([key]) => !keys.includes(key as keyof T))) as T;
 
 const profile = (document = me()): { entity: EntityModel; model: ReturnType<typeof modelOf> } => {
   const model = modelOf(document);
+
   return { entity: model.entities.get("profile") as EntityModel, model };
 };
 

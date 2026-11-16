@@ -8,7 +8,7 @@ import { type AdoptingCreate, adoptingCreates, hasInvite, type InvitingEntity, s
 import { type Roots, rootsOf } from "./roots.ts";
 import { type SecurityCredentials, type SecurityFacts, securityFacts } from "./security.ts";
 
-export interface DoctorConfig extends CatalogConfig {
+export type DoctorConfig = CatalogConfig & {
   /** Operations config `allow` took out of the document. */
   allowRemoved?: string[];
   /** Operations the config's security recipes send: neither their gaps nor the entities they own are reported. */
@@ -18,10 +18,10 @@ export interface DoctorConfig extends CatalogConfig {
   hooks?: Pick<Hooks, "resolveQueryCapabilities" | "resolvePathValue">;
   /** The config's `cache.bypass`; default true. */
   cacheBypass?: boolean;
-}
+};
 
 /** What `doctor` found in a document, before it is printed as text or JSON. */
-export interface DoctorFacts {
+export type DoctorFacts = {
   entities: EntityModel[];
   /** Entities a run seeds and checks, by the answer the run itself gives (`untestableEntityReason`). */
   testable: EntityModel[];
@@ -51,15 +51,17 @@ export interface DoctorFacts {
   roots: Roots;
   /** The cache bypass each read is sent with. */
   bypass: BypassGroup[];
-}
+};
 
 function gapsByTag(gaps: readonly Gap[]): Map<string, Gap[]> {
   const byTag = new Map<string, Gap[]>();
+
   for (const gap of gaps) {
     const list = byTag.get(gap.tag) ?? [];
     list.push(gap);
     byTag.set(gap.tag, list);
   }
+
   return byTag;
 }
 
@@ -68,13 +70,17 @@ export function doctorFacts(model: SpecModel, config?: DoctorConfig): DoctorFact
   const authCreates = config?.authCreates ?? new Set<string>();
   const entities = sortedEntities(model, authCreates);
   const gaps = model.gaps.gaps.filter((gap) => !authCreates.has(gap.operationId));
+
   const untestable = entities.flatMap((entity) => {
     const reason = untestableEntityReason(entity, model, authCreates);
+
     return reason === null ? [] : [{ entity: entity.name, reason }];
   });
+
   const testable = entities.filter((entity) => !untestable.some((row) => row.entity === entity.name));
   const security = securityFacts(model, config?.credentials);
   const roots = rootsOf(model, config ?? {});
+
   return {
     adopting: adoptingCreates(model).filter((op) => !authCreates.has(op.operationId)),
     bypass: bypassGroups(model, config?.cacheBypass ?? true),

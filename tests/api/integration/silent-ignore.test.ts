@@ -14,12 +14,10 @@ import { dereference } from "../../../src/api/spec/load/dereference.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 import { checkContext } from "../support/check-context.ts";
 
-/*
- * A backend that answers 200 with the whole collection for an operator it does not know, a sort
- * direction it does not know, or a term it cannot parse has silently dropped the caller's intent.
- * The API tester can only ask that when it knows how the grammar is spelled — declared, never guessed: a
- * request built from a guessed grammar is malformed by accident, and its answer proves nothing.
- */
+// A backend that answers 200 with the whole collection for an operator it does not know, a sort
+// direction it does not know, or a term it cannot parse has silently dropped the caller's intent.
+// The API tester can only ask that when it knows how the grammar is spelled — declared, never guessed: a
+// request built from a guessed grammar is malformed by accident, and its answer proves nothing.
 
 const FILTER = { conj: { and: "and" }, ops: { eq: "eq" }, term: "{conj}_{field}_{op}_{value}" };
 const SORT = { asc: "ascending", desc: "descending", term: "{field}_{direction}" };
@@ -55,9 +53,12 @@ function context(query: Record<string, unknown>, parameterDescription = "") {
       },
     },
   } as unknown as OpenApiDocument;
+
   const model = buildModel(dereference(doc).doc);
   const listOp = model.byOperationId.get("notes.list");
+
   if (listOp === undefined || listOp.query === null) throw new Error("fixture incomplete");
+
   return checkContext({
     client: new Client({ baseUrl: "http://127.0.0.1:1", redactor: new Redactor() }),
     entityName: "note",
@@ -75,11 +76,13 @@ function context(query: Record<string, unknown>, parameterDescription = "") {
 
 function plan(id: string, ctx: ReturnType<typeof context>) {
   const check = entityChecks(CHECKS).find((candidate) => candidate.id === id);
+
   if (check === undefined) throw new Error(`no check ${id}`);
+
   return check.plan(ctx);
 }
 
-/* What a ready plan would send, serialized; a plan that stood down sends nothing. */
+// What a ready plan would send, serialized; a plan that stood down sends nothing.
 function planned(ready: ReturnType<typeof plan>): string {
   return ready.ok ? JSON.stringify(ready.value) : "";
 }

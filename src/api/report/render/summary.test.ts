@@ -19,6 +19,7 @@ describe("renderConsole's summary", () => {
     const text = renderConsole(
       reportOf({ network: { attempts: 3, incomplete: true, kind: "timeout", url: "http://h.test", waitedMs: 0 } }),
     );
+
     expect(text).toContain("  run failed — the network went away before the run finished");
   });
 
@@ -39,6 +40,7 @@ describe("renderConsole's summary", () => {
         [exchange({ durationMs: 30 })],
       ),
     );
+
     const lines = text.split("\n");
     expect(lines[1]).toBe(
       "  1 checks · 2 entities · 1 requests · 1.5s · p95 30ms · 0 bytes req · 0 bytes res · 1 checks did not apply · 1 only on some entities",
@@ -59,6 +61,7 @@ describe("renderConsole's summary", () => {
         findings: [finding({ check: "auth.missing-credential-refused" })],
       }),
     );
+
     expect(text).not.toContain("DID NOT APPLY");
     expect(text).toContain(
       `    ${"auth.missing-credential-refused".padEnd(40)} ran per operation · skipped on 1 (pet)`,
@@ -77,6 +80,7 @@ describe("renderConsole's findings and untested checks", () => {
         ],
       }),
     );
+
     const lines = text.split("\n");
     expect(lines).toContain("  baseline: 1 known · 0 fixed");
     expect(lines).toContain("  BACKEND DEFECTS (1)");
@@ -104,6 +108,7 @@ describe("renderConsole's findings and untested checks", () => {
         ],
       }),
     );
+
     const lines = text.split("\n");
     expect(lines).toContain("  BLOCKED BY AN EARLIER FAILURE — re-run once the cause is fixed");
     expect(lines).toContain(`    ${"everywhere".padEnd(40)} waiting on create.returns-record`);
@@ -132,6 +137,7 @@ describe("renderConsole's seed notes", () => {
         ],
       }),
     );
+
     expect(text).toContain("  note: table — seeded unverified (read back answered 404)");
     expect(text).toContain("  note: webhook — seeded unverified (no item read)");
     expect(text).not.toContain("PATCH merges");

@@ -4,10 +4,8 @@ import { anyrow, everyScheme } from "../../spec/security/__fixtures__/documents.
 import { credentials, legacy, model } from "./__fixtures__/security.ts";
 import { securityFacts, securityJson } from "./security.ts";
 
-/*
- * Which principal sends each operation's requirement, decided by the run's own `satisfy` over the
- * recipes the run reads, and what doctor and plan put in their JSON.
- */
+// Which principal sends each operation's requirement, decided by the run's own `satisfy` over the
+// recipes the run reads, and what doctor and plan put in their JSON.
 
 describe("securityFacts", () => {
   it("sorts groups by count, most first, then by requirement", () => {
@@ -23,6 +21,7 @@ describe("securityFacts", () => {
       model(anyrow),
       credentials({ apiKey: { static: "k" } }, { alpha: {}, beta: { security: { jwt: { static: "t" } } } }),
     );
+
     expect(facts.groups.map((group) => group.satisfier)).toEqual([
       undefined,
       "beta (alpha: no credential for jwt)",
@@ -93,6 +92,7 @@ describe("securityJson beside alpha, and without a config", () => {
     const beta = securityJson(
       securityFacts(model(anyrow), credentials({}, { alpha: {}, beta: { security: { jwt: { static: "t" } } } })),
     );
+
     expect(beta.operations[1]).toMatchObject({
       alphaUnsatisfied: "no credential for jwt",
       satisfiedBy: { alternative: 0, principal: "beta" },

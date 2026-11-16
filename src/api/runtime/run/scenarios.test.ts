@@ -11,10 +11,12 @@ import { scenarios } from "./scenarios.ts";
 describe("scenarios", () => {
   it("runs this origin's declared flows as the run's principals, naming the stage", async () => {
     const snaps: ProgressSnapshot[] = [];
+
     const options = optionsFor(notesApi(), {
       onProgress: (snap) => snaps.push(snap),
       scenarios: [{ covers: ["notes.list"], id: "list-notes", steps: [{ operationId: "notes.list" }] }] as never,
     });
+
     const ctx = await contextOf(options);
     await scenarios(ctx);
     expect(snaps.find((snap) => snap.phase === "scenario")?.message).toBe("1 scenario(s)");
@@ -28,6 +30,7 @@ describe("scenarios", () => {
         { covers: ["notes.list"], id: "peer", principal: "alpha", steps: [{ operationId: "notes.list" }] },
       ] as never,
     });
+
     const ctx = await contextOf(options);
     const sent = options.seen.length;
     const blocked = [{ id: "alpha", reason: "auth.token answered 401" }];
@@ -51,6 +54,7 @@ describe("scenarios", () => {
         },
       ] as never,
     });
+
     const ctx = await contextOf(options);
     const sent = options.seen.length;
     await scenarios(ctx);
@@ -73,6 +77,7 @@ describe("scenarios, as whom", () => {
       security: { bearer: { static: "tok-{principal.email}" } },
       writer: "beta",
     });
+
     const ctx = await contextOf(options);
     await scenarios(ctx);
     expect(options.seen.at(-1)?.headers["authorization"]).toBe("Bearer tok-b@x.test");
@@ -82,6 +87,7 @@ describe("scenarios, as whom", () => {
 describe("scenarios: an account that deletes itself through the scenario's session", () => {
   it("is settled during the run by the ledger, once, not left for teardown", async () => {
     const state = accountsState();
+
     const ctx = await contextOf(
       optionsFor(accountsApi(state), {
         principals: { alpha: { email: "alpha@x.test" } },
@@ -110,6 +116,7 @@ describe("scenarios: an account that deletes itself through the scenario's sessi
         security: EMAIL_LOGIN,
       }),
     );
+
     await scenarios(ctx);
     const made = ctx.accounts.entries().filter((entry) => entry.identity["email"] === "s@x.test");
     const [first, again] = ctx.client.transcript.filter((sent) => sent.operationId === "me.delete");
@@ -134,6 +141,7 @@ const signUpAs = (email: string): ScenarioStep => ({
 /** A run whose one scenario runs `steps`, mailing each address its own account's token. */
 async function accountScenario(steps: ScenarioStep[], doc = accountsDoc()) {
   const state = accountsState();
+
   const ctx = await contextOf(
     optionsFor(accountsApi(state, doc), {
       hooks: { resolveOutOfBand: async ({ address }) => `t-${address}` },
@@ -143,8 +151,10 @@ async function accountScenario(steps: ScenarioStep[], doc = accountsDoc()) {
       security: EMAIL_LOGIN,
     }),
   );
+
   await scenarios(ctx);
   const entryOf = (email: string) => ctx.accounts.entries().find((entry) => entry.identity["email"] === email);
+
   return { ctx, entryOf, state };
 }
 

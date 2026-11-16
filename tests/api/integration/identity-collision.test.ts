@@ -6,17 +6,16 @@ import { afterEach, describe, expect, it } from "vitest";
 import { run } from "../../../src/api/runtime/run/index.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 
-/*
- * A create that takes the record's id from the client and silently overwrites a record that
- * already has it (a config store keyed by id). Nothing declares the id unique, so only the API tester's own
- * care keeps it from choosing an id a record already holds — and destroying that record.
- */
+// A create that takes the record's id from the client and silently overwrites a record that
+// already has it (a config store keyed by id). Nothing declares the id unique, so only the API tester's own
+// care keeps it from choosing an id a record already holds — and destroying that record.
 
 type Row = { id: number; name: string };
 
 const SPACE = 60;
 
 let open: Array<{ close: () => Promise<void> }> = [];
+
 afterEach(async () => {
   for (const server of open) await server.close();
   open = [];
@@ -32,11 +31,14 @@ function spec(): OpenApiDocument {
     required: ["id", "name"],
     type: "object",
   };
+
   const ack = {
     content: { "application/json": { schema: { properties: { success: { type: "boolean" } }, type: "object" } } },
     description: "ok",
   };
+
   const idParam = [{ in: "path", name: "noteId", required: true, schema: { type: "integer" } }];
+
   return {
     info: { title: "overwriting-create", version: "1" },
     openapi: "3.1.0",
@@ -75,8 +77,10 @@ function spec(): OpenApiDocument {
 
 async function readJson(req: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = [];
+
   for await (const chunk of req) chunks.push(chunk as Buffer);
   const raw = Buffer.concat(chunks).toString("utf8");
+
   return raw === "" ? undefined : JSON.parse(raw);
 }
 
@@ -87,36 +91,43 @@ function send(res: ServerResponse, status: number, body: unknown): void {
 
 async function createNote(rows: Map<number, Row>, req: IncomingMessage, res: ServerResponse): Promise<void> {
   const body = (await readJson(req)) as Partial<Row> | undefined;
-  if (typeof body?.id !== "number" || typeof body.name !== "string" || body.name === "") {
+
+  if (typeof body?.id !== "number" || typeof body.name !== "string" || body.name === "")
     return send(res, 400, { success: false });
-  }
-  /* An existing id is overwritten, not refused. */
+
+  // An existing id is overwritten, not refused.
   rows.set(body.id, { id: body.id, name: body.name });
   send(res, 200, { success: true });
 }
 
-/* The item path a request names, and its method. */
-interface ItemRequest {
+// The item path a request names, and its method.
+type ItemRequest = {
   pathname: string;
   method: string;
-}
+};
 
 function noteItem(rows: Map<number, Row>, { method, pathname }: ItemRequest, res: ServerResponse): void {
   const id = Number(decodeURIComponent(pathname.match(/^\/notes\/([^/]+)$/)?.[1] ?? ""));
   const row = rows.get(id);
+
   if (method === "GET") return row === undefined ? send(res, 404, {}) : send(res, 200, row);
+
   if (method === "DELETE") return rows.delete(id) ? send(res, 200, { success: true }) : send(res, 404, {});
   send(res, 405, {});
 }
 
 async function serve(rows: Map<number, Row>): Promise<string> {
   const document = spec();
+
   const server = createServer((req, res) => {
     void (async () => {
       const url = new URL(req.url ?? "/", "http://127.0.0.1");
       const method = (req.method ?? "GET").toUpperCase();
+
       if (url.pathname === "/openapi.json") return send(res, 200, document);
+
       if (url.pathname === "/notes" && method === "GET") return send(res, 200, [...rows.values()]);
+
       if (url.pathname === "/notes" && method === "POST") return createNote(rows, req, res);
       noteItem(rows, { method, pathname: url.pathname }, res);
     })().catch(() => {
@@ -124,21 +135,27 @@ async function serve(rows: Map<number, Row>): Promise<string> {
       res.end();
     });
   });
+
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   open.push({ close: () => new Promise<void>((resolve) => server.close(() => resolve())) });
+
   return url;
 }
 
 function existing(count: number): Map<number, Row> {
   const rows = new Map<number, Row>();
+
   for (let id = 1; id <= count; id++) rows.set(id, { id, name: `keep-${id}` });
+
   return rows;
 }
 
 function intact(rows: Map<number, Row>, count: number): number {
   let kept = 0;
+
   for (let id = 1; id <= count; id++) if (rows.get(id)?.name === `keep-${id}`) kept++;
+
   return kept;
 }
 

@@ -11,7 +11,7 @@ import type { RunResult } from "../../runtime/run/index.ts";
 import { EXPECTED } from "../expected/table.ts";
 import { acceptableOf, primaryOf } from "../matrix/expected.ts";
 
-export interface FuzzCase {
+export type FuzzCase = {
   seed: number;
   injected: DefectName[];
   /** Injected defects whose primary check neither fired nor was justifiably suppressed. */
@@ -43,14 +43,14 @@ export interface FuzzCase {
   findings: number;
   ok: boolean;
   error?: string;
-}
+};
 
-export interface PrecisionCase {
+export type PrecisionCase = {
   seed: number;
   findings: Array<{ check: string; entity: string; summary: string }>;
   inconclusive: number;
   error?: string;
-}
+};
 
 /** What a run reported that the diagnosis looks at. */
 export type Reported = Pick<RunResult, "findings" | "inconclusive"> &
@@ -67,15 +67,17 @@ export type Diagnosis = Pick<
 /** Every check id reachable from `id` by following `dependsOn`, transitively. */
 export function ancestorsOf(id: string, seen: Set<string> = new Set<string>()): Set<string> {
   const check = entityChecks(CHECKS).find((candidate) => candidate.id === id);
+
   for (const parent of check?.dependsOn ?? []) {
     if (seen.has(parent)) continue;
     seen.add(parent);
     ancestorsOf(parent, seen);
   }
+
   return seen;
 }
 
-/* Coverage gaps describe what the API tester could not test, not what the backend got wrong. */
+// Coverage gaps describe what the API tester could not test, not what the backend got wrong.
 function real(finding: Finding): boolean {
   return finding.verdict !== "COVERAGE_GAP";
 }
@@ -94,27 +96,34 @@ export function falsePositives(reported: Reported): PrecisionCase["findings"] {
 export function diagnose(injected: readonly DefectName[], reported: Reported): Diagnosis {
   const findings = reported.findings.filter(real);
   const fired = new Set(findings.map((finding) => finding.check));
+
   const recall = recallOf(injected, fired, {
     blocked: blockedChecks(findings),
     inconclusive: new Map(reported.inconclusive.map((entry) => [entry.check, entry.reason])),
     stoodDown: stoodDownEverywhere(reported),
   });
-  /* Anything the injected set can justify — the primaries plus their documented
-   * consequences. A finding outside this union is the API tester inventing a defect. */
+
+  // Anything the injected set can justify — the primaries plus their documented
+  // consequences. A finding outside this union is the API tester inventing a defect.
   const justified = new Set(injected.flatMap((defect) => acceptableOf(EXPECTED[defect])));
+
   const spurious = findings
     .filter((finding) => !justified.has(finding.check))
     .map((finding) => ({ ...brief(finding), detail: finding.detail }));
+
   return { ...recall, findings: findings.length, ok: recall.missed.length === 0 && spurious.length === 0, spurious };
 }
 
 /** Each check a BLOCKED credential stopped, and the finding's account of why. */
 function blockedChecks(findings: readonly Finding[]): Map<string, string> {
   const blocked = new Map<string, string>();
+
   for (const finding of findings) {
     const check = blockedCheckOf(finding);
+
     if (check !== undefined && !blocked.has(check)) blocked.set(check, finding.detail);
   }
+
   return blocked;
 }
 
@@ -125,7 +134,9 @@ function blockedChecks(findings: readonly Finding[]): Map<string, string> {
 function stoodDownEverywhere(reported: Reported): Map<string, string> {
   const passed = new Set((reported.scope?.operations ?? []).flatMap((op) => op.checks.passed));
   const reasons = new Map<string, string>();
+
   for (const skip of reported.checksSkipped ?? []) if (!passed.has(skip.check)) reasons.set(skip.check, skip.needs);
+
   return reasons;
 }
 
@@ -145,20 +156,24 @@ function recallOf(
     missed: [],
     unresolved: [],
   };
+
   for (const defect of injected) {
     const want = primaryOf(EXPECTED[defect]);
+
     if (fired.has(want)) continue;
-    /* Not fired. Acceptable in three cases: something `want` depends on is itself broken —
-     * cascade suppression working —, the check ran and reported *why* it could not conclude
-     * (inconclusive, or BLOCKED by a credential another defect took away), or it stood down
-     * everywhere it ran, saying why. Anything else is the API tester going quiet, which is the real failure. */
+    // Not fired. Acceptable in three cases: something `want` depends on is itself broken —
+    // cascade suppression working —, the check ran and reported *why* it could not conclude
+    // (inconclusive, or BLOCKED by a credential another defect took away), or it stood down
+    // everywhere it ran, saying why. Anything else is the API tester going quiet, which is the real failure.
     const broken = [...ancestorsOf(want)].find((ancestor) => fired.has(ancestor));
     const reason = stated.inconclusive.get(want) ?? stated.blocked.get(want);
     const stood = stated.stoodDown.get(want);
+
     if (broken !== undefined) recall.cascaded.push({ because: broken, defect });
     else if (reason !== undefined) recall.unresolved.push({ defect, reason });
-    else if (stood !== undefined) recall.excused.push({ check: want, defect, reason: stood });
-    else recall.missed.push({ defect, primary: want });
+    else if (stood === undefined) recall.missed.push({ defect, primary: want });
+    else recall.excused.push({ check: want, defect, reason: stood });
   }
+
   return recall;
 }

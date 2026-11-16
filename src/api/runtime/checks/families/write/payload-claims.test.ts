@@ -7,7 +7,7 @@ import { PayloadClaims } from "./payload-claims.ts";
 
 const path = 'application/json|["string",null]';
 
-/* Resolves after every promise callback already queued has run. */
+// Resolves after every promise callback already queued has run.
 const drained = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
 
 describe("PayloadClaims", () => {
@@ -80,13 +80,14 @@ describe("plannedWritePath", () => {
   it("keys the field the payload check would probe, and has none for an entity it cannot run on", () => {
     const model = modelOf(widgetDoc());
     const [widget] = [...model.entities.values()];
+
     if (widget === undefined) throw new Error("the widget document has an entity");
-    /* The widget's note: a nullable string, the field the check picks. */
+    // The widget's note: a nullable string, the field the check picks.
     expect(plannedWritePath(model, widget)).toBe('application/json|[["string","null"],null]');
-    /* An identity the document leaves undeclared is `id`, which is not probed either. */
+    // An identity the document leaves undeclared is `id`, which is not probed either.
     expect(plannedWritePath(model, { ...widget, identity: null })).toBe('application/json|[["string","null"],null]');
     const { delete: _delete, read: _read, update: _update, ...routes } = widget;
-    /* Neither an update nor a delete, or no item read: the check has nothing to run on. */
+    // Neither an update nor a delete, or no item read: the check has nothing to run on.
     expect(plannedWritePath(model, { ...routes, read: widget.read ?? "" })).toBeNull();
     expect(
       plannedWritePath(model, { ...routes, ...(widget.update === undefined ? {} : { update: widget.update }) }),
@@ -96,6 +97,7 @@ describe("plannedWritePath", () => {
   it("has none for an entity with no free string to probe", () => {
     const model = modelOf(widgetDoc({ item: { ...WIDGET, properties: { id: { readOnly: true, type: "string" } } } }));
     const [widget] = [...model.entities.values()];
+
     if (widget === undefined) throw new Error("the widget document has an entity");
     expect(plannedWritePath(model, widget)).toBeNull();
   });

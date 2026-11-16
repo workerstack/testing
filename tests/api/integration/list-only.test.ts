@@ -12,6 +12,7 @@ const DEFECT_VERDICTS = new Set(["BACKEND_BUG", "SECURITY", "SPEC_BUG"]);
 const ROW = { id: "art_1", name: "Alpha" };
 
 let open: Array<{ close: () => Promise<void> }> = [];
+
 afterEach(async () => {
   for (const server of open) await server.close();
   open = [];
@@ -23,12 +24,14 @@ function spec(): OpenApiDocument {
     required: ["id", "name"],
     type: "object",
   };
+
   const ok = {
     "200": {
       content: { "application/json": { schema: article } },
       description: "ok",
     },
   };
+
   return {
     info: { title: "list-only", version: "1" },
     openapi: "3.1.0",
@@ -67,32 +70,43 @@ function spec(): OpenApiDocument {
 
 async function serve(rows: Array<typeof ROW>): Promise<string> {
   const document = spec();
+
   const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
     const method = (req.method ?? "GET").toUpperCase();
+
     if (url.pathname === "/openapi.json" && method === "GET") {
       res.writeHead(200, { "content-type": "application/json" });
       res.end(JSON.stringify(document));
+
       return;
     }
+
     if (url.pathname === "/v1/articles" && method === "GET") {
       res.writeHead(200, { "content-type": "application/json" });
       res.end(JSON.stringify({ articles: rows }));
+
       return;
     }
+
     const item = url.pathname.match(/^\/v1\/articles\/([^/]+)$/);
+
     if (item !== null && method === "GET") {
       const row = rows.find((candidate) => candidate.id === decodeURIComponent(item[1] ?? ""));
       res.writeHead(row === undefined ? 404 : 200, { "content-type": "application/json" });
       res.end(JSON.stringify(row ?? { error: "missing" }));
+
       return;
     }
+
     res.writeHead(404, { "content-type": "application/json" });
     res.end(JSON.stringify({ error: "missing" }));
   });
+
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   open.push({ close: () => new Promise<void>((resolve) => server.close(() => resolve())) });
+
   return url;
 }
 
@@ -114,9 +128,11 @@ describe("a list with no create", () => {
     const get = result.scope.operations.find((op) => op.operationId === "article.get");
     expect(get?.status).toBe("passed");
     expect(get?.checks.passed).toContain("list.item-matches-listed-row");
+
     const item = result.client.transcript.find(
       (exchange) => exchange.method === "GET" && exchange.url.includes("/v1/articles/art_1"),
     );
+
     expect(item?.responseBody).toEqual(ROW);
   });
 

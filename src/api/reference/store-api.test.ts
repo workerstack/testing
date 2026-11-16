@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { decodeCursor, encodeCursor, SqlError } from "./store-api.ts";
 
-/* What decoding `cursor` throws, or what it answers when it does not throw. */
+// What decoding `cursor` throws, or what it answers when it does not throw.
 function refused(cursor: string): unknown {
   try {
     return decodeCursor(cursor);

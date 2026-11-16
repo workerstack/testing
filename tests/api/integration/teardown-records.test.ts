@@ -12,21 +12,22 @@ import type { Disposable } from "../../../src/api/runtime/teardown/types.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 import { latestReport, tester, tempDirs } from "../support/cli-run.ts";
 
-/*
- * The run result names every record the API tester ledgered for teardown and whether it is gone. Counts alone
- * cannot say which id the API tester meant to remove, and the conformance suite needs exactly that to prove
- * every recorded id is one the backend created. A record teardown could not show gone fails the run
- * with exit 4, whatever else it found.
- */
+// The run result names every record the API tester ledgered for teardown and whether it is gone. Counts alone
+// cannot say which id the API tester meant to remove, and the conformance suite needs exactly that to prove
+// every recorded id is one the backend created. A record teardown could not show gone fails the run
+// with exit 4, whatever else it found.
 
 type Note = { id: string; name: string };
 
 let open: Array<{ close: () => Promise<void> }> = [];
+
 afterEach(async () => {
   for (const server of open) await server.close();
   open = [];
 });
+
 const dirs = tempDirs("testing-teardown-records-");
+
 afterAll(dirs.removeAll);
 
 const REFUSED = "note-1";
@@ -37,8 +38,10 @@ function spec(): OpenApiDocument {
     required: ["name"],
     type: "object",
   };
+
   const one = { content: { "application/json": { schema: note } }, description: "ok" };
   const idParam = [{ in: "path", name: "noteId", required: true, schema: { type: "string" } }];
+
   return {
     info: { title: "teardown-records", version: "1" },
     openapi: "3.1.0",
@@ -78,8 +81,10 @@ function spec(): OpenApiDocument {
 
 async function readJson(req: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = [];
+
   for await (const chunk of req) chunks.push(chunk as Buffer);
   const raw = Buffer.concat(chunks).toString("utf8");
+
   return raw === "" ? undefined : JSON.parse(raw);
 }
 
@@ -88,47 +93,60 @@ function send(res: ServerResponse, status: number, body?: unknown): void {
   res.end(body === undefined ? "" : JSON.stringify(body));
 }
 
-/* The item path a request names, and its method. */
-interface ItemRequest {
+// The item path a request names, and its method.
+type ItemRequest = {
   pathname: string;
   method: string;
-}
+};
 
 function noteItem(notes: Map<string, Note>, { method, pathname }: ItemRequest, res: ServerResponse): void {
   const id = decodeURIComponent(pathname.match(/^\/notes\/([^/]+)$/)?.[1] ?? "");
   const note = notes.get(id);
+
   if (method === "GET") return note === undefined ? send(res, 404, { error: "missing" }) : send(res, 200, note);
+
   if (method !== "DELETE") return send(res, 405, {});
+
   if (id === REFUSED) return send(res, 403, { error: "kept" });
+
   return notes.delete(id) ? send(res, 204) : send(res, 404, { error: "missing" });
 }
 
-/* Creates `note-1`, `note-2`, … in order and refuses to delete `note-1`. */
+// Creates `note-1`, `note-2`, … in order and refuses to delete `note-1`.
 async function serve(notes: Map<string, Note>): Promise<string> {
   const document = spec();
   let next = 1;
+
   const server = createServer((req, res) => {
     void (async () => {
       const url = new URL(req.url ?? "/", "http://127.0.0.1");
       const method = (req.method ?? "GET").toUpperCase();
+
       if (url.pathname === "/openapi.json") return send(res, 200, document);
+
       if (url.pathname === "/notes" && method === "GET") return send(res, 200, [...notes.values()]);
+
       if (url.pathname === "/notes" && method === "POST") {
         const body = (await readJson(req)) as Partial<Note> | undefined;
+
         if (typeof body?.name !== "string" || body.name === "") return send(res, 400, { error: "name" });
         const note = { id: `note-${next++}`, name: body.name };
         notes.set(note.id, note);
+
         return send(res, 201, note);
       }
+
       noteItem(notes, { method, pathname: url.pathname }, res);
     })().catch(() => {
       if (!res.headersSent) res.writeHead(500);
       res.end();
     });
   });
+
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   open.push({ close: () => new Promise<void>((resolve) => server.close(() => resolve())) });
+
   return url;
 }
 
@@ -136,6 +154,7 @@ describe("teardown records", () => {
   it("lists every ledgered record in creation order, and whether it was removed", async () => {
     const notes = new Map<string, Note>();
     const url = await serve(notes);
+
     const result = await run({
       baseUrl: url,
       cohortSize: 3,
@@ -143,6 +162,7 @@ describe("teardown records", () => {
       seed: 1,
       spec: `${url}/openapi.json`,
     });
+
     const records = result.teardown?.records ?? [];
     expect(records.length).toBe(result.created);
     expect(records.every((record) => record.entity === "note")).toBe(true);
@@ -180,11 +200,14 @@ describe("a record teardown could not remove", () => {
 
   it("exits 4 when teardown stops on an error, listing every record it was to remove", async () => {
     const url = await serve(new Map());
-    /* Takes what is ledgered, as the real unwind does, then fails before removing any of it. */
+
+    // Takes what is ledgered, as the real unwind does, then fails before removing any of it.
     const unwind = vi.spyOn(Ledger.prototype, "unwind").mockImplementation(function (this: Ledger) {
       (this.entries() as Disposable[]).splice(0);
+
       return Promise.reject(new Error("delete exploded"));
     });
+
     try {
       const result = await run({
         baseUrl: url,
@@ -193,6 +216,7 @@ describe("a record teardown could not remove", () => {
         seed: 1,
         spec: `${url}/openapi.json`,
       });
+
       expect(result.findings.some((finding) => finding.check === "world.teardown")).toBe(true);
       expect(result.teardown?.failed.length).toBe(result.created);
       expect(result.teardown?.records.every((record) => !record.removed)).toBe(true);

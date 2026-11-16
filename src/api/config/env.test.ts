@@ -14,6 +14,7 @@ describe("env", () => {
 
   it("reads the process environment by default", () => {
     process.env["TESTING_API_ENV_TEST_SET"] = "yes";
+
     try {
       expect(env("TESTING_API_ENV_TEST_SET")).toBe("yes");
     } finally {
@@ -24,8 +25,8 @@ describe("env", () => {
   it("defers an unset variable to its ${NAME} literal only when TESTING_API_DEFER_ENV is exactly 1", () => {
     expect(env("TESTING_API_TOKEN", { [DEFER_ENV]: "1" })).toBe("${TESTING_API_TOKEN}");
     expect(env("TESTING_API_TOKEN", { [DEFER_ENV]: "1", TESTING_API_TOKEN: "t" })).toBe("t");
-    for (const near of ["true", "yes", "0", "", " 1"]) {
+
+    for (const near of ["true", "yes", "0", "", " 1"])
       expect(() => env("TESTING_API_TOKEN", { [DEFER_ENV]: near })).toThrow(new MissingEnvError("TESTING_API_TOKEN"));
-    }
   });
 });

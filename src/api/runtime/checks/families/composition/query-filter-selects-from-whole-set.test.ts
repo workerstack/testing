@@ -5,10 +5,10 @@ import { backend } from "./__fixtures__/query-api.ts";
 import { NOTES, PARAMS, queryDoc, stage } from "./__fixtures__/query-api.ts";
 import { filterAndPagingCompose } from "./query-filter-selects-from-whole-set.ts";
 
-/* Paged, with the identity sortable, so the walks are ordered by it. */
+// Paged, with the identity sortable, so the walks are ordered by it.
 const PAGED_BY_ID = queryDoc({ sortable: ["title", "status", "rank", "score", "id"] }, [...PARAMS, "page"]);
 
-/* The cohort with one more open record that carries no identity. */
+// The cohort with one more open record that carries no identity.
 const ANONYMOUS = [...NOTES, { rank: 5, score: null, status: "open", title: "Nameless" }];
 
 const NEEDS = { kind: "stood-down", reason: "a filterable field and more than two records" };

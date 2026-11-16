@@ -37,6 +37,7 @@ describe("pagination.has-more-is-accurate: reports a has-more flag the next page
       pagedBackend(widgets(1), (body) => ({ body: { ...body, hasMore: true }, status: 200 })),
       widgets(3),
     );
+
     expect(await runCheck(hasMoreIsAccurate, ctx)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     expect(findings.findings[0]?.summary).toBe("hasMore claims further pages exist when none do");
     expect(findings.findings[0]?.detail).toMatch(/request an empty page$/);
@@ -49,6 +50,7 @@ describe("pagination.has-more-is-accurate: reports a has-more flag the next page
       pagedBackend(widgets(3), (body) => ({ body: { ...body, hasMore: false }, status: 200 })),
       widgets(3),
     );
+
     expect(await runCheck(hasMoreIsAccurate, ctx)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     expect(findings.findings[0]?.summary).toBe("hasMore claims no further pages while the next page returns records");
     expect(findings.findings[0]?.detail).toMatch(/silently stop after the first page$/);

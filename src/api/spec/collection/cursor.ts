@@ -5,5 +5,6 @@
  */
 export function nextCursorOf(value: unknown): string | undefined {
   if (typeof value === "string") return value === "" ? undefined : value;
+
   return typeof value === "number" && Number.isFinite(value) ? String(value) : undefined;
 }

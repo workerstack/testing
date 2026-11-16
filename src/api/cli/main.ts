@@ -18,12 +18,12 @@ import { type Flags, parseArgs, USAGE } from "./flags.ts";
 import { processWriter, type Writer } from "./writer.ts";
 
 /** What the commands reach outside the process through; each defaults to the real thing. */
-export interface CliDeps {
+export type CliDeps = {
   writer: Writer;
   run?: RunDeps;
   serve?: ServeDeps;
   toolkit?: () => Promise<Toolkit>;
-}
+};
 
 type Command = (deps: CliDeps, flags: Flags, positionals: readonly string[]) => Promise<number>;
 
@@ -46,19 +46,27 @@ export async function main(
 ): Promise<number> {
   const { writer } = deps;
   const { command, error, flags, positionals } = parseArgs(argv);
+
   if (error !== undefined) {
     writer.err(`testing api: ${error}\n\n${USAGE}`);
+
     return EXIT.usage;
   }
+
   if (command === "help" || flags.help === true) {
     writer.out(USAGE);
+
     return 0;
   }
+
   const run = COMMANDS[command];
+
   if (run === undefined) {
     writer.err(`testing api: unknown command "${command}"\n\n${USAGE}`);
+
     return EXIT.usage;
   }
+
   return run(deps, flags, positionals ?? []);
 }
 
@@ -74,7 +82,7 @@ export function start(
     (code) => {
       process.exitCode = code;
     },
-    /* A usage error is the caller's to fix and names the mistake; anything else is the API tester failing. */
+    // A usage error is the caller's to fix and names the mistake; anything else is the API tester failing.
     (error: unknown) => {
       deps.writer.err(`testing api: ${messageOf(error).replace(/^testing api: /, "")}\n`);
       process.exitCode = error instanceof UsageError ? EXIT.usage : EXIT.failed;
@@ -89,6 +97,7 @@ export function start(
  */
 export function invokedDirectly(entry: string | undefined, moduleUrl: string): boolean {
   if (entry === undefined) return false;
+
   try {
     return realpathSync(fileURLToPath(moduleUrl)) === realpathSync(resolve(entry));
   } catch {

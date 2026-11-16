@@ -22,6 +22,7 @@ describe("prepare", () => {
       transport(() => json({})),
       { operationResolver: resolver },
     );
+
     const request = prepare(wire, "get", "/rows", { as: ANON, query: { page: 2 } });
     expect(request).toMatchObject({ method: "GET", operationId: "row.list", relative: "/rows" });
     expect(request.url.toString()).toBe(`${BASE}/rows?page=2&tenant=t1`);
@@ -32,6 +33,7 @@ describe("prepare", () => {
       transport(() => json({})),
       { operationResolver: resolver },
     );
+
     expect(prepare(wire, "GET", "http://cdn.test/f", { as: ANON })).toMatchObject({
       operationId: undefined,
       resolved: null,
@@ -50,10 +52,12 @@ describe("prepare", () => {
 
   it("reads the caller's headers afresh, and keeps apart the query the caller set", () => {
     let token = "a";
+
     const wire = wireOf(
       transport(() => json({})),
       { operationResolver: resolver },
     );
+
     const request = prepare(wire, "GET", "/rows?q=1", { as: ANON, headers: () => ({ "x-trace": token }) });
     token = "b";
     expect(request.callerHeaders()).toEqual({ "x-trace": "b" });
@@ -85,6 +89,7 @@ describe("prepare: declared styles", () => {
       transport(() => json({})),
       { operationResolver: styled },
     );
+
     expect(prepare(wire, "GET", "/styles", { as: ANON }).url.search).toBe("?ids=a|b&range[max]=5&range[min]=1");
     const caller = prepare(wire, "GET", "/styles", { as: ANON, query: { range: { min: 2 } } });
     expect(caller.url.search).toBe("?range[min]=2&ids=a|b");
@@ -113,7 +118,7 @@ describe("sendAttempt: declared headers and cookies", () => {
     });
   });
 
-  /* Ruling A4: a declared value under a name the credential is placed in is never sent; the caller's still collides. */
+  // Ruling A4: a declared value under a name the credential is placed in is never sent; the caller's still collides.
   it("never sends a declared value under a name the credential is placed in, and still refuses the caller's", async () => {
     const wire = transport(() => json({}));
     const live = sendingHeaders({ "X-Token": "live" });
@@ -136,10 +141,12 @@ describe("sendAttempt: declared headers and cookies", () => {
 describe("prepare: the actor", () => {
   it("asks the source for the actor, the operation and whether it is a probe", async () => {
     const source = fixedSource({ kind: "anonymous" });
+
     const ctx = wireOf(
       transport(() => json({})),
       { credentials: source, operationResolver: resolver },
     );
+
     await sendAttempt(prepare(ctx, "GET", "/rows", { as: { principal: "alpha" }, probe: true }), 0, ctx);
     expect(source.asked).toEqual([
       { actor: { principal: "alpha" }, operationId: "row.list", probe: true, route: "GET /rows" },
@@ -148,10 +155,12 @@ describe("prepare: the actor", () => {
 
   it("names a foreign URL by its origin and path, and follows one from a response as nobody", async () => {
     const source = fixedSource({ kind: "anonymous" });
+
     const ctx = wireOf(
       transport(() => json({})),
       { credentials: source, operationResolver: resolver },
     );
+
     const via = { principal: "alpha", via: { schemes: ["jwt"] } as Exchange };
     const signed = "http://storage.test/b/f?signature=s3cr3t";
     await sendAttempt(prepare(ctx, "GET", signed, { as: { principal: "alpha" } }), 0, ctx);
@@ -169,11 +178,13 @@ describe("sendAttempt", () => {
   it("sends globals, then the hook's, then the caller's, then the credential, with the body's type", async () => {
     const wire = transport(() => json({}));
     const hooked: unknown[] = [];
+
     const ctx = wireOf(wire, {
       credentials: fixedSource(sendingHeaders({ authorization: "Bearer live" })),
       headers: { g: "1", h: "global" },
       resolveHeaders: async (request) => (hooked.push(request), { h: "hook", i: "hook" }),
     });
+
     const options = { as: { principal: "alpha" }, body: { n: 1 }, headers: { i: "caller" }, operationId: "row.create" };
     await sendAttempt(prepare(ctx, "POST", "/rows", options), 0, ctx);
     expect(wire.sent[0]?.headers).toEqual({
@@ -209,11 +220,14 @@ describe("sendAttempt on the wire", () => {
       source: "tag" as const,
       test: (method: string) => method === "POST",
     };
+
     const limiter = new RateLimiter([tagged], { maxRps: 1000 });
+
     const ctx = wireOf(
       transport(() => json({})),
       { rateLimiter: limiter },
     );
+
     const write = await sendAttempt(prepare(ctx, "POST", "/rows", { as: ANON, body: {} }), 0, ctx);
     expect(write).toMatchObject({ rateLimitCategory: "writes", rateLimitHadRoom: true, rateLimitSource: "tag" });
     const read = await sendAttempt(prepare(ctx, "GET", "/rows", { as: ANON }), 0, ctx);
@@ -226,10 +240,12 @@ describe("sendAttempt on the wire", () => {
   it("runs the hooks around the wire, and times each attempt out when asked", async () => {
     const wire = transport(() => json({}));
     const seen: string[] = [];
+
     const hooks = {
       end: (probe: RequestStart) => seen.push(`end ${probe.method} ${probe.requestBytes > 0}`),
       start: (probe: RequestStart) => seen.push(`start ${probe.url}`),
     };
+
     const ctx = wireOf(wire, { httpHooks: hooks, network: { fetchImpl: wire.fetch, requestTimeoutMs: 5_000 } });
     await sendAttempt(prepare(ctx, "GET", "/rows", { as: ANON }), 0, ctx);
     expect(seen).toEqual([`start ${BASE}/rows`, "end GET true"]);
@@ -245,11 +261,14 @@ describe("sendAttempt redirects and transport", () => {
     const wire = transport((request) =>
       request.url.endsWith("/a") ? new Response(null, { headers: { location: "/v1/b" }, status: 302 }) : json({}),
     );
+
     const ctx = wireOf(wire);
     expect((await sendAttempt(prepare(ctx, "GET", "/a", { as: ANON, redirect: "manual" }), 0, ctx)).status).toBe(302);
+
     const resolving = wireOf(wire, {
       operationResolver: () => ({ operationId: "a", redirects: true, template: "/a" }),
     });
+
     expect((await sendAttempt(prepare(resolving, "GET", "/a", { as: ANON }), 0, resolving)).status).toBe(302);
     const followed = await sendAttempt(prepare(ctx, "GET", "/a", { as: ANON, redirect: "follow" }), 0, ctx);
     expect(followed).toMatchObject({ finalUrl: `${BASE}/b`, status: 200 });
@@ -259,9 +278,11 @@ describe("sendAttempt redirects and transport", () => {
 
   it("records a failed send and raises it as a NetworkError", async () => {
     const ctx = wireOf(transport(() => Promise.reject(refused())));
+
     const error = await sendAttempt(prepare(ctx, "GET", "/rows", { as: ANON }), 0, ctx).catch(
       (caught: unknown) => caught,
     );
+
     expect(error).toBeInstanceOf(NetworkError);
     expect(ctx.delivered.map((item) => item.exchange.status)).toEqual([0]);
   });
@@ -269,6 +290,7 @@ describe("sendAttempt redirects and transport", () => {
   it("uses the global fetch when no transport is given", async () => {
     const wire = transport(() => json({ global: true }));
     vi.stubGlobal("fetch", wire.fetch);
+
     try {
       const ctx = wireOf(wire, { network: undefined });
       expect((await sendAttempt(prepare(ctx, "GET", "/rows", { as: ANON }), 0, ctx)).responseBody).toEqual({
@@ -295,11 +317,13 @@ describe("sendAttempt: the cache bypass", () => {
 
   it("never overrides a Cache-Control the globals set, and sends none when the config turns it off", async () => {
     const wire = transport(() => json({}));
+
     const global = wireOf(wire, {
       cacheBypass: true,
       headers: { "Cache-Control": "max-age=5" },
       operationResolver: undeclared,
     });
+
     await sendAttempt(prepare(global, "GET", "/rows/1", { as: ANON }), 0, global);
     expect(wire.sent[0]?.headers).toEqual({ "Cache-Control": "max-age=5" });
     const off = wireOf(wire, { cacheBypass: false, operationResolver: undeclared });

@@ -20,6 +20,7 @@ export function matching(pattern: string, length: { min: number; max: number }, 
   const { min, max } = length;
   const suffix = distinct && ctx.nonce !== undefined ? ctx.nonce : String(ctx.index);
   const fromPattern = expand(pattern, ctx.index);
+
   const candidates = [
     fromPattern === undefined ? undefined : `${fromPattern}${suffix}`,
     fromPattern,
@@ -35,12 +36,16 @@ export function matching(pattern: string, length: { min: number; max: number }, 
     `https://example.test/${suffix}`,
     uuidFrom(`${ctx.variant}:${suffix}`),
   ];
+
   for (const candidate of candidates) {
     if (candidate === undefined) continue;
+
     for (const sized of [candidate, candidate.slice(0, max), candidate.padEnd(min, candidate.at(-1) ?? "a")]) {
       const n = codePointCount(sized);
+
       if (n >= min && n <= max && matches(pattern, sized)) return sized;
     }
   }
+
   return undefined;
 }

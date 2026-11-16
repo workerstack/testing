@@ -20,7 +20,7 @@ describe("operation scope", () => {
     const scope = resolveTargetScope(referenceModel(), { ops: [" table.get "] });
     expect(scope.mode).toBe("targeted");
     expect([...scope.targets]).toEqual(["table.get"]);
-    /* row.create declares x-invalidate on table.get, so row's invalidation check grades it. */
+    // row.create declares x-invalidate on table.get, so row's invalidation check grades it.
     expect(names(scope)).toEqual(["row", "table"]);
     expect(scope.inScope("table.get")).toBe(true);
     expect(scope.inScope("table.list")).toBe(false);
@@ -64,12 +64,14 @@ describe("operation scope by entity and origin", () => {
 
   it("counts auth creates, and keeps only origins with a target", () => {
     const exclusion = { profile: "cheap", reason: () => "x-cost: high" };
+
     const scope = resolveTargetScope(referenceModel(), {
       authCreates: new Set(["row.create"]),
       exclusion,
       ops: ["cdn:job.*", "auth.*"],
       origins: new Map([["cdn", referenceModel()]]),
     });
+
     expect(scope.origins.size).toBe(0);
     expect(scope.excluded.map((excluded) => excluded.operationId)).toContain("cdn:job.start");
   });

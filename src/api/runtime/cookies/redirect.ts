@@ -16,23 +16,23 @@ export function isRedirectStatus(status: number): boolean {
   return status === 301 || status === 302 || status === 303 || status === 307 || status === 308;
 }
 
-export interface RedirectTarget {
+export type RedirectTarget = {
   url: URL;
   method: string;
   dropBody: boolean;
-}
+};
 
-export interface RedirectHop {
+export type RedirectHop = {
   url: string;
   status: number;
   responseHeaders: Record<string, string>;
-}
+};
 
 /** What a redirect answer says: its status and its `Location` header. */
-export interface RedirectAnswer {
+export type RedirectAnswer = {
   status: number;
   location: string | null;
-}
+};
 
 /** Where `request`'s redirect answer sends it next, or `null` when it sends it nowhere. */
 export function redirectTarget(
@@ -40,21 +40,25 @@ export function redirectTarget(
   request: Pick<RedirectTarget, "method" | "url">,
 ): RedirectTarget | null {
   const { method, url: currentUrl } = request;
+
   if (!isRedirectStatus(status)) return null;
+
   if (location === null || location === "") return null;
   let next: URL;
+
   try {
     next = new URL(location, currentUrl);
   } catch {
     return null;
   }
+
   if (next.protocol !== "http:" && next.protocol !== "https:") return null;
   const verb = method.toUpperCase();
-  if (status === 307 || status === 308) {
-    return { dropBody: false, method: verb, url: next };
-  }
-  if (status === 303 || ((status === 301 || status === 302) && verb !== "GET" && verb !== "HEAD")) {
+
+  if (status === 307 || status === 308) return { dropBody: false, method: verb, url: next };
+
+  if (status === 303 || ((status === 301 || status === 302) && verb !== "GET" && verb !== "HEAD"))
     return { dropBody: true, method: "GET", url: next };
-  }
+
   return { dropBody: false, method: verb, url: next };
 }

@@ -4,37 +4,40 @@ import type { AddressInfo } from "node:net";
 import { run } from "../../../src/api/runtime/run/index.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 
-/*
- * Fixtures for the declared-effects tests: a local server per test built from small routes, the
- * nested project/table/row spec, and the table routes most of those servers share.
- */
+// Fixtures for the declared-effects tests: a local server per test built from small routes, the
+// nested project/table/row spec, and the table routes most of those servers share.
 
 export function send(res: ServerResponse, status: number, body?: unknown): void {
   if (body === undefined) {
     res.writeHead(status);
     res.end();
+
     return;
   }
+
   const text = JSON.stringify(body);
   res.writeHead(status, { "content-length": String(Buffer.byteLength(text)), "content-type": "application/json" });
   res.end(text);
 }
 
-/* Answers and marks the request handled, so a route reads as `return reply(...)`. */
+// Answers and marks the request handled, so a route reads as `return reply(...)`.
 export function reply(res: ServerResponse, status: number, body?: unknown): true {
   send(res, status, body);
+
   return true;
 }
 
 export async function readJson<T>(req: IncomingMessage): Promise<T> {
   const chunks: Buffer[] = [];
+
   for await (const chunk of req) chunks.push(chunk as Buffer);
+
   return JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}") as T;
 }
 
 export type Listening = { close: () => Promise<void>; url: string };
 
-/* Every server a test file opens, closed together after each test. */
+// Every server a test file opens, closed together after each test.
 export class Listeners {
   readonly #closers: Array<() => Promise<void>> = [];
 
@@ -44,6 +47,7 @@ export class Listeners {
       server.listen(0, "127.0.0.1", resolve);
     });
     const addr = server.address() as AddressInfo;
+
     const handle = {
       close: () =>
         new Promise<void>((resolve, reject) => {
@@ -51,7 +55,9 @@ export class Listeners {
         }),
       url: `http://127.0.0.1:${addr.port}`,
     };
+
     this.#closers.push(handle.close);
+
     return handle;
   }
 
@@ -62,17 +68,16 @@ export class Listeners {
 
 export type Exchange = { method: string; req: IncomingMessage; res: ServerResponse; url: URL };
 
-/* One route: answers and returns true, or returns false to let the next route look. */
+// One route: answers and returns true, or returns false to let the next route look.
 export type Route = (exchange: Exchange) => boolean | Promise<boolean>;
 
 async function dispatch(routes: readonly Route[], exchange: Exchange): Promise<void> {
-  for (const route of routes) {
-    if (await route(exchange)) return;
-  }
+  for (const route of routes) if (await route(exchange)) return;
+
   send(exchange.res, 404);
 }
 
-/* A server that hands out `spec` at /v1/openapi/spec and tries `routes` in order, else 404. */
+// A server that hands out `spec` at /v1/openapi/spec and tries `routes` in order, else 404.
 export function serve(listeners: Listeners, spec: OpenApiDocument, routes: readonly Route[]): Promise<Listening> {
   return listeners.listen((req, res) => {
     const exchange = {
@@ -81,6 +86,7 @@ export function serve(listeners: Listeners, spec: OpenApiDocument, routes: reado
       res,
       url: new URL(req.url ?? "/", "http://127.0.0.1"),
     };
+
     if (exchange.url.pathname === "/v1/openapi/spec") return send(res, 200, spec);
     dispatch(routes, exchange).catch(() => send(res, 500));
   });
@@ -202,7 +208,7 @@ function extractPath(): Record<string, unknown> {
   };
 }
 
-/* Projects own tables, tables own rows, and one action creates a table with its rows. */
+// Projects own tables, tables own rows, and one action creates a table with its rows.
 export function nestedSpec(): OpenApiDocument {
   return {
     info: { title: "effects", version: "1" },
@@ -216,11 +222,13 @@ export function nestedSpec(): OpenApiDocument {
   } as OpenApiDocument;
 }
 
-/* The nested spec without its extract action, ready for a test to add its own paths. */
+// The nested spec without its extract action, ready for a test to add its own paths.
 export function pathsWithoutExtract(spec: OpenApiDocument): NonNullable<OpenApiDocument["paths"]> {
   delete spec.paths?.["/v1/projects/{project_id}/extract"];
   const paths = spec.paths;
+
   if (paths === undefined) throw new Error("missing paths");
+
   return paths;
 }
 
@@ -237,7 +245,7 @@ function idList(key: string) {
   };
 }
 
-/* An organization entity reachable only by listing, with its member list. */
+// An organization entity reachable only by listing, with its member list.
 export function addOrganizations(paths: Paths): void {
   paths["/v1/organizations"] = {
     get: { operationId: "org.list", responses: idList("organizations"), "x-entity": entity("list", "organization") },
@@ -270,7 +278,7 @@ export function addOrganizations(paths: Paths): void {
   } as never;
 }
 
-/* Member actions: one bound through an invite prelude, one whose prelude cannot run, one with no path. */
+// Member actions: one bound through an invite prelude, one whose prelude cannot run, one with no path.
 export function addMemberActions(paths: Paths): void {
   const update = { "x-effects": [{ entity: "member", op: "update" }] };
   paths["/v1/organizations/{organization_id}/invites"] = {
@@ -300,7 +308,7 @@ export function addMemberActions(paths: Paths): void {
   paths["/v1/nope/{nope_id}"] = memberAction("member.orphan", "nope_id", update) as never;
 }
 
-/* A member action at a path with one parameter, carrying `extra` declarations. */
+// A member action at a path with one parameter, carrying `extra` declarations.
 function memberAction(operationId: string, param: string, extra: Record<string, unknown>): Record<string, unknown> {
   return {
     post: {
@@ -315,7 +323,7 @@ function memberAction(operationId: string, param: string, extra: Record<string, 
 
 type Table = { id: string; name: string };
 
-/* The tables and rows a table server holds, and the ids it hands out. */
+// The tables and rows a table server holds, and the ids it hands out.
 export class TableWorld {
   readonly tables = new Map<string, Table>();
   readonly rows = new Map<string, Array<{ id: string }>>();
@@ -323,6 +331,7 @@ export class TableWorld {
 
   nextId(): string {
     this.#seq += 1;
+
     return `t_${String(this.#seq)}`;
   }
 }
@@ -335,7 +344,7 @@ export function listTables(world: TableWorld): Route {
     url.pathname.endsWith("/tables") && method === "GET" && reply(res, 200, { tables: [...world.tables.values()] });
 }
 
-/* Creates a table named by the request body, or "n" when `named` is false or the body has none. */
+// Creates a table named by the request body, or "n" when `named` is false or the body has none.
 export function createTable(world: TableWorld, named = true): Route {
   return async ({ method, req, res, url }) => {
     if (!url.pathname.endsWith("/tables") || method !== "POST") return false;
@@ -343,7 +352,9 @@ export function createTable(world: TableWorld, named = true): Route {
     const name = named ? ((await readJson<{ name?: string }>(req)).name ?? "n") : "n";
     const row = { id, name };
     world.tables.set(id, row);
+
     if (named) world.rows.set(id, []);
+
     return reply(res, 201, row);
   };
 }
@@ -351,20 +362,25 @@ export function createTable(world: TableWorld, named = true): Route {
 export function readTable(world: TableWorld): Route {
   return ({ method, res, url }) => {
     const item = ITEM.exec(url.pathname);
+
     if (item === null || method !== "GET") return false;
     const row = world.tables.get(item[1] ?? "");
+
     return row === undefined ? reply(res, 404) : reply(res, 200, row);
   };
 }
 
-/* Lists a known table's rows, and 404 for an unknown table; `onPoll` sees every listing. */
+// Lists a known table's rows, and 404 for an unknown table; `onPoll` sees every listing.
 export function listRows(world: TableWorld, onPoll: () => void = () => {}): Route {
   return ({ method, res, url }) => {
     const rowList = ROW_LIST.exec(url.pathname);
+
     if (rowList === null || method !== "GET") return false;
     onPoll();
     const tableId = rowList[1] ?? "";
+
     if (!world.tables.has(tableId)) return reply(res, 404);
+
     return reply(res, 200, { rows: world.rows.get(tableId) ?? [] });
   };
 }
@@ -372,28 +388,33 @@ export function listRows(world: TableWorld, onPoll: () => void = () => {}): Rout
 export function deleteTable(world: TableWorld): Route {
   return ({ method, res, url }) => {
     const item = ITEM.exec(url.pathname);
+
     if (item === null || method !== "DELETE") return false;
     world.tables.delete(item[1] ?? "");
+
     return reply(res, 204);
   };
 }
 
-/* Answers a patch with the table as it is, or with `{}` when `echo` is false. */
+// Answers a patch with the table as it is, or with `{}` when `echo` is false.
 export function patchTable(world: TableWorld, echo = true): Route {
   return ({ method, res, url }) => {
     const item = ITEM.exec(url.pathname);
+
     if (item === null || method !== "PATCH") return false;
+
     return reply(res, 200, echo ? (world.tables.get(item[1] ?? "") ?? {}) : {});
   };
 }
 
-/* The action that makes a new table holding `rows`, answering with `answer(id)`. */
+// The action that makes a new table holding `rows`, answering with `answer(id)`.
 export function extract(world: TableWorld, rows: Array<{ id: string }>, answer: (id: string) => unknown): Route {
   return ({ method, res, url }) => {
     if (!url.pathname.endsWith("/extract") || method !== "POST") return false;
     const id = world.nextId();
     world.tables.set(id, { id, name: "extracted" });
     world.rows.set(id, rows);
+
     return reply(res, 200, answer(id));
   };
 }

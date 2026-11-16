@@ -27,30 +27,39 @@ export const filterAliasMatchesCanonical: Check = defineCheck({
   async run(ctx): Promise<Outcome> {
     const caps = resolvedCaps(ctx);
     const conventions = conv(ctx);
+
     for (const [alias, target] of Object.entries(caps.aliases)) {
       if (!isFilterOp(alias) || target === undefined) continue;
       const field = resolvedCaps(ctx).filterable.find((item) => fieldAllows(item, target, caps));
+
       if (field === undefined || !canWriteFilterOp(conventions, alias)) continue;
       const sample = ctx.records.find((row) => row[field.field] != null);
+
       if (sample === undefined) continue;
       const value = asTermValue(sample[field.field]);
       const aliasTerm = filterTerm(conventions, { field: field.field, op: alias, value });
       const targetTerm = filterTerm(conventions, { field: field.field, op: target, value });
+
       if (aliasTerm === null || targetTerm === null) continue;
+
       const agree = (pair: SetRead[]): boolean => {
         const [a, b] = pair as [SetRead, SetRead];
+
         return sameSet(setOf(a.items, ctx.identity), setOf(b.items, ctx.identity));
       };
+
       const reads = await readSettled(ctx, [aliasTerm, targetTerm], agree);
-      if (reads === "rejected") {
+
+      if (reads === "rejected")
         return ctx.findings.unresolved(this.id, ctx.entityName, `alias ${alias} or ${target} was rejected`);
-      }
-      if (reads === "incomplete") {
+
+      if (reads === "incomplete")
         return ctx.findings.unresolved(this.id, ctx.entityName, "the collection is larger than the walk covers");
-      }
+
       if (reads === "moving") return ctx.findings.unresolved(this.id, ctx.entityName, MOVING_COLLECTION);
-      /* One read per term, in the order the terms were given. */
+      // One read per term, in the order the terms were given.
       const [left, right] = reads as [SetRead, SetRead];
+
       if (!agree(reads)) {
         return ctx.findings.backend(this.id, ctx.entityName, {
           summary: `alias ${alias} does not select the same set as ${target}`,
@@ -59,6 +68,7 @@ export const filterAliasMatchesCanonical: Check = defineCheck({
         });
       }
     }
+
     return ASSERTED;
   },
 });

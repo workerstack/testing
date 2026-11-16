@@ -5,19 +5,21 @@ import { commandServe, referenceFactory, type ServeDeps, untilSignal } from "./s
 
 type ReferenceOptions = Parameters<Awaited<ReturnType<ServeDeps["factoryFor"]>>>[0];
 
-/* The demo API: started on the store asked for, described on stdout, stopped on a signal. */
+// The demo API: started on the store asked for, described on stdout, stopped on a signal.
 
 function staged() {
   const started: Array<{ backend: string; options: ReferenceOptions }> = [];
   const closed: string[] = [];
+
   return {
     closed,
     deps: {
       factoryFor: async (backend: string) => async (options: ReferenceOptions) => {
         started.push({ backend, options });
+
         return { close: async () => void closed.push(backend), url: "http://127.0.0.1:4010" };
       },
-      stopped: async () => undefined,
+      stopped: async () => {},
     },
     started,
   };

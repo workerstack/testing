@@ -23,8 +23,9 @@ export const LOGIN_ATTEMPTS = 8;
  * hold. An email-shaped one is at RFC 2606's reserved `.invalid` domain, which never resolves.
  */
 function nobodyOf(body: Record<string, unknown>, { nonce, schema }: { nonce: string; schema: JsonSchema }) {
-  /* A body drawn from a schema with no properties has no field to map. */
+  // A body drawn from a schema with no properties has no field to map.
   const properties = schema.properties as Record<string, unknown>;
+
   return Object.fromEntries(
     Object.entries(body).map(([name, value]) => [
       name,
@@ -48,12 +49,15 @@ export const loginThrottled: OperationCheck<Record<string, unknown>> = defineChe
   optIn: true,
   plan: (ctx) => {
     const undeclared = noSecurityReason(ctx.operation);
+
     if (undeclared !== undefined) return cannot(undeclared);
     const { operationId } = ctx.operation;
+
     return andThen(anchoredSchemes(ctx, { kind: "issue", login: true }), () => {
-      /* The model holds every operation it lists. */
+      // The model holds every operation it lists.
       const raw = ctx.model.rawOperations.get(operationId) as OperationObject;
       const schema = requestContent(raw)?.schema ?? null;
+
       return schema === null
         ? cannot(`a request body schema for ${operationId}, to build a failed login from`)
         : ready(schema);
@@ -62,15 +66,18 @@ export const loginThrottled: OperationCheck<Record<string, unknown>> = defineChe
   subject: "operation",
   async run(ctx, schema) {
     const { method, operationId, path } = ctx.operation;
+
     const [drawn] = buildCohort(schema, 0, {
       defs: ctx.model.defs,
       nonce: ctx.nonce,
       operationId,
       variants: ["baseline"],
     }) as [CohortMember];
+
     const body = nobodyOf(drawn.body, { nonce: ctx.nonce, schema });
     const target = fillPath(path, ctx.actor.scope);
     const sent: Exchange[] = [];
+
     while (sent.length < LOGIN_ATTEMPTS) {
       const attempt = await ctx.client.request(method, target, {
         as: { anonymous: true },
@@ -78,15 +85,19 @@ export const loginThrottled: OperationCheck<Record<string, unknown>> = defineChe
         operationId,
         probe: true,
       });
+
       sent.push(attempt);
-      if (attempt.status === 429) {
+
+      if (attempt.status === 429)
         return asserted(`a login for one identity was throttled (429) after ${sent.length - 1} failures`);
-      }
+
       if (attempt.status < 300) {
         const reason = `a login for an identity that does not exist answered ${attempt.status}, so its failures cannot be counted`;
+
         return ctx.findings.unresolved(this.id, ctx.subject, reason);
       }
     }
+
     return ctx.findings.security(this.id, ctx.subject, {
       detail:
         `${LOGIN_ATTEMPTS} failed logins for one identity that does not exist, sent to ${operationId} ` +

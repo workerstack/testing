@@ -70,29 +70,34 @@ describe("inspectStreamAsync", () => {
     expect(view?.idRecord).toEqual({ job: { id: "j1" }, status: "running" });
     expect(view?.terminal).toEqual({ job: { id: "j2" }, status: "done" });
     expect(view?.events).toHaveLength(4);
+
     const until = inspectStreamAsync(
       STREAM.replace("event: complete", "event: progress"),
       streamSpec({ until: "status.eq.running" }),
     );
+
     expect(until?.id).toBeUndefined();
     expect(until?.terminal).toEqual({ job: { id: "j1" }, status: "running" });
   });
 });
 
-/* The request that began the job, as the client recorded it. */
+// The request that began the job, as the client recorded it.
 const START = { principal: "alpha", schemes: ["jwt"], seq: 1, status: 202 } as Exchange;
 
 /** A job store a poll reads: each route's answers in order, the last repeating. */
 function drive(answer: Answer, more: Partial<Omit<AsyncDrive, "spec">> & { spec?: Partial<AsyncSpec> } = {}) {
   const wire = transport(answer);
   const source = fixedSource(sendingHeaders({ authorization: "Bearer t" }));
+
   const client = new Client({
     baseUrl: "http://api.test",
     credentials: source,
     network: { fetchImpl: wire.fetch },
     redactor: new Redactor(),
   });
+
   const { spec, ...rest } = more;
+
   const outcome = driveAsync({
     client,
     principal: "alpha",
@@ -109,6 +114,7 @@ function drive(answer: Answer, more: Partial<Omit<AsyncDrive, "spec">> & { spec?
     },
     ...rest,
   });
+
   return { outcome, sent: wire.sent, source };
 }
 
@@ -116,6 +122,7 @@ const answers =
   (...bodies: Array<[number, unknown]>): Answer =>
   (_sent, index) => {
     const [status, body] = bodies[Math.min(index, bodies.length - 1)] as [number, unknown];
+
     return json(body, status);
   };
 
@@ -126,6 +133,7 @@ describe("driveAsync, reaching a terminal state", () => {
     const { outcome, sent } = drive(answers([200, "busy"], [200, { status: "running" }], [200, { status: "done" }]), {
       spec: { successWhen: "status.eq.done" },
     });
+
     expect(await outcome).toMatchObject({ polls: 3, state: "terminal", succeeded: true, terminal: { status: "done" } });
     expect(sent.map((request) => request.url)).toEqual(Array(3).fill("http://api.test/jobs/job%201"));
     expect(sent[0]?.headers["authorization"]).toBe("Bearer t");
@@ -137,6 +145,7 @@ describe("driveAsync, reaching a terminal state", () => {
       receipt: { id: "done" },
       spec: { poll: "job.get" },
     });
+
     expect(await outcome).toMatchObject({ state: "terminal" });
     expect(sent.map((request) => `${request.method} ${request.url}`)).toEqual(["GET http://api.test/jobs/done"]);
   });
@@ -160,6 +169,7 @@ describe("driveAsync, choosing where to poll", () => {
       scope: { id: "known" },
       spec: { poll: "GET /jobs/{id}/latest" },
     });
+
     await outcome;
     expect(sent[0]?.url).toBe("http://api.test/jobs/job%201/latest");
     const plain = drive(answers([200, { status: "done" }]), { spec: { poll: "GET /jobs/current" } });
@@ -174,12 +184,15 @@ describe("driveAsync, choosing where to poll", () => {
       scope: { id: "s1" },
       spec: { poll: "job.get" },
     });
+
     await named.outcome;
     expect(named.sent.map((request) => `${request.method} ${request.url}`)).toEqual(["POST http://api.test/jobs/s1"]);
+
     const unscoped = drive(answers([200, { status: "done" }]), {
       scope: { id: "s2" },
       spec: { idFrom: undefined } as never,
     });
+
     await unscoped.outcome;
     expect(unscoped.sent[0]?.url).toBe("http://api.test/jobs/s2");
   });
@@ -195,11 +208,12 @@ describe("driveAsync, choosing where to poll", () => {
   });
 });
 
-/* A slow server: each poll answers after 30ms, the job running at first and, for `late`, done on the second. */
+// A slow server: each poll answers after 30ms, the job running at first and, for `late`, done on the second.
 const late: Answer = (_sent, index) =>
   new Promise((done) =>
     setTimeout(() => done(json(index === 0 ? { status: "running" } : { status: "done" }, 200)), 30),
   );
+
 const slow: Answer = () => new Promise((done) => setTimeout(() => done(json({ status: "running" }, 200)), 30));
 
 describe("driveAsync, when the job does not finish", () => {
@@ -237,6 +251,7 @@ describe("driveAsync, when the job does not finish", () => {
     expect(source.asked.map((request) => request.actor)).toEqual(
       source.asked.map(() => ({ principal: "alpha", via: START })),
     );
+
     for (const poll of exchanges) expect([poll.principal, poll.schemes]).toEqual([START.principal, START.schemes]);
   });
 });

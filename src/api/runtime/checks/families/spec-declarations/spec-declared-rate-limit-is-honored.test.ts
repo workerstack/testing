@@ -30,10 +30,12 @@ const declaredRoom: Pacing = { rateLimitCategory: "reads", rateLimitHadRoom: tru
 async function judge(transcript: Exchange[], withJudged = true) {
   const judged: string[][] = [];
   const client = { exchangesForEntity: () => transcript } as unknown as Client;
+
   const { ctx, findings } = stage(refusing(400), {
     client,
     ...(withJudged ? { judged: (ids: readonly string[]) => judged.push([...ids]) } : {}),
   });
+
   return { findings, judged, outcome: await runCheck(declaredRateLimitHonored, ctx) };
 }
 
@@ -49,6 +51,7 @@ describe("spec.declared-rate-limit-is-honored plan", () => {
   it("names as subjects only the entity's operations with a declared rate", () => {
     const model = widgetsModel();
     const entity = model.entities.get("widget");
+
     if (entity === undefined) throw new Error("the widgets document has no widget entity");
     expect(declaredRateLimitHonored.subjects?.(entity, model)).toEqual(["listWidgets"]);
   });
@@ -64,6 +67,7 @@ describe("spec.declared-rate-limit-is-honored run", () => {
       sentTo(undefined, 200),
       sentTo("unknownOperation", 200),
     ]);
+
     expect(outcome).toEqual({ kind: "asserted" });
     expect(findings.findings).toEqual([]);
     expect(judged).toEqual([["listWidgets"]]);
@@ -71,10 +75,12 @@ describe("spec.declared-rate-limit-is-honored run", () => {
 
   it("reports a declared rate refused while the API tester's bucket still had room, once per category", async () => {
     const writes: Pacing = { ...declaredRoom, rateLimitCategory: "writes" };
+
     const { findings, outcome } = await judge([
       ...Array.from({ length: 4 }, () => sentTo("listWidgets", 429, declaredRoom)),
       sentTo("createWidget", 429, writes),
     ]);
+
     expect(outcome).toEqual({ kind: "asserted" });
     expect(findings.findings.map((f) => [f.check, f.verdict, f.summary])).toEqual([
       ["spec.declared-rate-limit-is-honored", "SPEC_BUG", 'the declared "reads" rate limit is not honored'],
@@ -100,6 +106,7 @@ describe("spec.declared-rate-limit-is-honored run", () => {
       ],
       false,
     );
+
     expect(outcome).toEqual({ kind: "asserted" });
     expect(findings.findings).toEqual([]);
   });

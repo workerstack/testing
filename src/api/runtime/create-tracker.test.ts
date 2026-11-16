@@ -9,11 +9,9 @@ import type { Exchange } from "./exchange.ts";
 import { Ledger } from "./teardown/ledger.ts";
 import type { Owner } from "./teardown/types.ts";
 
-/*
- * The tracker reads one answer at a time. A create's record lives where its own path put it: a
- * value the path names wins over the principal's root of the same name, so a create sent under
- * another root is removed under that root, not under its creator's home.
- */
+// The tracker reads one answer at a time. A create's record lives where its own path put it: a
+// value the path names wins over the principal's root of the same name, so a create sent under
+// another root is removed under that root, not under its creator's home.
 
 const json = (schema: unknown) => ({ content: { "application/json": { schema } } });
 const ITEM = { properties: { id: { type: "string" }, name: { type: "string" } }, type: "object" };
@@ -109,7 +107,7 @@ const DOCUMENT = {
 
 const owner = (id: string): Owner => ({ id });
 
-/* A ledger that keeps what it was told was read back, which the real one keeps private. */
+// A ledger that keeps what it was told was read back, which the real one keeps private.
 class WatchedLedger extends Ledger {
   readonly readBack: string[] = [];
   override sighted(name: string, id: string, principal: string): void {
@@ -130,7 +128,8 @@ function setup() {
   const model = buildModel(dereference(DOCUMENT).doc);
   const ledger = new WatchedLedger();
   const recorded: string[] = [];
-  /* No read is needed but an inferred create's: every other answer here names its own id. */
+
+  // No read is needed but an inferred create's: every other answer here names its own id.
   const client = {
     get: (path: string) =>
       path === "/columns/c9" ? Promise.resolve({ status: 200 }) : Promise.reject(new Error("no read expected")),
@@ -139,6 +138,7 @@ function setup() {
     relativePath: (url: string) => new URL(url).pathname,
     view: () => client,
   } as unknown as Client;
+
   const tracker = createTracker({
     client,
     ledger,
@@ -151,12 +151,15 @@ function setup() {
     readable: () => true,
     stranger: { owner: owner("alpha"), roots: { project_id: "a", region: "eu" } },
   });
+
   return { ledger, recorded, tracker };
 }
 
 let seq = 0;
+
 function exchange(over: Partial<Exchange>): Exchange {
   seq += 1;
+
   return {
     at: 0,
     durationMs: 0,
@@ -210,10 +213,11 @@ describe("createTracker", () => {
   });
 });
 
-/* A probe sent with no configured principal's credential: anonymous, as the open-operation probe sends. */
+// A probe sent with no configured principal's credential: anonymous, as the open-operation probe sends.
 function anonymousProbe(over: Partial<Exchange>): Exchange {
   const sent: Partial<Exchange> = exchange({ probe: true, ...over });
   delete sent.principal;
+
   return sent as Exchange;
 }
 
@@ -234,6 +238,7 @@ describe("createTracker, on a probe write no configured principal sent", () => {
 
   it("reports one with no such evidence as a record that may remain, naming the operation and status", async () => {
     const { ledger, tracker } = setup();
+
     const registered = anonymousProbe({
       operationId: "column.import",
       pathParams: {},
@@ -241,6 +246,7 @@ describe("createTracker, on a probe write no configured principal sent", () => {
       template: "/columns/import",
       url: "http://x/columns/import",
     });
+
     await tracker.observe(registered);
     await tracker.observe(anonymousProbe({ operationId: "nobody.knows", responseBody: {} }));
     const unnamed: Partial<Exchange> = anonymousProbe({ responseBody: {} });
@@ -363,7 +369,7 @@ describe("createTracker, on what a principal reads back", () => {
     await tracker.observe(read(column));
     await tracker.observe(read({ ...column, status: 404 }));
     await tracker.observe(read({ ...column, status: 410 }));
-    /* A refusal or a failure says nothing of whether the record is there; a listing names no one record. */
+    // A refusal or a failure says nothing of whether the record is there; a listing names no one record.
     await tracker.observe(read({ ...column, status: 403 }));
     await tracker.observe(read({ operationId: "table.list", status: 404 }));
     await tracker.observe(read({ ...column, purpose: "teardown", status: 404 }));
@@ -375,12 +381,14 @@ describe("createTracker, on what a principal reads back", () => {
 
   it("notes a delete the backend accepted for the record it names, whoever sent it", async () => {
     const { ledger, tracker } = setup();
+
     const remove = {
       method: "DELETE",
       operationId: "table.delete",
       pathParams: { project_id: "p1", table_id: "t1" },
       template: "/projects/{project_id}/tables/{table_id}",
     };
+
     await tracker.observe(exchange({ ...remove, status: 204 }));
     await tracker.observe(exchange({ ...remove, status: 404 }));
     await tracker.observe(exchange({ ...remove, operationId: "column.read", status: 204 }));

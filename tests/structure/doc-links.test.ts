@@ -3,11 +3,9 @@ import { dirname, join, relative } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-/*
- * Every relative link in the README, references/ and the docs lands somewhere: its file exists and, when it
- * names an anchor, the file has that heading (by GitHub's slug). A doc moved or split without its
- * links following fails here, with each broken link named.
- */
+// Every relative link in the README, references/ and the docs lands somewhere: its file exists and, when it
+// names an anchor, the file has that heading (by GitHub's slug). A doc moved or split without its
+// links following fails here, with each broken link named.
 
 const ROOT = join(import.meta.dirname, "..", "..");
 
@@ -15,10 +13,12 @@ function markdownFiles(): string[] {
   const docs = readdirSync(join(ROOT, "docs"), { recursive: true, withFileTypes: true })
     .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
     .map((entry) => join(entry.parentPath, entry.name));
-  /* The sources sync builds the README from, whose links point from references/. */
+
+  // The sources sync builds the README from, whose links point from references/.
   const references = readdirSync(join(ROOT, "references"))
     .filter((name) => name.endsWith(".md"))
     .map((name) => join(ROOT, "references", name));
+
   return [join(ROOT, "README.md"), ...references, ...docs];
 }
 
@@ -27,27 +27,32 @@ export function slug(heading: string): string {
   return heading
     .trim()
     .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s_-]/gu, "")
-    .replace(/\s/g, "-");
+    .replaceAll(/[^\p{L}\p{N}\s_-]/gu, "")
+    .replaceAll(/\s/g, "-");
 }
 
 function anchorsOf(file: string): Set<string> {
-  const text = readFileSync(file, "utf8").replace(/```[\s\S]*?```/g, "");
+  const text = readFileSync(file, "utf8").replaceAll(/```[\s\S]*?```/g, "");
+
   return new Set([...text.matchAll(/^#{1,6} (.+)$/gm)].map((match) => slug(match[1] ?? "")));
 }
 
 /** Each relative link in a file whose target, or target heading, does not exist, as `file: link`. */
 function broken(file: string): string[] {
-  const text = readFileSync(file, "utf8").replace(/```[\s\S]*?```/g, "");
+  const text = readFileSync(file, "utf8").replaceAll(/```[\s\S]*?```/g, "");
   const problems: string[] = [];
+
   for (const match of text.matchAll(/\]\(([^)\s]+)\)/g)) {
     const link = match[1] ?? "";
+
     if (/^[a-z]+:/i.test(link)) continue;
     const [path = "", anchor] = link.split("#");
     const target = path === "" ? file : join(dirname(file), path);
     const ok = existsSync(target) && (anchor === undefined || !target.endsWith(".md") || anchorsOf(target).has(anchor));
+
     if (!ok) problems.push(`${relative(ROOT, file)}: ${link}`);
   }
+
   return problems;
 }
 

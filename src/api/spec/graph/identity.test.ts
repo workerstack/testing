@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { member } from "../__fixtures__/documents.ts";
 import { identityRank, type OperationRoute, operationIdentity } from "./identity.ts";
 
-/* A route whose path parameters are the ones its path names, in order. */
+// A route whose path parameters are the ones its path names, in order.
 const route = (path: string): OperationRoute => ({
   path,
   pathParams: [...path.matchAll(/\{([^}]+)\}/g)].map((match) => match[1] as string),
@@ -26,26 +26,29 @@ describe("operationIdentity", () => {
     expect(operationIdentity(undefined, null, route("/w/{workspaceUuid}")).identity).toBe("uuid");
   });
 
-  /* Teardown deletes by the identity through the item route, so the property the route's own
-   * parameter names wins over a required display field: deleting `/notes/{name}` reads as a 404,
-   * which counts as removed, and the real record stays behind. */
+  // Teardown deletes by the identity through the item route, so the property the route's own
+  // parameter names wins over a required display field: deleting `/notes/{name}` reads as a 404,
+  // which counts as removed, and the real record stays behind.
   it("prefers the property the item route's parameter names over a required name", () => {
     const note = {
       properties: { id: { readOnly: true, type: "string" }, name: { type: "string" } },
       required: ["name"],
       type: "object",
     };
+
     expect(operationIdentity(undefined, note, route("/notes/{noteId}")).identity).toBe("id");
     expect(operationIdentity(undefined, note, route("/notes/{note_id}")).identity).toBe("id");
     expect(operationIdentity(undefined, note, route("/notes"))).toEqual({
       identity: "name",
       identitySource: "schema",
     });
+
     const page = {
       properties: { id: { type: "string" }, slug: { type: "string" } },
       required: ["id", "slug"],
       type: "object",
     };
+
     expect(operationIdentity(undefined, page, route("/pages/{pageSlug}")).identity).toBe("slug");
     expect(operationIdentity(undefined, page, route("/pages/{pageRef}")).identity).toBe("id");
   });

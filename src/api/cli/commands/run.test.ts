@@ -15,15 +15,14 @@ import { bufferWriter } from "../writer.ts";
 import type { SignalSource } from "./run-signals.ts";
 import { commandRun, type RunDeps, runPipeline } from "./run.ts";
 
-/*
- * `testing api run`: a config read and checked, the run set up around it, the backend tested, the folder
- * written, and an exit code for what it found. The real pipeline runs here against an in-memory
- * API through a scripted transport.
- */
+// `testing api run`: a config read and checked, the run set up around it, the backend tested, the folder
+// written, and an exit code for what it found. The real pipeline runs here against an in-memory
+// API through a scripted transport.
 
 /** Signals from a stand-in, so a test can stop the run. */
 function signals() {
   const emitter = new EventEmitter();
+
   const source: SignalSource = {
     exit: ((code: number) => {
       throw new Error(`exit ${code}`);
@@ -31,6 +30,7 @@ function signals() {
     off: (signal, listener) => emitter.off(signal, listener),
     on: (signal, listener) => emitter.on(signal, listener),
   };
+
   return { emitter, source };
 }
 
@@ -38,14 +38,16 @@ function signals() {
  * The real run, its requests through the notes API behind the token `notesConfig` sends, so a clean
  * run is clean on security too; `during` sees the options as it starts.
  */
-function deps(during: (options: RunOptions) => void = () => undefined): RunDeps & { asked: RunOptions[] } {
+function deps(during: (options: RunOptions) => void = () => {}): RunDeps & { asked: RunOptions[] } {
   const asked: RunOptions[] = [];
   const transport = optionsFor(bearerOnly(notesApi(), "t")).network;
+
   return {
     asked,
     run: async (options) => {
       asked.push(options);
       during(options);
+
       return runPipeline({
         ...options,
         network: { ...options.network, ...transport },
@@ -61,10 +63,11 @@ function failing(error: Error): RunDeps {
   return { run: () => Promise.reject(error), signals: signals().source };
 }
 
-/* Inside GitHub Actions the variable names this test step's own summary: no run here may append to it. */
+// Inside GitHub Actions the variable names this test step's own summary: no run here may append to it.
 beforeEach(() => {
   vi.stubEnv("GITHUB_STEP_SUMMARY", "");
 });
+
 afterEach(() => {
   vi.unstubAllEnvs();
 });
@@ -90,11 +93,13 @@ describe("commandRun", () => {
     const cwd = process.cwd();
     const here = folder();
     process.chdir(here);
+
     try {
       await commandRun(bufferWriter(), { config: notesConfig(folder()), quiet: true }, deps());
     } finally {
       process.chdir(cwd);
     }
+
     expect(existsSync(join(here, ".testing", "api", "runs", "latest", "report.json"))).toBe(true);
   });
 
@@ -114,11 +119,13 @@ describe("commandRun", () => {
     const out = folder();
     const writer = bufferWriter();
     process.chdir(here);
+
     try {
       await commandRun(writer, { config: notesConfig(folder()), "keep-credentials": true, out, quiet: true }, deps());
     } finally {
       process.chdir(cwd);
     }
+
     const kept = join(realpathSync(here), ".testing", "api", "credentials.json");
     expect(JSON.parse(readFileSync(kept, "utf8"))).toHaveProperty("credentials");
     expect((statSync(kept).mode & 0o777).toString(8)).toBe("600");
@@ -130,11 +137,14 @@ describe("commandRun", () => {
 describe("commandRun journaling", () => {
   it("journals exchanges unless the flag, the config or a cheap profile says not to", async () => {
     const out = folder();
+
     const asked = async (flags: Flags, extra: Record<string, unknown> = {}) => {
       const run = deps();
       await commandRun(bufferWriter(), { config: notesConfig(folder(), extra), out, quiet: true, ...flags }, run);
+
       return run.asked[0]?.exchangeDir !== undefined;
     };
+
     expect(await asked({})).toBe(true);
     expect(await asked({ "no-save-exchanges": true })).toBe(false);
     expect(await asked({ profile: "cheap" })).toBe(false);

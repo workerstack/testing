@@ -7,18 +7,20 @@ import { securedDoc, undeclaredDoc } from "./__fixtures__/secured-api.ts";
 import { crossTenantKeyRefused } from "./auth-cross-tenant-key-refused.ts";
 import { BY_VALIDATION } from "./probing.ts";
 
-/* The peer tenant's API key, sent to a route under the actor's tenant, must be refused. */
+// The peer tenant's API key, sent to a route under the actor's tenant, must be refused.
 
 const model = modelOf(securedDoc());
 const alpha = actorOf("alpha", { scope: { project_id: "proj_a" }, tenant: "proj_a" });
 const beta = actorOf("beta", { scope: { project_id: "proj_b" }, tenant: "proj_b" });
 
-/* The backend: beta's key under proj_a draws `cross`; under its own proj_b, `own`. */
+// The backend: beta's key under proj_a draws `cross`; under its own proj_b, `own`.
 function staged(operationId: string, statuses: { cross: number; own?: number }, peer: typeof beta | null = beta) {
   const respond = (sent: Sent) => {
-    if (sender(sent) !== "beta") return undefined;
+    if (sender(sent) !== "beta") return;
+
     return { status: sent.path.includes("proj_a") ? statuses.cross : (statuses.own ?? 200) };
   };
+
   return operationContextFor(model, operationId, {
     principals: peer === null ? [alpha] : [alpha, peer],
     respond,
@@ -28,7 +30,9 @@ function staged(operationId: string, statuses: { cross: number; own?: number }, 
 
 async function run(stage: ReturnType<typeof staged>) {
   const planned = crossTenantKeyRefused.plan(stage.ctx);
+
   if (!planned.ok) throw new Error(planned.needs);
+
   return crossTenantKeyRefused.run(stage.ctx, planned.value);
 }
 
@@ -42,6 +46,7 @@ describe("auth.cross-tenant-key-refused", () => {
         ["/projects/proj_b/notes", { principal: "beta", scheme: "apiKey" }, undefined],
       ]);
     }
+
     expect(crossTenantKeyRefused.mutates).toBeUndefined();
   });
 
@@ -115,15 +120,19 @@ describe("auth.cross-tenant-key-refused (2)", () => {
 describe("auth.cross-tenant-key-refused: a peer key the run cannot hold", () => {
   it("stands down untested with the reason when the peer's key is BLOCKED", async () => {
     const reason = "mint for beta/apiKey: apiKey.create answered 403";
+
     const stage = operationContextFor(model, "notes.list", {
       peer: beta,
       principals: [alpha, beta],
       respond: (sent) => {
         if (sender(sent) === "beta") throw new UnsatisfiedSecurity("blocked", reason);
-        return undefined;
+
+        return;
       },
     });
+
     const planned = crossTenantKeyRefused.plan(stage.ctx);
+
     if (!planned.ok) throw new Error(planned.needs);
     expect(await crossTenantKeyRefused.run(stage.ctx, planned.value)).toEqual({
       kind: "stood-down",
@@ -133,7 +142,7 @@ describe("auth.cross-tenant-key-refused: a peer key the run cannot hold", () => 
   });
 });
 
-/* A key is refused under proj_a and answered under proj_b, whoever sends it. */
+// A key is refused under proj_a and answered under proj_b, whoever sends it.
 const refusedInAlpha = (sent: Sent) => ({ status: sent.path.includes("proj_a") ? 403 : 200 });
 
 describe("auth.cross-tenant-key-refused with a target the peer created", () => {
@@ -151,6 +160,7 @@ describe("auth.cross-tenant-key-refused with a target the peer created", () => {
         path: "/projects/proj_b/notes/n1",
       },
     });
+
     expect(await run(stage)).toEqual({ kind: "asserted" });
     expect(stage.sent.map((s) => [s.path, s.options.as])).toEqual([
       ["/projects/proj_a/notes", { principal: "beta", scheme: "apiKey" }],

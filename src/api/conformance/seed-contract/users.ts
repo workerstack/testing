@@ -15,6 +15,7 @@ function register(): Record<string, unknown> {
     required: ["id", "email"],
     type: "object",
   };
+
   return {
     operationId: "auth.registerWithEmail",
     requestBody: {
@@ -76,10 +77,10 @@ export function userSpec(): OpenApiDocument {
 }
 
 /** The user API, and who each register call came from: the auth steps (`auth`) or anything else. */
-export interface UserBackend {
+export type UserBackend = {
   handle: Handle;
   registerFrom: string[];
-}
+};
 
 /** The register body, or `undefined` when it is not JSON. */
 async function registerBody(request: ReferenceRequest): Promise<{ email?: unknown } | undefined> {
@@ -93,20 +94,29 @@ async function registerBody(request: ReferenceRequest): Promise<{ email?: unknow
 export function userBackend(): UserBackend {
   const spec = userSpec();
   const registerFrom: string[] = [];
+
   const handle: Handle = async (request) => {
     const { pathname } = request.url;
     const { method } = request;
+
     if (pathname === "/v1/openapi/spec" && method === "GET") return answer(200, spec);
+
     if (pathname === "/v1/auth/register" && method === "POST") {
-      /* A body that does not parse registers no one, so it is refused before it is counted. */
+      // A body that does not parse registers no one, so it is refused before it is counted.
       const body = await registerBody(request);
+
       if (body === undefined) return answer(400, { error: "malformed json" });
       registerFrom.push(request.headers["x-via"] === "auth" ? "auth" : "other");
+
       if (typeof body.email === "string" && !body.email.includes("@")) return answer(400, { error: "invalid email" });
+
       return answer(201, { email: body.email, id: "u1" });
     }
+
     if (pathname === "/v1/auth/login" && method === "POST") return answer(200, { access_token: "tok" });
+
     return answer(404);
   };
+
   return { handle: guarded(handle), registerFrom };
 }

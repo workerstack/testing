@@ -16,21 +16,21 @@ import { Slots } from "./slots.ts";
 import type { ClientOptions, ExchangeContext, RequestOptions, SafeMethod } from "./types.ts";
 
 /** A request about to go out, as `setBeforeSend` sees it. */
-interface Sending {
+type Sending = {
   method: string;
   operationId: string | undefined;
   body: unknown;
   as: RequestOptions["as"];
-}
+};
 
 /** Told of each request before it is sent; what it hands back is told of the answer. */
 export type BeforeSend = (sending: Sending) => ((exchange: Exchange) => void) | undefined;
 
 /** A client that can only read: what a check that does not mutate receives. */
-export interface ReadClient extends Omit<Client, "request" | "view"> {
+export type ReadClient = Omit<Client, "request" | "view"> & {
   request(method: SafeMethod, path: string, options: RequestOptions): Promise<Exchange>;
   view(context: ExchangeContext): ReadClient;
-}
+};
 
 export class Client {
   /** Writes sent so far. A cached read taken before the latest write is stale. */
@@ -38,7 +38,7 @@ export class Client {
   private seq = 0;
   private afterExchange: ((exchange: Exchange) => Promise<void>) | undefined;
   private beforeSend: BeforeSend | undefined;
-  /* Not `#private`: a view is a Proxy, and a private field does not read through one. */
+  // Not `#private`: a view is a Proxy, and a private field does not read through one.
   private readonly journal: Journal;
   private readonly wire: Wire;
 
@@ -113,6 +113,7 @@ export class Client {
     const pathname = typeof url === "string" ? new URL(url).pathname : url.pathname;
     const base = new URL(this.options.baseUrl).pathname.replace(/\/$/, "");
     const below = base === "" ? undefined : belowBase(pathname, base);
+
     return below === undefined ? pathname : below || "/";
   }
 
@@ -132,23 +133,28 @@ export class Client {
    */
   view(context: ExchangeContext, readOnly = false): Client {
     const request = (method: string, path: string, options: RequestOptions): Promise<Exchange> => {
-      /* The type already forbids it; this catches a cast or an untyped caller. */
+      // The type already forbids it; this catches a cast or an untyped caller.
       if (readOnly && !SAFE.has(method.toUpperCase())) {
         return Promise.reject(
           new Error(`check "${context.check ?? "?"}" does not mutate, but sent ${method.toUpperCase()} ${path}`),
         );
       }
+
       return this.request(method, path, { ...options, context: { ...context, ...options.context } });
     };
+
     const view = (more: ExchangeContext): Client => this.view({ ...context, ...more }, readOnly);
+
     return new Proxy(this, {
       get(target, property, receiver) {
         if (property === "request") return request;
-        /* Through the receiver, so a proxy wrapped around this view still sees the request. */
-        if (property === "get") {
+
+        // Through the receiver, so a proxy wrapped around this view still sees the request.
+        if (property === "get")
           return (path: string, options: RequestOptions) => (receiver as Client).request("GET", path, options);
-        }
+
         if (property === "view") return view;
+
         return Reflect.get(target, property, receiver);
       },
     });
@@ -165,28 +171,36 @@ export class Client {
    */
   async request(method: string, path: string, options: RequestOptions): Promise<Exchange> {
     const unsendable = unsendableReason(method);
+
     if (unsendable !== null) throw new Error(`${method.toUpperCase()} ${path} was not sent: ${unsendable}`);
+
     if (!SAFE.has(method.toUpperCase())) this.writes += 1;
     const request = prepare(this.wire, method, path, options);
+
     const answered = this.beforeSend?.({
       as: options.as,
       body: options.body,
       method: request.method,
       operationId: request.operationId,
     });
+
     const { network, rateLimiter } = this.options;
     const deadline = performance.now() + (network?.deadlineMs ?? DEFAULT_DEADLINE_MS);
     const policy = { deadline, headers: request.callerHeaders, method: request.method, network };
     const send = (): Promise<Exchange> => resilient((attempt) => sendAttempt(request, attempt, this.wire), policy);
     const supersede = (exchange: Exchange): void => this.journal.supersede(exchange);
-    /* A renewal refused too: the control re-sends the last read that accepted the credential, as any request. */
+
+    // A renewal refused too: the control re-sends the last read that accepted the credential, as any request.
     const refused = (): Promise<boolean> =>
       request.credential.refused((read) => this.request(read.method, read.path, { ...read.options, control: true }));
+
     const reauthorized = (exchange: Exchange): Promise<Exchange> =>
       afterUnauthorized(exchange, { refused, renew: request.credential.renew, send, supersede });
+
     const exchange = await untilAnswered(await reauthorized(await send()), {
       again: (previous) => {
         supersede(previous);
+
         return send();
       },
       backedOff: (waitMs) =>
@@ -197,6 +211,7 @@ export class Client {
       method: request.method,
       reauthorized,
     });
+
     if (exchange.status >= 200 && exchange.status < 300) request.credential.accepted();
     const { control: _control, probe: _probe, ...control } = options;
     this.wire.controls.note(exchange, {
@@ -207,6 +222,7 @@ export class Client {
     });
     answered?.(exchange);
     await this.afterExchange?.(exchange);
+
     return exchange;
   }
 

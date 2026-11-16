@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { cellText } from "../../cell.ts";
 import { api, BETA, JOBS, rowsOf, TABLES, VIEWER } from "../__fixtures__/api.ts";
 
 const KEY = { "idempotency-key": "k1" };
@@ -11,7 +12,7 @@ describe("a create", () => {
     expect(parent).toMatchObject({ id: "table_000001", name: "t", project_id: "proj_alpha", row_count: 0 });
     const row = await call("POST", rowsOf(parent["id"]), { body: { label: "r", tags: ["red"] } });
     expect(row).toMatchObject({ body: { label: "r", table_id: parent["id"], tags: ["red"] }, status: 201 });
-    expect((await call("GET", `${TABLES}/${String(parent["id"])}`)).body["row_count"]).toBe(1);
+    expect((await call("GET", `${TABLES}/${cellText(parent["id"])}`)).body["row_count"]).toBe(1);
   });
 
   it("refuses a viewer, a body that is not JSON, an invalid body and a taken unique name", async () => {
@@ -102,11 +103,13 @@ describe("an idempotent create", () => {
     const again = await call("POST", JOBS, { body: { name: "other" }, headers: KEY });
     expect(again).toEqual(first);
     expect((await call("GET", JOBS)).body["count"]).toBe(1);
+
     const theirs = await call("POST", "/v1/projects/proj_beta/jobs", {
       body: { name: "b" },
       headers: KEY,
       token: BETA,
     });
+
     expect(theirs.body["name"]).toBe("b");
     expect((await call("POST", JOBS, { body: { name: "k" }, headers: { "idempotency-key": "" } })).status).toBe(201);
   });
@@ -122,9 +125,11 @@ describe("an idempotent create", () => {
     const { call } = await api({ defects: ["IDEMPOTENT_REPLAY_INSERTS"] });
     const first = await call("POST", TABLES, { body: { name: "t" }, headers: KEY });
     expect((await call("POST", TABLES, { body: { name: "t" }, headers: KEY })).body).toEqual(first.body);
+
     const names = ((await call("GET", `${TABLES}?order=name.asc`)).body["tables"] as Array<{ name: string }>).map(
       (row) => row.name,
     );
+
     expect(names).toEqual(["t", "t-replay"]);
     await call("POST", JOBS, { body: { name: "j" }, headers: KEY });
     await call("POST", JOBS, { body: { name: "j" }, headers: KEY });
@@ -145,9 +150,10 @@ describe("a client-chosen id", () => {
     const { call } = await api({ shape: "client-ids" });
     expect((await call("POST", TABLES, { body: { id: 42, name: "n" } })).status).toBe(201);
     expect((await call("GET", `${TABLES}/42`)).body).toMatchObject({ id: 42, name: "n" });
-    for (const id of [0, 1000, 1.5, "7"]) {
+
+    for (const id of [0, 1000, 1.5, "7"])
       expect((await call("POST", TABLES, { body: { id, name: `bad ${String(id)}` } })).status).toBe(400);
-    }
+
     expect((await call("POST", rowsOf(42), { body: { label: "r" } })).status).toBe(201);
   });
 
@@ -200,7 +206,7 @@ describe("a create the server stores under an id of its own, under CLIENT_ID_IGN
 
   it("skips an id a record already holds, and keeps the issued one once the range has none left", async () => {
     const { call, state } = await api({ defects: ["CLIENT_ID_IGNORED"], shape: "client-ids" });
-    /* A copy: the shape is the catalog's, shared with every other reference. */
+    // A copy: the shape is the catalog's, shared with every other reference.
     Object.assign(state, { shape: { ...state.shape, clientIds: { max: 999, min: 998 } } });
     await state.store.insert(state.table, { id: 999, name: "held", project_id: "proj_alpha" });
     await call("POST", TABLES, { body: { id: 998, name: "skips" } });

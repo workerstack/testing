@@ -24,13 +24,13 @@ import { idOf, isPlainRecord, type Record_, recordOf } from "./records.ts";
 import { requestSchemaOf } from "./schema.ts";
 
 /** What a record must name: the item schema's required fields, and every field the create sent. */
-export interface ExpectedFields {
+export type ExpectedFields = {
   required: readonly string[];
   submitted: readonly string[];
-}
+};
 
 /** The record a create made, and whether anything the server answered stands behind its fields. */
-export interface CreatedRecord {
+export type CreatedRecord = {
   record: Record_;
   /** The answer named no id at all, and the client's own was confirmed by a read. */
   acknowledged: boolean;
@@ -39,7 +39,7 @@ export interface CreatedRecord {
    * stored: `no item read`, `read back answered 404`.
    */
   unverified?: string;
-}
+};
 
 /**
  * Whether an answer is the record the create made: it names every field the item schema requires
@@ -49,9 +49,10 @@ export function answersRecord(answer: Record_, expected: ExpectedFields): boolea
   return [...expected.required, ...expected.submitted].every((name) => Object.hasOwn(answer, name));
 }
 
-/* A request property the server takes and never returns: a password, a secret. */
+// A request property the server takes and never returns: a password, a secret.
 function writeOnly(schema: JsonSchema | null, name: string): boolean {
   const property = (schema?.properties as Record<string, JsonSchema> | undefined)?.[name];
+
   return property?.writeOnly === true;
 }
 
@@ -70,25 +71,32 @@ export function declaredFields(
   answer: Record<string, unknown>,
 ): Record<string, unknown> {
   const entity = createOp.entity === null ? undefined : model.entities.get(createOp.entity);
+
   const opOf = (operationId: string | undefined): OperationModel | undefined =>
     operationId === undefined ? undefined : model.byOperationId.get(operationId);
+
   const item = itemSchemaOf({ listOp: opOf(entity?.list), model, readOp: opOf(entity?.read) });
   const properties = (item?.properties ?? {}) as Record<string, unknown>;
+
   return Object.fromEntries(Object.entries(answer).filter(([name]) => Object.hasOwn(properties, name)));
 }
 
 /** The fields the create's answer must name to be the record (`answersRecord`). */
 export function expectedFields(model: SpecModel, createOp: OperationModel, sent: unknown): ExpectedFields {
   const entity = createOp.entity === null ? undefined : model.entities.get(createOp.entity);
+
   const opOf = (operationId: string | undefined): OperationModel | undefined =>
     operationId === undefined ? undefined : model.byOperationId.get(operationId);
+
   const item = itemSchemaOf({ listOp: opOf(entity?.list), model, readOp: opOf(entity?.read) });
   const request = requestSchemaOf(createOp, model);
+
   const submitted = isPlainRecord(sent)
     ? Object.entries(sent)
         .filter(([name, value]) => value !== undefined && !writeOnly(request, name))
         .map(([name]) => name)
     : [];
+
   return { required: (item?.required ?? []) as string[], submitted };
 }
 
@@ -112,6 +120,7 @@ export async function readBackCreated(input: {
 }): Promise<CreatedRecord> {
   const { createOp, id, model } = input;
   const identity = (createOp.entity === null ? undefined : model.entities.get(createOp.entity))?.identity ?? "id";
+
   const unverified = (cause: string): CreatedRecord => ({
     acknowledged: false,
     record: {
@@ -121,6 +130,7 @@ export async function readBackCreated(input: {
     },
     unverified: cause,
   });
+
   const route =
     createOp.entity === null
       ? null
@@ -129,31 +139,37 @@ export async function readBackCreated(input: {
           model,
           ...(input.readable === undefined ? {} : { readable: input.readable }),
         });
+
   if (route === null) return unverified("no item read");
   let path: string;
+
   try {
     path = fillPath(route.readOp.path, { ...input.scope, [route.param]: id.id });
   } catch (error) {
     return unverified(`the item read could not be addressed: ${messageOf(error)}`);
   }
+
   const read = await sendable(() =>
     input.client.get(path, { as: { principal: input.principal }, operationId: route.readOp.operationId }),
   );
+
   if (typeof read === "string") return unverified(`read back could not be sent: ${read}`);
+
   if (read.status < 200 || read.status >= 300) return unverified(`read back answered ${read.status}`);
   const record = recordOf(route.readOp, read.responseBody);
+
   if (record === undefined) return unverified(`read back answered ${read.status} without the record`);
   const readId = idOf(record, identity);
+
   if (readId !== undefined && readId !== id.id)
     return unverified(`read back answered ${read.status} with another record`);
-  /* The read shows what is stored; a field it leaves out keeps what the create answered. */
+
+  // The read shows what is stored; a field it leaves out keeps what the create answered.
   return { acknowledged: false, record: { ...answeredOf(input), ...record, [identity]: readId ?? id.value } };
 }
 
-/*
- * The read, or why the creator could not send it: a credential that cannot meet its security, or
- * the fence refusing it. Anything else, a network error among them, ends the seed as it would.
- */
+// The read, or why the creator could not send it: a credential that cannot meet its security, or
+// the fence refusing it. Anything else, a network error among them, ends the seed as it would.
 async function sendable(send: () => Promise<Exchange>): Promise<Exchange | string> {
   try {
     return await send();

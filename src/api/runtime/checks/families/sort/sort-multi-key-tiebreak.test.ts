@@ -8,13 +8,14 @@ import { runCheck } from "../../core/run.ts";
 import { backend, NOTES, PARAMS, queryDoc, queryOf, REJECT, stage } from "../composition/__fixtures__/query-api.ts";
 import { sortMultiKeyTiebreak } from "./sort-multi-key-tiebreak.ts";
 
-/* Applies only the first sort key; ties keep their stored order. */
+// Applies only the first sort key; ties keep their stored order.
 const firstKeyOnly: Responder = (method, path, options) => {
   const query = queryOf(options);
+
   return backend()(method, path, { query: { ...query, order: query["order"]?.split(",")[0] } });
 };
 
-/* Shows only one of the rows tied on status "open". */
+// Shows only one of the rows tied on status "open".
 const hidingTies: Responder = (method, path, options) =>
   backend(NOTES.filter((row) => row["id"] !== "n2" && row["id"] !== "n4"))(method, path, options);
 
@@ -52,6 +53,7 @@ describe("sort.multi-key-tiebreak judges", () => {
   it("is unresolved when run against a grammar that sorts by one key", async () => {
     const planned = sortMultiKeyTiebreak.plan(stage(sortMultiKeyTiebreak).ctx);
     const single = stage(sortMultiKeyTiebreak, { doc: queryDoc(noJoin) });
+
     if (!planned.ok) throw new Error("the default cohort has a multi-key pair");
     expect(await sortMultiKeyTiebreak.run(single.ctx, planned.value)).toEqual({
       kind: "unresolved",
@@ -65,6 +67,7 @@ describe("sort.multi-key-tiebreak plans", () => {
     const plan = sortMultiKeyTiebreak.plan(
       stage(sortMultiKeyTiebreak, { doc: queryDoc({ sort: { maxKeys: 3 } }) }).ctx,
     );
+
     expect(plan).toMatchObject({ ok: true, value: { primary: "status", secondary: "title" } });
     expect(plan.ok && plan.value.tied.map((row) => row["id"])).toEqual(["n1", "n2", "n4"]);
   });
@@ -77,6 +80,7 @@ describe("sort.multi-key-tiebreak plans", () => {
       { id: "d", rank: 1, status: "shut" },
       { id: "e", rank: 2, status: "shut" },
     ];
+
     const doc = queryDoc({ sortable: ["status", "id", "title", "rank"] });
     const plan = stage(sortMultiKeyTiebreak, { doc, rows }).plan();
     expect(plan).toMatchObject({ ok: true, value: { primary: "status", secondary: "rank" } });
@@ -87,6 +91,7 @@ describe("sort.multi-key-tiebreak plans", () => {
       {},
       PARAMS.filter((name) => name !== "order"),
     );
+
     expect(stage(sortMultiKeyTiebreak, { doc: unordered }).plan().ok).toBe(false);
     expect(stage(sortMultiKeyTiebreak, { doc: queryDoc({ sort: { maxKeys: 1 } }) }).plan().ok).toBe(false);
     expect(stage(sortMultiKeyTiebreak, { fields: { query: null } }).plan().ok).toBe(false);
@@ -105,11 +110,9 @@ describe("sort.multi-key-tiebreak plans", () => {
   });
 });
 
-/*
- * A field a listing does not carry is no value to tie on. A public listing declared `created_at`
- * sortable but left it out of every row; the API tester read the rows as tied on it and blamed the second
- * key for an order the server took from a `created_at` it never showed (prod, 2026-10-16).
- */
+// A field a listing does not carry is no value to tie on. A public listing declared `created_at`
+// sortable but left it out of every row; the API tester read the rows as tied on it and blamed the second
+// key for an order the server took from a `created_at` it never showed (prod, 2026-10-16).
 
 const PROFILES: Record_[] = [
   { handle: "a", updated_at: 100 },
@@ -120,6 +123,7 @@ const PROFILES: Record_[] = [
 function profilesDoc(): OpenApiDocument {
   const item = { properties: { handle: { type: "string" }, updated_at: { type: "integer" } }, type: "object" };
   const schema = { properties: { profiles: { items: item, type: "array" } }, type: "object" };
+
   return {
     info: { title: "profiles", version: "1" },
     openapi: "3.1.0",
@@ -142,11 +146,12 @@ function profilesDoc(): OpenApiDocument {
 
 describe("sort.multi-key-tiebreak on a field the rows do not carry", () => {
   it("does not read the missing field as a tie", async () => {
-    /* Sorted by a creation time the rows do not show: whatever order is asked, this one comes back. */
+    // Sorted by a creation time the rows do not show: whatever order is asked, this one comes back.
     const { ctx, findings } = wireStage(profilesDoc(), "profile.list", {
       fields: { collectionKey: "profiles", identity: "handle", records: PROFILES.map((row) => ({ ...row })) },
       serve: () => ({ profiles: PROFILES }),
     });
+
     await runCheck(sortMultiKeyTiebreak, ctx);
     expect(findings.findings.map((finding) => `${finding.check}: ${finding.summary}`)).toEqual([]);
   });

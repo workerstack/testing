@@ -28,6 +28,7 @@ describe("testing/no-module-side-effects", () => {
         "export const nested = { value: [read()] }",
       ].join("\n"),
     };
+
     expect(reportsOf(rule, fixture).map(({ line }) => line)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
     expect(reportsOf(rule, fixture)[0]?.message).toBe(MESSAGE);
   });
@@ -56,6 +57,7 @@ describe("testing/no-module-side-effects", () => {
         "export {}",
       ].join("\n"),
     };
+
     expect(reportsOf(rule, fixture)).toEqual([]);
   });
 
@@ -82,6 +84,7 @@ describe("testing/no-module-side-effects definers", () => {
         "export const c = other.defineCheck({})",
       ].join("\n"),
     };
+
     expect(reportsOf(rule, fixture).map(({ line }) => line)).toEqual([2, 3]);
   });
 });

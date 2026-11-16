@@ -8,10 +8,8 @@ import { folder } from "../__fixtures__/files.ts";
 import { bufferWriter } from "../writer.ts";
 import { runProgress } from "./run-progress.ts";
 
-/*
- * The run's live status: a line on stderr unless quiet, every move in three files, and
- * progress.json for what is happening now — rewritten at most once a second, and at the end.
- */
+// The run's live status: a line on stderr unless quiet, every move in three files, and
+// progress.json for what is happening now — rewritten at most once a second, and at the end.
 
 const snap = (extra: Partial<ProgressSnapshot>): ProgressSnapshot => ({
   elapsedMs: 1,
@@ -60,15 +58,17 @@ describe("runProgress", () => {
   });
 
   it("rewrites progress.json at most once a second, and at the end, with how long since the last answer", async () => {
-    /* The real clock is fixed, so how long ago the last answer came is exact. */
+    // The real clock is fixed, so how long ago the last answer came is exact.
     vi.useFakeTimers({ now: Date.UTC(2026, 0, 1), toFake: ["Date"] });
     onTestFinished(() => {
       vi.useRealTimers();
     });
     const dir = folder();
     const progress = runProgress(bufferWriter(), dir, { quiet: true, startedAt: Date.now() });
+
     const read = () =>
       JSON.parse(readFileSync(join(dir, "progress.json"), "utf8")) as ProgressSnapshot & { lastAgoMs: number | null };
+
     progress.onProgress(snap({ message: "first" }));
     expect(read()).toMatchObject({ lastAgoMs: null, message: "first" });
     progress.onProgress(snap({ entity: "note", message: "too soon", phase: "seed" }));

@@ -11,6 +11,7 @@ describe("isFilePart", () => {
       { contentEncoding: "Binary" },
       { contentMediaType: "image/png" },
     ];
+
     expect(files.map((schema) => isFilePart(schema))).toEqual([true, true, true, true, true]);
     expect(
       [{ contentMediaType: "application/json; charset=utf-8" }, { type: "string" }, null, "x"].map((s) =>

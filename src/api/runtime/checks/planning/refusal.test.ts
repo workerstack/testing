@@ -6,11 +6,9 @@ import { exchange } from "../__fixtures__/harness.ts";
 import { notesContext } from "../query/__fixtures__/notes.ts";
 import { asProbe, judgeRefusal } from "./refusal.ts";
 
-/*
- * A request sent to be refused asserts its property only when refused for that reason. A crash is
- * a finding; any other refusal turned it away before the input was considered, so nothing was
- * learned; an acceptance is left to the caller.
- */
+// A request sent to be refused asserts its property only when refused for that reason. A crash is
+// a finding; any other refusal turned it away before the input was considered, so nothing was
+// learned; an acceptance is left to the caller.
 
 const answered = (status: number) => exchange("POST", "/notes", { status });
 

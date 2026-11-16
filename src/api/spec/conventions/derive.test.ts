@@ -42,6 +42,7 @@ describe("deriveQueryConventions", () => {
       paged,
       { responseHeaders: ["X-Total", "link"] },
     );
+
     expect(Object.keys(conventions)).toEqual([
       "envelope",
       "grammar",
@@ -98,10 +99,12 @@ describe("deriveQueryConventions filter grammar", () => {
     expect(guesses).toHaveLength(1);
     expect(guesses[0]).toMatch(/^parameter "filter" takes a filter expression whose grammar could not be recognized/);
     expect(deriveQueryConventions(filter, null).grammar).toBe("unrecognized");
+
     const declared = deriveQueryConventions(filter, null, {
       declared: { grammar: { term: 1 } },
       onGuess: (message) => guesses.push(message),
     });
+
     expect(declared.grammar).toBe("unrecognized");
     expect(declared.grammarDeclared).toBeUndefined();
     expect(guesses).toHaveLength(1);
@@ -122,6 +125,7 @@ describe("deriveQueryConventions sort grammar", () => {
     expect(template).toMatchObject({ sortDeclared: true, sortGrammar: "template" });
     expect(template.sortSpec?.term).toBe(SORT_TEMPLATE.term);
     const order = [query("sort", { type: "string" }, { description: "e.g. -name" })];
+
     for (const sortGrammar of ["upward", { term: 1 }, null]) {
       const inferred = deriveQueryConventions(order, null, { declared: { sortGrammar } });
       expect(inferred.sortGrammar).toBe("prefixed");
@@ -153,10 +157,12 @@ describe("deriveQueryConventions with named parameters", () => {
 
   it("says when a named parameter is not one the operation declares, and falls back to the alias", () => {
     const told: string[] = [];
+
     const conventions = deriveQueryConventions([query("where")], null, {
       onUnmatched: (message) => told.push(message),
       params: { filter: "filter_by", sort: "arrange" },
     });
+
     expect(conventions.filter).toBe("where");
     expect(told).toEqual([
       'params.filter names "filter_by", which the operation does not declare; the API tester finds the filter parameter by its aliases',
@@ -179,6 +185,7 @@ describe("deriveQueryConventions with named envelope fields", () => {
       envelope: { nextCursor: "next_before" },
       params: { cursor: "before" },
     });
+
     expect(conventions.envelope).toEqual({ nextCursor: "next_before" });
     expect(conventions.cursor).toBe("before");
   });
@@ -192,10 +199,12 @@ describe("deriveQueryConventions with named envelope fields", () => {
 
   it("reports a name the envelope does not hold, and reads that fact by its aliases", () => {
     const told: string[] = [];
+
     const conventions = deriveQueryConventions([], shaped(["next"], { cursorKey: "next" }), {
       envelope: { nextCursor: "next_before" },
       onUnmatched: (message) => told.push(message),
     });
+
     expect(conventions.envelope).toEqual({ nextCursor: "next" });
     expect(told).toEqual([
       'envelope.nextCursor names "next_before", which the response envelope does not declare; ' +
@@ -205,10 +214,12 @@ describe("deriveQueryConventions with named envelope fields", () => {
 
   it("reports every name where the operation answers no list", () => {
     const told: string[] = [];
+
     const conventions = deriveQueryConventions([], null, {
       envelope: { total: "tally" },
       onUnmatched: (message) => told.push(message),
     });
+
     expect(conventions.envelope).toEqual({});
     expect(told).toHaveLength(1);
   });

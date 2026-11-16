@@ -1,8 +1,6 @@
-/*
- * Values delivered outside HTTP: verification tokens, OTPs, magic links. The API tester asks the
- * `resolveOutOfBand` hook for them, and tells it when the request that triggered the delivery
- * was sent, so an inbox holding older deliveries can tell them apart.
- */
+// Values delivered outside HTTP: verification tokens, OTPs, magic links. The API tester asks the
+// `resolveOutOfBand` hook for them, and tells it when the request that triggered the delivery
+// was sent, so an inbox holding older deliveries can tell them apart.
 
 import type { Hooks } from "../../config/types/hooks.ts";
 import type { Exchange } from "../exchange.ts";
@@ -24,23 +22,26 @@ export function triggerSentAt(
 ): number | undefined {
   if (address === "") return undefined;
   const forms = [address, encodeURIComponent(address)];
+
   const trigger = sent.findLast((exchange) => {
     const body =
       typeof exchange.requestBody === "string" ? exchange.requestBody : JSON.stringify(exchange.requestBody ?? "");
+
     return forms.some((form) => exchange.url.includes(form) || body.includes(form));
   });
+
   return trigger === undefined ? undefined : sentAt(trigger);
 }
 
 /** What a value is, who is waiting for it, and what the hook is told alongside the address. */
-export interface OutOfBandOptions {
+export type OutOfBandOptions = {
   kind: string;
   label: string;
   outOfBand?: Partial<BackoffConfig>;
   scope?: Record<string, string>;
   /** When the request this value answers was sent; see `OutOfBandRequest.since`. */
   since?: number;
-}
+};
 
 /**
  * Out-of-band values usually land in an eventually-consistent store, so the hook is polled with
@@ -53,6 +54,7 @@ export async function resolveOutOfBandValue(
   options: OutOfBandOptions,
 ): Promise<string> {
   const { kind } = options;
+
   if (hook === undefined) {
     throw new Error(
       `testing api: ${options.label} needs a "${kind}" value delivered outside HTTP, ` +
@@ -60,8 +62,10 @@ export async function resolveOutOfBandValue(
         "KV store or webhook sink — supply a function that can.",
     );
   }
+
   const backoff = resolveBackoff(options.outOfBand);
   const scope = options.scope ?? {};
+
   const value = await pollWithBackoff(
     (attempt) =>
       hook({
@@ -74,6 +78,7 @@ export async function resolveOutOfBandValue(
     backoff,
     isAbsentValue,
   );
+
   if (typeof value === "string" && value !== "") return value;
   throw new Error(
     `testing api: no "${kind}" value arrived for ${address} after ${backoff.attempts} attempts ` +

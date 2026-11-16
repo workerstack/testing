@@ -51,11 +51,9 @@ import type {
   Verdict,
 } from "../../../src/api/index.ts";
 
-/*
- * The public surface, pinned. A value export added or removed changes the key union below and fails
- * the type check; a type export removed fails its import. A new type export must also be documented
- * in docs/api/api.md, which tests/structure/docs-sync.test.ts enforces.
- */
+// The public surface, pinned. A value export added or removed changes the key union below and fails
+// the type check; a type export removed fails its import. A new type export must also be documented
+// in docs/api/api.md, which tests/structure/docs-sync.test.ts enforces.
 expectTypeOf<keyof typeof tester>().toEqualTypeOf<
   | "allocateRunDir"
   | "buildModel"
@@ -79,11 +77,12 @@ expectTypeOf<keyof typeof tester>().toEqualTypeOf<
   | "worstCaseWaitMs"
 >();
 
-/* `RunOptions.transcript`: how much of the transcript stays in memory, and where the encrypted rest is spooled. */
+// `RunOptions.transcript`: how much of the transcript stays in memory, and where the encrypted rest is spooled.
 expectTypeOf<NonNullable<RunOptions["transcript"]>>().toEqualTypeOf<{
   memoryBytes?: number | undefined;
   dir?: string | undefined;
 }>();
+
 expectTypeOf<{ transcript: { memoryBytes: number; dir: string } }>().toMatchTypeOf<Pick<RunOptions, "transcript">>();
 
 export type PublicTypes = [

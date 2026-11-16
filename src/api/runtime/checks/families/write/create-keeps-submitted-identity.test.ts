@@ -5,7 +5,7 @@ import { runCheck } from "../../core/run.ts";
 import { overriding, WIDGET, widgetApi, widgetDoc, type WidgetDocOptions } from "./__fixtures__/widget-api.ts";
 import { createKeepsSubmittedIdentity } from "./create-keeps-submitted-identity.ts";
 
-/* A widget whose id the client chooses. */
+// A widget whose id the client chooses.
 const CLIENT_ID = {
   ...WIDGET,
   properties: { ...(WIDGET.properties as object), id: { type: "string" } },
@@ -13,6 +13,7 @@ const CLIENT_ID = {
 
 function stage(respond: Responder, options: WidgetDocOptions = {}) {
   const model = modelOf(widgetDoc({ item: CLIENT_ID, ...options }));
+
   return contextFor(model, "listWidgets", {
     respond,
     fields: {
@@ -45,12 +46,13 @@ describe("create.keeps-submitted-identity verdicts", () => {
   });
 
   it("judges at most three creates, each a distinct id, and only those that chose one", async () => {
-    /* The fourth distinct id would fail: sampling stops before it. */
+    // The fourth distinct id would fail: sampling stops before it.
     const { ctx, findings } = stage(
       overriding(widgetApi(), (_, __, options) =>
         (options.body as { id?: unknown }).id === "k4" ? { body: { id: "other" }, status: 201 } : undefined,
       ),
     );
+
     await creates(ctx, [
       "not a record",
       [{ id: "x" }],
@@ -76,11 +78,13 @@ describe("create.keeps-submitted-identity verdicts", () => {
   it("reads an acknowledgment-only create back under the id it was sent", async () => {
     const rows = new Map<string, Record<string, unknown>>();
     const api = widgetApi(rows);
+
     const { ctx, findings, sent } = stage(
       overriding(api, (method, path, options) =>
         method === "POST" ? { body: { id: null }, status: (api(method, path, options), 202) } : undefined,
       ),
     );
+
     await creates(ctx, [{ id: "k1", name: "a" }]);
     expect(await runCheck(createKeepsSubmittedIdentity, ctx)).toEqual({ kind: "asserted" });
     expect(findings.findings).toEqual([]);
@@ -90,10 +94,11 @@ describe("create.keeps-submitted-identity verdicts", () => {
 
 describe("create.keeps-submitted-identity on an acknowledgment-only create", () => {
   it("reports an acknowledged create that stored the record under another id", async () => {
-    /* The backend keeps the row under an id of its own, so the client's id finds nothing. */
+    // The backend keeps the row under an id of its own, so the client's id finds nothing.
     const { ctx, findings } = stage((method, path) =>
       method === "POST" ? { body: {}, status: 202 } : path === "/widgets/k1" ? { status: 404 } : undefined,
     );
+
     await creates(ctx, [{ id: "k1", name: "a" }]);
     expect(await runCheck(createKeepsSubmittedIdentity, ctx)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     expect(findings.findings[0]?.summary).toBe(
@@ -107,6 +112,7 @@ describe("create.keeps-submitted-identity on an acknowledgment-only create", () 
     const { ctx, findings } = stage((method) =>
       method === "POST" ? { body: {}, status: 202 } : { body: { id: "someone-else" }, status: 200 },
     );
+
     await creates(ctx, [{ id: "k1", name: "a" }]);
     expect(await runCheck(createKeepsSubmittedIdentity, ctx)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     expect(findings.findings[0]?.detail).toContain("the read under that id returned 200");
@@ -128,8 +134,10 @@ describe("create.keeps-submitted-identity preconditions", () => {
   it("finds no creates when the create is absent or its path cannot be resolved", async () => {
     const { ctx } = stage(widgetApi());
     const plan = createKeepsSubmittedIdentity.plan(ctx);
+
     if (!plan.ok) throw new Error("expected the check to apply");
     const createOp = ctx.createOp;
+
     if (createOp === undefined) throw new Error("expected a create");
     await creates(ctx, [{ id: "k1", name: "a" }]);
     const unresolved = { kind: "unresolved", reason: "no create carrying a client-chosen identity was observed" };
@@ -140,8 +148,9 @@ describe("create.keeps-submitted-identity preconditions", () => {
 
   it("applies only to a create that takes a writable identity, with an item read", () => {
     expect(createKeepsSubmittedIdentity.plan(stage(widgetApi()).ctx).ok).toBe(true);
-    /* The server issues the id. */
+    // The server issues the id.
     const issued = modelOf(widgetDoc());
+
     const { ctx: serverIds } = contextFor(issued, "listWidgets", {
       respond: widgetApi(),
       fields: {
@@ -149,8 +158,9 @@ describe("create.keeps-submitted-identity preconditions", () => {
         readOp: op(issued, "getWidget"),
       },
     });
+
     expect(createKeepsSubmittedIdentity.plan(serverIds).ok).toBe(false);
-    /* The body has no identity at all. */
+    // The body has no identity at all.
     expect(createKeepsSubmittedIdentity.plan({ ...serverIds, identity: "sku" }).ok).toBe(false);
     expect(createKeepsSubmittedIdentity.plan({ ...serverIds, readOp: undefined }).ok).toBe(false);
     expect(createKeepsSubmittedIdentity.plan({ ...serverIds, createOp: undefined }).ok).toBe(false);

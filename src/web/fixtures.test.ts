@@ -8,14 +8,16 @@ import type { Network } from "./network.ts";
 
 type Handler = (payload: unknown) => void;
 
-/* A page that emits what a test makes it say, from whatever URL it is on at the time. */
+// A page that emits what a test makes it say, from whatever URL it is on at the time.
 function fakePage(): { page: Page; say: (event: string, payload: unknown) => void; at: (url: string) => void } {
   const handlers = new Map<string, Handler[]>();
   let url = "about:blank";
+
   const page = {
     on: (event: string, handler: Handler) => handlers.set(event, [...(handlers.get(event) ?? []), handler]),
     url: () => url,
   };
+
   return {
     at: (next) => {
       url = next;
@@ -43,6 +45,7 @@ async function run(guard: GuardOptions, during: (fake: ReturnType<typeof fakePag
     },
     TEST_INFO,
   );
+
   return used;
 }
 
@@ -59,6 +62,7 @@ describe("guardPage", () => {
       fake.at("http://127.0.0.1:4000/page-error.html");
       fake.say("pageerror", new Error("x is not defined"));
     });
+
     await expect(failing).rejects.toThrow(
       [
         'guard: console.error at /console-error.html: "boom" (home/guard.spec.ts:7)',
@@ -113,17 +117,20 @@ describe("fixtures", () => {
 
 type RouteHandler = (route: Route) => Promise<void>;
 
-/* A context that routes as Playwright's does, and a request to `url` the test can send through it. */
+// A context that routes as Playwright's does, and a request to `url` the test can send through it.
 function fakeContext(): { context: BrowserContext; send: (url: string) => Promise<string> } {
   const handlers: RouteHandler[] = [];
+
   const context = {
     route: async (pattern: string, handler: RouteHandler) => {
       expect(pattern).toBe("**/*");
       handlers.push(handler);
     },
   };
+
   const send = async (url: string): Promise<string> => {
     let outcome = "none";
+
     const route = {
       abort: async () => {
         outcome = "aborted";
@@ -138,9 +145,12 @@ function fakeContext(): { context: BrowserContext; send: (url: string) => Promis
         url: () => url,
       }),
     } as unknown as Route;
+
     for (const handler of handlers) await handler(route);
+
     return outcome;
   };
+
   return { context: context as unknown as BrowserContext, send };
 }
 
@@ -158,9 +168,11 @@ describe("guardNetwork", () => {
   it("aborts an undeclared request and fails the test after it, with the line", async () => {
     const { context, send } = fakeContext();
     const seen: string[] = [];
+
     const gated = guardNetwork({ baseURL: "http://127.0.0.1:4000", context }, async () => {
       seen.push(await send("https://cdn.example.invalid/x.js"));
     });
+
     await expect(gated).rejects.toThrow(
       "network: GET https://cdn.example.invalid/x.js from /home.html: origin not declared; call network.allow",
     );
@@ -179,10 +191,12 @@ describe("the a11y fixture", () => {
 
   it("scans with the file's a11yDefaults before each call's options", async () => {
     expect(fixtures.a11yDefaults).toEqual([{}, { option: true }]);
+
     const a11y = fixtures.a11y as (
       args: { page: Page; a11yDefaults: object },
       use: (value: { check: () => Promise<void> }) => Promise<void>,
     ) => Promise<void>;
+
     const defaults = { exclude: [{ reason: "", selector: "[data-focus-guard]" }] };
     let check: Promise<void> | undefined;
     await a11y({ a11yDefaults: defaults, page: {} as Page }, async (value) => {

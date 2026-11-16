@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { list, member, ok, query } from "../__fixtures__/documents.ts";
 import { details, operationsOf } from "./__fixtures__/operations.ts";
 
-/* The model's fields, in the order every operation carries them. */
+// The model's fields, in the order every operation carries them.
 const FIELDS = [
   "action",
   "async",
@@ -82,6 +82,7 @@ describe("modelOperation", () => {
       },
       { components: { securitySchemes: { jwt: { scheme: "bearer", type: "http" } } } },
     );
+
     const [create] = operations;
     expect(Object.keys(create ?? {})).toEqual(FIELDS);
     expect(create).toMatchObject({
@@ -110,6 +111,7 @@ describe("modelOperation methods", () => {
     const { operations } = operationsOf({
       "/search": { query: { operationId: "search" }, trace: { operationId: "echo" } },
     });
+
     const [echo, search] = operations;
     expect(search).toMatchObject({ isMutation: false, method: "QUERY", unsendable: null });
     expect(echo).toMatchObject({ isMutation: false, method: "TRACE" });
@@ -138,12 +140,13 @@ describe("modelOperation preconditions", () => {
         patch: { operationId: "tags.update", responses: { default: { description: "any", headers: { ETag: {} } } } },
       },
     });
+
     const byId = new Map(operations.map((operation) => [operation.operationId, operation]));
     expect(byId.get("notes.get")).toMatchObject({ etag: true, ifMatch: null });
-    /* A 412's ETag is not a success's, and only a header parameter is a precondition. */
+    // A 412's ETag is not a success's, and only a header parameter is a precondition.
     expect(byId.get("notes.update")).toMatchObject({ etag: false, ifMatch: "if-match" });
     expect(byId.get("notes.replace")).toMatchObject({ etag: false, ifMatch: null });
-    /* A success range is a success response; `default` is not. */
+    // A success range is a success response; `default` is not.
     expect(byId.get("tags.get")?.etag).toBe(true);
     expect(byId.get("tags.update")?.etag).toBe(false);
   });
@@ -155,6 +158,7 @@ describe("modelOperation privileged", () => {
       properties: { name: { type: "string" }, verified: { type: "boolean", "x-privileged": true } },
       type: "object",
     };
+
     const { gaps, operations } = operationsOf({
       "/tables/{id}": {
         patch: {
@@ -165,6 +169,7 @@ describe("modelOperation privileged", () => {
         },
       },
     });
+
     expect(operations[0]?.privileged).toEqual(["verified"]);
     expect(details(gaps, "x-privileged")).toEqual([
       "x-privileged belongs on a request body property, not on the operation; the API tester cannot use it",
@@ -187,6 +192,7 @@ describe("modelOperation collections", () => {
         },
       },
     });
+
     const [rows] = operations;
     expect(rows?.collection?.key).toBe("rows");
     expect(rows?.collection?.pagination.countKey).toBe("total");
@@ -202,7 +208,7 @@ describe("modelOperation collections", () => {
       "/b": { get: { operationId: "b", responses: ok(twoArrays), "x-entity": { recordPath: "$.a" } } },
       "/c/{id}": { get: { operationId: "c", responses: ok(twoArrays) } },
       "/d": { post: { operationId: "d", responses: ok(twoArrays) } },
-      /* A declared action outranks the path's shape: a singleton read is a record, an item-shaped list has rows. */
+      // A declared action outranks the path's shape: a singleton read is a record, an item-shaped list has rows.
       "/me": {
         get: {
           operationId: "me",
@@ -214,6 +220,7 @@ describe("modelOperation collections", () => {
       "/f/{id}": { get: { operationId: "f", responses: ok(twoArrays), "x-entity": { action: "list", name: "f" } } },
       "/": { get: { operationId: "root", responses: ok({ type: "object" }) } },
     });
+
     expect(gaps.gaps.filter((gap) => gap.tag === "x-entity.recordPath").map((gap) => gap.operationId)).toEqual([
       "a",
       "feed",
@@ -230,6 +237,7 @@ describe("modelOperation x-query", () => {
     const { gaps, operations } = operationsOf({
       "/notes": { get: { operationId: "notes.list", parameters: [query("filter")], responses: ok(list(member)) } },
     });
+
     expect(operations[0]?.conventions.grammar).toBe("unrecognized");
     expect(operations[0]?.query?.source).toBe("heuristic");
     const found = details(gaps, "x-query");
@@ -249,6 +257,7 @@ describe("modelOperation x-query", () => {
         },
       },
     });
+
     expect(operations[0]?.conventions).toMatchObject({
       grammar: "postgrest",
       grammarDeclared: true,
@@ -264,6 +273,7 @@ describe("modelOperation and a malformed x-entity", () => {
       { entity: "note", tag: { action: "browse", name: "memo" }, wrong: /^x-entity "action" must be one of/ },
       { entity: "memo", tag: { action: "list", identity: 7, name: "memo" }, wrong: /^x-entity "identity" must be/ },
     ];
+
     for (const { entity, tag, wrong } of cases) {
       const { gaps, operations } = operationsOf({ "/notes": { get: { ...list("note"), "x-entity": tag } } });
       expect(gaps.gaps.filter((gap) => gap.tag === "x-entity").map((gap) => gap.detail)).toEqual([

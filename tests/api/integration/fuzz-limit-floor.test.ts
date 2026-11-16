@@ -7,13 +7,11 @@ import type { DefectName } from "../../../src/api/reference/defects/table.ts";
 import { createMemoryServer } from "../../../src/api/reference/http/engines.ts";
 import { run } from "../../../src/api/runtime/run/index.ts";
 
-/*
- * Combination fuzzing, seed 1872686589, combination 920476. LIMIT_OUT_OF_RANGE_SERVED moves an
- * out-of-range page size into the range, and LIMIT_EXCEEDS_MAX lifts only its ceiling; together the
- * reference served a page size of 0, broke its own documented list envelope (`limit >= 1`), and
- * schema.read-response-matches-document reported it on job, row and table, with no injected defect
- * to justify it. The floor holds whatever happens to the ceiling.
- */
+// Combination fuzzing, seed 1872686589, combination 920476. LIMIT_OUT_OF_RANGE_SERVED moves an
+// out-of-range page size into the range, and LIMIT_EXCEEDS_MAX lifts only its ceiling; together the
+// reference served a page size of 0, broke its own documented list envelope (`limit >= 1`), and
+// schema.read-response-matches-document reported it on job, row and table, with no injected defect
+// to justify it. The floor holds whatever happens to the ceiling.
 const COMBINATION_920476: DefectName[] = [
   "ANY_SCHEME_ACCEPTED",
   "LIMIT_OUT_OF_RANGE_SERVED",
@@ -27,6 +25,7 @@ describe("a fuzz case that lifts the page-size ceiling and serves an out-of-rang
   it("reports nothing the injected defects do not justify (seed 1872686589, case 920476)", async () => {
     const optIn = optInFor(COMBINATION_920476);
     const server = await createMemoryServer({ defects: COMBINATION_920476, ...optIn.reference });
+
     try {
       const result = await run({
         ...optIn.run,
@@ -36,6 +35,7 @@ describe("a fuzz case that lifts the page-size ceiling and serves an out-of-rang
         seed: 42,
         spec: `${server.url}/v1/openapi/spec`,
       });
+
       const diagnosis = diagnose(COMBINATION_920476, result);
       expect(diagnosis.spurious).toEqual([]);
       expect(diagnosis.missed).toEqual([]);

@@ -28,13 +28,16 @@ export const filterInIsUnionOfEq: Check<{
   plan: (ctx) => {
     const picked = filterable(ctx) ? pickFieldForOp(ctx, "in", 2) : null;
     const [a, b] = picked?.values ?? [];
+
     if (picked === null || a === undefined || b === undefined) return cannot();
     const conventions = conv(ctx);
     const field = picked.field.field;
     const inTerm = filterTerm(conventions, { field, op: "in", value: [asTermValue(a), asTermValue(b)] });
     const eqA = filterTerm(conventions, { field, op: "eq", value: asTermValue(a) });
     const eqB = filterTerm(conventions, { field, op: "eq", value: asTermValue(b) });
+
     if (inTerm === null || eqA === null || eqB === null) return cannot("a filter grammar that can express in and eq");
+
     return ready({ a, b, eqA, eqB, field, inTerm });
   },
   dependsOn: ["query.filter-selects-from-whole-set", ...FOUNDATIONS, "filter.equality-selects-exactly-one"],
@@ -45,21 +48,27 @@ export const filterInIsUnionOfEq: Check<{
   async run(ctx, { a, b, eqA, eqB, field, inTerm }): Promise<Outcome> {
     const union = (left: SetRead, right: SetRead): Set<string> =>
       new Set([...ids(left.items, ctx.identity), ...ids(right.items, ctx.identity)]);
+
     const reads = await readSettled(ctx, [inTerm, eqA, eqB], (sets) => {
       const [inRead, eqARead, eqBRead] = sets as [SetRead, SetRead, SetRead];
+
       return sameSet(union(eqARead, eqBRead), setOf(inRead.items, ctx.identity));
     });
+
     if (reads === "rejected")
       return ctx.findings.unresolved(this.id, ctx.entityName, "one of the listings needed for in() was rejected");
-    if (reads === "incomplete") {
+
+    if (reads === "incomplete")
       return ctx.findings.unresolved(this.id, ctx.entityName, "the collection is larger than the walk covers");
-    }
+
     if (reads === "moving") return ctx.findings.unresolved(this.id, ctx.entityName, MOVING_COLLECTION);
-    /* One read per term, in the order the terms were given. */
+    // One read per term, in the order the terms were given.
     const [together, onlyA, onlyB] = reads as [SetRead, SetRead, SetRead];
     const expected = union(onlyA, onlyB);
     const got = setOf(together.items, ctx.identity);
+
     if (sameSet(expected, got)) return ASSERTED;
+
     return ctx.findings.backend(this.id, ctx.entityName, {
       summary: "in() is not the union of the equalities it lists",
       detail:

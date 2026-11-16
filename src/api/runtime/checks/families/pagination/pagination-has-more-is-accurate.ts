@@ -15,23 +15,23 @@ export const hasMoreIsAccurate: Check = defineCheck({
   subjects: subjectsOf.list,
   async run(ctx): Promise<Outcome> {
     const first = await list(ctx, q(ctx, { limit: 1, page: 1 }));
+
     if (first.exchange.status >= 400 || first.items.length === 0)
       return ctx.findings.unresolved(this.id, ctx.entityName, "the first page was rejected or empty");
     const flag = envelopeValue(ctx, first, "hasMore");
+
     if (typeof flag !== "boolean") return standDown("the listing has no has-more flag");
 
     const second = await list(ctx, q(ctx, { limit: 1, page: 2 }));
     const moreExist = second.items.length > 0;
+
     if (flag === moreExist) return ASSERTED;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
       summary: flag
         ? "hasMore claims further pages exist when none do"
         : "hasMore claims no further pages while the next page returns records",
-      detail:
-        `page 1 at limit=1 reported hasMore=${flag}, but page 2 returned ` +
-        `${second.items.length} record(s). Callers that trust the flag will ` +
-        (flag ? "request an empty page" : "silently stop after the first page"),
+      detail: `page 1 at limit=1 reported hasMore=${flag}, but page 2 returned ${second.items.length} record(s). Callers that trust the flag will ${flag ? "request an empty page" : "silently stop after the first page"}`,
       evidence: [first.exchange, second.exchange],
     });
   },

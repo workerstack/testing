@@ -21,6 +21,7 @@ describe("auth.missing-credential-refused", () => {
         principals,
         respond: answering(status),
       });
+
       expect(await runOn(missingCredentialRefused, ctx)).toEqual({ kind: "asserted" });
       expect(sent.map((s) => [s.method, s.path, s.options])).toEqual([
         ["GET", "/projects/proj_a/notes", { as: { anonymous: true }, operationId: "notes.list", probe: true }],
@@ -50,15 +51,18 @@ describe("auth.missing-credential-refused", () => {
   it("probes a write only on the run-created record, with its current state, so applying it changes nothing", async () => {
     for (const operationId of ["notes.update", "notes.delete"]) {
       const backend = applyingBackend();
+
       const { ctx, findings, sent } = operationContextFor(model, operationId, {
         principals,
         respond: backend.respond,
         target: NOTE_TARGET,
       });
+
       expect(await runOn(missingCredentialRefused, ctx)).toEqual({ kind: "finding", verdict: "SECURITY" });
       expect(sent.map((s) => s.path)).toEqual([NOTE_TARGET.path]);
       expect(findings.findings).toHaveLength(1);
       const expected = untouched();
+
       if (operationId === "notes.delete") expected.delete(NOTE_TARGET.path);
       expect(backend.records).toEqual(expected);
       expect(backend.records.get(FOREIGN_PATH)).toEqual(untouched().get(FOREIGN_PATH));

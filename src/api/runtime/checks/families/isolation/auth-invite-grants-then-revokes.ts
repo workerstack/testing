@@ -30,22 +30,28 @@ export const inviteGrantsThenRevokes: Check<InvitePlan> = defineCheck<InvitePlan
   plan: (ctx) => {
     const spec = ctx.invite;
     const owner = ctx.actors[0];
+
     if (spec === null || owner === undefined) return cannot();
+
     const delegate =
       ctx.actors.find((actor) => actor !== owner && actor.inviteAs !== undefined && actor.tenant !== owner.tenant) ??
       ctx.actors.find((actor) => actor !== owner && actor.inviteAs !== undefined);
-    if (delegate?.inviteAs === undefined) {
+
+    if (delegate?.inviteAs === undefined)
       return cannot("a peer principal declaring inviteAs, so the grantee field need not be invented");
-    }
+
     const inviteOp = ctx.model.byOperationId.get(spec.invite);
     const acceptOp = ctx.model.byOperationId.get(spec.accept);
     const revokeOp = ctx.model.byOperationId.get(spec.revoke);
-    if (inviteOp === undefined || acceptOp === undefined || revokeOp === undefined) {
+
+    if (inviteOp === undefined || acceptOp === undefined || revokeOp === undefined)
       return cannot("x-invite operations that exist in the document");
-    }
+
     const grantsOp = spec.grants === undefined ? undefined : ctx.model.byOperationId.get(spec.grants);
+
     if (spec.grants !== undefined && grantsOp === undefined)
       return cannot("an x-invite.grants read that exists in the document");
+
     return ready({ acceptOp, delegate, grantsOp, inviteAs: delegate.inviteAs, inviteOp, owner, revokeOp, spec });
   },
   dependsOn: ["list.read-after-write", "tenant.item-not-readable-cross-tenant"],
@@ -54,6 +60,7 @@ export const inviteGrantsThenRevokes: Check<InvitePlan> = defineCheck<InvitePlan
   subjects: subjectsOf.invite,
   async run(ctx, plan): Promise<Outcome> {
     const flow = inviteFlow(ctx, this.id, plan);
+
     if ((await canRead(flow)) === true) {
       return ctx.findings.unresolved(
         this.id,
@@ -63,14 +70,17 @@ export const inviteGrantsThenRevokes: Check<InvitePlan> = defineCheck<InvitePlan
     }
 
     const { inviteOp, owner, spec } = plan;
+
     const invited = await ctx.client.request(inviteOp.method, fillPath(inviteOp.path, flow.resource), {
       as: { principal: owner.id },
       body: { [spec.granteeField]: plan.inviteAs },
       headers: { "content-type": "application/json" },
       operationId: inviteOp.operationId,
     });
+
     if (standDownForFeatureGate(ctx, inviteOp, invited, this.id))
       return standDown("a documented feature gate refused the request");
+
     if (invited.status >= 300) {
       return ctx.findings.unresolved(
         this.id,
@@ -78,15 +88,19 @@ export const inviteGrantsThenRevokes: Check<InvitePlan> = defineCheck<InvitePlan
         `invite returned ${invited.status}, so accept/revoke were never exercised`,
       );
     }
+
     const grantId = pointerValue(invited.responseBody, spec.grantPointer);
-    /* From here a grant exists, accepted or not. Whatever this check concludes, the access it
-     * handed out is taken back before it returns. */
+
+    // From here a grant exists, accepted or not. Whatever this check concludes, the access it
+    // handed out is taken back before it returns.
     try {
       const accepted = await acceptInvite(flow, invited);
+
       if ("outcome" in accepted) return accepted.outcome;
+
       return await revokeGrant(flow, [invited, accepted.exchange], grantId);
     } finally {
-      if (!flow.revoked && grantId !== undefined) await revoke(flow, grantId).catch(() => undefined);
+      if (!flow.revoked && grantId !== undefined) await revoke(flow, grantId).catch(() => {});
     }
   },
 });
@@ -98,6 +112,7 @@ export const inviteGrantsThenRevokes: Check<InvitePlan> = defineCheck<InvitePlan
 async function acceptInvite(flow: Flow, invited: Exchange): Promise<{ exchange: Exchange } | { outcome: Outcome }> {
   const { check, ctx, plan } = flow;
   const { delegate, spec } = plan;
+
   if ((await canRead(flow)) === true) {
     const outcome = ctx.findings.backend(check, ctx.entityName, {
       summary: "an invite grants access before it is accepted",
@@ -106,20 +121,28 @@ async function acceptInvite(flow: Flow, invited: Exchange): Promise<{ exchange: 
         "step is then theater — anyone who can be named in an invite body is already in.",
       evidence: [invited],
     });
+
     return { outcome };
   }
+
   const token = await inviteToken(flow, invited);
+
   if (typeof token !== "string") return token;
   flow.token = token;
   const accepted = await sendAccept(flow, token);
+
   if ("outcome" in accepted) return accepted;
+
   if (spec.acceptFrom !== "link" && standDownForFeatureGate(ctx, plan.acceptOp, accepted.exchange, check))
     return { outcome: standDown("a documented feature gate refused the request") };
   const status = accepted.exchange.status;
   const acceptFailed = spec.acceptFrom === "link" ? status >= 400 : status >= 300;
+
   if (acceptFailed) return { outcome: ctx.findings.unresolved(check, ctx.entityName, `accept returned ${status}`) };
   const issued = pointerValue(accepted.exchange.responseBody, spec.credentialFrom);
+
   if (issued !== undefined) await adoptIssued(flow, issued);
+
   if ((await canRead(flow)) === false) {
     const outcome = ctx.findings.backend(check, ctx.entityName, {
       summary: "accepting an invite does not grant access",
@@ -128,8 +151,10 @@ async function acceptInvite(flow: Flow, invited: Exchange): Promise<{ exchange: 
         "The invite flow completed; the grant did not.",
       evidence: [invited, accepted.exchange],
     });
+
     return { outcome };
   }
+
   return accepted;
 }
 
@@ -140,6 +165,7 @@ async function acceptInvite(flow: Flow, invited: Exchange): Promise<{ exchange: 
 async function revokeGrant(flow: Flow, evidence: [Exchange, Exchange], grantId: string | undefined): Promise<Outcome> {
   const { check, ctx, plan } = flow;
   const { spec } = plan;
+
   if (grantId === undefined) {
     return ctx.findings.unresolved(
       check,
@@ -147,15 +173,21 @@ async function revokeGrant(flow: Flow, evidence: [Exchange, Exchange], grantId: 
       `invite response has no grant id at ${spec.grantPointer}, so revoke cannot be expressed`,
     );
   }
+
   const revoked = await revoke(flow, grantId);
+
   if (standDownForFeatureGate(ctx, plan.revokeOp, revoked, check))
     return standDown("a documented feature gate refused the request");
+
   if (revoked.status >= 300) return ctx.findings.unresolved(check, ctx.entityName, `revoke returned ${revoked.status}`);
   const boundS = spec.revokeStaleness;
+
   if (boundS !== undefined && flow.grantRead !== undefined) {
     const watched = await watchRevoke(flow, { boundS, grantRead: flow.grantRead });
+
     return judgeRevoke(flow, { boundS, evidence: [...evidence, revoked], watched });
   }
+
   if ((await canRead(flow)) === true) {
     ctx.findings.backend(check, ctx.entityName, {
       summary: "revoking an invite does not remove access",
@@ -165,5 +197,6 @@ async function revokeGrant(flow: Flow, evidence: [Exchange, Exchange], grantId: 
       evidence: [...evidence, revoked],
     });
   }
+
   return ASSERTED;
 }

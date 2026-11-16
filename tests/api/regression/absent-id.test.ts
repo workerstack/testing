@@ -9,12 +9,10 @@ import { buildModel } from "../../../src/api/spec/graph/build.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 import { checkContext } from "../support/check-context.ts";
 
-/*
- * A probe for a record that does not exist must name one in the identity's own shape: a backend
- * answers a malformed id with 400 before existence is considered, and comparing that with a real
- * 404 reads as a defect that is not there. Behind a path parameter documented as a bare string,
- * an integer identity got `Quarterly Report 9001`.
- */
+// A probe for a record that does not exist must name one in the identity's own shape: a backend
+// answers a malformed id with 400 before existence is considered, and comparing that with a real
+// 404 reads as a defect that is not there. Behind a path parameter documented as a bare string,
+// an integer identity got `Quarterly Report 9001`.
 
 describe("absentIdentifier", () => {
   it("is a single token for a string identity", () => {
@@ -39,6 +37,7 @@ const json = (schema: unknown) => ({ content: { "application/json": { schema } }
 
 function context(identity: Record<string, unknown>) {
   const item = { properties: { ID: identity, name: { type: "string" } }, type: "object" };
+
   const model = buildModel({
     info: { title: "absent", version: "1" },
     openapi: "3.1.0",
@@ -53,7 +52,7 @@ function context(identity: Record<string, unknown>) {
       "/v1/notes/{noteId}": {
         delete: {
           operationId: "note.delete",
-          /* A bare string, as some frameworks document every route parameter. */
+          // A bare string, as some frameworks document every route parameter.
           parameters: [{ in: "path", name: "noteId", required: true, schema: { type: "string" } }],
           responses: { "204": { description: "gone" } },
           "x-entity": { action: "delete", identity: "ID", name: "note" },
@@ -61,9 +60,12 @@ function context(identity: Record<string, unknown>) {
       },
     },
   } as unknown as OpenApiDocument);
+
   const listOp = model.byOperationId.get("note.list");
   const deleteOp = model.byOperationId.get("note.delete");
+
   if (listOp === undefined || deleteOp === undefined) throw new Error("operations missing");
+
   return checkContext({
     client: new Client({ baseUrl: "http://127.0.0.1:1", redactor: new Redactor() }),
     deleteOp,

@@ -7,6 +7,7 @@ import { referenceRequest } from "./wire.ts";
 
 function request(text: string, contentType?: string) {
   const headers: Record<string, string> = contentType === undefined ? {} : { "content-type": contentType };
+
   return referenceRequest("POST", new URL("http://reference.test/"), { headers, read: async () => text });
 }
 
@@ -70,9 +71,9 @@ describe("readFields", () => {
       '{"email":"a","scopes":[1]}',
       "[]",
       "null",
-    ]) {
+    ])
       await expect(readFields(request(text, JSON_TYPE), CLEAN, shape)).rejects.toMatchObject({ status: 400 });
-    }
+
     await expect(readFields(request("{}", JSON_TYPE), CLEAN, shape)).rejects.toThrow('field "email" is required');
   });
 

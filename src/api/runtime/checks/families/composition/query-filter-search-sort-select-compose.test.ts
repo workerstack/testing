@@ -14,10 +14,10 @@ import { queryFilterSearchSortSelectCompose } from "./query-filter-search-sort-s
 
 const NEEDS = { kind: "stood-down", reason: "all four list axes declared and at least three records" };
 
-/* The filter dropped only when all four axes are present: no pair or triple shows it. */
+// The filter dropped only when all four axes are present: no pair or triple shows it.
 const DROPPED_WITH_ALL_FOUR = dropping("filter", ["q", "order", "select"]);
 
-/* Another open record matching the token, written between the first reads and the re-reads. */
+// Another open record matching the token, written between the first reads and the re-reads.
 const GROWN = backend([...NOTES, { id: "n7", rank: 4, score: 2, status: "open", title: "Alpine" }]);
 
 const refusingAll: Responder = () => REJECT;
@@ -101,6 +101,7 @@ describe("query.filter-search-sort-select-compose plans", () => {
       queryDoc({ selectable: [] }),
       queryDoc({ sortable: [] }),
     ];
+
     for (const doc of docs) expect(await stage(queryFilterSearchSortSelectCompose, { doc }).run()).toEqual(NEEDS);
     expect(await stage(queryFilterSearchSortSelectCompose, { fields: { query: null } }).run()).toEqual(NEEDS);
     const few = stage(queryFilterSearchSortSelectCompose, { rows: NOTES.slice(0, 2) });

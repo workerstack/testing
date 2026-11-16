@@ -10,14 +10,17 @@ import type { ListingRequest } from "./types.ts";
 
 const NONE: Axes = { searched: false, selected: false, sorted: false };
 const SELECTED: Axes = { ...NONE, selected: true };
+
 /** What a request is ordered under: no defect, no axis, and the table, unless given. */
-interface Under {
+type Under = {
   defects?: DefectName[];
   axes?: Axes;
   entity?: EntityDef;
-}
+};
+
 const order = (request: ListingRequest, { defects = [], axes = NONE, entity = TABLE }: Under = {}) =>
   listingOrder(request, parseContext(defects, entity), axes);
+
 const fields = (request: ListingRequest, defects: DefectName[] = [], axes = NONE) =>
   order(request, { axes, defects }).fullOrder.map((term) => `${term.field}${term.descending ? "-" : "+"}`);
 

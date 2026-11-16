@@ -5,6 +5,7 @@ import type { ProgressLast, ProgressSnapshot } from "./types.ts";
 
 const AT = Date.parse("2030-01-01T00:00:00Z");
 const base: ProgressSnapshot = { elapsedMs: 1234.6, findings: 2, phase: "test", requests: 9 };
+
 const last: ProgressLast = {
   at: AT,
   durationMs: 40,

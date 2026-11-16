@@ -17,6 +17,7 @@ describe("undeliverable", () => {
       },
       type: "object",
     };
+
     const body = { backup: "b@x.com", email: "a@x.com", hook: "https://x.com", link: "/a", name: "n", site: "x.com" };
     expect(undeliverable(body, schema, "n0")).toEqual({
       backup: NOWHERE,
@@ -36,6 +37,7 @@ describe("undeliverable", () => {
         unused: { format: "email" },
       },
     };
+
     expect(undeliverable({ contacts: ["a@x.com", "b@x.com"], owner: { email: "o@x.com" } }, schema, "n0")).toEqual({
       contacts: [NOWHERE, NOWHERE],
       owner: { email: NOWHERE },

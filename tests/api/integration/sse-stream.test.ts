@@ -28,8 +28,10 @@ function send(res: ServerResponse, status: number, body?: unknown): void {
   if (body === undefined) {
     res.writeHead(status);
     res.end();
+
     return;
   }
+
   const text = JSON.stringify(body);
   res.writeHead(status, { "content-length": String(Buffer.byteLength(text)), "content-type": "application/json" });
   res.end(text);
@@ -49,6 +51,7 @@ async function listen(handler: (req: IncomingMessage, res: ServerResponse) => vo
     server.listen(0, "127.0.0.1", resolve);
   });
   const addr = server.address() as AddressInfo;
+
   return {
     close: () =>
       new Promise((resolve, reject) => {
@@ -59,13 +62,13 @@ async function listen(handler: (req: IncomingMessage, res: ServerResponse) => vo
 }
 
 /** The batch backend's state: the spec it serves, the stream it answers, its rows and the polls it saw. */
-interface BatchWorld {
+type BatchWorld = {
   spec: OpenApiDocument;
   streamBody: string;
   rows: Map<string, { id: string; name: string }>;
   polls: string[];
   next: number;
-}
+};
 
 function createBatch(world: BatchWorld, res: ServerResponse): void {
   const id = `row_${world.next++}`;
@@ -77,6 +80,7 @@ function createBatch(world: BatchWorld, res: ServerResponse): void {
 function readBatch(world: BatchWorld, id: string, res: ServerResponse): void {
   world.polls.push(id);
   const existing = world.rows.get(id);
+
   if (existing !== undefined) return send(res, 200, existing);
   send(res, 200, { batch_id: id, id, name: "job", status: "complete" });
 }
@@ -84,11 +88,16 @@ function readBatch(world: BatchWorld, id: string, res: ServerResponse): void {
 function answerBatch(world: BatchWorld, req: IncomingMessage, res: ServerResponse): void {
   const url = new URL(req.url ?? "/", "http://127.0.0.1");
   const route = `${(req.method ?? "GET").toUpperCase()} ${url.pathname}`;
+
   if (route === "GET /v1/openapi/spec") return send(res, 200, world.spec);
+
   if (route === "GET /v1/batches") return send(res, 200, { batches: [...world.rows.values()] });
+
   if (route === "POST /v1/batches") return createBatch(world, res);
+
   if (route === "POST /v1/extract/stream") return sendSse(res, world.streamBody);
   const item = /^GET \/v1\/batches\/([^/]+)$/.exec(route);
+
   if (item !== null) return readBatch(world, item[1] ?? "", res);
   send(res, 404);
 }
@@ -103,12 +112,14 @@ async function serve(
   const world: BatchWorld = { next: 1, polls: [], rows: new Map(), spec, streamBody };
   const server = await listen((req, res) => answerBatch(world, req, res));
   closers.push(server.close);
+
   return { polls: world.polls, url: server.url };
 }
 
 /** Serves the batch API with `streamBody` as the stream and runs the API tester over the batch entity. */
 async function runStream(async: boolean, streamBody: string): Promise<{ polls: string[]; result: RunResult }> {
   const server = await serve(streamSpec({ async }), streamBody);
+
   const result = await run({
     baseUrl: server.url,
     only: ["batch"],
@@ -116,6 +127,7 @@ async function runStream(async: boolean, streamBody: string): Promise<{ polls: s
     seed: 1,
     spec: `${server.url}/v1/openapi/spec`,
   });
+
   return { polls: server.polls, result };
 }
 
@@ -194,6 +206,7 @@ function streamedCreateClient(): Client {
     status: 200,
     url: "http://127.0.0.1/v1/batches",
   });
+
   return client;
 }
 
@@ -206,7 +219,8 @@ async function schemaCheckFindings(model: ReturnType<typeof buildModel>): Promis
 }> {
   const findings = new FindingCollector();
   const check = entityChecks(CHECKS).find((c) => c.id === SCHEMA_CHECK);
-  if (check !== undefined)
+
+  if (check !== undefined) {
     await runCheck(
       check,
       checkContext({
@@ -237,6 +251,8 @@ async function schemaCheckFindings(model: ReturnType<typeof buildModel>): Promis
         waitOps: [],
       }),
     );
+  }
+
   return { findings: findings.findings.filter((f) => f.check === SCHEMA_CHECK), found: check !== undefined };
 }
 
@@ -245,6 +261,7 @@ async function rawSseIsNoSchemaDefect(): Promise<void> {
     "application/json": { schema: itemSchema() },
     "text/event-stream": { schema: { type: "string" } },
   });
+
   const model = buildModel(dereference(spec).doc);
   const createOp = model.byOperationId.get("batch.create");
   expect(createOp?.eventStream).toBe(true);
@@ -268,14 +285,19 @@ async function keepsJsonLikeStreamText(): Promise<void> {
     if ((req.url ?? "") === "/stream") {
       res.writeHead(200, { "content-type": "text/event-stream" });
       res.end('{"ok":true}');
+
       return;
     }
+
     send(res, 404);
   });
+
   closers.push(server.close);
+
   const exchange = await new Client({ baseUrl: server.url, redactor: new Redactor() }).request("GET", "/stream", {
     as: { anonymous: true },
   });
+
   expect(exchange.status).toBe(200);
   expect(typeof exchange.responseBody).toBe("string");
   expect(exchange.responseBody).toBe('{"ok":true}');
@@ -286,6 +308,7 @@ async function errorEventIsTerminal(): Promise<void> {
     true,
     'event: batch\ndata: {"batch_id":"b_1"}\n\nevent: error\ndata: {"status":"failed"}\n\n',
   );
+
   expect(polls).not.toContain("b_1");
   expect(result.findings.filter((f) => f.check === "async.receipt-identifies-the-job")).toEqual([]);
   const terminal = result.findings.find((f) => f.check === "async.reaches-terminal-state");

@@ -4,13 +4,12 @@ import type { LoginRecipe } from "../config/types/security.ts";
 import { harness } from "./__fixtures__/store.ts";
 import type { DedicatedHeld } from "./store.ts";
 
-/*
- * A dedicated credential is a probe's alone: a second login, a fresh mint, a new grant, held under a
- * probe principal the store enrolls. Revoking or rotating it never touches the principal's own.
- */
+// A dedicated credential is a probe's alone: a second login, a fresh mint, a new grant, held under a
+// probe principal the store enrolls. Revoking or rotating it never touches the principal's own.
 
 const dedicated = (held: DedicatedHeld | { blocked: string }): DedicatedHeld => {
   if ("blocked" in held) throw new Error(held.blocked);
+
   return held;
 };
 
@@ -54,12 +53,15 @@ describe("acquireDedicated: shared by probes that never spend it", () => {
   it("mints one per principal, scheme and scope set however the scopes are ordered, and a spent one each time", async () => {
     const { mintCalls, store } = harness();
     const shared = { reusable: true } as const;
+
     const first = dedicated(
       await store.acquireDedicated({ principal: "ann", scheme: "key", scopes: ["b", "a"] }, shared),
     );
+
     const again = dedicated(
       await store.acquireDedicated({ principal: "ann", scheme: "key", scopes: ["a", "b"] }, shared),
     );
+
     const other = dedicated(await store.acquireDedicated({ principal: "ann", scheme: "key", scopes: ["a"] }, shared));
     const spent = dedicated(await store.acquireDedicated({ principal: "ann", scheme: "key", scopes: ["a", "b"] }));
     expect([first, again, other, spent].map((held) => held.principal)).toEqual([
@@ -106,11 +108,13 @@ describe("acquireDedicated: by recipe, refusals", () => {
       blocked: "login for ann/jwt: auth step 1 answered 401",
     });
     const { store: claiming } = harness();
+
     const login: LoginRecipe = {
       claims: { tenant: "org_id" },
       from: "$.token",
       steps: [{ operationId: "auth.login" }],
     };
+
     claiming.enroll("eve", { security: { jwt: { login } } });
     expect(await claiming.acquireDedicated({ principal: "eve", scheme: "jwt" })).toEqual({
       blocked: 'login for eve/jwt: login for "eve" binds claims, but its credential is not a JWT',

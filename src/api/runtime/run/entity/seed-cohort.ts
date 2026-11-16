@@ -16,20 +16,24 @@ import type { EntityRun, World } from "./state.ts";
  */
 export async function seedCreated(run: EntityRun, createOp: OperationModel): Promise<World | null> {
   const { ctx, seeding, roots } = run;
+
   try {
     const scope = await resolvePathScope(createOp, { client: seeding, model: ctx.model, options: worldOptions(run) });
-    /* Carry every known root, not only what the create route happened to need. Sibling routes
-     * for one entity are frequently scoped differently — a global create beside a tenant-scoped
-     * item route — and a scope built from create alone leaves those unresolvable, which shows
-     * up as a wall of "could not complete" gaps. */
+    // Carry every known root, not only what the create route happened to need. Sibling routes
+    // for one entity are frequently scoped differently — a global create beside a tenant-scoped
+    // item route — and a scope built from create alone leaves those unresolvable, which shows
+    // up as a wall of "could not complete" gaps.
     scope.values = { ...roots, ...scope.values };
     const options = ctx.options.cohortSize === undefined ? {} : { cohortSize: ctx.options.cohortSize };
+
     const cohort = await seedCohort(
       createOp,
       { client: seeding, model: ctx.model, options: { ...worldOptions(run), ...options } },
       scope,
     );
+
     reportVariants(run, createOp, cohort);
+
     return await worldOf(run, createOp, { cohort, scope });
   } catch (error) {
     return seedFailed(run, createOp, error);
@@ -39,14 +43,19 @@ export async function seedCreated(run: EntityRun, createOp: OperationModel): Pro
 /** What the cohort's seeding said about variants that could not be created. */
 function reportVariants(run: EntityRun, createOp: OperationModel, cohort: SeededCohort): void {
   const { entity, findings } = run;
-  if (cohort.uniqueGap !== undefined)
+
+  if (cohort.uniqueGap !== undefined) {
     findings.gap("world.seed" satisfies RunFindingId, entity.name, {
       summary: cohort.uniqueGap,
       detail: cohort.uniqueGap,
     });
+  }
+
   run.lostVariants = (cohort.failedVariants ?? []).map((failed) => failed.variant);
+
   for (const failed of cohort.failedVariants ?? []) {
     const said = JSON.stringify(failed.exchange.responseBody).slice(0, 300);
+
     if (failed.exchange.status >= 500) {
       findings.backend("create.does-not-error" satisfies RunFindingId, entity.name, {
         summary: `creating the "${failed.variant}" variant of a "${entity.name}" fails with a server error`,
@@ -58,6 +67,7 @@ function reportVariants(run: EntityRun, createOp: OperationModel, cohort: Seeded
       });
       continue;
     }
+
     findings.gap("world.seed" satisfies RunFindingId, entity.name, {
       summary: `the "${failed.variant}" variant of "${entity.name}" was refused with ${failed.exchange.status}`,
       detail:
@@ -68,18 +78,19 @@ function reportVariants(run: EntityRun, createOp: OperationModel, cohort: Seeded
 }
 
 /** What seeding left: the cohort, and the path scope it was made under. */
-interface Seeded {
+type Seeded = {
   cohort: SeededCohort;
   scope: Scope;
-}
+};
 
 /** The world a seeded cohort leaves: the API tester's own records, or ones it adopted or had to read. */
 async function worldOf(run: EntityRun, createOp: OperationModel, { cohort, scope }: Seeded): Promise<World | null> {
   const { entity, findings } = run;
+
   if (cohort.adopted === true) {
-    /* Plan limit after an effect already created the row: keep the id so children (row after
-     * extract→table) can seed, but do not assert write-path oracles against a body the API tester never
-     * submitted. Adopted, not created: this record is somebody else's to keep. */
+    // Plan limit after an effect already created the row: keep the id so children (row after
+    // extract→table) can seed, but do not assert write-path oracles against a body the API tester never
+    // submitted. Adopted, not created: this record is somebody else's to keep.
     findings.gap("world.seed" satisfies RunFindingId, entity.name, {
       summary: `seeding "${entity.name}" hit a plan limit; using an existing same-tenant record`,
       detail:
@@ -87,12 +98,14 @@ async function worldOf(run: EntityRun, createOp: OperationModel, { cohort, scope
         "had a record — likely an earlier x-effects create. Write-path checks stand " +
         "down rather than treat payment_required as a backend defect.",
     });
+
     return { ...owned(run, cohort, scope), degraded: true };
   }
+
   if (cohort.uniqueAdopted === true) {
-    /* Unique 409 on the first variant with a same-tenant list: adopt like 402, but
-     * unique-conflict checks still run against that row. The seed 409 is not the unique check
-     * passing — that check is the explicit second POST. */
+    // Unique 409 on the first variant with a same-tenant list: adopt like 402, but
+    // unique-conflict checks still run against that row. The seed 409 is not the unique check
+    // passing — that check is the explicit second POST.
     findings.gap("world.seed" satisfies RunFindingId, entity.name, {
       summary: `seeding "${entity.name}" could not insert because of x-unique`,
       detail:
@@ -101,18 +114,22 @@ async function worldOf(run: EntityRun, createOp: OperationModel, { cohort, scope
         "unique-conflict checks still run against that row. Write-path oracles that " +
         "need a body the API tester submitted stand down.",
     });
+
     return { ...owned(run, cohort, scope), degraded: true, uniqueAdopted: true };
   }
+
   if (cohort.featureGate !== null) return gatedWorld(run, cohort.featureGate.detail);
+
   if (cohort.unverified === undefined)
     return { ...owned(run, cohort, scope), createAcknowledged: cohort.acknowledged === true };
-  /* A note, not a finding: a read that misses a record just made (eventual consistency) stands
-   * the filter checks down, and the report must say so rather than read as a clean pass. */
+  // A note, not a finding: a read that misses a record just made (eventual consistency) stands
+  // the filter checks down, and the report must say so rather than read as a clean pass.
   run.ctx.state.checkNotes.push({
     check: "world.seed" satisfies RunFindingId,
     entity: entity.name,
     note: unverifiedNote(cohort.unverified),
   });
+
   return {
     ...owned(run, cohort, scope),
     createAcknowledged: cohort.acknowledged === true,
@@ -128,12 +145,14 @@ export function unverifiedNote(cause: string): string {
   );
 }
 
-/* The cohort's records, and every identity the collection is known to hold. */
+// The cohort's records, and every identity the collection is known to hold.
 function owned(run: EntityRun, cohort: SeededCohort, scope: Scope): World {
   for (const id of cohort.existingIds ?? []) run.taken.add(id);
-  /* An entity nothing identifies has no identities to take. */
+  // An entity nothing identifies has no identities to take.
   const identity = run.entity.identity;
+
   if (identity !== null) for (const id of ids(cohort.records, identity)) run.taken.add(id);
+
   return { createAcknowledged: false, degraded: false, records: cohort.records, scope, uniqueAdopted: false };
 }
 
@@ -147,6 +166,7 @@ function gatedWorld(run: EntityRun, detail: string): Promise<World | null> {
     summary: `seeding "${run.entity.name}" is gated by ${detail}`,
     detail: `${detail}. Checks that need a row the API tester created stand down rather than treat the documented 403 as a defect.`,
   });
+
   return existingOrBlocked(run, {
     check: "world.seed" satisfies RunFindingId,
     detail: `${detail} and the list route returned no existing records to fall back on.`,

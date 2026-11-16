@@ -22,6 +22,7 @@ const ARM: Scenario = {
     { assert: { excludes: "s", from: "$.c", observes: ["auth.logout"] }, operationId: "auth.retrieveProfile" },
   ],
 };
+
 const OTHER: Scenario = { covers: [], id: "other", steps: [] };
 const all = [OTHER, ARM];
 
@@ -58,15 +59,16 @@ describe("stepsOf observes", () => {
     const arm = stepsOf(all, "offer-arm");
     expect(arm.observes("auth.updateNotificationPreferences")).toBe(true);
     expect(arm.observes("auth.logout")).toBe(true);
-    /* Called and covered by nothing that observes it. */
+    // Called and covered by nothing that observes it.
     expect(stepsOf([{ ...ARM, covers: ["auth.retrieveProfile"] }], "offer-arm").observes("auth.retrieveProfile")).toBe(
       false,
     );
-    /* Observed, but not covered: a scenario grades only what it covers. */
+    // Observed, but not covered: a scenario grades only what it covers.
     expect(stepsOf([{ ...ARM, covers: [] }], "offer-arm").observes("auth.logout")).toBe(false);
-    /* Never called at all. */
+    // Never called at all.
     expect(arm.observes("domain.create")).toBe(false);
-    /* An assert before the call proves nothing about it. */
+
+    // An assert before the call proves nothing about it.
     const early: Scenario = {
       covers: ["auth.logout"],
       id: "early",
@@ -75,6 +77,7 @@ describe("stepsOf observes", () => {
         { operationId: "auth.logout" },
       ],
     };
+
     expect(stepsOf([early], "early").observes("auth.logout")).toBe(false);
   });
 });

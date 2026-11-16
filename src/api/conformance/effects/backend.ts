@@ -6,11 +6,11 @@ import { bearerGuarded } from "../harness/security.ts";
 import { answer, guarded, readJson } from "../harness/serve.ts";
 import { extractSpec } from "./spec.ts";
 
-interface Table {
+type Table = {
   id: string;
   name: string;
   table_id: string;
-}
+};
 
 type Row = Pick<Table, "id" | "table_id">;
 
@@ -20,16 +20,20 @@ export const EXTRACT_TOKEN = "t";
 /** The backend behind its declared bearer: a table list, create and read, row lists, and the extract. */
 export function extractBackend(rowCount: number): Handle {
   const spec = extractSpec();
-  /* A table and its rows are made together, so a table never lacks its row list. */
+  // A table and its rows are made together, so a table never lacks its row list.
   const tables = new Map<string, { table: Table; rows: Row[] }>();
   let seq = 0;
+
   const make = (name: string, rows: (id: string) => Row[]): Table => {
     const id = `t_${String((seq += 1))}`;
     const table = { id, name, table_id: id };
     tables.set(id, { rows: rows(id), table });
+
     return table;
   };
+
   const list = /^\/v1\/projects\/([^/]+)\/tables$/;
+
   const routes = routed([
     { method: "GET", path: /^\/v1\/openapi\/spec$/, reply: () => answer(200, spec) },
     { method: "GET", path: list, reply: () => answer(200, { tables: [...tables.values()].map((t) => t.table) }) },
@@ -38,6 +42,7 @@ export function extractBackend(rowCount: number): Handle {
       path: list,
       reply: async (_, request) => {
         const body = (await readJson(request)) as { name?: unknown } | undefined;
+
         return answer(
           201,
           make(typeof body?.name === "string" ? body.name : "n", () => []),
@@ -49,6 +54,7 @@ export function extractBackend(rowCount: number): Handle {
       path: /^\/v1\/projects\/[^/]+\/tables\/([^/]+)$/,
       reply: (id) => {
         const found = tables.get(decodeURIComponent(id));
+
         return found === undefined ? answer(404) : answer(200, found.table);
       },
     },
@@ -57,6 +63,7 @@ export function extractBackend(rowCount: number): Handle {
       path: /^\/v1\/projects\/[^/]+\/tables\/([^/]+)\/rows$/,
       reply: (id) => {
         const found = tables.get(decodeURIComponent(id));
+
         return found === undefined ? answer(404) : answer(200, { rows: found.rows });
       },
     },
@@ -72,5 +79,6 @@ export function extractBackend(rowCount: number): Handle {
         ),
     },
   ]);
+
   return guarded(bearerGuarded(routes, EXTRACT_TOKEN));
 }

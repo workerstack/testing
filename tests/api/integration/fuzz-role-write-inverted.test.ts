@@ -7,13 +7,11 @@ import type { DefectName } from "../../../src/api/reference/defects/table.ts";
 import { createMemoryServer } from "../../../src/api/reference/http/engines.ts";
 import { run } from "../../../src/api/runtime/run/index.ts";
 
-/*
- * Combination fuzzing, CI seed 40949788323, combination 742515. ROLE_WRITE_INVERTED refuses every
- * update the member sends, so auth.privileged-field-ignored's member probe drew 403 for a reason that
- * had nothing to do with the marked field, read the untouched record, and passed: PRIVILEGED_FIELD_WRITABLE
- * was missed. A writer refused even its harmless write gives way to the next rank below the top, and the
- * viewer, whom the inverted lattice lets update, sets the field.
- */
+// Combination fuzzing, CI seed 40949788323, combination 742515. ROLE_WRITE_INVERTED refuses every
+// update the member sends, so auth.privileged-field-ignored's member probe drew 403 for a reason that
+// had nothing to do with the marked field, read the untouched record, and passed: PRIVILEGED_FIELD_WRITABLE
+// was missed. A writer refused even its harmless write gives way to the next rank below the top, and the
+// viewer, whom the inverted lattice lets update, sets the field.
 const COMBINATION_742515: DefectName[] = [
   "FILTER_ILIKE_IS_LIKE",
   "PRIVILEGED_FIELD_WRITABLE",
@@ -27,6 +25,7 @@ describe("a fuzz case whose privileged writer cannot update at all", () => {
   it("finds the privileged field through a rank that can write (seed 40949788323, case 742515)", async () => {
     const optIn = optInFor(COMBINATION_742515);
     const server = await createMemoryServer({ defects: COMBINATION_742515, ...optIn.reference });
+
     try {
       const result = await run({
         ...optIn.run,
@@ -36,6 +35,7 @@ describe("a fuzz case whose privileged writer cannot update at all", () => {
         seed: 42,
         spec: `${server.url}/v1/openapi/spec`,
       });
+
       const diagnosis = diagnose(COMBINATION_742515, result);
       expect(diagnosis.missed).toEqual([]);
       expect(result.findings.map((finding) => finding.check)).toContain("auth.privileged-field-ignored");

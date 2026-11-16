@@ -25,6 +25,7 @@ describe("CLI flags", () => {
     expect(isKnownFlag("concurrency")).toBe(false);
     const argv = process.argv;
     process.argv = ["node", "testing", "run", "--concurrency", "1"];
+
     try {
       expect(await main()).toBe(2);
     } finally {
@@ -53,15 +54,21 @@ describe("CLI flags", () => {
 async function cli(argv: string[]): Promise<{ code: number; out: string }> {
   const saved = process.argv;
   const chunks: string[] = [];
+
   const write = vi.spyOn(process.stdout, "write").mockImplementation((chunk: string | Uint8Array) => {
     chunks.push(String(chunk));
+
     return true;
   });
+
   const err = vi.spyOn(process.stderr, "write").mockImplementation((chunk: string | Uint8Array) => {
     chunks.push(String(chunk));
+
     return true;
   });
+
   process.argv = ["node", "testing", ...argv];
+
   try {
     return { code: await main(), out: chunks.join("") };
   } finally {
@@ -78,9 +85,10 @@ type PlanScope = {
   support: string[];
 };
 
-/* A config file in `dir` against the server at `serverUrl`, with `extra` laid over the defaults. */
+// A config file in `dir` against the server at `serverUrl`, with `extra` laid over the defaults.
 async function writeConfig(dir: string, serverUrl: string, extra: Record<string, unknown>): Promise<string> {
   const path = join(dir, `config-${Math.random().toString(36).slice(2)}.json`);
+
   const body = {
     baseUrl: serverUrl,
     principals: PRINCIPALS,
@@ -89,11 +97,13 @@ async function writeConfig(dir: string, serverUrl: string, extra: Record<string,
     spec: `${serverUrl}/v1/openapi/spec`,
     ...extra,
   };
+
   await writeFile(path, JSON.stringify(body));
+
   return path;
 }
 
-/* One read keyed by an id nothing in the document produces: the API tester can call nothing for it. */
+// One read keyed by an id nothing in the document produces: the API tester can call nothing for it.
 async function serveUnreachable(): Promise<{ close: () => Promise<void>; url: string }> {
   const document = {
     info: { title: "unreachable", version: "1" },
@@ -108,11 +118,14 @@ async function serveUnreachable(): Promise<{ close: () => Promise<void>; url: st
       },
     },
   };
+
   const lone = createServer((_req, res) => {
     res.writeHead(200, { "content-type": "application/json" });
     res.end(JSON.stringify(document));
   });
+
   await new Promise<void>((resolve) => lone.listen(0, "127.0.0.1", resolve));
+
   return {
     close: () => new Promise<void>((resolve) => lone.close(() => resolve())),
     url: `http://127.0.0.1:${(lone.address() as AddressInfo).port}`,
@@ -121,30 +134,33 @@ async function serveUnreachable(): Promise<{ close: () => Promise<void>; url: st
 
 type OpsWorld = { dir: string; server: ReferenceServer };
 
-/* `testing api run --ops <ops>` against the memory server. */
+// `testing api run --ops <ops>` against the memory server.
 async function runOps({ dir, server }: OpsWorld, ops: string): Promise<{ code: number; out: string }> {
   const config = await writeConfig(dir, server.url, {});
+
   return cli(["run", "--config", config, "--ops", ops, "--out", dir, "--quiet"]);
 }
 
-/* `testing api plan --ops <ops>` against the memory server's document. */
+// `testing api plan --ops <ops>` against the memory server's document.
 function planOps({ server }: OpsWorld, ops: string, ...extra: string[]): Promise<{ code: number; out: string }> {
   return cli(["plan", "--spec", `${server.url}/v1/openapi/spec`, "--ops", ops, ...extra]);
 }
 
-/* A run whose config names a target nothing can be called for. */
+// A run whose config names a target nothing can be called for.
 async function runUngradedTarget({ dir, server }: OpsWorld): Promise<{ code: number; out: string }> {
   const lone = await serveUnreachable();
   const { url } = lone;
+
   try {
     const path = await writeConfig(dir, server.url, {
       baseUrl: url,
       ops: ["thing.get"],
       principals: { alpha: {} },
-      /* The lone document declares no security, so it takes no recipe. */
+      // The lone document declares no security, so it takes no recipe.
       security: {},
       spec: `${url}/openapi.json`,
     });
+
     return await cli(["run", "--config", path, "--out", dir, "--quiet"]);
   } finally {
     await lone.close();

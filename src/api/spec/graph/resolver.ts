@@ -4,7 +4,7 @@ import type { ParamStyles } from "./parameters.ts";
 import type { OperationModel, SpecModel } from "./types.ts";
 
 /** The documented operation a request instances, with the path parameters it carries. */
-export interface ResolvedOperation {
+export type ResolvedOperation = {
   operationId: string;
   template: string;
   entity: string | null;
@@ -16,7 +16,7 @@ export interface ResolvedOperation {
   pathParams: Record<string, string>;
   /** The `x-consistency` bypass the operation declares; null when it declares none. */
   bypass: CacheBypass | null;
-}
+};
 
 /**
  * Maps a request (method + path below the base URL) to the documented operation it instances.
@@ -30,20 +30,25 @@ export function operationResolver(
   const candidates = [...model.operations].sort(
     (a, b) => (a.path.match(/\{/g)?.length ?? 0) - (b.path.match(/\{/g)?.length ?? 0),
   );
+
   return (method, relativePath) => {
     const verb = method.toUpperCase();
+
     for (const op of candidates) {
       if (op.method.toUpperCase() !== verb) continue;
       const pathParams = pathTemplateParams(op.path, relativePath);
+
       if (pathParams !== null) return resolvedTo(op, pathParams);
     }
+
     return null;
   };
 }
 
 function resolvedTo(op: OperationModel, pathParams: Record<string, string>): ResolvedOperation {
-  /* A documented 3xx is the answer to grade, not a hop to follow. */
+  // A documented 3xx is the answer to grade, not a hop to follow.
   const redirects = op.statuses.exact.some((code) => code >= 300 && code < 400) || op.statuses.ranges.includes(3);
+
   return {
     bypass: op.consistency?.bypass ?? null,
     entity: op.entity,

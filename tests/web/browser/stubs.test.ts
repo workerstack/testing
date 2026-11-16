@@ -1,7 +1,7 @@
 import { stubs } from "@workerstack/testing/web/dom";
 import { describe, expect, it } from "vitest";
 
-/* The built `./web/dom` stubs in real Chromium, where every API they replace already exists. */
+// The built `./web/dom` stubs in real Chromium, where every API they replace already exists.
 const native = {
   animate: Element.prototype.animate,
   getClientRects: Range.prototype.getClientRects,

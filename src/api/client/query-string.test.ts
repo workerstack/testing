@@ -12,28 +12,29 @@ import type { Actor } from "./credential-source.ts";
 import { toCurl } from "./curl.ts";
 import type { ClientOptions } from "./types.ts";
 
-/* What a request's query string carries, as the backend receives it. */
+// What a request's query string carries, as the backend receives it.
 
 const ANON: Actor = { anonymous: true };
 
-/* A client over a transport that answers `body`, and the path and query of each request it sent. */
+// A client over a transport that answers `body`, and the path and query of each request it sent.
 function clientOf(more: Partial<ClientOptions> = {}, body: unknown = []): { client: Client; seen: () => string[] } {
   const wire = transport(() => json(body));
+
   const client = new Client({
     baseUrl: "http://api.test",
     network: { fetchImpl: wire.fetch },
     redactor: new Redactor(),
     ...more,
   });
+
   const seen = () => wire.sent.map((request) => new URL(request.url).pathname + new URL(request.url).search);
+
   return { client, seen };
 }
 
-/*
- * Some grammars write one filter term per parameter and repeat the parameter for each term:
- * `?filter=and_Qty_eq_2&filter=and_Name_eq_x`. The client must send every occurrence, in order,
- * and everything that shows the request afterwards must show it as sent.
- */
+// Some grammars write one filter term per parameter and repeat the parameter for each term:
+// `?filter=and_Qty_eq_2&filter=and_Name_eq_x`. The client must send every occurrence, in order,
+// and everything that shows the request afterwards must show it as sent.
 describe("repeated query parameters", () => {
   it("sends every value of an array, in order, next to scalar parameters", async () => {
     const { client, seen } = clientOf();
@@ -57,6 +58,7 @@ describe("repeated query parameters", () => {
         template: "/notes",
       }),
     });
+
     await client.get("/notes", { as: ANON, query: { f: ["a", "b"] } });
     expect(seen()).toEqual(["/notes?f=a&f=b&tenant=t1"]);
   });
@@ -110,12 +112,10 @@ const spec = {
 const declaring = (): ReturnType<typeof clientOf> =>
   clientOf({ operationResolver: operationResolver(buildModel(dereference(spec).doc)) }, { articles: [] });
 
-/*
- * A list the document says needs ?locale= is refused without it. Every read the API tester makes of that list
- * carries the value the document declares for it, so a check grades the listing and not the
- * refusal of a request the document already called incomplete. The API tester never invents a value the
- * document does not give.
- */
+// A list the document says needs ?locale= is refused without it. Every read the API tester makes of that list
+// carries the value the document declares for it, so a check grades the listing and not the
+// refusal of a request the document already called incomplete. The API tester never invents a value the
+// document does not give.
 describe("required query parameters", () => {
   it("are sent with the value the document declares when the caller names none", async () => {
     const { client, seen } = declaring();
@@ -137,11 +137,9 @@ describe("required query parameters", () => {
   });
 });
 
-/*
- * A record without its identity used to become the text "undefined" in a path (`GET /notes/undefined`),
- * a filter (`ID eq undefined`) or a tenant probe. A request built from a missing value says nothing
- * about the backend: the check that wanted it does not apply, and nothing is sent.
- */
+// A record without its identity used to become the text "undefined" in a path (`GET /notes/undefined`),
+// a filter (`ID eq undefined`) or a tenant probe. A request built from a missing value says nothing
+// about the backend: the check that wanted it does not apply, and nothing is sent.
 describe("a missing value", () => {
   it("sends nothing whose path or query carries one", async () => {
     const { client, seen } = clientOf({}, {});
@@ -152,7 +150,7 @@ describe("a missing value", () => {
     await expect(client.request("GET", "/v1/notes?ID=undefined", { as: ANON })).rejects.toBeInstanceOf(
       MissingValueError,
     );
-    /* A parameter named undefined on purpose is left out, and the text `null` is a value. */
+    // A parameter named undefined on purpose is left out, and the text `null` is a value.
     await client.request("GET", "/v1/notes", { as: ANON, query: { filter: undefined, x: "null" } });
     expect(seen()).toEqual(["/v1/notes?x=null"]);
   });

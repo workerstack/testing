@@ -9,6 +9,7 @@ describe("utf8Total", () => {
       exchange({ requestBytes: 3, responseBytes: 10 }),
       exchange({ requestBytes: 4, responseBytes: 1 }),
     ];
+
     expect(utf8Total(transcript, "request")).toBe(7);
     expect(utf8Total(transcript, "response")).toBe(11);
   });
@@ -23,6 +24,7 @@ describe("latency", () => {
     const transcript = [10, 30, 20, 40].map((durationMs, i) =>
       exchange({ durationMs, method: i === 3 ? "POST" : "GET", url: `${BASE}/v1/slow/${i}?q=1` }),
     );
+
     expect(latency(transcript)).toEqual({ max: 40, p50: 30, p95: 40, slowest: { method: "POST", path: "/v1/slow/3" } });
     expect(latency([exchange({ durationMs: 5 })])).toEqual({
       max: 5,
@@ -46,6 +48,7 @@ describe("costByCheck", () => {
       },
       [exchange({ check: "a" }), exchange({ check: "a" }), exchange({ check: "b" }), exchange()],
     );
+
     expect(costByCheck(input)).toEqual([
       { check: "a", ms: 0, requests: 2 },
       { check: "b", ms: 10, requests: 1 },

@@ -11,7 +11,7 @@ export type Variant =
   | "metacharacter"
   | "boundary";
 
-export interface GenerateOptions {
+export type GenerateOptions = {
   variant?: Variant;
   /** Position in a cohort. Different indexes give different values wherever the schema allows. */
   index?: number;
@@ -30,11 +30,11 @@ export interface GenerateOptions {
    * documented example is a value it takes.
    */
   examples?: boolean;
-}
+};
 
 export type Generated = { ok: true; value: unknown } | { ok: false; reason: string; pointer: string };
 
-export interface Context {
+export type Context = {
   variant: Variant;
   index: number;
   rand: () => number;
@@ -45,14 +45,14 @@ export interface Context {
   optional: "all" | "none";
   refs: string[];
   depth: number;
-}
+};
 
 /** Where the walk stands: its context, the JSON pointer it is at, and whether the value must be distinct. */
-export interface At {
+export type At = {
   ctx: Context;
   pointer: string;
   distinct: boolean;
-}
+};
 
 /** The walk itself, handed to the parts that recurse so none of them imports it back. */
 export type Walk = (raw: unknown, at: At) => unknown;

@@ -22,17 +22,16 @@ import {
 import typesense from "./typesense/target.ts";
 import vampi from "./vampi/target.ts";
 
-/*
- * The API tester against real APIs: each target's stack up from pinned images, prepared as a fresh install
- * would be, run once with its config. A run must finish (exit 0 or 1, never `failed`) and report
- * exactly the findings in its expected.json: one missing is a lost catch, one extra is a false
- * positive or a defect nobody judged. `TESTING_API_TARGETS=keycloak,vampi` runs some of them.
- */
+// The API tester against real APIs: each target's stack up from pinned images, prepared as a fresh install
+// would be, run once with its config. A run must finish (exit 0 or 1, never `failed`) and report
+// exactly the findings in its expected.json: one missing is a lost catch, one extra is a false
+// positive or a defect nobody judged. `TESTING_API_TARGETS=keycloak,vampi` runs some of them.
 
-/* Imported by name, so the type checker and knip see each one; a folder with a target.ts missing here fails below. */
+// Imported by name, so the type checker and knip see each one; a folder with a target.ts missing here fails below.
 const TARGETS: Readonly<Record<string, Target>> = { crapi, immich, keycloak, typesense, vampi };
 
 const asked = targetsAsked(process.env["TESTING_API_TARGETS"]);
+
 const names = readdirSync(TARGETS_DIR, { withFileTypes: true })
   .filter((entry) => entry.isDirectory() && existsSync(join(TARGETS_DIR, entry.name, "target.ts")))
   .map((entry) => entry.name)
@@ -45,13 +44,15 @@ describe.each(names)("%s", (name) => {
 
   beforeAll(async () => {
     const target = TARGETS[name];
+
     if (target === undefined) throw new Error(`tests/api/targets/${name}/target.ts is not in run.test.ts's TARGETS`);
     await ensureVendored(join(TARGETS_DIR, name), target.vendored ?? []);
     compose(name, ["up", "-d", "--wait", "--quiet-pull"]);
     out = await mkdtemp(join(tmpdir(), `testing-target-${name}-`));
     run = await runTarget(name, await target.prepare(target.baseUrl), out);
-    /* `TESTING_API_TARGETS_SUMMARY=<dir>` keeps each run's console summary, which the run's folder does not outlive. */
+    // `TESTING_API_TARGETS_SUMMARY=<dir>` keeps each run's console summary, which the run's folder does not outlive.
     const summary = process.env["TESTING_API_TARGETS_SUMMARY"];
+
     if (summary !== undefined) {
       await writeFile(join(summary, `${name}.txt`), `exit ${run.code}\n${run.out}`);
       await writeFile(join(summary, `${name}.report.json`), JSON.stringify(run.report, null, 1));

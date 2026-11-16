@@ -15,7 +15,7 @@ import {
   storeCtx,
 } from "./store-plan.ts";
 
-/* The store's internals: a key planned against the config, and an issued credential taken in. */
+// The store's internals: a key planned against the config, and an issued credential taken in.
 
 const ctxOf = () =>
   storeCtx({ now: () => NOW, ports: fakePorts().ports, principals: PRINCIPALS, schemes: SCHEMES, security: SECURITY });
@@ -106,12 +106,14 @@ describe("blockedBy and acquireCtx", () => {
 
 const blocked = (reason: string): Settled => ({ blocked: reason });
 
-/* An issue the test settles when it chooses. */
+// An issue the test settles when it chooses.
 function deferred(): { issue: Promise<Settled>; settle: (settled: Settled) => void } {
   let settle!: (settled: Settled) => void;
+
   const issue = new Promise<Settled>((resolve) => {
     settle = resolve;
   });
+
   return { issue, settle };
 }
 

@@ -39,9 +39,10 @@ describe("formatted", () => {
     expect(formatted("email", ctx("null-heavy"), false)).toBe("testing-null-heavy-13@example.test");
     expect(formatted("idn-email", ctx("baseline"), true)).toBe("testing-baseline-13-n0@example.test");
     expect(formatted("email", ctx("baseline", 13, null), true)).toBe("testing-baseline-13@example.test");
-    for (const format of ["uri", "url", "iri", "uri-reference", "iri-reference"]) {
+
+    for (const format of ["uri", "url", "iri", "uri-reference", "iri-reference"])
       expect(formatted(format, ctx("baseline"), true)).toBe("https://example.test/baseline-13-n0");
-    }
+
     expect(formatted("hostname", ctx("baseline"), false)).toBe("host-13.example.test");
     expect(formatted("idn-hostname", ctx("baseline"), true)).toBe("host-13-n0.example.test");
   });

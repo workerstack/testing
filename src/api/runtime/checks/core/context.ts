@@ -1,4 +1,4 @@
-/* What a check runs against: the entity, its operations, the clients and every principal. */
+// What a check runs against: the entity, its operations, the clients and every principal.
 
 import type { Client, ReadClient } from "../../../client/client.ts";
 import type { PayloadPolicy } from "../../../config/types/config.ts";
@@ -24,7 +24,7 @@ import type { PayloadClaims } from "../families/write/payload-claims.ts";
  * scope it works in. A check sends as it with `as: { principal: actor.id }`; the client places the
  * credential the operation's security asks for.
  */
-export interface Actor {
+export type Actor = {
   id: string;
   /** Principals of different tenants are what the isolation checks cross. */
   tenant: string | undefined;
@@ -36,7 +36,7 @@ export interface Actor {
   inviteAs: string | undefined;
   /** The config marks the principal read-only: a viewer, whose every write must be refused. */
   readOnly?: true;
-}
+};
 
 /**
  * What checks compute once and share. `run` holds answers that stay true for the whole run, such as
@@ -44,10 +44,10 @@ export interface Actor {
  * cohort. Keys are namespaced by the asker. A run makes one `run` map and a fresh `entity` map per
  * entity, so nothing outlives the run that made it.
  */
-export interface CheckMemo {
+export type CheckMemo = {
   run: Map<string, unknown>;
   entity: Map<string, unknown>;
-}
+};
 
 /** A memo for one entity; pass the run's `run` map to share answers across entities. */
 export function checkMemo(run: Map<string, unknown> = new Map()): CheckMemo {
@@ -58,7 +58,7 @@ export function checkMemo(run: Map<string, unknown> = new Map()): CheckMemo {
  * What a check runs against. A check that does not mutate gets a client that cannot write; a
  * helper that writes asks for a `WriteContext`, so a read-only check calling it does not compile.
  */
-export interface CheckContext<C extends ReadClient = ReadClient> {
+export type CheckContext<C extends ReadClient = ReadClient> = {
   entityName: string;
   identity: string;
   model: SpecModel;
@@ -168,7 +168,7 @@ export interface CheckContext<C extends ReadClient = ReadClient> {
   judged?: (operationIds: readonly string[]) => void;
   /** Computed once, shared by the checks that ask: see `CheckMemo`. */
   memo: CheckMemo;
-}
+};
 
 /** The context of a check that changes server state. */
 export type WriteContext = CheckContext<Client>;

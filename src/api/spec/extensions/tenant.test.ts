@@ -50,6 +50,7 @@ describe("path parameters", () => {
         { in: "query", name: "q", "x-root": true },
       ],
     } as OperationObject;
+
     expect(readRootParams(op)).toEqual(["org"]);
     expect(readRootParams({} as OperationObject)).toEqual([]);
   });

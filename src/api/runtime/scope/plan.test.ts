@@ -23,7 +23,7 @@ describe("planning a scope without a network", () => {
     expect(plan.targets[0]?.checks.length).toBeGreaterThan(0);
     expect(plan.entities).toContain("table");
     expect(plan.untestable).toEqual([{ operationId: "auth.token", reason: expect.stringMatching(/^unmodeled:/) }]);
-    /* A target is not support, even when the plan would call it anyway. */
+    // A target is not support, even when the plan would call it anyway.
     expect(plan.support).not.toContain("table.get");
     expect(plan.support).toContain("row.create");
   });
@@ -43,6 +43,7 @@ describe("planning a full run", () => {
   it("needs no parent for a path parameter no entity owns", () => {
     const note = { properties: { id: { type: "string" }, name: { type: "string" } }, type: "object" };
     const tenant = [{ in: "path", name: "tenant", required: true, schema: { type: "string" } }];
+
     const model = buildModel({
       info: { title: "tenant", version: "1" },
       openapi: "3.1.0",
@@ -64,15 +65,18 @@ describe("planning a full run", () => {
         },
       },
     } as unknown as OpenApiDocument);
+
     expect(planScope(model, resolveTargetScope(model, {})).support).toEqual(["note.create", "note.list"]);
   });
 
   it("lists origins with their targets", () => {
     const model = referenceModel();
+
     const plan = planScope(
       model,
       resolveTargetScope(model, { ops: ["cdn:row.get"], origins: new Map([["cdn", referenceModel()]]) }),
     );
+
     expect(plan.origins).toEqual({ cdn: ["row.get"] });
     expect(plan.targets).toEqual([]);
   });

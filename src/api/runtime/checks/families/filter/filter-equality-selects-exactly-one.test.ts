@@ -25,6 +25,7 @@ describe("filter.equality-selects-exactly-one", () => {
       doc: ID_FILTERABLE,
       records: COHORT,
     });
+
     expect(await runCheck(check, ctx)).toMatchObject({ kind: "finding" });
     expect(only(findings).detail).toBe("filter=id.eq.w-1 returned 2 records (w-1, w-2)");
   });

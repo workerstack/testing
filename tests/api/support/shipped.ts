@@ -3,16 +3,14 @@ import { join } from "node:path";
 
 import type { ImportGraph } from "./import-graph.ts";
 
-/*
- * What the package must ship: every module the entry points reach, as built. Read from the source
- * graph, so no build is needed and a stale one cannot hide a gap.
- */
+// What the package must ship: every module the entry points reach, as built. Read from the source
+// graph, so no build is needed and a stale one cannot hide a gap.
 
-interface Manifest {
+type Manifest = {
   bin?: string | Record<string, string>;
   exports?: Record<string, { default?: string; types?: string } | string>;
   files: string[];
-}
+};
 
 const BUILT = /^\.?\/?dist\//;
 
@@ -30,6 +28,7 @@ function builtOf(source: string): string {
 function covered(path: string, files: readonly string[]): boolean {
   return files.some((entry) => {
     const clean = entry.replace(/^\.\//, "").replace(/\/$/, "");
+
     return path === clean || path.startsWith(`${clean}/`);
   });
 }
@@ -41,12 +40,15 @@ function entryTargets(root: string, manifest: Manifest): string[] {
       ? [target]
       : [target.default, target.types].filter((path): path is string => path !== undefined),
   );
+
   const bins = typeof manifest.bin === "string" ? [manifest.bin] : Object.values(manifest.bin ?? {});
+
   const binImports = bins.flatMap((bin) =>
     [...readFileSync(join(root, bin), "utf8").matchAll(/from "\.\.\/(dist\/[^"]+)"/g)].map(
       (match) => match[1] as string,
     ),
   );
+
   return [...bins, ...exported, ...binImports].map((path) => path.replace(/^\.\//, ""));
 }
 
@@ -58,12 +60,16 @@ export function unshipped(root: string, manifest: Manifest, graph: ImportGraph):
   const targets = entryTargets(root, manifest);
   const seen = new Set<string>();
   const pending = targets.filter((path) => BUILT.test(path)).map(sourceOf);
+
   while (pending.length > 0) {
     const module = pending.pop() as string;
+
     if (seen.has(module) || !graph.has(module)) continue;
     seen.add(module);
     pending.push(...(graph.get(module) ?? []));
   }
+
   const needed = [...targets, ...[...seen].map(builtOf)];
+
   return [...new Set(needed)].filter((path) => !covered(path, manifest.files)).toSorted();
 }

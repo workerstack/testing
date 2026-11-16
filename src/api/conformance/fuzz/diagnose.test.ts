@@ -43,6 +43,7 @@ describe("diagnose", () => {
       ["STALE_LIST", "ORDER_IGNORED"],
       reported([finding("list.read-after-write"), finding("sort.order-is-applied"), finding("x.y", "COVERAGE_GAP")]),
     );
+
     expect(diagnosis).toEqual({
       cascaded: [],
       excused: [],
@@ -75,6 +76,7 @@ describe("diagnose and a BLOCKED check", () => {
       detail: "blocked by every sign-in refused",
       summary: blockedCheckSummary("auth.privileged-field-ignored"),
     };
+
     const diagnosis = diagnose(["PRIVILEGED_FIELD_WRITABLE", "DISPOSABLE_KILLS_CALLER"], reported([blocked]));
     expect(diagnosis.missed).toContainEqual({
       defect: "DISPOSABLE_KILLS_CALLER",
@@ -114,6 +116,7 @@ describe("diagnose, a check that stood down", () => {
       { check: "schema.problem-json-shape", entity: "widget", needs: "a problem+json answer" },
       { check: "schema.problem-json-shape", entity: "gadget", needs: "a problem+json answer" },
     ];
+
     const diagnosis = diagnose(["PROBLEM_JSON_MALFORMED"], reported([], [], { checksSkipped, scope: passing([]) }));
     expect(diagnosis.excused).toEqual([
       { check: "schema.problem-json-shape", defect: "PROBLEM_JSON_MALFORMED", reason: "a problem+json answer" },

@@ -32,30 +32,32 @@ import { PRINCIPALS, SECURITY } from "./matrix/principals.ts";
 export type { FuzzCase, PrecisionCase } from "./fuzz/diagnose.ts";
 
 /** Where fuzzing runs: an engine and dialect, reached behind a socket unless `via` says otherwise. */
-interface FuzzTarget {
+type FuzzTarget = {
   /** A local engine; D1 is not fuzzed. */
   backend?: Exclude<Backend, "d1">;
   dialect?: string;
   via?: Via;
-}
+};
 
-export interface FuzzOptions extends FuzzTarget {
+export type FuzzOptions = FuzzTarget & {
   cases?: number;
   maxDefects?: number;
   seed?: number;
   onCase?: (result: FuzzCase) => void;
-}
+};
 
-export interface PrecisionOptions extends FuzzTarget {
+export type PrecisionOptions = FuzzTarget & {
   cases?: number;
   seed?: number;
-}
+};
 
 /** Deterministic PRNG so a failing case can be replayed from its seed alone. */
 function rng(seed: number): () => number {
   let state = seed >>> 0;
+
   return () => {
     state = (state * 1_664_525 + 1_013_904_223) >>> 0;
+
     return state / 0x1_00_00_00_00;
   };
 }
@@ -68,8 +70,8 @@ export async function runFuzz(options: FuzzOptions = {}): Promise<FuzzCase[]> {
   const { cases = 25, maxDefects = 4, seed: rootSeed = 1 } = options;
   const target = targetOf(options);
 
-  /* Defects the chosen backend or dialect cannot express are excluded from the draw rather than
-   * excused afterwards — a case that cannot fail teaches nothing and still costs a run. */
+  // Defects the chosen backend or dialect cannot express are excluded from the draw rather than
+  // excused afterwards — a case that cannot fail teaches nothing and still costs a run.
   const pool = defectsFor(target.backend, target.dialect);
 
   const results: FuzzCase[] = [];
@@ -90,10 +92,13 @@ function drawDefects(pool: readonly DefectName[], seed: number, maxDefects: numb
   const draw = rng(seed);
   const count = 1 + Math.floor(draw() * maxDefects);
   const injected: DefectName[] = [];
+
   while (injected.length < count) {
     const pick = pool[Math.floor(draw() * pool.length)] as DefectName;
+
     if (!injected.includes(pick)) injected.push(pick);
   }
+
   return injected;
 }
 
@@ -106,9 +111,10 @@ async function runAgainst(
   defects: DefectName[],
   seed: number,
 ): Promise<{ result: RunResult } | { error: string }> {
-  /* A defect behind an opt-in shows only with it on, in the reference and in the API tester both. */
+  // A defect behind an opt-in shows only with it on, in the reference and in the API tester both.
   const optIn = optInFor(defects);
   const server = await launch(target, { defects, ...optIn.reference });
+
   try {
     return {
       result: await run({
@@ -130,8 +136,10 @@ async function runAgainst(
 
 async function runOneCase(target: Target, injected: DefectName[], seed: number): Promise<FuzzCase> {
   const outcome = await runAgainst(target, injected, 42);
+
   if ("error" in outcome) {
     const { error } = outcome;
+
     return {
       cascaded: [],
       error,
@@ -145,6 +153,7 @@ async function runOneCase(target: Target, injected: DefectName[], seed: number):
       unresolved: [],
     };
   }
+
   return { injected, seed, ...diagnose(injected, outcome.result) };
 }
 

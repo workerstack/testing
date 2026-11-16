@@ -27,10 +27,13 @@ export const rankIsMonotonic: Check<{ id: string; readOp: OperationModel; home: 
     const target = ctx.records[0];
     const primary = ctx.actors[0];
     const readOp = ctx.readOp;
+
     if (readOp === undefined || target === undefined || primary === undefined) return cannot();
     const home = ctx.actors.filter((actor) => actor.tenant === primary.tenant);
+
     if (new Set(home.map((actor) => actor.rank)).size < 2) return cannot();
     const id = idOf(target, ctx.identity);
+
     return id === undefined ? cannot(NO_IDENTITY) : ready({ home, id, readOp });
   },
   dependsOn: ["list.read-after-write"],
@@ -39,30 +42,37 @@ export const rankIsMonotonic: Check<{ id: string; readOp: OperationModel; home: 
   subjects: subjectsOf.read,
   async run(ctx, { home, id, readOp }): Promise<Outcome> {
     const seen = new Map<string, Exchange>();
+
     const probe = async (actor: Actor): Promise<"allow" | "deny" | "error"> => {
-      /* Where the record lives: every actor here shares its tenant. */
+      // Where the record lives: every actor here shares its tenant.
       const params = { ...ctx.scope, ...itemParamFor(ctx, id) };
+
       const exchange = await ctx.client.get(fillPath(readOp.path, params), {
         as: { principal: actor.id },
         operationId: readOp.operationId,
       });
+
       seen.set(actor.id, exchange);
+
       if (exchange.status < 300) return "allow";
+
       if (exchange.status === 403 || exchange.status === 404) return "deny";
+
       return "error";
     };
 
     const outcomes = new Map<string, "allow" | "deny" | "error">();
-    for (const actor of home) {
-      outcomes.set(actor.id, await probe(actor));
-    }
+
+    for (const actor of home) outcomes.set(actor.id, await probe(actor));
 
     for (const lower of home) {
       for (const higher of home) {
         if (lower.rank >= higher.rank) continue;
         const lo = outcomes.get(lower.id);
         const hi = outcomes.get(higher.id);
+
         if (lo !== "allow" || hi !== "deny") continue;
+
         return ctx.findings.backend(this.id, ctx.entityName, {
           summary: "a lower-ranked role can read a record a higher-ranked role cannot",
           detail:
@@ -74,6 +84,7 @@ export const rankIsMonotonic: Check<{ id: string; readOp: OperationModel; home: 
         });
       }
     }
+
     return ASSERTED;
   },
 });

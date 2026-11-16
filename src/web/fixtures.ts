@@ -18,13 +18,11 @@ import { createNetwork, type Network } from "./network.ts";
 import { createPointer, type PagePointer } from "./pointer.ts";
 import { createReady, type Ready } from "./ready.ts";
 
-/*
- * The fixtures `test` adds to Playwright's: the page a test drives is guarded, every request it
- * makes passes the network gate, and the readiness, a11y and pointer helpers act on that page. A consumer
- * sets `guard` and `a11yDefaults` with `test.use` per file or per describe.
- */
+// The fixtures `test` adds to Playwright's: the page a test drives is guarded, every request it
+// makes passes the network gate, and the readiness, a11y and pointer helpers act on that page. A consumer
+// sets `guard` and `a11yDefaults` with `test.use` per file or per describe.
 
-export interface WebFixtures {
+export type WebFixtures = {
   /** What the page may say without failing the test. */
   guard: GuardOptions;
   /** Waits on the page's own markers and animations instead of the clock. */
@@ -37,14 +35,15 @@ export interface WebFixtures {
   network: Network;
   /** Drags with the page's mouse, one animation frame per step. */
   pointer: PagePointer;
-}
+};
 
 type TestArgs = PlaywrightTestArgs & PlaywrightTestOptions;
+
 type WorkerArgs = PlaywrightWorkerArgs & PlaywrightWorkerOptions;
 
 const pathOf = (url: string): string => new URL(url).pathname;
 
-/* Chromium logs each request the network gate aborts; the gate's own line already names it. */
+// Chromium logs each request the network gate aborts; the gate's own line already names it.
 const GATE_BLOCKED: GuardIgnore = {
   kind: "error",
   reason: "the network gate reports the blocked request itself",
@@ -70,6 +69,7 @@ export async function guardPage(
   await use(page);
   const where = `${relative(testInfo.project.testDir, testInfo.file)}:${testInfo.line}`;
   const lines = breaches(events, options).map((event) => breachLine(event, where));
+
   if (lines.length > 0) throw new Error(lines.join("\n"));
 }
 
@@ -90,6 +90,7 @@ export async function guardNetwork(
   await context.route("**/*", (route) => gate.handle(route));
   await use(gate.network);
   const lines = gate.breaches();
+
   if (lines.length > 0) throw new Error(lines.join("\n"));
 }
 

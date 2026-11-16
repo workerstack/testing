@@ -15,6 +15,7 @@ let dir: string;
 beforeAll(async () => {
   server = await createMemoryServer();
   dir = await mkdtemp(join(tmpdir(), "testing-cli-golden-"));
+
   const valid = {
     baseUrl: server.url,
     principals: PRINCIPALS,
@@ -22,6 +23,7 @@ beforeAll(async () => {
     seed: 42,
     spec: `${server.url}/v1/openapi/spec`,
   };
+
   const configs: Record<string, unknown> = {
     "valid.json": valid,
     "invalid.json": { principals: PRINCIPALS },
@@ -30,6 +32,7 @@ beforeAll(async () => {
     "allow-unknown.json": { ...valid, allow: ["nothing.here"] },
     "overlay-unknown.json": { ...valid, overlay: { operations: { "nothing.here": {} } } },
   };
+
   for (const [name, body] of Object.entries(configs)) await writeFile(join(dir, name), JSON.stringify(body));
   await mkdir(join(dir, "empty-run"));
   await writeFile(join(dir, "empty-run", "report.json"), JSON.stringify({ outcome: {} }));
@@ -37,19 +40,20 @@ beforeAll(async () => {
   await writeFile(join(dir, "good-run", "report.json"), JSON.stringify({ findings: [] }));
   await writeFile(join(dir, "existing.json"), "{}");
 });
+
 afterAll(async () => {
   await server.close();
   await rm(dir, { force: true, recursive: true });
 });
 
-/* Paths into this test's temp folder and the server's port change every run. */
+// Paths into this test's temp folder and the server's port change every run.
 function stable(text: string): string {
   return normalizeText(text.replaceAll(dir, "<dir>").replaceAll(process.cwd(), "<cwd>"));
 }
 
 const at = (name: string): string => join(dir, name);
 
-/* `help` and every way the CLI refuses its input, with the exit code it refuses with. */
+// `help` and every way the CLI refuses its input, with the exit code it refuses with.
 const CASES: ReadonlyArray<[string, () => string[]]> = [
   ["help", () => ["help"]],
   ["--help", () => ["run", "--help"]],
@@ -92,15 +96,18 @@ describe("CLI golden", () => {
 
 const NOTES = ["  no recipe — ", "  unsupported — ", "  undeclared — "];
 
-/* Doctor's security block: from its heading through the requirements, and any notes on what a run cannot send. */
+// Doctor's security block: from its heading through the requirements, and any notes on what a run cannot send.
 function securityBlock(text: string): string {
   const lines = text.split("\n");
   const start = lines.indexOf(lines.find((line) => line.startsWith("  security — ")) as string);
+
   let end = lines.indexOf(
     "",
     lines.findIndex((line) => line.startsWith("  requirements — ")),
   );
-  if (NOTES.some((note) => lines[end + 1]?.startsWith(note))) end = lines.indexOf("", end + 1);
+
+  if (NOTES.some((note) => lines[end + 1]?.startsWith(note) === true)) end = lines.indexOf("", end + 1);
+
   return `${lines.slice(start, end + 1).join("\n")}\n`;
 }
 

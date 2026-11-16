@@ -6,11 +6,9 @@ import { FILTER_PRESETS } from "./filter-presets.ts";
 import { canGroupAnd, canWriteOp, canWriteOr, fill, renderFragment, renderTerm, scalar } from "./filter-term.ts";
 import type { FilterGrammarSpec, FilterTermValue } from "./filter-types.ts";
 
-/*
- * A grammar the API tester has no name for, declared as a template. The example is the one term per value
- * grammar seen in the wild: `and_Qty_eq_2`, `ne` for not-equal, null tests as their own terms,
- * `in` values joined by a comma, and terms sent as a repeated parameter.
- */
+// A grammar the API tester has no name for, declared as a template. The example is the one term per value
+// grammar seen in the wild: `and_Qty_eq_2`, `ne` for not-equal, null tests as their own terms,
+// `in` values joined by a comma, and terms sent as a repeated parameter.
 const EXAMPLE = {
   combine: "repeat",
   conj: { and: "and", or: "or" },
@@ -23,7 +21,9 @@ const EXAMPLE = {
 
 function parsed(raw: unknown): FilterGrammarSpec {
   const result = parseFilterGrammar(raw);
+
   if (!result.ok) throw new Error(result.error);
+
   return result.spec;
 }
 
@@ -78,6 +78,7 @@ describe("placeholders and values", () => {
 
 describe("a template grammar", () => {
   const spec = parsed(EXAMPLE);
+
   const term = (field: string, op: Parameters<typeof canWriteOp>[1], value: unknown) =>
     renderTerm(spec, "filter", { field, op, value: value as FilterTermValue });
 

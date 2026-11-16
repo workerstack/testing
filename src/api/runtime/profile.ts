@@ -20,10 +20,10 @@ export const BUILTIN_PROFILES: Record<string, ProfileSpec> = {
 
 const COST_RANK: Record<"low" | "medium" | "high", number> = { high: 2, low: 0, medium: 1 };
 
-export interface ResolvedProfile {
+export type ResolvedProfile = {
   name: string;
   spec: ProfileSpec;
-}
+};
 
 /**
  * Picks the active profile by name, falling back to `"full"` — the same shape as today's
@@ -35,10 +35,12 @@ export function resolveProfile(
 ): ResolvedProfile {
   const activeName = name ?? "full";
   const spec = configured?.[activeName] ?? BUILTIN_PROFILES[activeName];
+
   if (spec === undefined) {
     const known = [...new Set([...Object.keys(BUILTIN_PROFILES), ...Object.keys(configured ?? {})])];
     throw new UsageError(`testing api: profile "${activeName}" is not defined. Known: ${known.join(", ")}`);
   }
+
   return { name: activeName, spec };
 }
 
@@ -50,13 +52,12 @@ export function resolveProfile(
  * whichever rule happened to be checked first.
  */
 export function excludedByProfile(op: OperationModel, spec: ProfileSpec): string | null {
-  if (spec.exclude?.includes(op.operationId) === true) {
-    return `excluded by name (operationId: ${op.operationId})`;
-  }
+  if (spec.exclude?.includes(op.operationId) === true) return `excluded by name (operationId: ${op.operationId})`;
+
   if (spec.excludeDestructive === true && op.destructive) return "x-destructive";
-  if (spec.maxCost !== undefined && COST_RANK[op.cost] > COST_RANK[spec.maxCost]) {
-    return `x-cost: ${op.cost}`;
-  }
+
+  if (spec.maxCost !== undefined && COST_RANK[op.cost] > COST_RANK[spec.maxCost]) return `x-cost: ${op.cost}`;
+
   return null;
 }
 
@@ -70,12 +71,14 @@ export function externalExcluded(
   profile: ResolvedProfile,
 ): string | null {
   const excluded = profile.spec.excludeExternalKinds ?? [];
+
   for (const step of scenario.steps) {
     if (!("external" in step)) continue;
     const kind = kinds?.[step.external];
-    if (kind !== undefined && excluded.includes(kind)) {
+
+    if (kind !== undefined && excluded.includes(kind))
       return `external "${step.external}" is kind "${kind}", which profile "${profile.name}" excludes`;
-    }
   }
+
   return null;
 }

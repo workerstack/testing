@@ -19,22 +19,25 @@ import { scenarioCheckId } from "./validate.ts";
 import { shownValue, type Want } from "./want.ts";
 
 /** A request step that passed, and what it asserted. */
-export interface Passed {
+export type Passed = {
   step: ScenarioRequestStep;
   exchange: Exchange;
   stepOp: string | undefined;
   wants: Array<{ assert: ScenarioAssert; want: Want }>;
-}
+};
 
 export function record(run: ScenarioRun, passed: Passed): void {
   const { stepOp } = passed;
-  /* An observed call keeps its pair; a later repeat of the operation proves nothing new. */
+
+  // An observed call keeps its pair; a later repeat of the operation proves nothing new.
   if (stepOp !== undefined && !run.observations.has(stepOp)) run.calls.set(stepOp, passed.exchange);
   saveValues(run, passed);
   saveClaims(run, passed);
   const tag = tagOf(run.lineage, passed.step, run.input.accounts?.madeBy(passed.exchange));
   keep(run.lineage, passed.step, tag);
+
   if (passed.step.keepAccount === true) keepAccountOf(run, passed, tag);
+
   if (passed.wants.length === 0) return;
   observe(run, passed);
 }
@@ -45,6 +48,7 @@ export function record(run: ScenarioRun, passed: Passed): void {
  */
 function keepAccountOf(run: ScenarioRun, passed: Passed, tag: AccountEntry | undefined): void {
   const { accounts, findings } = run.input;
+
   if (tag !== undefined && accounts !== undefined) return accounts.keepAccount(tag, run.scenario.id);
   findings.gap(scenarioCheckId(run.scenario), run.scenario.id, {
     summary: `scenario "${run.scenario.id}" kept no account at exchange #${passed.exchange.seq}`,
@@ -59,17 +63,20 @@ function saveValues(run: ScenarioRun, passed: Passed): void {
   const { exchange, step, stepOp } = passed;
   const { objects, scope } = run;
   const cookies = exchange.cookies ?? cookiesFromRecordedHeaders(exchange.responseHeaders);
+
   for (const [name, template] of Object.entries(step.saveAs ?? {})) {
     const path = String(interpolate(template, scope));
+
     const value = readSaveAs(path, {
       body: exchange.responseBody,
       cookies,
       headers: exchange.responseHeaders,
       readJson: readPath,
     });
-    if (value === undefined || value === null) {
+
+    if (value === undefined || value === null)
       throw new StepFailure(`saveAs.${name} = "${path}" is not in the response`, [exchange], blamed(stepOp));
-    }
+
     if (typeof value === "object") {
       objects.set(name, value);
       scope[name] = JSON.stringify(value);
@@ -85,19 +92,23 @@ function saveValues(run: ScenarioRun, passed: Passed): void {
 function saveClaims(run: ScenarioRun, passed: Passed): void {
   const { exchange, step, stepOp } = passed;
   const { scope } = run;
+
   if (step.saveClaimsFrom === undefined) return;
   const from = step.saveClaimsFrom.token;
+
   const token =
     !from.startsWith("$") && scope[from] !== undefined ? scope[from] : readPath(exchange.responseBody, from);
+
   const claims = typeof token === "string" ? jwtClaims(token) : null;
-  if (claims === null) {
-    throw new StepFailure(`saveClaimsFrom: no JWT at ${from}`, [exchange], blamed(stepOp));
-  }
+
+  if (claims === null) throw new StepFailure(`saveClaimsFrom: no JWT at ${from}`, [exchange], blamed(stepOp));
+
   for (const [name, claim] of Object.entries(step.saveClaimsFrom.bind)) {
     const value = readPath(claims, claim);
-    if (value === undefined || value === null) {
+
+    if (value === undefined || value === null)
       throw new StepFailure(`saveClaimsFrom: the token carries no "${claim}"`, [exchange], blamed(stepOp));
-    }
+
     scope[name] = String(value);
   }
 }
@@ -106,22 +117,27 @@ function saveClaims(run: ScenarioRun, passed: Passed): void {
 function observe(run: ScenarioRun, passed: Passed): void {
   const { exchange, stepOp, wants } = passed;
   const { calls, observations } = run;
-  /* Every assert held on this exchange, so each shows a value. */
+
+  // Every assert held on this exchange, so each shows a value.
   const observationOf = (want: Want): PassEvidence["observation"] =>
     want.mode === "excludes" || want.mode === "omits"
       ? { absent: true as const, path: want.from, seq: exchange.seq, value: want.value }
       : { path: want.from, seq: exchange.seq, value: shownValue(exchange, want.from, want) as string };
-  /* A write's own response is its claim, not a later read of it: it proves nothing about itself. */
+
+  // A write's own response is its claim, not a later read of it: it proves nothing about itself.
   const reads = /^(GET|HEAD)$/i.test(exchange.method);
+
   const prove = (id: string, want: Want): void => {
     if (!calls.has(id)) return;
+
     if (calls.get(id) === exchange && !reads) return;
     observations.set(id, observationOf(want));
   };
-  for (const { assert, want } of wants) {
-    for (const id of assert.observes ?? []) prove(id, want);
-  }
-  /* `record` observes only when the step asserts something. */
+
+  for (const { assert, want } of wants) for (const id of assert.observes ?? []) prove(id, want);
+
+  // `record` observes only when the step asserts something.
   const first = wants[0] as Passed["wants"][number];
+
   if (stepOp !== undefined) prove(stepOp, first.want);
 }

@@ -11,10 +11,12 @@ import { readSet } from "../../sets/read.ts";
 
 function numericLexicalDisagrees(ctx: Listed, field: string): boolean {
   const values = ctx.records.map((row) => row[field]).filter((v): v is number => typeof v === "number");
+
   if (values.length < 3) return false;
   const unique = [...new Set(values)];
   const asNumbers = [...unique].sort((a, b) => a - b);
   const asText = [...unique].sort((a, b) => String(a).localeCompare(String(b)));
+
   return asNumbers.join(",") !== asText.join(",");
 }
 
@@ -23,6 +25,7 @@ export const sortNumericOrderIsNumeric: Check<{ field: EffectiveFilterField }> =
 }>({
   plan: (ctx) => {
     const field = resolvedCaps(ctx).sortable.find((item) => numericLexicalDisagrees(ctx, item.field));
+
     return conv(ctx).order === undefined || field === undefined ? cannot() : ready({ field });
   },
   dependsOn: ["sort.order-is-applied", "pagination.page-walk-covers-set"],
@@ -31,13 +34,16 @@ export const sortNumericOrderIsNumeric: Check<{ field: EffectiveFilterField }> =
   needs: "a numeric sortable field whose lexical order disagrees with numeric order",
   subjects: subjectsOf.list,
   async run(ctx, { field }): Promise<Outcome> {
-    /* Across pages: a server that serves a few rows at a time can put the disagreeing values on
-     * different pages. Even a read cut short is a prefix of the order, and must ascend. */
+    // Across pages: a server that serves a few rows at a time can put the disagreeing values on
+    // different pages. Even a read cut short is a prefix of the order, and must ascend.
     const read = await readSet(ctx, {}, { order: sortTerm(conv(ctx), { direction: "asc", field: field.field }) });
+
     if (read.status !== "ok") return ctx.findings.unresolved(this.id, ctx.entityName, read.reason);
     const numbers = read.items.map((item) => item[field.field]).filter((v): v is number => typeof v === "number");
     const sorted = [...numbers].sort((a, b) => a - b);
+
     if (numbers.join(",") === sorted.join(",")) return ASSERTED;
+
     return ctx.findings.backend(this.id, ctx.entityName, {
       summary: `"${field.field}" is sorted as text rather than as a number`,
       detail: `order=${field.field}.asc returned ${numbers.slice(0, 8).join(", ")}.`,

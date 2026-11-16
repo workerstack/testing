@@ -14,8 +14,10 @@ import type { QueryConventions } from "./types.ts";
 export function sortSpec(conventions: QueryConventions): SortGrammarSpec {
   if (conventions.sortGrammar === "template") {
     if (conventions.sortSpec === undefined) throw new Error("a template sort grammar without its template");
+
     return conventions.sortSpec;
   }
+
   return SORT_PRESETS[conventions.sortGrammar];
 }
 
@@ -30,6 +32,7 @@ export function sortTermWithNulls(
   key: SortKey & { nulls: "first" | "last" },
 ): string | null {
   const spec = sortSpec(conventions);
+
   return spec.nulls === undefined ? null : renderSortKey(spec, key);
 }
 

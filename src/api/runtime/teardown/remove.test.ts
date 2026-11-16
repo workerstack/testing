@@ -25,10 +25,12 @@ describe("removeOne", () => {
     const state = unwindOf(store(), [note], { model });
     await removeOne(state, note);
     expect(state.report.removed).toBe(1);
+
     const moved = unwindOf(store(), [note], {
       model,
-      ledger: { movedAway: () => "moved to t2", seenByCreator: () => true, sighted: () => undefined },
+      ledger: { movedAway: () => "moved to t2", seenByCreator: () => true, sighted: () => {} },
     });
+
     await removeOne(moved, note);
     expect(moved.report.failed).toEqual([leftover(note, "moved to t2; DELETE /notes/n1 returned alpha: 404")]);
   });
@@ -39,8 +41,10 @@ describe("removeOne", () => {
     const state = unwindOf(held, [note], { model, fallbacks: () => [owner("member"), owner("root")] });
     held.answers["DELETE /notes/n1"] = (options) => {
       const who = actorOf(options);
+
       return who === "root" ? { status: 204 } : { status: who === "beta" ? 403 : 401 };
     };
+
     await removeOne(state, note);
     expect(state.sent.map((request) => [request.method, request.options.as])).toEqual([
       ["DELETE", { principal: "beta" }],
@@ -48,10 +52,12 @@ describe("removeOne", () => {
       ["DELETE", { principal: "root" }],
     ]);
     expect(state.report.removed).toBe(1);
+
     const failing = unwindOf(store({}, { answers: { "DELETE /notes/n1": { status: 500 } } }), [note], {
       model,
       fallbacks: () => [owner("root")],
     });
+
     await removeOne(failing, note);
     expect(failing.report.failed).toEqual([leftover(note, "DELETE /notes/n1 returned beta: 500")]);
   });
@@ -60,10 +66,12 @@ describe("removeOne", () => {
 describe("removeOne: other ways a record goes or stays", () => {
   it("counts a record removed when a delete earlier in the run took it", async () => {
     const note = disposable("note", "n1");
+
     const state = unwindOf(store({}, { answers: { "DELETE /notes/n1": { status: 403 } } }), [note], {
       model,
       deletedEarlier: (path) => path === "/notes/n1",
     });
+
     await removeOne(state, note);
     expect(state.report.removed).toBe(1);
   });
@@ -72,6 +80,7 @@ describe("removeOne: other ways a record goes or stays", () => {
     const tag = disposable("tag", "t1");
     const comment = disposable("comment", "c1");
     const note = disposable("note", "n1");
+
     const state = unwindOf(
       store(
         {},
@@ -93,6 +102,7 @@ describe("removeOne: other ways a record goes or stays", () => {
       [tag, comment, note],
       { model },
     );
+
     await removeOne(state, tag);
     await removeOne(state, comment);
     await removeOne(state, note);
@@ -136,10 +146,13 @@ describe("removeOne: other routes and throws", () => {
         },
       },
     });
+
     const widget = disposable("widget", "w1");
+
     const state = unwindOf(store({}, { answers: { "POST /admin/purge": { status: 204 } } }), [widget], {
       model: widgets,
     });
+
     await removeOne(state, widget);
     expect(state.paths.get(widget)).toBe("/admin/purge");
     expect(state.client.transcript.map((exchange) => exchange.method)).toEqual(["POST"]);
@@ -148,6 +161,7 @@ describe("removeOne: other routes and throws", () => {
 
   it("reports what a delete threw that is not an error", async () => {
     const note = disposable("note", "n1");
+
     const throwing = unwindOf(
       store(
         {},
@@ -162,6 +176,7 @@ describe("removeOne: other routes and throws", () => {
       [note],
       { model },
     );
+
     await removeOne(throwing, note);
     expect(throwing.report.failed).toEqual([leftover(note, "socket hang up")]);
   });
@@ -173,9 +188,12 @@ describe("removeOne: a deleter whose credential is BLOCKED", () => {
     const held = store({ alpha: ["n1"] }, { answers: {} });
     held.answers["DELETE /notes/n1"] = (options) => {
       const who = actorOf(options);
+
       if (who !== "root") throw new UnsatisfiedSecurity("blocked", `refresh for ${who}/jwt: token revoked`);
+
       return { status: 204 };
     };
+
     const state = unwindOf(held, [note], { model, fallbacks: () => [owner("member"), owner("root")] });
     await removeOne(state, note);
     expect(state.sent.map((request) => request.options.as)).toEqual([

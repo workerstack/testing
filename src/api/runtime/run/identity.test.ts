@@ -10,6 +10,7 @@ describe("boundOf", () => {
       scope: { org_id: "o1", project_id: "p1" },
       tenant: "t1",
     };
+
     expect(boundOf(held)).toEqual({
       identity: { email: "a@x.test" },
       scope: { org_id: "o1", project_id: "p9" },

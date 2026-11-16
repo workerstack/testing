@@ -13,6 +13,7 @@ describe("requestContent", () => {
       "multipart/form-data": { encoding: { file: { contentType: "image/png" } }, schema: { type: "array" } },
       "text/plain": {},
     };
+
     expect(requestContent(body(content))).toEqual({
       encoding: { file: { contentType: "image/png" } },
       mediaType: "multipart/form-data",
@@ -59,6 +60,7 @@ describe("requestContent for an upload", () => {
         schema: { properties: { file: { format: "binary", type: "string" }, text: { type: "string" } } },
       },
     });
+
     expect(requestContent(extract)?.mediaType).toBe("multipart/form-data");
     expect(requestSchema(extract)?.properties).toHaveProperty("file");
     const login = body({ "application/x-www-form-urlencoded": { schema: { type: "object" } } });
@@ -86,15 +88,15 @@ const pet = (encoding?: Record<string, unknown>) => ({
 describe("requestContent for a form that cannot carry the body", () => {
   it("sends JSON over a form that cannot carry the body: an object, or an array of objects, spread into keys", () => {
     expect(requestContent(body(pet()))?.mediaType).toBe("application/json");
-    /* An array of objects alone is enough, and so is an object property alone. */
+    // An array of objects alone is enough, and so is an object property alone.
     const tagsOnly = { category: { contentType: "application/json" } };
     expect(requestContent(body(pet(tagsOnly)))?.mediaType).toBe("application/json");
     const categoryOnly = { tags: { contentType: "application/json" } };
     expect(requestContent(body(pet(categoryOnly)))?.mediaType).toBe("application/json");
-    /* Each written as JSON, or the object as a deepObject, the form carries it, and is the contract. */
+    // Each written as JSON, or the object as a deepObject, the form carries it, and is the contract.
     const carried = { category: { style: "deepObject" }, tags: { contentType: "application/json" } };
     expect(requestContent(body(pet(carried)))?.mediaType).toBe("application/x-www-form-urlencoded");
-    /* With no JSON beside it, the form is all there is. */
+    // With no JSON beside it, the form is all there is.
     const { "application/json": _json, ...formOnly } = pet();
     expect(requestContent(body(formOnly))?.mediaType).toBe("application/x-www-form-urlencoded");
   });

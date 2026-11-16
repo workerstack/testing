@@ -25,7 +25,9 @@ export const paginationBoundsHandled: Check<{
 }>({
   plan: (ctx) => {
     const { limit, page } = conv(ctx);
+
     if ((limit === undefined && page === undefined) || ctx.records.length === 0) return cannot();
+
     return ready({ limit, page });
   },
   dependsOn: ["list.read-after-write", "pagination.page-walk-covers-set"],
@@ -37,6 +39,7 @@ export const paginationBoundsHandled: Check<{
     if (limit !== undefined) {
       for (const value of ["0", "-1", "2.5", "abc"]) {
         const result = await list(asProbe(ctx), { [limit]: value });
+
         if (result.exchange.status >= 500) {
           return ctx.findings.backend(this.id, ctx.entityName, {
             summary: `a page size of ${value} crashes the listing`,
@@ -48,17 +51,19 @@ export const paginationBoundsHandled: Check<{
         }
       }
     }
+
     if (page === undefined) return ASSERTED;
     const whole = await readSet(ctx, {}, { fresh: true });
-    if (whole.status !== "ok" || !whole.complete) {
-      return ctx.findings.unresolved(this.id, ctx.entityName, whole.reason);
-    }
+
+    if (whole.status !== "ok" || !whole.complete) return ctx.findings.unresolved(this.id, ctx.entityName, whole.reason);
+
     const size = pageSize(ctx);
-    /* Past the end at any page size a server may serve — it may clamp below the size asked for,
-     * so a page number from the requested size could still fall inside the set. */
+    // Past the end at any page size a server may serve — it may clamp below the size asked for,
+    // so a page number from the requested size could still fall inside the set.
     const beyond = whole.items.length + 2;
     const result = await list(asProbe(ctx), { ...q(ctx, { limit: size }), [page]: beyond });
     const status = result.exchange.status;
+
     if (status >= 500) {
       return ctx.findings.backend(this.id, ctx.entityName, {
         summary: "a page past the end crashes the listing",
@@ -66,8 +71,11 @@ export const paginationBoundsHandled: Check<{
         evidence: [result.exchange],
       });
     }
+
     if (status >= 400) return asserted(`a page past the end is refused (${status})`);
+
     if (result.items.length === 0) return asserted("a page past the end is served empty");
+
     return ctx.findings.backend(this.id, ctx.entityName, {
       summary: "a page past the end of the collection returns records",
       detail:

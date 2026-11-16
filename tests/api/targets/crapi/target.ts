@@ -1,15 +1,14 @@
 import { answers, type Target } from "../target.ts";
 
-/*
- * crAPI signs a user up, then emails them a vehicle VIN and pincode they must claim. The run needs
- * two accounts in two tenants, each with a placed order — but the order lifecycle the API tester drives needs
- * no vehicle, so prepare only creates and logs the accounts in. Each account funds a cohort of
- * orders from its starting $100 of credit.
- */
+// crAPI signs a user up, then emails them a vehicle VIN and pincode they must claim. The run needs
+// two accounts in two tenants, each with a placed order — but the order lifecycle the API tester drives needs
+// no vehicle, so prepare only creates and logs the accounts in. Each account funds a cohort of
+// orders from its starting $100 of credit.
 const ACCOUNTS = {
   ALPHA: { email: "testing-alpha@example.com", name: "the API tester Alpha", number: "4169990001" },
   BETA: { email: "testing-beta@example.com", name: "the API tester Beta", number: "4169990002" },
 } as const;
+
 const PASSWORD = "Tst!pass123";
 
 async function post(url: string, body: unknown): Promise<{ status: number; body: Record<string, unknown> }> {
@@ -18,12 +17,13 @@ async function post(url: string, body: unknown): Promise<{ status: number; body:
     headers: { "content-type": "application/json" },
     method: "POST",
   });
+
   return { body: (await response.json()) as Record<string, unknown>, status: response.status };
 }
 
 const target: Target = {
   baseUrl: "http://127.0.0.1:18888",
-  /* crAPI's published test signing key, which the identity service mounts (README.md). */
+  // crAPI's published test signing key, which the identity service mounts (README.md).
   vendored: [
     {
       path: "keys/jwks.json",
@@ -34,17 +34,21 @@ const target: Target = {
   async prepare(baseUrl) {
     await answers(`${baseUrl}/`, 300_000);
     const env: Record<string, string> = { CRAPI_URL: baseUrl };
+
     for (const [key, account] of Object.entries(ACCOUNTS)) {
-      /* A repeat run meets accounts already signed up; that answer is fine, the login is the proof. */
+      // A repeat run meets accounts already signed up; that answer is fine, the login is the proof.
       const signup = await post(`${baseUrl}/identity/api/auth/signup`, { ...account, password: PASSWORD });
+
       if (signup.status >= 500) throw new Error(`signup ${account.email} failed: ${signup.status}`);
       const login = await post(`${baseUrl}/identity/api/auth/login`, { email: account.email, password: PASSWORD });
-      if (typeof login.body["token"] !== "string") {
+
+      if (typeof login.body["token"] !== "string")
         throw new Error(`login ${account.email} failed: ${login.status} ${JSON.stringify(login.body)}`);
-      }
+
       env[`CRAPI_${key}_EMAIL`] = account.email;
       env[`CRAPI_${key}_PASSWORD`] = PASSWORD;
     }
+
     return env;
   },
   readyWithinMs: 300_000,

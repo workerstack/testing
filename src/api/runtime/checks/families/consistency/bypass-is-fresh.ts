@@ -15,6 +15,7 @@ const ID = "consistency.bypass-is-fresh";
 function cacheStatusOf(answer: Exchange): string {
   const { status } = readCacheSignals(answer.responseHeaders);
   const said = status.map((entry) => `${entry.cache} ${entry.hit ? "hit" : `fwd=${entry.fwd ?? "?"}`}`);
+
   return said.length === 0 ? "" : `; Cache-Status ${said.join(", ")}`;
 }
 
@@ -29,9 +30,13 @@ export const bypassIsFresh: Check<{ readOp: OperationModel; bypass: CacheBypass 
   plan: (ctx) => {
     const { createOp, readOp } = ctx;
     const bypass = readOp?.consistency?.bypass ?? null;
+
     if (readOp === undefined || bypass === null) return cannot("a read that declares an x-consistency bypass");
+
     if (ctx.cacheBypass === false) return cannot("the cache bypass, which config cache.bypass turns off");
+
     if (createOp === undefined || writeKinds(ctx).length === 0) return cannot("a create, and an update or a delete");
+
     return ready({ bypass, readOp });
   },
   mutates: true,
@@ -41,17 +46,22 @@ export const bypassIsFresh: Check<{ readOp: OperationModel; bypass: CacheBypass 
   async run(ctx, { bypass, readOp }): Promise<Outcome> {
     const kind = writeKinds(ctx)[0] as "update" | "delete";
     const written = await primedWrite(ctx, { check: ID, kind, readOp });
+
     if ("outcome" in written) return written.outcome;
-    /* Sent as the caller's own header, so the read carries it whatever layers the client adds. */
+
+    // Sent as the caller's own header, so the read carries it whatever layers the client adds.
     const answer = await ctx.client.get(written.path, {
       ...readAfter(written),
       as: { principal: ctx.actor.id },
       headers: { [bypass.name]: bypass.value },
     });
+
     const hit = readCacheSignals(answer.responseHeaders).status.some((entry) => entry.hit);
     const shows = written.shows(answer);
+
     if (shows && !hit) return ASSERTED;
     const what = shows ? "a cache hit" : `the old ${kind === "delete" ? "record" : "value"}`;
+
     return ctx.findings.backend(ID, ctx.entityName, {
       detail: `right after the ${kind}, GET ${written.path} sent ${bypass.name}: ${bypass.value} answered ${what}${cacheStatusOf(answer)}`,
       evidence: [written.write, answer],

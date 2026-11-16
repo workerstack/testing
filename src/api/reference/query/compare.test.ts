@@ -8,6 +8,7 @@ const ROWS = [
   { id: "b", n: 9, name: "Alpha", note: "x" },
   { id: "c", n: null, name: "alpha", note: null },
 ];
+
 const key = (field: string, extra: Partial<OrderTerm> = {}): OrderTerm => ({
   asText: false,
   descending: false,
@@ -15,6 +16,7 @@ const key = (field: string, extra: Partial<OrderTerm> = {}): OrderTerm => ({
   nullsFirst: false,
   ...extra,
 });
+
 const sorted = (order: OrderTerm[], collation: "binary" | "insensitive" = "binary") =>
   [...ROWS].sort(compareRows(order, collation)).map((row) => row.id);
 

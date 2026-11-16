@@ -5,18 +5,20 @@ import { d1Driver, nodeSqliteDriver } from "./sqlite-driver.ts";
 const CONFIG = { accountId: "acct", apiToken: "secret", databaseId: "db" };
 const ENDPOINT = "https://api.cloudflare.com/client/v4/accounts/acct/d1/database/db/query";
 
-interface Sent {
+type Sent = {
   url: string;
   init: RequestInit;
-}
+};
 
-/* D1's query API answering every call with `body` under `status`, recording what was sent. */
+// D1's query API answering every call with `body` under `status`, recording what was sent.
 function stubD1(body: unknown, status = 200): Sent[] {
   const sent: Sent[] = [];
   vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
     sent.push({ init, url });
+
     return Response.json(body, { status });
   });
+
   return sent;
 }
 

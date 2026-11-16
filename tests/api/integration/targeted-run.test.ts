@@ -12,6 +12,7 @@ import { run, type RunResult } from "../../../src/api/runtime/run/index.ts";
 const DEFECT_VERDICTS = new Set(["BACKEND_BUG", "SECURITY", "SPEC_BUG"]);
 
 let open: Array<{ close: () => Promise<void> }> = [];
+
 afterEach(async () => {
   for (const server of open) await server.close();
   open = [];
@@ -20,20 +21,25 @@ afterEach(async () => {
 async function reference(defects: string[] = []): Promise<ReferenceServer> {
   const server = await createMemoryServer({ defects });
   open.push(server);
+
   return server;
 }
 
 /** Forwards to the reference server, failing any request `fail` matches with a 500. */
 async function failing(target: ReferenceServer, fail: (method: string, path: string) => boolean): Promise<string> {
   const upstream = new URL(target.url);
+
   const proxy = createServer((req: IncomingMessage, res: ServerResponse) => {
     const path = req.url ?? "/";
+
     if (fail(req.method ?? "GET", path.split("?")[0] ?? path)) {
       req.resume();
       res.writeHead(500, { "content-type": "application/json" });
       res.end(JSON.stringify({ error_key: "internal", message: "injected" }));
+
       return;
     }
+
     const forward = httpRequest(
       { headers: req.headers, hostname: upstream.hostname, method: req.method, path, port: upstream.port },
       (answer) => {
@@ -41,11 +47,14 @@ async function failing(target: ReferenceServer, fail: (method: string, path: str
         answer.pipe(res);
       },
     );
+
     req.pipe(forward);
   });
+
   await new Promise<void>((resolve) => proxy.listen(0, "127.0.0.1", resolve));
   const url = `http://127.0.0.1:${(proxy.address() as AddressInfo).port}`;
   open.push({ close: () => new Promise<void>((resolve) => proxy.close(() => resolve())) });
+
   return url;
 }
 
@@ -61,10 +70,11 @@ async function runAt(baseUrl: string, ops?: string[]): Promise<RunResult> {
 }
 
 const defects = (result: RunResult) => result.findings.filter((f) => DEFECT_VERDICTS.has(f.verdict));
+
 const coverage = (result: RunResult, operationId: string) =>
   result.scope.operations.find((op) => op.operationId === operationId);
 
-/* What a target grades, and what it leaves alone. */
+// What a target grades, and what it leaves alone.
 function scopeTests(): void {
   it("a full run reports coverage for every operation", async () => {
     const server = await reference();
@@ -73,7 +83,7 @@ function scopeTests(): void {
     expect(defects(result)).toEqual([]);
     expect(coverage(result, "table.get")?.status).toBe("passed");
     expect(coverage(result, "row.list")?.status).toBe("passed");
-    /* Principals sign in through it; that exchange is its contract-tier proof. */
+    // Principals sign in through it; that exchange is its contract-tier proof.
     expect(coverage(result, "auth.token")).toMatchObject({ status: "passed", tier: "contract" });
   });
 
@@ -118,7 +128,7 @@ function scopeTests(): void {
   });
 }
 
-/* A support operation that fails blocks its target; a target that fails is still a defect. */
+// A support operation that fails blocks its target; a target that fails is still a defect.
 function supportFailureTests(): void {
   it("blocks a target whose support operation fails, without calling it a defect", async () => {
     const server = await reference();
@@ -140,10 +150,11 @@ function supportFailureTests(): void {
   });
 }
 
-/* A primary reference and a second one at origin `cdn`, run with `ops`. */
+// A primary reference and a second one at origin `cdn`, run with `ops`.
 async function runWithCdn(seeded: string[], ops: string[]): Promise<RunResult> {
   const primary = await reference(seeded);
   const cdn = await reference(seeded);
+
   return run({
     baseUrl: primary.url,
     ops,
@@ -157,7 +168,7 @@ async function runWithCdn(seeded: string[], ops: string[]): Promise<RunResult> {
   });
 }
 
-/* An origin-prefixed target runs at that origin; an origin no target names does not run. */
+// An origin-prefixed target runs at that origin; an origin no target names does not run.
 function originTests(): void {
   it("routes an origin-prefixed target to that origin only", async () => {
     const result = await runWithCdn(["PATCH_REPLACES"], ["cdn:table.update"]);
@@ -175,12 +186,13 @@ function originTests(): void {
   });
 }
 
-/* A target nothing exercised stays ungraded; one that names nothing is refused. */
+// A target nothing exercised stays ungraded; one that names nothing is refused.
 function ungradedTests(): void {
   it("does not count an operation as graded when no check exercised it", async () => {
     const server = await reference();
-    /* One principal: the invite flow needs a peer, so nothing ever calls table.revoke. The
-     * transcript-judging status check runs on the entity but has nothing of revoke to judge. */
+
+    // One principal: the invite flow needs a peer, so nothing ever calls table.revoke. The
+    // transcript-judging status check runs on the entity but has nothing of revoke to judge.
     const result = await run({
       baseUrl: server.url,
       ops: ["table.revoke"],
@@ -189,6 +201,7 @@ function ungradedTests(): void {
       seed: 42,
       spec: `${server.url}/v1/openapi/spec`,
     });
+
     expect(result.client.transcript.some((e) => e.method === "DELETE" && e.url.includes("/grants/"))).toBe(false);
     expect(coverage(result, "table.revoke")?.status).toBe("untested");
     expect(coverage(result, "table.revoke")?.checks.passed).toEqual([]);

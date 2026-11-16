@@ -39,12 +39,13 @@ export async function scenarios(ctx: RunContext): Promise<void> {
 function scenarioAccounts(ctx: RunContext): ScenarioAccounts {
   const { accounts } = ctx;
   const deleteSelf = accountOps(ctx.model).deleteSelf?.operationId;
+
   return {
     ...(deleteSelf === undefined ? {} : { deleteSelf }),
     addressedTo: (address) => addressedTo(accounts, address),
     deletedItself: (entry, exchange) => {
       if (!accounts.owed().includes(entry)) return;
-      /* Only the document's delete-self, which the scenario checked the exchange called, settles one. */
+      // Only the document's delete-self, which the scenario checked the exchange called, settles one.
       accounts.settle(entry, {
         note: deletedDuringRun(exchange.operationId as string, exchange.seq),
         status: "removed",
@@ -55,8 +56,9 @@ function scenarioAccounts(ctx: RunContext): ScenarioAccounts {
   };
 }
 
-/* The one account the run still owes that `address` names; none when none, or two, do. */
+// The one account the run still owes that `address` names; none when none, or two, do.
 function addressedTo(accounts: AccountLedger, address: string) {
   const named = accounts.owed().filter((entry) => Object.values(entry.identity).includes(address));
+
   return named.length === 1 ? named[0] : undefined;
 }

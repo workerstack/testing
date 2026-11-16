@@ -23,6 +23,7 @@ describe("recipeSchemes", () => {
       { mapping: { api_key: "edgeKey", api_token: "jwt" }, schemes: CF },
       { mapping: { api_key: "edgeKey" }, schemes: IMMICH },
     ];
+
     const schemes = recipeSchemes(PRIMARY, origins);
     expect([...schemes.keys()]).toEqual(["apiKey", "jwt", "edgeKey"]);
     expect(schemes.get("jwt")).toBe(PRIMARY.get("jwt"));

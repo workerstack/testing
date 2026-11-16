@@ -1,6 +1,6 @@
-/* The steps a sign-in flow or a scenario runs: operation calls, raw requests, out-of-band waits. */
+// The steps a sign-in flow or a scenario runs: operation calls, raw requests, out-of-band waits.
 
-interface StepBase {
+type StepBase = {
   /**
    * Binds parts of the response into the flow's scope. Later steps interpolate them as
    * `{name}`, and `rootsFromFlow` can promote them to path parameters.
@@ -25,10 +25,10 @@ interface StepBase {
   bind?: Record<string, string>;
   /** Accepted statuses. Defaults to any 2xx. */
   expect?: number[];
-}
+};
 
 /** Calls an operation named in the document. Prefer this — it survives the path moving. */
-export interface OperationStep extends StepBase {
+export type OperationStep = StepBase & {
   operationId: string;
   body?: unknown;
   /** One of the request media types the operation documents. Default: the API tester's preferred one. */
@@ -37,10 +37,10 @@ export interface OperationStep extends StepBase {
   query?: Record<string, string>;
   /** Named `origins[]` entry. Omit to hit the primary `baseUrl`. */
   origin?: string;
-}
+};
 
 /** Calls a raw path, for endpoints the document does not describe. */
-export interface RequestStep extends StepBase {
+export type RequestStep = StepBase & {
   method: string;
   /**
    * Path relative to this origin's `baseUrl`, or an absolute `http://` / `https://` URL.
@@ -59,7 +59,7 @@ export interface RequestStep extends StepBase {
    * the first 3xx (`expect: [303]` then reads cookies from that response).
    */
   redirect?: "follow" | "manual";
-}
+};
 
 /**
  * A value that never travels over HTTP — an emailed verification token, an OTP, a magic link.
@@ -69,7 +69,7 @@ export interface RequestStep extends StepBase {
  * surface between the API tester and one specific backend. The hook returns a string (a token, or the
  * mailed URL); the API tester records the consume hop only when a later RequestStep GETs that URL.
  */
-export interface OutOfBandStep {
+export type OutOfBandStep = {
   outOfBand: {
     address: string;
     kind: string;
@@ -80,18 +80,18 @@ export interface OutOfBandStep {
      */
     sentEarlier?: boolean;
   };
-}
+};
 
 export type AuthStep = OperationStep | RequestStep | OutOfBandStep;
 
-/* ------------------------------------------------------------------ scenarios */
+// ------------------------------------------------------------------ scenarios
 
 /**
  * The value at `from` in a step's response must equal, contain, or no longer hold the text after
  * `{name}` interpolation. `from` is a JSON path; `[*]` fans out over an array, so
  * `$.items[*].name` passes when any item's name matches.
  */
-export interface ScenarioAssert {
+export type ScenarioAssert = {
   from: string;
   equals?: string;
   contains?: string;
@@ -112,7 +112,7 @@ export interface ScenarioAssert {
    * exchange as the observation. The step's own operation always counts.
    */
   observes?: string[];
-}
+};
 
 /** A request in a scenario: an `OperationStep` or `RequestStep`, plus what to check. */
 export type ScenarioRequestStep = (OperationStep | RequestStep) & {
@@ -142,29 +142,29 @@ export type ScenarioRequestStep = (OperationStep | RequestStep) & {
  * Something only a person or a browser can do — pay with a test card, give OAuth consent.
  * The API tester calls `hooks.external(name, input)` and binds the string it returns to `as`.
  */
-export interface ExternalStep {
+export type ExternalStep = {
   external: string;
   input?: Record<string, unknown>;
   as: string;
-}
+};
 
 export type ScenarioStep = ScenarioRequestStep | OutOfBandStep | ExternalStep;
 
 /** What the scenario `external` steps need from the machine that runs them, so a profile can leave them out. */
-export interface ExternalsConfig {
+export type ExternalsConfig = {
   /**
    * Each external's kind by name, in your own words (`"device"`, `"headless"`). A profile's
    * `excludeExternalKinds` skips a scenario whose step names an external of an excluded kind.
    */
   kinds?: Record<string, string>;
-}
+};
 
 /**
  * A declared flow for operations the matrix cannot reach on its own: steps run in order as one
  * principal, values flow forward through `{name}`, and each operation in `covers` is graded by
  * what the steps observed. Product knowledge lives here, in the config — not in the API tester.
  */
-export interface Scenario {
+export type Scenario = {
   id: string;
   /** Operations this scenario grades. Each must be called by one of its steps. */
   covers: string[];
@@ -176,4 +176,4 @@ export interface Scenario {
    */
   origin?: string;
   steps: ScenarioStep[];
-}
+};

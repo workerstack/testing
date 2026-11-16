@@ -27,12 +27,14 @@ describe("rowsOfReport", () => {
     const skipped = [{ check: "a.b", entity: "table", needs: "n" }];
     const suppressed = [{ because: "x.y", check: "a.b", entity: "table" }];
     const outOfScope = [{ check: "a.b", entity: "table" }];
+
     const rows = rowsOfReport({
       ...report,
       checksOutOfScope: outOfScope,
       checksSkipped: skipped,
       checksSuppressed: suppressed,
     });
+
     expect(rows).toMatchObject({ checksOutOfScope: outOfScope, checksSkipped: skipped, checksSuppressed: suppressed });
   });
 });
@@ -59,6 +61,7 @@ describe("rowsFor", () => {
     { check: "c", entity: "a.b.c", n: 6 },
     { check: "d", entity: "table", n: 7 },
   ];
+
   const index = indexRows(rows);
   const ns = (check: string, entity: string): number[] => rowsFor(index, check, entity).map((row) => row.n);
 

@@ -4,7 +4,7 @@ import type { ApiConfig } from "../../config/types/config.ts";
 import type { BaselineFile } from "../../runtime/baseline.ts";
 import { overridesOf, type RunSetting, runOptionsOf } from "./run-options.ts";
 
-/* The run's options: the config as written, the flags over it, and what the command set up. */
+// The run's options: the config as written, the flags over it, and what the command set up.
 
 const config: ApiConfig = {
   baseUrl: "http://api.test",
@@ -16,9 +16,9 @@ const setting = (extra: Partial<RunSetting> = {}): RunSetting => ({
   baseline: undefined,
   configPath: "/cfg/testing.api.config.ts",
   exchangeDir: undefined,
-  onProgress: () => undefined,
+  onProgress: () => {},
   signal: new AbortController().signal,
-  warn: () => undefined,
+  warn: () => {},
   ...extra,
 });
 
@@ -33,12 +33,14 @@ describe("runOptionsOf", () => {
       seed: 1,
       spec: "openapi.json",
     });
+
     for (const key of ["baseline", "only", "ops", "profile", "exchangeDir", "hooks", "network", "keepCredentials"])
       expect(options).not.toHaveProperty(key);
   });
 
   it("passes the config's own fields as written, and its seed, fixtures and in-flight cap", () => {
     const hooks = {};
+
     const written = {
       ...config,
       cohortSize: 3,
@@ -48,6 +50,7 @@ describe("runOptionsOf", () => {
       network: { retries: 1 },
       seed: 5,
     } as ApiConfig;
+
     expect(runOptionsOf(written, {}, setting())).toMatchObject({
       cohortSize: 3,
       hooks,
@@ -81,6 +84,7 @@ describe("runOptionsOf credentials", () => {
 describe("runOptionsOf overrides", () => {
   it("lets the flags override the config, and carries what the command set up", () => {
     const baseline: BaselineFile = { entries: [], version: 1 };
+
     const options = runOptionsOf(
       { ...config, only: ["x"], ops: ["y"], profile: "full" },
       {
@@ -95,6 +99,7 @@ describe("runOptionsOf overrides", () => {
       },
       setting({ accountsFile: "/runs/1/accounts.json", baseline, exchangeDir: "/runs/1" }),
     );
+
     expect(options).toMatchObject({
       accountsFile: "/runs/1/accounts.json",
       baseline,

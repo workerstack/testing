@@ -24,9 +24,12 @@ export const patchMinimality: Check<{
 }>({
   plan: (ctx) => {
     const { createOp, updateOp, readOp } = ctx;
+
     if (updateOp === undefined || readOp === undefined || createOp === undefined) return cannot();
-    /* Partial update is what PATCH promises; a PUT replaces the record by definition. */
+
+    // Partial update is what PATCH promises; a PUT replaces the record by definition.
     if (updateOp.method.toUpperCase() !== "PATCH") return cannot("an update by PATCH, which promises a partial write");
+
     return ready({ createOp, readOp, updateOp });
   },
   mutates: true,
@@ -35,12 +38,14 @@ export const patchMinimality: Check<{
   subjects: subjectsOf.update,
   async run(ctx, { createOp, readOp, updateOp }): Promise<Outcome> {
     const made = await scratchRecord(ctx, this.id);
+
     if ("outcome" in made) return made.outcome;
     const id = made.scratch.id;
     const params = { ...ctx.scope, ...itemParamFor(ctx, id) };
     const read: Read = (at) => ctx.client.get(fillPath(readOp.path, at), { as: { principal: ctx.actor.id } });
 
     const before = await read(params);
+
     if (before.status >= 300) {
       return ctx.findings.unresolved(
         this.id,
@@ -48,7 +53,9 @@ export const patchMinimality: Check<{
         `reading the record back returned ${before.status}, so no baseline could be established`,
       );
     }
+
     const original = readRecord(readOp, before);
+
     if (original === undefined) return ctx.findings.unresolved(this.id, ctx.entityName, NO_RECORD);
     const control = await controlBaseline(ctx, read, id);
     const settle = await read(params);
@@ -56,29 +63,35 @@ export const patchMinimality: Check<{
     const drifting = driftingFields([createOp, updateOp], original, baseline);
 
     const field = pickWritableStringField(ctx, original);
+
     if (field === null) return standDown("no field can be patched on its own");
     const next = changedValue(ctx, field, original[field], updateOp);
-    if (next === undefined) {
+
+    if (next === undefined)
       return ctx.findings.unresolved(this.id, ctx.entityName, `no other valid value for "${field}" can be made`);
-    }
 
     const patched = await ctx.client.request("PATCH", fillPath(updateOp.path, params), {
       body: { [field]: next },
       as: { principal: ctx.actor.id },
     });
+
     if (standDownForFeatureGate(ctx, updateOp, patched, this.id))
       return standDown("a documented feature gate refused the request");
+
     if (patched.status >= 300) return ctx.findings.unresolved(this.id, ctx.entityName, "the patch was refused");
 
     const after = await read(params);
     const current = readRecord(readOp, after);
+
     if (current === undefined) return ctx.findings.unresolved(this.id, ctx.entityName, NO_RECORD);
 
     const moved = Object.keys(original).filter(
       (key) => key !== field && !drifting.has(key) && JSON.stringify(baseline[key]) !== JSON.stringify(current[key]),
     );
+
     const collateral = moved.length === 0 ? moved : await withoutControlDrift({ read, readOp }, control, moved);
-    /* A ternary, not an early return: after the await above, v8 miscounts an if's implicit else. */
+
+    // A ternary, not an early return: after the await above, v8 miscounts an if's implicit else.
     return collateral.length === 0
       ? ASSERTED
       : ctx.findings.backend(this.id, ctx.entityName, {
@@ -98,6 +111,7 @@ function collateralDetail(
   const changes = collateral
     .slice(0, 5)
     .map((key) => `${key} ${JSON.stringify(record.before[key])} → ${JSON.stringify(record.after[key])}`);
+
   return (
     `patching only "${field}" also changed ${collateral.length} other field(s): ${changes.join("; ")}. ` +
     "PATCH is a partial update; behaving as PUT silently destroys data callers never sent."
@@ -108,16 +122,16 @@ function collateralDetail(
 type Read = (params: Record<string, string>) => Promise<Exchange>;
 
 /** How a record is read back: the read, and the operation whose response holds the record. */
-interface RecordReader {
+type RecordReader = {
   read: Read;
   readOp: OperationModel;
-}
+};
 
 /** A record never written to, read before the PATCH: where it lives and what it held. */
-interface Control {
+type Control = {
   params: Record<string, string>;
   before: Exchange;
-}
+};
 
 /**
  * A control record, never written to, observed across the same window as the target.
@@ -127,8 +141,10 @@ interface Control {
  */
 async function controlBaseline(ctx: WriteContext, read: Read, id: string): Promise<Control | undefined> {
   const controlId = ctx.records.map((r) => idOf(r, ctx.identity)).find((other) => other !== undefined && other !== id);
+
   if (controlId === undefined) return undefined;
   const params = { ...ctx.scope, ...itemParamFor(ctx, controlId) };
+
   return { before: await read(params), params };
 }
 
@@ -147,20 +163,19 @@ async function controlBaseline(ctx: WriteContext, read: Read, id: string): Promi
 function driftingFields(writes: OperationModel[], original: Record_, baseline: Record_): Set<string> {
   const drifting = new Set<string>([
     ...Object.keys(original).filter((key) => isServerTimestamp(key, original[key])),
-    /* A job's progress counter advances on GET without this PATCH having written it. */
+    // A job's progress counter advances on GET without this PATCH having written it.
     "progress",
-    /*
-     * From both operations, not just the one being probed. A document commonly declares
-     * its server-owned fields on `create` — that is where they are conspicuous, being the
-     * fields a caller may not supply — and omits the same list on `update`. Reading only
-     * the update operation meant a field the document plainly called generated was still
-     * compared, and a progress counter advancing on its own read as a PATCH side effect.
-     */
+    // From both operations, not just the one being probed. A document commonly declares
+    // its server-owned fields on `create` — that is where they are conspicuous, being the
+    // fields a caller may not supply — and omits the same list on `update`. Reading only
+    // the update operation meant a field the document plainly called generated was still
+    // compared, and a progress counter advancing on its own read as a PATCH side effect.
     ...writes.flatMap((op) => op.generated),
   ]);
-  for (const key of Object.keys(original)) {
+
+  for (const key of Object.keys(original))
     if (JSON.stringify(original[key]) !== JSON.stringify(baseline[key])) drifting.add(key);
-  }
+
   return drifting;
 }
 
@@ -173,16 +188,20 @@ function driftingFields(writes: OperationModel[], original: Record_, baseline: R
  * judged then.
  */
 function isServerTimestamp(key: string, value: unknown): boolean {
-  const name = key.replace(/[_-]/g, "").toLowerCase();
+  const name = key.replaceAll(/[_-]/g, "").toLowerCase();
   const named = /^(last)?(update|updated|modified)(at|on|time|date)?$|^date(updated|modified)$/.test(name);
+
   if (!named) return false;
+
   if (typeof value === "number") return true;
+
   if (typeof value === "string") return !Number.isNaN(Date.parse(value));
-  /* Unset until the first write stamps it: only a name nothing else could mean. */
+
+  // Unset until the first write stamps it: only a name nothing else could mean.
   return value === null && /^(last|date)|(at|on|time|date)$/.test(name);
 }
 
-/* Whatever also moved on the untouched control record was not caused by this PATCH. */
+// Whatever also moved on the untouched control record was not caused by this PATCH.
 async function withoutControlDrift(
   { read, readOp }: RecordReader,
   control: Control | undefined,
@@ -190,9 +209,12 @@ async function withoutControlDrift(
 ): Promise<string[]> {
   if (control === undefined || control.before.status >= 300) return collateral;
   const controlAfter = await read(control.params);
+
   if (controlAfter.status >= 300) return collateral;
   const from = readRecord(readOp, control.before);
   const to = readRecord(readOp, controlAfter);
+
   if (from === undefined || to === undefined) return collateral;
+
   return collateral.filter((key) => JSON.stringify(from[key]) === JSON.stringify(to[key]));
 }

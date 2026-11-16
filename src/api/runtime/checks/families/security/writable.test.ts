@@ -5,7 +5,7 @@ import { operationContextFor } from "./__fixtures__/operation-context.ts";
 import { NOTE_TARGET, securedDoc } from "./__fixtures__/secured-api.ts";
 import { readOf, recordAt, writableBody } from "./writable.ts";
 
-/* A write probe's harmless body: the record as it is, cut to what the operation's request body accepts. */
+// A write probe's harmless body: the record as it is, cut to what the operation's request body accepts.
 
 const model = modelOf(securedDoc());
 const update = operationContextFor(model, "notes.update").ctx;

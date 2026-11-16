@@ -7,38 +7,41 @@ import { describe, expect, it } from "vitest";
 
 import { floorProblems } from "../api/support/coverage-floors.ts";
 
-/*
- * Coverage floors only rise, and every instrumented module has one. The bar is the last committed
- * floors file that differs from the one in the tree: a commit that lowers a floor fails from then
- * on, not only while it is uncommitted.
- */
+// Coverage floors only rise, and every instrumented module has one. The bar is the last committed
+// floors file that differs from the one in the tree: a commit that lowers a floor fails from then
+// on, not only while it is uncommitted.
 
 const ROOT = join(import.meta.dirname, "..", "..");
 
 function git(cwd: string, ...args: string[]): void {
   const done = spawnSync("git", args, { cwd, encoding: "utf8" });
+
   if (done.status !== 0) throw new Error(`git ${args.join(" ")}: ${done.stderr}`);
 }
 
-/* A repository holding `files`, committed once per entry of `commits` in order. */
+// A repository holding `files`, committed once per entry of `commits` in order.
 function repo(commits: ReadonlyArray<Record<string, string>>): string {
   const dir = mkdtempSync(join(tmpdir(), "testing-floors-"));
   git(dir, "init", "-q");
   git(dir, "config", "user.email", "test@testing.test");
   git(dir, "config", "user.name", "the API tester test");
+
   for (const files of commits) {
     for (const [path, text] of Object.entries(files)) {
       mkdirSync(dirname(join(dir, path)), { recursive: true });
       writeFileSync(join(dir, path), text);
     }
+
     git(dir, "add", "-A");
     git(dir, "commit", "-q", "-m", "step");
   }
+
   return dir;
 }
 
 const two = (a: number, b: number): string =>
   `${JSON.stringify({ "src/api/a.ts": { lines: a }, "src/api/b.ts": { lines: b } })}\n`;
+
 const floors = (lines: number): string => `${JSON.stringify({ "src/api/a.ts": { lines } })}\n`;
 
 describe("coverage floors", () => {
@@ -51,6 +54,7 @@ describe("coverage floors", () => {
       { "coverage-floors.json": floors(90), "src/api/a.ts": "export const a = 1\n" },
       { "coverage-floors.json": floors(80) },
     ]);
+
     expect(floorProblems(dir)).toEqual(["src/api/a.ts: lines 90 → 80"]);
   });
 
@@ -60,6 +64,7 @@ describe("coverage floors", () => {
       { "coverage-floors.json": two(80, 50) },
       { "coverage-floors.json": two(80, 60) },
     ]);
+
     expect(floorProblems(dir)).toEqual(["src/api/a.ts: lines 90 → 80"]);
   });
 
@@ -83,6 +88,7 @@ describe("coverage floors for modules that come and go", () => {
         "src/api/index.ts": "",
       },
     ]);
+
     expect(floorProblems(dir)).toEqual([
       "src/api/a.ts: floor removed while the module exists",
       "src/api/a.ts: instrumented, with no floor",
@@ -92,10 +98,12 @@ describe("coverage floors for modules that come and go", () => {
 
   it("let an entry point's floor go, since entries.test.ts proves it thin instead", () => {
     const entry = `${JSON.stringify({ "src/api/cli.ts": { lines: 100 } })}\n`;
+
     const dir = repo([
       { "coverage-floors.json": entry, "src/api/cli.ts": "start()\n" },
       { "coverage-floors.json": "{}\n" },
     ]);
+
     expect(floorProblems(dir)).toEqual([]);
   });
 

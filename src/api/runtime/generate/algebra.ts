@@ -26,7 +26,9 @@ const ANNOTATIONS: ReadonlySet<string> = /* @__PURE__ */ new Set([
 /** `{}`, `true`, or annotations alone: any value at all. */
 export function isVacuous(schema: unknown): boolean {
   if (schema === true) return true;
+
   if (!isObject(schema)) return false;
+
   return Object.keys(schema).every((key) => ANNOTATIONS.has(key) || key.startsWith("x-"));
 }
 
@@ -37,14 +39,17 @@ export function isVacuous(schema: unknown): boolean {
  */
 export function mergeAll(base: JsonSchema, pointer: string, path = "allOf"): JsonSchema {
   const branches = base.allOf;
+
   if (!Array.isArray(branches)) throw new Unconstructible(`${path} is not a list of schemas`, pointer);
   let out: JsonSchema = { ...base };
   delete out.allOf;
+
   for (const [index, branch] of branches.entries()) {
     if (!isObject(branch)) continue;
     const nested = branch.allOf === undefined ? branch : mergeAll(branch, pointer, `${path}/${index}/allOf`);
     out = merge(out, nested);
   }
+
   return out;
 }
 
@@ -57,6 +62,7 @@ function bothTypes(existing: unknown, value: unknown): unknown {
   const left = Array.isArray(existing) ? existing : [existing];
   const right = Array.isArray(value) ? value : [value];
   const both = left.filter((type) => right.includes(type) || (type === "integer" && right.includes("number")));
+
   return both.length === 1 ? both[0] : both;
 }
 
@@ -79,37 +85,47 @@ const COMBINE: Readonly<Record<string, Combine>> = {
   type: bothTypes,
 };
 
-/* Two patterns both hold, and one schema object holds one `pattern`: a second one is carried as an `allOf` branch. */
+// Two patterns both hold, and one schema object holds one `pattern`: a second one is carried as an `allOf` branch.
 function withPattern(out: JsonSchema, pattern: unknown): void {
   const residual = Array.isArray(out.allOf) ? (out.allOf as unknown[]) : [];
+
   if (out.pattern === pattern || residual.some((branch) => isObject(branch) && branch.pattern === pattern)) return;
   out.allOf = [...residual, { pattern }];
 }
 
 export function merge(a: JsonSchema, b: JsonSchema): JsonSchema {
   const out: JsonSchema = { ...a };
+
   for (const [key, value] of Object.entries(b)) {
     const existing = out[key];
+
     if (existing === undefined) {
       out[key] = value;
       continue;
     }
+
     if (key === "pattern") withPattern(out, value);
     else if (key === "allOf" && Array.isArray(existing) && Array.isArray(value)) out.allOf = [...existing, ...value];
     else if (Object.hasOwn(COMBINE, key)) out[key] = (COMBINE[key] as Combine)(existing, value);
     else out[key] = isObject(existing) && isObject(value) ? merge(existing, value) : value;
   }
+
   return out;
 }
 
 export function typesOf(schema: JsonSchema): string[] {
   const type = schema.type;
+
   if (typeof type === "string") return [type];
+
   if (Array.isArray(type)) return type.filter((item): item is string => typeof item === "string");
+
   if (schema.properties !== undefined || schema.required !== undefined) return ["object"];
+
   if (schema.items !== undefined || schema.prefixItems !== undefined) return ["array"];
-  if (["minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf"].some((k) => k in schema)) {
+
+  if (["minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf"].some((k) => k in schema))
     return ["number"];
-  }
+
   return ["string"];
 }

@@ -11,11 +11,13 @@ const ok = { "200": { description: "ok", ...json({ type: "object" }) } };
 const writes = [{ jwt: [] }, { apiKey: ["notes:write"] }];
 const project = { in: "path", name: "project_id", required: true, schema: { type: "string" } };
 const noteId = { in: "path", name: "note_id", required: true, schema: { type: "string" } };
+
 const account = {
   properties: { email: { format: "email", type: "string" }, name: { minLength: 2, type: "string" } },
   required: ["email", "name"],
   type: "object",
 };
+
 const model = modelOf(
   securedDoc({
     "/projects/{project_id}/notes/archive": {
@@ -94,7 +96,8 @@ const model = modelOf(
     },
   }),
 );
-/* The note update over a schema that requires its title, as a document sharing one schema says. */
+
+// The note update over a schema that requires its title, as a document sharing one schema says.
 const merged = modelOf(
   securedDoc({
     "/projects/{project_id}/notes/{note_id}": {
@@ -108,7 +111,8 @@ const merged = modelOf(
     },
   }),
 );
-/* A note replaced whole by PUT, whose only required property is its identity, which the path names. */
+
+// A note replaced whole by PUT, whose only required property is its identity, which the path names.
 const replaced = modelOf(
   securedDoc({
     "/projects/{project_id}/notes/{note_id}": {
@@ -127,7 +131,9 @@ const replaced = modelOf(
     },
   }),
 );
+
 const alpha = actorOf("alpha", { scope: { project_id: "proj_a" } });
+
 const answering =
   (status: number): SentResponder =>
   () => ({ status });
@@ -145,12 +151,14 @@ function noteUpdate(status: number) {
 async function bodies(seed: number): Promise<unknown[]> {
   const { ctx, sent } = operationContextFor(model, "scores.submit", { respond: answering(400), seed });
   await runOperationCheck(invalidBodyRefused, ctx);
+
   return sent.map((s) => s.options.body);
 }
 
 /** What the check needs to plan `operationId` on the run-created note, or "planned". */
 function needs(operationId: string): string | undefined {
   const plan = invalidBodyRefused.plan(operationContextFor(model, operationId, { target: NOTE_TARGET }).ctx);
+
   return plan.ok ? "planned" : plan.needs;
 }
 
@@ -198,6 +206,7 @@ describe("request.invalid-body-refused's verdicts on a record the run created", 
       }),
       target: NOTE_TARGET,
     });
+
     expect(await runOperationCheck(invalidBodyRefused, ctx)).toEqual({ kind: "asserted" });
     expect(sent.map((s) => s.options.body)).toEqual([{ id: "n1", title: 7 }]);
   });
@@ -234,11 +243,13 @@ describe("request.invalid-body-refused's verdicts on a record the run created", 
 describe("request.invalid-body-refused: where an item write goes", () => {
   it("sends as the record's creator, so a refusal is the body's and not the caller's", async () => {
     const beta = actorOf("beta", { scope: { project_id: "proj_a" } });
+
     const { ctx, sent } = operationContextFor(model, "notes.update", {
       principals: [alpha, beta],
       respond: answering(422),
       target: { ...NOTE_TARGET, owner: "beta" },
     });
+
     await runOperationCheck(invalidBodyRefused, ctx);
     expect(sent.map((s) => s.options.as)).toEqual([{ principal: "beta" }]);
   });
@@ -259,6 +270,7 @@ describe("request.invalid-body-refused: where an item write goes", () => {
       principals: [alpha],
       target: { ...NOTE_TARGET, current: undefined },
     });
+
     expect(invalidBodyRefused.plan(ctx)).toEqual({
       needs: "the target record's current state, for a harmless body",
       ok: false,
@@ -276,11 +288,13 @@ describe("request.invalid-body-refused on an action of a record", () => {
       owner: { email: "owner@example.com" },
       title: "first",
     };
+
     const { ctx, sent } = operationContextFor(model, "notes.share", {
       principals: [alpha],
       respond: answering(422),
       target: { ...NOTE_TARGET, current },
     });
+
     await runOperationCheck(invalidBodyRefused, ctx);
     expect(sent.map((s) => s.options.body)).toEqual([
       {
@@ -297,6 +311,7 @@ describe("request.invalid-body-refused on an action of a record", () => {
       respond: answering(422),
       target: { ...NOTE_TARGET, current: { id: "n1", title: "a@example.com" } },
     });
+
     await runOperationCheck(invalidBodyRefused, ctx);
     expect(sent.map((s) => s.options.body)).toEqual([{ title: 7 }]);
   });
@@ -329,6 +344,7 @@ describe("request.invalid-body-refused on a collection", () => {
       principals: [alpha],
       respond: answering(201),
     });
+
     expect(await runOperationCheck(invalidBodyRefused, ctx)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     const [request] = sent;
     expect([request?.method, request?.path, request?.options.as, request?.options.probe]).toEqual([
@@ -373,6 +389,7 @@ describe("request.invalid-body-refused planning", () => {
       recipeOperations: ["auth.register"],
       respond: answering(201),
     });
+
     expect(await runOperationCheck(invalidBodyRefused, ctx)).toEqual({
       kind: "stood-down",
       reason: "an operation no credential recipe names; auth.register is a step of one",
@@ -388,6 +405,7 @@ describe("request.invalid-body-refused planning", () => {
         },
       }),
     );
+
     expect(invalidBodyRefused.plan(operationContextFor(createModel, "notes.create").ctx)).toEqual({
       needs: "a write other than its entity's create; notes.create is note's create",
       ok: false,
@@ -407,6 +425,7 @@ describe("request.invalid-body-refused planning", () => {
         "/ping": { post: { operationId: "ping.send", requestBody: json({}), responses: ok, security: [] } },
       }),
     );
+
     expect(invalidBodyRefused.plan(operationContextFor(bare, "ping.send").ctx)).toEqual({
       needs: "a request schema with a required or typed property",
       ok: false,
@@ -430,6 +449,7 @@ describe("request.invalid-body-refused on a sign-up", () => {
         },
       }),
     );
+
     expect(invalidBodyRefused.plan(operationContextFor(signupModel, "member.signup").ctx)).toMatchObject({ ok: true });
   });
 });

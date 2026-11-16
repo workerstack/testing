@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import { fieldLines } from "./init-code.ts";
 
-/* Code laid out as oxfmt lays it out, so formatting what `testing api init` writes changes nothing. */
+// Code laid out as oxfmt lays it out, so formatting what `testing api init` writes changes nothing.
 
 describe("fieldLines", () => {
   it("keeps a value on one line up to 120 columns, a tab counting two, and breaks it one column later", () => {
-    /* Two tabs, `k: `, `["` and `"]`, then the comma. */
+    // Two tabs, `k: `, `["` and `"]`, then the comma.
     const fits = "x".repeat(120 - 2 * 2 - "k: ".length - 4 - ",".length);
     expect(fieldLines([{ key: "k", value: [`"${fits}"`] }], 2)).toEqual([`\t\tk: ["${fits}"],`]);
     expect(fieldLines([{ key: "k", value: [`"${fits}x"`] }], 2)).toEqual(["\t\tk: [", `\t\t\t"${fits}x",`, "\t\t],"]);

@@ -3,10 +3,10 @@
 import { type Finding, isRootCause } from "../../runtime/finding.ts";
 import type { Outcome } from "./backend.ts";
 
-export interface Verdict {
+export type Verdict = {
   ok: boolean;
   detail: string;
-}
+};
 
 const CREATE = "create.unique-conflict-rejected";
 const UPDATE = "update.unique-conflict-rejected";
@@ -33,6 +33,7 @@ function absent(ran: boolean, [yes, no]: [string, string]): Verdict {
 /** A BACKEND_BUG on `check` that must be found: its detail, or `missing` when it is not. */
 function bug(result: Result, check: string, missing: () => string): Verdict {
   const hit = found(result, check, "BACKEND_BUG");
+
   return { detail: hit === undefined ? missing() : hit.detail, ok: hit !== undefined };
 }
 
@@ -55,6 +56,7 @@ export function noneProbed({ result }: Outcome): Verdict {
 export function duplicateRefused({ result }: Outcome): Verdict {
   const bugs = result.findings.filter(isRootCause).filter((f) => f.check === CREATE);
   const ran = result.checksRun.includes(CREATE);
+
   return {
     detail: `ran=${String(ran)} bugs=${bugs.map((f) => f.verdict).join(",") || "none"}`,
     ok: ran && bugs.length === 0,
@@ -67,6 +69,7 @@ export function duplicateInserted({ result }: Outcome): Verdict {
 
 export function listKept({ result }: Outcome): Verdict {
   const grew = result.findings.some((f) => f.check === CREATE && f.summary.includes("grew"));
+
   return { detail: grew ? "cardinality finding" : "no growth finding", ok: !grew };
 }
 
@@ -77,6 +80,7 @@ export function oneSetInserted({ result }: Outcome): Verdict {
 export function updateRefused({ result }: Outcome): Verdict {
   const hit = found(result, UPDATE, "BACKEND_BUG");
   const ran = result.checksRun.includes(UPDATE);
+
   return { detail: `ran=${String(ran)} bug=${hit?.detail ?? "none"}`, ok: ran && hit === undefined };
 }
 
@@ -87,15 +91,19 @@ export function updateApplied({ result }: Outcome): Verdict {
 /** No probe after the seed sends the seed's own Idempotency-Key again. */
 export function freshKey({ posts, result }: Outcome): Verdict {
   const first = posts[0]?.headers["idempotency-key"];
+
   const reused = posts.slice(1).some((post) => {
     const value = post.headers["idempotency-key"];
+
     return typeof value === "string" && typeof first === "string" && value === first && value !== "";
   });
+
   return { detail: reused ? "reused seed key" : "fresh or omitted", ok: result.checksRun.includes(CREATE) && !reused };
 }
 
 export function driftReported({ result }: Outcome): Verdict {
   const drift = result.findings.find((f) => f.check === "schema.error-response-matches-document");
+
   return {
     detail: drift === undefined ? result.findings.map((f) => f.check).join(",") || "none" : drift.verdict,
     ok: drift !== undefined,
@@ -106,6 +114,7 @@ export function driftReported({ result }: Outcome): Verdict {
 export function coverageNotPass({ result }: Outcome): Verdict {
   const hit = found(result, CREATE, "BACKEND_BUG");
   const gap = found(result, CREATE, "COVERAGE_GAP");
+
   return {
     detail: `bug=${hit?.verdict ?? "none"} gap=${gap?.verdict ?? "none"}`,
     ok: hit === undefined && gap !== undefined,
@@ -118,11 +127,13 @@ function adopted(seed: Finding | undefined): boolean {
 
 export function seedAdopted({ result }: Outcome): Verdict {
   const seed = seedOf(result);
+
   return { detail: seedDetail(seed), ok: adopted(seed) };
 }
 
 export function probedAfterAdopt({ result }: Outcome): Verdict {
   const ran = result.checksRun.includes(CREATE);
+
   return { detail: ran ? "ran" : `checksRun=${result.checksRun.join(",")}`, ok: ran };
 }
 
@@ -130,16 +141,19 @@ export function seedNotEvidence({ result }: Outcome): Verdict {
   const asSeed = result.findings.some(
     (f) => f.check === CREATE && f.verdict !== "BACKEND_BUG" && f.evidence.length === 0,
   );
+
   return { detail: asSeed ? "scored seed as unique pass" : "seed is not unique-check evidence", ok: !asSeed };
 }
 
 export function seedBlocked({ result }: Outcome): Verdict {
   const seed = seedOf(result);
+
   return { detail: seedDetail(seed), ok: seed?.verdict === "BLOCKED" };
 }
 
 export function untaggedNotAdopted({ result }: Outcome): Verdict {
   const adopts = adopted(seedOf(result));
+
   return { detail: adopts ? "adopted without a tag" : "not unique-adopt", ok: !adopts };
 }
 
@@ -147,6 +161,7 @@ export function distinctInserted({ result }: Outcome): Verdict {
   const bugs = result.findings
     .filter(isRootCause)
     .filter((f) => f.check.startsWith("create.unique") || f.check.startsWith("update.unique"));
+
   return {
     detail: `bugs=${bugs.map((f) => f.check).join(",") || "none"} entities=${result.entitiesTested.join(",")}`,
     ok: bugs.length === 0 && result.entitiesTested.includes("widget"),

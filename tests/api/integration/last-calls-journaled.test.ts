@@ -5,18 +5,18 @@ import { afterAll, describe, expect, it } from "vitest";
 import { createMemoryServer } from "../../../src/api/reference/http/engines.ts";
 import { latestJournal, tester, referenceConfig, tempDirs } from "../support/cli-run.ts";
 
-/*
- * The run's last calls are evidence like any other: the minted keys' revokes, the accounts its
- * sign-ups made being removed, and the principals' own sessions ended all reach exchanges.jsonl.
- */
+// The run's last calls are evidence like any other: the minted keys' revokes, the accounts its
+// sign-ups made being removed, and the principals' own sessions ended all reach exchanges.jsonl.
 
 const dirs = tempDirs("testing-last-calls-");
+
 afterAll(dirs.removeAll);
 
 describe("the run's closing calls", () => {
   it("are journaled: key revokes, account teardown and session revokes", async () => {
     const dir = await dirs.make();
     const server = await createMemoryServer({ defects: [] });
+
     try {
       const config = await referenceConfig(dir, server.url);
       const runs = join(dir, "runs");

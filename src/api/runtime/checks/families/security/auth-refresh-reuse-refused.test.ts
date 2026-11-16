@@ -6,21 +6,22 @@ import { actorOf, operationContextFor, sender } from "./__fixtures__/operation-c
 import { securedDoc } from "./__fixtures__/secured-api.ts";
 import { refreshReuseRefused } from "./auth-refresh-reuse-refused.ts";
 
-/* A dedicated session is rotated once; replaying the refresh token it rotated away must fail. */
+// A dedicated session is rotated once; replaying the refresh token it rotated away must fail.
 
 const model = modelOf(securedDoc());
 const alpha = actorOf("alpha", { scope: { project_id: "proj_a" }, tenant: "proj_a" });
 const JWT = { issue: "auth.login", kind: "login", refresh: "auth.refresh" } as const;
 
-interface Backend {
+type Backend = {
   replay?: Replayed;
   /** What the rotated session draws on the read. */
   rotated?: number;
   rotates?: boolean;
-}
+};
 
 function staged(operationId: string, backend: Backend) {
   const events: string[] = [];
+
   const dedicated = (): DedicatedCredential => ({
     actor: { principal: "alpha#probe-1" },
     owner: "alpha",
@@ -31,9 +32,11 @@ function staged(operationId: string, backend: Backend) {
       : {
           rotate: async () => {
             events.push("rotate");
+
             return {
               replay: async () => {
                 events.push("replay");
+
                 return backend.replay ?? { accepted: false, reason: "refresh answered 401" };
               },
               value: "second",
@@ -41,21 +44,27 @@ function staged(operationId: string, backend: Backend) {
           },
         }),
   });
+
   const respond = (sent: Sent) => {
     events.push(`GET ${sent.path}`);
+
     return sender(sent) === "alpha#probe-1" ? { status: backend.rotated ?? 200 } : undefined;
   };
+
   const stage = operationContextFor(model, operationId, {
     principals: [alpha],
     probe: { dedicated, recipes: { jwt: JWT } },
     respond,
   });
+
   return { ...stage, events };
 }
 
 async function run(stage: ReturnType<typeof staged>) {
   const planned = refreshReuseRefused.plan(stage.ctx);
+
   if (!planned.ok) throw new Error(planned.needs);
+
   return refreshReuseRefused.run(stage.ctx, planned.value);
 }
 
@@ -97,6 +106,7 @@ describe("auth.refresh-reuse-refused", () => {
     });
     const none = operationContextFor(model, "auth.refresh", { principals: [alpha], probe: { recipes: { jwt: JWT } } });
     const planned = refreshReuseRefused.plan(none.ctx);
+
     if (!planned.ok) throw new Error("expected a plan");
     expect(await refreshReuseRefused.run(none.ctx, planned.value)).toEqual({
       kind: "stood-down",
@@ -109,8 +119,9 @@ describe("auth.refresh-reuse-refused", () => {
   });
 });
 
-/* A record beta created in its own project: the probe's target, whose creator expects acceptance. */
+// A record beta created in its own project: the probe's target, whose creator expects acceptance.
 const beta = actorOf("beta", { scope: { project_id: "proj_b" }, tenant: "proj_b" });
+
 const BETA_TARGET = {
   current: { id: "n1" },
   entity: "note",
@@ -120,7 +131,7 @@ const BETA_TARGET = {
   path: "/projects/proj_b/notes/n1",
 };
 
-/* Beta's dedicated session, which rotates once and refuses its replay. */
+// Beta's dedicated session, which rotates once and refuses its replay.
 const betaSession = (): DedicatedCredential => ({
   actor: { principal: "beta#probe-1" },
   owner: "beta",
@@ -137,7 +148,9 @@ describe("auth.refresh-reuse-refused on a record another principal created", () 
       respond: () => ({ status: 200 }),
       target: BETA_TARGET,
     });
+
     const planned = refreshReuseRefused.plan(stage.ctx);
+
     if (!planned.ok) throw new Error(planned.needs);
     expect(await refreshReuseRefused.run(stage.ctx, planned.value)).toEqual({ kind: "asserted" });
     expect(stage.calls.dedicated).toEqual([{ principal: "beta", scheme: "jwt", scopes: [] }]);

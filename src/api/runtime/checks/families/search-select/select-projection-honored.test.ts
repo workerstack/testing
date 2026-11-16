@@ -5,7 +5,7 @@ import { PARAMS, queryDoc, REJECT, stage } from "../composition/__fixtures__/que
 import { ignoring } from "./__fixtures__/responders.ts";
 import { selectProjection } from "./select-projection-honored.ts";
 
-/* An empty listing, whatever is asked. */
+// An empty listing, whatever is asked.
 const empty: Responder = () => ({ body: [], status: 200 });
 
 describe("select.projection-honored judges", () => {
@@ -53,6 +53,7 @@ describe("select.projection-honored plans", () => {
         PARAMS.filter((name) => name !== "select"),
       ),
     });
+
     expect(await noParam.run()).toEqual({ kind: "stood-down", reason: "a `select` sparse-fieldset parameter" });
     expect(noParam.sent).toEqual([]);
     expect(stage(selectProjection, { rows: [] }).plan().ok).toBe(false);

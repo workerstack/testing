@@ -6,13 +6,14 @@ import { describe, expect, it } from "vitest";
 
 import { readConfig } from "./config.ts";
 
-/* A config the command cannot use is the caller's to fix: one line saying why, before any request. */
+// A config the command cannot use is the caller's to fix: one line saying why, before any request.
 
 const dir = (): string => mkdtempSync(join(tmpdir(), "testing-config-"));
 
 function configFile(body: unknown): string {
   const path = join(dir(), "testing.api.config.json");
   writeFileSync(path, JSON.stringify(body));
+
   return path;
 }
 
@@ -84,11 +85,13 @@ describe("readConfig deferring env", () => {
   it("never defers ${NAME} for a run, though TESTING_API_DEFER_ENV=1 is exported", async () => {
     delete process.env["TESTING_API_CONFIG_TEST_UNSET"];
     process.env["TESTING_API_DEFER_ENV"] = "1";
+
     try {
       const read = await readConfig(
         configFile({ baseUrl: "${TESTING_API_CONFIG_TEST_UNSET}", principals: { a: {} }, spec: "s.yaml" }),
         true,
       );
+
       expect("problem" in read && read.problem).toContain("TESTING_API_CONFIG_TEST_UNSET");
     } finally {
       delete process.env["TESTING_API_DEFER_ENV"];

@@ -21,9 +21,9 @@ export const JOB: EntityDef = {
       sortable: true,
       type: "string",
     },
-    /* A second freely-writable string, purely so the concurrency check has two independent
-     * fields to race on. With only `name` writable it could never establish that two patches
-     * to *different* fields both survive, and it stood down on every run. */
+    // A second freely-writable string, purely so the concurrency check has two independent
+    // fields to race on. With only `name` writable it could never establish that two patches
+    // to *different* fields both survive, and it stood down on every run.
     {
       filterable: true,
       maxLength: 256,
@@ -33,15 +33,13 @@ export const JOB: EntityDef = {
       sortable: true,
       type: "string",
     },
-    /*
-     * A low-cardinality field the *client* sets.
-     *
-     * Every other field on this entity is either unique per record or server-generated, which
-     * left no value shared by some records but not all — so any property asserted over a
-     * proper subset (a filter that matches several rows and excludes others) had nothing to
-     * work with and stood down. Real collections always have a repeated dimension; a fixture
-     * without one silently narrows what can be tested.
-     */
+    // A low-cardinality field the *client* sets.
+    //
+    // Every other field on this entity is either unique per record or server-generated, which
+    // left no value shared by some records but not all — so any property asserted over a
+    // proper subset (a filter that matches several rows and excludes others) had nothing to
+    // work with and stood down. Real collections always have a repeated dimension; a fixture
+    // without one silently narrows what can be tested.
     {
       enum: ["export", "import", "sync"],
       filterable: true,

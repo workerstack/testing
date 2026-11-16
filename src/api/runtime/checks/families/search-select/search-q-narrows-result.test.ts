@@ -7,7 +7,7 @@ import { searchNarrowsResult } from "./search-q-narrows-result.ts";
 
 const NO_MATCH = "zzqqxx-testing-no-match-token";
 
-/* One record, whatever is asked. */
+// One record, whatever is asked.
 const single: Responder = () => ({ body: [NOTES[0]], status: 200 });
 
 describe("search.q-narrows-result judges", () => {
@@ -52,6 +52,7 @@ describe("search.q-narrows-result plans", () => {
         PARAMS.filter((name) => name !== "q"),
       ),
     });
+
     expect(await noParam.run()).toEqual({
       kind: "stood-down",
       reason: "a free-text `q` parameter and declared searchable fields",

@@ -114,6 +114,7 @@ describe("filters in each grammar", () => {
       ["plain", "status=draft"],
       ["template", "filter_by=and_status_eq_draft"],
     ] as const;
+
     for (const [dialect, query] of cases) {
       const { call } = await api({ dialect });
       await call("POST", TABLES, { body: { name: "a", status: "draft" } });
@@ -161,10 +162,12 @@ describe("a listed record", () => {
 describe("sorting", () => {
   it("reads a repeated sort parameter in order", async () => {
     const { call } = await api({ shape: "wrapped-records" });
+
     const sorted = (await call("GET", `${TABLES}?sort=status_descending&sort=name_ascending`)).body["data"] as Array<{
       name: string;
       status: string;
     }>;
+
     const expected = sorted.toSorted((a, b) => b.status.localeCompare(a.status) || (a.name < b.name ? -1 : 1));
     expect(sorted).toEqual(expected);
     expect((await call("GET", TABLES)).status).toBe(200);

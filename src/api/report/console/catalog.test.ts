@@ -39,8 +39,9 @@ describe("entityQueryCatalogs from the document", () => {
 
 describe("entityQueryCatalogs and the parameters a list declares", () => {
   it("lists only what a declared parameter can carry, as the run sends it", () => {
-    /* No `x-query`: a free-text `q` makes the API tester guess every scalar, one filter parameter each. */
+    // No `x-query`: a free-text `q` makes the API tester guess every scalar, one filter parameter each.
     const item = { properties: { id: { type: "string" }, name: { type: "string" } }, type: "object" };
+
     const doc = documentOf({
       "/things": {
         get: {
@@ -52,6 +53,7 @@ describe("entityQueryCatalogs and the parameters a list declares", () => {
         },
       },
     });
+
     const [thing] = entityQueryCatalogs(modelOf(doc).model).catalogs;
     expect(thing?.filterable.map((field) => field.field)).toEqual(["name"]);
     expect(thing?.sortable).toEqual([]);
@@ -64,6 +66,7 @@ describe("entityQueryCatalogs with config", () => {
   it("lays config over the document, names config entities the document lacks, and notes a hook", async () => {
     const { model } = await referenceModel({ untagged: true });
     const from = { path: "$.fields" };
+
     const { catalogs, unknownEntities } = entityQueryCatalogs(model, {
       entities: { ghost: {}, row: {}, table: { query: { searchable: ["name"], selectableFrom: from } } },
       hooks: { resolveQueryCapabilities: async () => null },
@@ -84,6 +87,7 @@ describe("entityQueryCatalogs with config", () => {
         sortableFrom: from,
       },
     });
+
     expect(unknownEntities).toEqual(["ghost"]);
     const table = catalogs.find((row) => row.entity === "table");
     expect(table).toMatchObject({

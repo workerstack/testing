@@ -9,6 +9,7 @@ const schema = {
   required: ["name"],
   type: "object",
 };
+
 const gated = {
   "x-feature-gate": "pro",
   responses: { "201": { description: "made" }, "403": { description: "gated" } },
@@ -17,7 +18,9 @@ const gated = {
 async function probe(answer: Answer, create: Record<string, unknown> = {}) {
   const staged = stage(itemsDocument(schema, create), answer);
   const plan = maxLengthValidated.plan(staged.ctx);
+
   if (!plan.ok) throw new Error("the maxLength plan did not apply");
+
   return { ...staged, outcome: await maxLengthValidated.run(staged.ctx, plan.value) };
 }
 
@@ -67,6 +70,7 @@ describe("validation.max-length-enforced run", () => {
   it("stands down without a request when no over-long value can be made", async () => {
     const { ctx, sent } = stage(itemsDocument(schema), { status: 201 });
     const createOp = ctx.createOp;
+
     if (createOp === undefined) throw new Error("the document has a create");
     const outcome = await maxLengthValidated.run(ctx, { createOp, schema, target: { name: "code", schema: {} } });
     expect(outcome).toEqual({ kind: "stood-down", reason: "no maxLength declared" });

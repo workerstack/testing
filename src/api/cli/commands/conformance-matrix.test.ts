@@ -4,11 +4,9 @@ import { fakeToolkit, type ToolkitOptions } from "../__fixtures__/toolkit.ts";
 import { bufferWriter } from "../writer.ts";
 import { type Leg, type Matrix, planPasses, runMatrix } from "./conformance-matrix.ts";
 
-/*
- * The defect matrix by legs: passes queued at once and printed in order with their time; shapes
- * one per task after the default shape's checks; recall behind each clean shape a chunk at a time,
- * saying on stderr as each shape finishes; `--ops` scope from the default pass's runs.
- */
+// The defect matrix by legs: passes queued at once and printed in order with their time; shapes
+// one per task after the default shape's checks; recall behind each clean shape a chunk at a time,
+// saying on stderr as each shape finishes; `--ops` scope from the default pass's runs.
 
 const memory = { backend: "memory" as const, dialect: "postgrest" };
 
@@ -19,6 +17,7 @@ async function matrix(input: Matrix, options: ToolkitOptions = {}) {
   const { toolkit, log } = fakeToolkit(options);
   const writer = bufferWriter();
   const out = await runMatrix(writer, toolkit, input);
+
   return { ...out, log, text: writer.text() };
 }
 
@@ -46,7 +45,7 @@ describe("planPasses", () => {
 describe("runMatrix passes", () => {
   it("prints each pass in order with its time, sends its defects in chunks, and judges the tag unlocks from it", async () => {
     const { failures, log, proven, text } = await matrix(matrixOf(["passes"]), { proven: ["check.a"] });
-    /* Its baselines and two chunks of defects: three tasks of 10 requests each. */
+    // Its baselines and two chunks of defects: three tasks of 10 requests each.
     expect(text).toMatch(
       /── memory · postgrest[\s\S]*leg memory\/postgrest 8\n {2}requests: 30\n {2}requests by source:\n {4}check a: 18\n {4}seed: 12\n {2}done in [\d.]+s\n/,
     );
@@ -64,6 +63,7 @@ describe("runMatrix passes", () => {
     const classic = await matrix(
       matrixOf(["passes", "scope"], { passes: [{ backend: "memory", dialect: "classic" }] }),
     );
+
     expect(classic.log).not.toContain("unlocks matrix");
     expect(classic.log.some((entry) => entry.startsWith("task scope"))).toBe(false);
     const none = await matrix(matrixOf([], { passes: [] }));
@@ -80,6 +80,7 @@ describe("runMatrix passes", () => {
 
   it("closes the pool even when a pass fails", async () => {
     const { toolkit, log } = fakeToolkit();
+
     const broken = {
       ...toolkit,
       suite: {
@@ -89,6 +90,7 @@ describe("runMatrix passes", () => {
         },
       },
     };
+
     await expect(runMatrix(bufferWriter(), broken as never, matrixOf(["passes"]))).rejects.toThrow("leg broke");
     expect(log.at(-1)).toBe("pool closed");
   });
@@ -108,7 +110,7 @@ describe("runMatrix shapes and recall", () => {
       "task shape broken",
     ]);
     expect(text).toContain("── shapes · memory");
-    /* The default shape's task and each shape's own. */
+    // The default shape's task and each shape's own.
     expect(text).toMatch(
       /shapes 2\n {2}requests: 30\n {2}requests by source:\n {4}check a: 18\n {4}seed: 12\n {2}done in/,
     );
@@ -136,7 +138,7 @@ describe("runMatrix shapes and recall", () => {
       /recall 8\n {2}requests: 20\n {2}requests by source:\n {4}check a: 12\n {4}seed: 8\n {2}done in/,
     );
     expect([...proven].sort()).toEqual(["check.a", "check.b"]);
-    /* The broken shape's own case, its waiting recall case, and the missed defect. */
+    // The broken shape's own case, its waiting recall case, and the missed defect.
     expect(failures).toBe(3);
   });
 });

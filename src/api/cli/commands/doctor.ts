@@ -12,8 +12,10 @@ import { modeled } from "./spec.ts";
 /** `testing api doctor`: what the API tester can and cannot test in the document, and why. Exits 1 on anything blocking. */
 export async function commandDoctor(writer: Writer, flags: Args["flags"]): Promise<number> {
   const read = await modeled(writer, flags);
+
   if (typeof read === "number") return read;
   const { model, danglingRefs, externalRefs, config, configPath, removed, unsetEnv } = read;
+
   const output = report.doctor(model, {
     asJson: flags.json === true,
     config: config === undefined ? undefined : doctorConfig(config, removed),
@@ -21,13 +23,17 @@ export async function commandDoctor(writer: Writer, flags: Args["flags"]): Promi
     externalRefs,
     unsetEnv,
   });
+
   writer.out(output.text);
-  /* A baseline that is not there makes every known finding fail the next run. */
+
+  // A baseline that is not there makes every known finding fail the next run.
   if (config?.baseline !== undefined && configPath !== undefined) {
     const path = resolve(dirname(resolve(configPath)), config.baseline);
+
     if (!existsSync(path))
       writer.out(`  baseline   ${path} does not exist; \`testing api baseline --from <run>\` writes one\n`);
   }
+
   return output.blocking > 0 ? 1 : 0;
 }
 

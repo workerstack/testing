@@ -24,10 +24,12 @@ describe("captureVerdict", () => {
     expect(capture(seen("nothing.here", { body: {}, status: 200 }))).toBeUndefined();
     expect(capture(unnamed({ body: {}, status: 200 }))).toBeUndefined();
     const broken = modelOfItems({ read: UNCOMPILABLE });
+
     const verdict = captureVerdict(
       new SchemaValidator(broken.defs),
       broken,
     )(seen("item.read", { body: "x", status: 200 }));
+
     expect(verdict).toMatchObject({ errors: [], unchecked: expect.any(String) });
   });
 });
@@ -35,8 +37,10 @@ describe("captureVerdict", () => {
 describe("verdictOf", () => {
   it("reads the verdict taken at capture, and validates a body that has none", () => {
     const ref = { bytes: 300_000, mediaType: "application/json", sha256: "a".repeat(64) };
+
     const held = (verdict: { errors: string[]; unchecked?: string }) =>
       seen("item.read", { body: ref, status: 200 }, { schemaVerdict: verdict });
+
     expect(verdictOf(validator, read, held({ errors: ["/name must be string"] }))).toEqual({
       errors: ["/name must be string"],
       ok: false,

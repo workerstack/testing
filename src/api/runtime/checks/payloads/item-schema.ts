@@ -6,11 +6,11 @@ import type { OperationModel, SpecModel } from "../../../spec/graph/types.ts";
 import type { JsonSchema } from "../../../spec/types.ts";
 
 /** Where the record's schema is read from: the entity's list, else its item read. */
-export interface ItemRoutes {
+export type ItemRoutes = {
   listOp: OperationModel | undefined;
   readOp: OperationModel | undefined;
   model: Pick<SpecModel, "rawOperations">;
-}
+};
 
 /**
  * The record's schema: the list's rows when the entity has a list, else what its item read
@@ -19,8 +19,10 @@ export interface ItemRoutes {
 export function itemSchemaOf({ listOp, model, readOp }: ItemRoutes): JsonSchema | null {
   if (listOp !== undefined) return listOp.collection?.itemSchema ?? null;
   const raw = readOp === undefined ? undefined : model.rawOperations.get(readOp.operationId);
+
   if (readOp === undefined || raw === undefined) return null;
   const answer = effective(successSchema(raw));
+
   return readOp.recordPath === null ? answer : schemaAt(answer, readOp.recordPath);
 }
 
@@ -33,15 +35,18 @@ export function schemaAt(schema: JsonSchema | null, path: string): JsonSchema | 
     ? path
         .slice(1)
         .split("/")
-        .map((raw) => raw.replace(/~1/g, "/").replace(/~0/g, "~"))
+        .map((raw) => raw.replaceAll("~1", "/").replaceAll("~0", "~"))
     : path
         .replace(/^\$\.?/, "")
-        .replace(/\[(\d+|\*|\?\([^)]*\))\]/g, ".[]")
+        .replaceAll(/\[(\d+|\*|\?\([^)]*\))\]/g, ".[]")
         .split(".");
+
   return segments.filter(Boolean).reduce<JsonSchema | null>((node, segment) => {
     if (node === null) return null;
+
     if (node.type === "array")
       return segment === "[]" || /^\d+$/.test(segment) ? effective(asSchema(node.items)) : null;
+
     return effective(asSchema(asSchema(node.properties)?.[segment]));
   }, schema);
 }

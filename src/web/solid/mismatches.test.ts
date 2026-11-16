@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { isMismatch, solidMismatches } from "./mismatches.ts";
 
-/* What Solid 2's client runtime logs or throws when hydration and the server disagree. */
+// What Solid 2's client runtime logs or throws when hydration and the server disagree.
 const SOLID_SAYS = [
   "Hydration Mismatch. Unable to find DOM nodes for hydration key: 0-0-1",
   'Hydration key miss for "0-1": no server-rendered element carries this key. A detached element was created instead',
@@ -27,10 +27,12 @@ describe("isMismatch", () => {
 describe("solidMismatches", () => {
   it("is a guard list that matches every kind of event Solid's messages arrive as", () => {
     expect(solidMismatches.every((match) => match.kind === undefined)).toBe(true);
+
     for (const text of SOLID_SAYS) {
       const hit = solidMismatches.some((match) =>
         typeof match.text === "string" ? text.includes(match.text) : match.text.test(text),
       );
+
       expect(hit).toBe(true);
     }
   });

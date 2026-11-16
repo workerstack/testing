@@ -9,10 +9,8 @@ import {
   storedFieldsUnknown,
 } from "./stand-down.ts";
 
-/*
- * Two answers a check that needed a success stands down on instead of judging: a feature gate the
- * document declares, refused as documented, and a rate limit that outlasted the client's retries.
- */
+// Two answers a check that needed a success stands down on instead of judging: a feature gate the
+// document declares, refused as documented, and a rate limit that outlasted the client's retries.
 
 const GATE_BODY = { vars: { current_plan: "free", feature: "exports", type: "feature_gate" } };
 
@@ -60,10 +58,12 @@ describe("standDownForRateLimit", () => {
 
   it("names the wait a 429 asked for past the limit, which the API tester did not wait out", () => {
     const { ctx, findings } = notesContext();
+
     const limited = {
       ...exchange("GET", "/notes", { status: 429 }),
       retryAfterExceeded: { limitMs: 60_000, waitMs: 86_400_000 },
     };
+
     expect(standDownForRateLimit(ctx, limited, "c")).toBe(true);
     expect(findings.inconclusive).toEqual([
       {

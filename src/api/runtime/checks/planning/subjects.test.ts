@@ -6,10 +6,8 @@ import { exchange } from "../__fixtures__/harness.ts";
 import { notesContext, notesModel } from "../query/__fixtures__/notes.ts";
 import { declared, graded, isEventStream, itemParamFor, NO_KEY, ownOps, subjectsOf } from "./subjects.ts";
 
-/*
- * Which operations a check grades, decided from the entity graph alone so a scope can be shown
- * without a network. Each subject set reads the same fields the check's context is built from.
- */
+// Which operations a check grades, decided from the entity graph alone so a scope can be shown
+// without a network. Each subject set reads the same fields the check's context is built from.
 
 const TAGS = {
   "/tags": {
@@ -40,7 +38,9 @@ function notesWith(
   const byRoute = new Map(operations.map((operation) => [operation.route, operation]));
   const model = { ...base, byOperationId, byRoute, operations };
   const note = base.entities.get("note");
+
   if (note === undefined) throw new Error("the notes model has a note entity");
+
   return { entity: { ...note, ...entityPatch }, model };
 }
 
@@ -94,6 +94,7 @@ describe("subjectsOf", () => {
         wait: { operationId: "note.read", pollIntervalMs: 1, timeoutMs: 1 },
       },
     });
+
     expect(subjectsOf.async(entity, model)).toEqual(["note.create", "note.update"]);
     expect(subjectsOf.asyncReceipt(entity, model)).toEqual(["note.update"]);
     expect(subjectsOf.effects(entity, model)).toEqual(["note.create"]);
@@ -121,12 +122,14 @@ describe("subjectsOf", () => {
 describe("subjectsOf.createAndForeignReads", () => {
   it("grades a create with the reads of other entities it says it invalidates", () => {
     const base = notesWith({});
+
     const invalidates = [
       route(base.model, "tag.list"),
       route(base.model, "tag.create"),
       route(base.model, "note.read"),
       "GET /nowhere",
     ];
+
     const { entity, model } = notesWith({ "note.create": { invalidates } });
     expect(subjectsOf.createAndForeignReads(entity, model)).toEqual(["note.create", "tag.list"]);
   });
@@ -160,10 +163,12 @@ describe("isEventStream", () => {
     expect(isEventStream(plain, { ...ctx.listOp, eventStream: true })).toBe(true);
     expect(isEventStream(plain, ctx.listOp)).toBe(false);
     expect(isEventStream(plain)).toBe(false);
+
     const streamed = exchange("GET", "/notes", {
       headers: { "content-type": "text/event-stream; charset=utf-8" },
       status: 200,
     });
+
     expect(isEventStream(streamed)).toBe(true);
   });
 });

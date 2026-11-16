@@ -20,6 +20,7 @@ describe("collectRoots", () => {
     Object.assign(entityNamed(entities, "project"), { create: "projects.create" });
     Object.assign(entityNamed(entities, "team"), { invite: {} });
     entityNamed(entities, "org");
+
     const operations: OperationModel[] = [
       operation({
         entity: null,
@@ -31,6 +32,7 @@ describe("collectRoots", () => {
       operation({ entity: null, path: "/{workspace}", pathParams: ["workspace"] }),
       operation({ entity: null, path: "/a/{tenant_key}", pathParams: ["tenant_key"] }),
     ];
+
     expect(collectRoots(operations, entities)).toEqual(["org_id", "tenant_key", "workspace", "z"]);
   });
 });
@@ -42,6 +44,7 @@ describe("owningEntityOf", () => {
       at("GET", "/v1/items/{x}", "thing"),
       at("POST", "/v1/untagged", null),
     ];
+
     expect(owningEntityOf(operations, "/v1/hooks/{hook_id}", "hook_id")).toBe("org-hook");
     expect(owningEntityOf(operations, "/v1/items/{item_id}", "item_id")).toBe("thing");
     expect(owningEntityOf(operations, "/v1/untagged/{id}", "id")).toBe("untagged");
@@ -83,6 +86,7 @@ const op = (operationId: string, path: string, more: Partial<OperationModel> = {
 describe("scopingParams and prefixRoots", () => {
   const entities = new Map<string, EntityModel>();
   Object.assign(entityNamed(entities, "table"), { create: "table.create", list: "table.list" });
+
   const operations = [
     op("table.list", "/projects/{project_id}/tables"),
     op("table.create", "/projects/{project_id}/tables"),

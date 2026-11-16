@@ -5,6 +5,7 @@ import { formatProgressJsonl, formatProgressLine, formatProgressTsv } from "./fo
 import type { ProgressSnapshot } from "./types.ts";
 
 const AT = Date.parse("2030-01-01T00:00:00Z");
+
 const settled: ProgressSnapshot = {
   check: "list.pages",
   elapsedMs: 50,
@@ -26,6 +27,7 @@ const settled: ProgressSnapshot = {
   phase: "test",
   requests: 3,
 };
+
 const waiting: ProgressSnapshot = {
   elapsedMs: 0,
   findings: 0,
@@ -109,6 +111,7 @@ describe("formatProgressJsonl", () => {
         AT,
       ),
     );
+
     expect(Object.keys(event).slice(0, 4)).toEqual(["check", "done", "elapsed_ms", "entity"]);
     expect([event.http, event.req_b, event.res_b, event.last_ms, event.req_id, event.total]).toEqual([
       200,

@@ -10,30 +10,30 @@ import { PRINCIPALS, SECURITY } from "../../../src/api/conformance/matrix/princi
 import { createMemoryServer } from "../../../src/api/reference/http/engines.ts";
 import { EXIT } from "../../../src/api/runtime/exit.ts";
 
-/*
- * What a run leaves for people and CI: `testing api run --report junit` writes the matrix page, the JSON
- * report and JUnit XML into the run folder, and appends the job summary where GITHUB_STEP_SUMMARY
- * points. A clean reference passes all of them; one injected defect fails each the same way.
- */
+// What a run leaves for people and CI: `testing api run --report junit` writes the matrix page, the JSON
+// report and JUnit XML into the run folder, and appends the job summary where GITHUB_STEP_SUMMARY
+// points. A clean reference passes all of them; one injected defect fails each the same way.
 
 const dirs: string[] = [];
+
 afterAll(async () => {
   vi.unstubAllEnvs();
   await Promise.all(dirs.map((dir) => rm(dir, { force: true, recursive: true })));
 });
 
-interface Ran {
+type Ran = {
   code: number;
   out: string;
   runDir: string;
   summary: string;
-}
+};
 
-/* `testing api run --report junit` against the memory reference with `defects` injected, as a user calls it. */
+// `testing api run --report junit` against the memory reference with `defects` injected, as a user calls it.
 async function runWith(defects: string[]): Promise<Ran> {
   const dir = await mkdtemp(join(tmpdir(), "reports-"));
   dirs.push(dir);
   const server = await createMemoryServer({ defects });
+
   try {
     const config = join(dir, "testing.api.config.json");
     const spec = `${server.url}/v1/openapi/spec`;
@@ -45,7 +45,9 @@ async function runWith(defects: string[]): Promise<Ran> {
     const code = await main(argv, { writer });
     const out = writer.text();
     const junit = /^ {2}junit: (.+)$/m.exec(out)?.[1];
+
     if (junit === undefined) throw new Error(`the run printed no junit path:\n${out}`);
+
     return { code, out, runDir: dirname(junit), summary: await readFile(summary, "utf8") };
   } finally {
     vi.unstubAllEnvs();
@@ -53,28 +55,32 @@ async function runWith(defects: string[]): Promise<Ran> {
   }
 }
 
-interface Report {
+type Report = {
   schemaVersion: number;
   outcome: { exitCode: number; result: string };
   findings: Array<{ check: string; verdict: string; operations?: string[] }>;
-}
+};
 
-/* Tags in order, each close matching the open before it: the well-formedness a CI parser needs. */
+// Tags in order, each close matching the open before it: the well-formedness a CI parser needs.
 function balanced(xml: string): boolean {
   const open: string[] = [];
+
   for (const [, close, name, self] of xml.matchAll(/<(\/?)([A-Za-z][\w.-]*)[^>]*?(\/?)>/g)) {
     if (self === "/") continue;
+
     if (close === "") open.push(name as string);
     else if (open.pop() !== name) return false;
   }
+
   return open.length === 0;
 }
 
-/* The JUnit document's counts: the root's attributes, and the elements it holds. */
+// The JUnit document's counts: the root's attributes, and the elements it holds.
 function junitCounts(xml: string) {
   const root = /<testsuites [^>]*tests="(\d+)" failures="(\d+)"/.exec(xml);
   const suiteTests = [...xml.matchAll(/<testsuite [^>]*tests="(\d+)"/g)].reduce((sum, m) => sum + Number(m[1]), 0);
   const failed = [...xml.matchAll(/<testcase classname="([^"]+)" name="([^"]+)"><failure /g)];
+
   return {
     cases: xml.match(/<testcase /g)?.length ?? 0,
     failed: failed.map((m) => `${m[1]} ${m[2]}`).toSorted(),
@@ -88,6 +94,7 @@ async function artifacts(runDir: string): Promise<{ html: string; report: Report
   const [html, json, xml] = await Promise.all(
     ["matrix.html", "report.json", "junit.xml"].map((name) => readFile(join(runDir, name), "utf8")),
   );
+
   return { html: html as string, report: JSON.parse(json as string) as Report, xml: xml as string };
 }
 

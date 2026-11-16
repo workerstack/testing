@@ -10,9 +10,10 @@ import { askVerifyHook, VERIFY_HOOK_PRESENT } from "./verify-hook.ts";
 /** The verdicts' input over `removed` records counted gone and `unseen` ones left as never seen. */
 function verdictsOf(removed: Disposable[], unseen: Disposable[], untouched: Disposable[] = []) {
   const records = new Map<Disposable, RecordState>();
-  for (const item of [...removed, ...unseen, ...untouched]) {
+
+  for (const item of [...removed, ...unseen, ...untouched])
     records.set(item, { entity: item.entity, id: item.id, principal: item.owner.id, removed: removed.includes(item) });
-  }
+
   const report: TeardownReport = {
     failed: unseen.map((item) => leftover(item, NEVER_SEEN)),
     records: [],
@@ -20,13 +21,17 @@ function verdictsOf(removed: Disposable[], unseen: Disposable[], untouched: Disp
     unidentified: [],
     unsupported: [],
   };
+
   return { neverSeen: new Set(unseen), queue: [...removed, ...unseen, ...untouched], records, report };
 }
 
 const by = (answers: Record<string, RemovalVerdict | Error | string>) => async (record: RemovedRecord) => {
   const answer = answers[record.id];
+
   if (answer instanceof Error) throw answer;
+
   if (answer === "throws") throw "hook down";
+
   return answer as RemovalVerdict;
 };
 
@@ -60,6 +65,7 @@ describe("askVerifyHook", () => {
     const verdicts = verdictsOf(items, [], [untouched]);
     await askVerifyHook(async (record) => {
       asked.push(record.id);
+
       return by({ n1: "unknown", n2: new Error("timeout"), n3: "throws", n4: "unknown", n5: "unknown" })(record);
     }, verdicts);
     expect(asked).toEqual(["n1", "n2", "n3", "n4", "n5"]);

@@ -16,6 +16,7 @@ function start(doc: Record<string, unknown>): Dereferencing {
 
 const walked = (doc: Record<string, unknown>) => {
   const state = start(doc);
+
   return { out: walk(state, doc) as Record<string, any>, state };
 };
 
@@ -61,6 +62,7 @@ describe("walk refs", () => {
       b: { $ref: "#/text", description: "here" },
       c: { $ref: "#/list", description: "here" },
     });
+
     expect(out["a"]).toEqual({ description: "here", type: "string" });
     expect(out["obj"]).toEqual({ type: "string" });
     expect(out["b"]).toEqual({ description: "here" });
@@ -106,6 +108,7 @@ describe("walk data", () => {
       empty: { examples: null },
       text: { examples: "none" },
     });
+
     expect(out["schema"]).toEqual({
       example: { $ref: "#/nowhere" },
       examples: [{ $ref: "#/nowhere" }],
@@ -128,15 +131,18 @@ describe("walk data", () => {
 });
 
 const KEY = "x-testing-discriminator";
+
 const schemas = {
   Cat: { properties: { meow: { type: "boolean" } }, type: "object" },
   Dog: { properties: { bark: { type: "boolean" } }, type: "object" },
   Kitten: { $ref: "#/components/schemas/Cat" },
 };
+
 const union = (extra: Record<string, unknown>, branches = ["Cat", "Dog"]) => ({
   oneOf: branches.map((name) => ({ $ref: `#/components/schemas/${name}` })),
   ...extra,
 });
+
 const tags = (pet: Record<string, unknown>) =>
   walked({ components: { schemas: { ...schemas, Pet: pet } } }).out["components"].schemas.Pet[KEY];
 
@@ -159,6 +165,7 @@ describe("walk discriminators", () => {
       stray: "#/components/schemas/Missing",
       file: "cat.yaml",
     };
+
     expect(tags(union({ discriminator: { mapping, propertyName: "kind" } }, ["Kitten", "Dog"]))).toEqual({
       propertyName: "kind",
       values: [["cat", "kitty", "kitten"], ["dog"]],
@@ -172,6 +179,7 @@ describe("walk discriminators", () => {
       discriminator: { mapping: { cat: "#/defs/Cat", odd: 3 }, propertyName: "kind" },
       oneOf: [{ $ref: "#/defs/Cat" }],
     };
+
     expect(walked({ defs: { Cat: schemas.Cat }, pet }).out["pet"][KEY]).toEqual({
       propertyName: "kind",
       values: [["cat"]],
@@ -189,7 +197,7 @@ describe("walk discriminators", () => {
   });
 
   it("follows a chain of refs to the schema a branch and a mapping both reach, and stops at a loop", () => {
-    /* A ref loop is only walkable inside data, which is copied, never walked. */
+    // A ref loop is only walkable inside data, which is copied, never walked.
     const loop = { a: { $ref: "#/components/examples/x/value/a" } };
     const mapping = { kitty: "Kitten", loop: "#/components/examples/x/value/a" };
     const pet = union({ discriminator: { mapping, propertyName: "kind" } });

@@ -4,10 +4,10 @@ import type { CheckContext } from "../core/context.ts";
 
 export const graded = (ctx: CheckContext, op: OperationModel): boolean => ctx.inScope?.(op) ?? true;
 
-/* A record that does not carry its identity names nothing a request could address. */
+// A record that does not carry its identity names nothing a request could address.
 export const NO_IDENTITY = "a record that carries its identity";
 
-/* Matches no id: what a record without an identity is looked up as. */
+// Matches no id: what a record without an identity is looked up as.
 export const NO_KEY = "\u0000no-identity";
 
 export const declared = (...operationIds: Array<string | undefined>): string[] =>
@@ -24,7 +24,9 @@ export const subjectsOf = {
   create: (entity: EntityModel): string[] => declared(entity.create),
   createAndForeignReads: (entity: EntityModel, model: SpecModel): string[] => {
     const create = model.byOperationId.get(entity.create ?? "");
+
     if (create === undefined) return [];
+
     const foreign = create.invalidates
       .map((route) => model.byRoute.get(route))
       .filter(
@@ -32,6 +34,7 @@ export const subjectsOf = {
           op !== undefined && op.entity !== entity.name && op.method.toUpperCase() === "GET",
       )
       .map((op) => op.operationId);
+
     return [create.operationId, ...foreign];
   },
   createAndList: (entity: EntityModel): string[] => declared(entity.create, entity.list),
@@ -55,6 +58,7 @@ export const subjectsOf = {
 export function itemParamFor(ctx: CheckContext, id: string): Record<string, string> {
   const op = ctx.readOp ?? ctx.updateOp ?? ctx.deleteOp;
   const param = op?.pathParams.at(-1);
+
   return param === undefined ? {} : { [param]: id };
 }
 
@@ -62,5 +66,6 @@ export function itemParamFor(ctx: CheckContext, id: string): Record<string, stri
 export function isEventStream(exchange: Exchange, op?: OperationModel): boolean {
   if (op?.eventStream === true) return true;
   const type = exchange.responseHeaders["content-type"] ?? "";
+
   return type.includes("text/event-stream");
 }

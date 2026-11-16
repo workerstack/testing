@@ -34,6 +34,7 @@ describe("interpolate, with kept values", () => {
       ["count", 3],
       ["user-rep", { id: "u1" }],
     ]);
+
     const bytes = new Uint8Array([1, 2]);
     expect(
       interpolate(

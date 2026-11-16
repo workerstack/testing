@@ -12,28 +12,31 @@ const model = modelOf(doc);
 const CHECK = "effects.declared-effect-occurs";
 
 const rows = (...ids: string[]) => ({ body: ids.map((id) => ({ id, name: id })), status: 200 });
+
 const seen = (...ids: string[]): Observation => ({
   exchange: exchange("GET", "/", { status: 200 }),
   ids,
   status: "ok",
 });
+
 const failed = (reason: string): Observation => ({
   exchange: exchange("GET", "/", { status: 503 }),
   reason,
   status: "error",
 });
 
-interface Setup {
+type Setup = {
   befores?: Record<string, Observation>;
   scope?: Record<string, string>;
   body?: unknown;
   tracked?: boolean;
-}
+};
 
 /** Judges `effects` of a succeeded `actOnWidget` against a server answering through `respond`. */
 async function judge(respond: Responder, effects: EffectSpec[], setup: Setup = {}) {
   const recordCreated = vi.fn<NonNullable<CheckContext["recordCreated"]>>();
   const stage = contextFor(model, "listWidgets", { respond, fields: setup.tracked === false ? {} : { recordCreated } });
+
   const action: ActionRun = {
     befores: new Map(Object.entries(setup.befores ?? {})),
     check: CHECK,
@@ -44,7 +47,9 @@ async function judge(respond: Responder, effects: EffectSpec[], setup: Setup = {
     op: op(model, "actOnWidget"),
     scope: setup.scope ?? { id: "w1" },
   };
+
   await judgeEffects(action);
+
   return { ...stage, action, recordCreated };
 }
 
@@ -56,7 +61,7 @@ describe("missingParams", () => {
 
 describe("reportGap", () => {
   it("reports a coverage gap on the invocation's subject, naming the fixture", () => {
-    const { ctx, findings } = contextFor(model, "listWidgets", { respond: () => undefined });
+    const { ctx, findings } = contextFor(model, "listWidgets", { respond: () => {} });
     reportGap({ check: CHECK, ctx, fixture: "a.png", op: op(model, "actOnWidget") }, "title", "detail");
     expect(findings.findings).toMatchObject([
       { detail: "detail", entity: "actOnWidget · a.png", fixture: "a.png", summary: "title", verdict: "COVERAGE_GAP" },
@@ -69,6 +74,7 @@ describe("a create or append effect", () => {
     const run = await judge(() => rows("w1", "w2"), [{ entity: "widget", op: "create" }], {
       befores: { widget: seen("w1") },
     });
+
     expect(run.findings.findings).toEqual([]);
     expect(run.recordCreated).toHaveBeenCalledWith({ entity: "widget", id: "w2", scope: { id: "w1" } }, "owner");
     expect(run.action.scope).toEqual({ id: "w2", widget_id: "w2" });
@@ -78,6 +84,7 @@ describe("a create or append effect", () => {
     const run = await judge(() => rows("w1"), [{ entity: "widget", op: "create" }], {
       befores: { widget: seen("w1") },
     });
+
     expect(run.findings.findings).toMatchObject([
       {
         check: CHECK,
@@ -96,6 +103,7 @@ describe("a create or append effect", () => {
     const run = await judge(() => rows("w1", "w2"), [{ entity: "widget", min: 2, op: "append" }], {
       befores: { widget: seen("w1") },
     });
+
     expect(run.findings.findings[0]?.detail).toContain('declares append ≥ 2 on "widget"');
     expect(run.recordCreated).toHaveBeenCalledWith({ entity: "widget", id: "w2", scope: { id: "w1" } }, "owner");
     expect(run.action.scope).toEqual({ id: "w1" });
@@ -112,6 +120,7 @@ describe("a delete effect", () => {
     const run = await judge(() => rows("w1"), [{ entity: "widget", op: "delete" }], {
       befores: { widget: seen("w1", "w2") },
     });
+
     expect(run.findings.findings).toEqual([]);
     expect(run.recordCreated).not.toHaveBeenCalled();
   });
@@ -120,6 +129,7 @@ describe("a delete effect", () => {
     const run = await judge(() => rows("w1", "w2"), [{ entity: "widget", op: "delete" }], {
       befores: { widget: seen("w1", "w2") },
     });
+
     expect(run.findings.findings).toMatchObject([
       {
         detail: 'x-effects declares delete × 1 on "widget", but the collection went from 2 to 2',
@@ -135,6 +145,7 @@ describe("an update or replace effect", () => {
     const run = await judge(() => rows("w1"), [{ entity: "widget", op: "update" }], {
       befores: { widget: seen("w1") },
     });
+
     expect(run.findings.findings).toEqual([]);
   });
 
@@ -142,6 +153,7 @@ describe("an update or replace effect", () => {
     const run = await judge(() => rows("w1", "w9"), [{ entity: "widget", op: "replace" }], {
       befores: { widget: seen("w1") },
     });
+
     expect(run.findings.findings).toMatchObject([
       {
         detail: "x-effects declares replace, which must not add or remove records, but the collection went from 1 to 2",
@@ -156,7 +168,7 @@ const gaps = (run: Awaited<ReturnType<typeof judge>>) =>
 
 describe("an effect that cannot be observed", () => {
   it("is a gap when the entity has no list route", async () => {
-    const run = await judge(() => undefined, [{ entity: "job", op: "create" }], { scope: {} });
+    const run = await judge(() => {}, [{ entity: "job", op: "create" }], { scope: {} });
     expect(gaps(run)).toEqual([
       {
         detail: "the effect cannot be observed, so it is not verified",
@@ -168,7 +180,7 @@ describe("an effect that cannot be observed", () => {
   });
 
   it("is a gap naming what the list path still lacks after the write", async () => {
-    const run = await judge(() => undefined, [{ entity: "card", op: "append" }]);
+    const run = await judge(() => {}, [{ entity: "card", op: "append" }]);
     expect(gaps(run)[0]?.detail).toBe("missing {board_id} after the write; the effect is unverified");
   });
 
@@ -194,6 +206,7 @@ describe("an effect without a baseline", () => {
     const run = await judge(() => rows("w1"), [{ entity: "widget", op: "update" }], {
       befores: { widget: failed("pages repeat the same records") },
     });
+
     expect(gaps(run)).toEqual([
       {
         detail: `pages repeat the same records; no baseline, so the effect is unverified`,
@@ -207,6 +220,7 @@ describe("an effect without a baseline", () => {
 describe("a created parent", () => {
   it("is found in its collection's delta, so the children's list can be read under it", async () => {
     const respond = routes({ "GET /boards": () => rows("b0", "b1"), "GET /boards/b1/cards": () => rows("c1") });
+
     const run = await judge(
       respond,
       [
@@ -218,6 +232,7 @@ describe("a created parent", () => {
         scope: {},
       },
     );
+
     expect(run.findings.findings).toEqual([]);
     expect(run.action.scope).toMatchObject({ board_id: "b1" });
     expect(run.recordCreated).toHaveBeenCalledWith(
@@ -228,6 +243,7 @@ describe("a created parent", () => {
 
   it("is taken from the response when the response names it, without a second read", async () => {
     const respond = routes({ "GET /boards": () => rows("b0", "b1"), "GET /boards/b1/cards": () => rows("c1") });
+
     const run = await judge(
       respond,
       [
@@ -240,6 +256,7 @@ describe("a created parent", () => {
         scope: {},
       },
     );
+
     expect(run.findings.findings).toEqual([]);
     expect(run.sent.map((s) => s.path)).toEqual(["/boards", "/boards/b1/cards"]);
   });
@@ -248,6 +265,7 @@ describe("a created parent", () => {
 describe("a created parent without a baseline", () => {
   it("is bound from its whole collection when no baseline was read", async () => {
     const respond = routes({ "GET /boards": () => rows("b1"), "GET /boards/b1/cards": () => rows("c1") });
+
     const run = await judge(
       respond,
       [
@@ -258,12 +276,14 @@ describe("a created parent without a baseline", () => {
         scope: {},
       },
     );
+
     expect(run.findings.findings).toEqual([]);
     expect(run.action.scope).toMatchObject({ board_id: "b1" });
   });
 
   it("stays unbound when its collection cannot be read, leaving its children unverified", async () => {
     const respond = routes({ "GET /boards": () => ({ status: 500 }) });
+
     const run = await judge(
       respond,
       [
@@ -274,6 +294,7 @@ describe("a created parent without a baseline", () => {
         scope: {},
       },
     );
+
     expect(run.findings.findings.map((f) => f.summary)).toEqual([
       'actOnWidget could not observe "board" after the write',
       'actOnWidget declares an effect on "card", but the list path cannot be filled',

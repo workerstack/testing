@@ -4,14 +4,13 @@ import { describe, expect, it } from "vitest";
 import type { Record_ } from "../../world/records.ts";
 import { duplicates, membership, sameSet, setOf } from "./compare.ts";
 
-/*
- * The set algebra the comparing checks rest on, against brute-force references over small sets:
- * set equality is an equivalence, a read's membership ignores order, duplicates are the repeats.
- */
+// The set algebra the comparing checks rest on, against brute-force references over small sets:
+// set equality is an equivalence, a read's membership ignores order, duplicates are the repeats.
 
 const id = fc.constantFrom("a", "b", "c", "d", "e", "1", "2");
 const smallSet = fc.uniqueArray(id, { maxLength: 5 }).map((items) => new Set(items));
-/* Records with a scalar id, or none: a record without one is no member. */
+
+// Records with a scalar id, or none: a record without one is no member.
 const records: fc.Arbitrary<Record_[]> = fc.array(
   fc.oneof(
     id.map((value) => ({ id: value })),
@@ -23,14 +22,16 @@ const records: fc.Arbitrary<Record_[]> = fc.array(
 
 const sorted = (set: Set<string>) => [...set].toSorted().join("\n");
 
-/* Another set, or `set` itself reordered, so equal sets turn up often. */
+// Another set, or `set` itself reordered, so equal sets turn up often.
 const nextTo = (set: Set<string>) =>
   fc.oneof(
     smallSet,
     fc.shuffledSubarray([...set], { minLength: set.size }).map((items) => new Set(items)),
   );
+
 const triple = smallSet.chain((a) => nextTo(a).chain((b) => fc.tuple(fc.constant(a), fc.constant(b), nextTo(b))));
-/* Another read, or `rows` again in another order. */
+
+// Another read, or `rows` again in another order.
 const twoReads = records.chain((rows) =>
   fc.tuple(fc.constant(rows), fc.oneof(records, fc.shuffledSubarray(rows, { minLength: rows.length }))),
 );
@@ -60,6 +61,7 @@ describe("membership and setOf, by property", () => {
     const shuffled = records.chain((rows) =>
       fc.tuple(fc.constant(rows), fc.shuffledSubarray(rows, { minLength: rows.length })),
     );
+
     fc.assert(
       fc.property(shuffled, ([rows, again]) => {
         expect(membership(again, "id")).toBe(membership(rows, "id"));

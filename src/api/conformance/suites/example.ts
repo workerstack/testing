@@ -26,6 +26,7 @@ function listExpectations(model: Model): Expectation[] {
   const list = model.byOperationId.get("widget.list");
   const query = list?.query;
   const conventions = list?.conventions;
+
   return [
     ["x-query resolves the filter grammar", "the comment claims postgrest", conventions?.grammar, "postgrest"],
     ["x-query declares filterable fields", "not guessed from the schema", query?.source, "tag"],
@@ -44,6 +45,7 @@ function otherExpectations(model: Model): Expectation[] {
   const start = model.byOperationId.get("export.start");
   const widgetRead = model.byOperationId.get("widget.read");
   const templateRead = model.byOperationId.get("template.read");
+
   return [
     ["workspace widget read is tagged", "SECURITY vs AMBIGUITY is unchanged", widgetRead?.tenantSource, "tag"],
     [
@@ -64,8 +66,9 @@ function otherExpectations(model: Model): Expectation[] {
 
 function judged([name, why, actual, expected]: Expectation): ParserResult {
   const ok = JSON.stringify(actual) === JSON.stringify(expected);
+
   return {
-    detail: ok ? `${JSON.stringify(actual)}` : `expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`,
+    detail: ok ? JSON.stringify(actual) : `expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`,
     name,
     ok,
     why,
@@ -77,11 +80,14 @@ export async function runExampleSpecSuite(
   path: string = new URL("../../../../labs/api/annotated-openapi.yaml", import.meta.url).pathname,
 ): Promise<ParserResult[]> {
   let model: Model;
+
   try {
     model = buildModel(dereference(await loadSpec(path)).doc);
   } catch (error) {
     const why = "the documented example must be a parseable OpenAPI document";
+
     return [{ detail: messageOf(error), name: "annotated-openapi.yaml", ok: false, why }];
   }
+
   return [...listExpectations(model), ...otherExpectations(model)].map(judged);
 }

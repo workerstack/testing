@@ -1,10 +1,10 @@
-/* What each command-line flag takes, by name: the keys `FLAGS` and a command's `Flags` are typed by. */
+// What each command-line flag takes, by name: the keys `FLAGS` and a command's `Flags` are typed by.
 
 /** A switch, a flag that needs a value, or one whose value may be left out. */
 export type FlagKind = "boolean" | "value" | "optional-value";
 
 /** Each flag's kind, by name: the names a command's flags are keyed by. */
-export interface FlagKinds {
+export type FlagKinds = {
   config: "value";
   spec: "value";
   "base-url": "value";
@@ -39,4 +39,4 @@ export interface FlagKinds {
   from: "value";
   force: "boolean";
   help: "boolean";
-}
+};

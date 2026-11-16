@@ -22,6 +22,7 @@ function parsesMixedFrames(): void {
     'data: {"batch_id":"crlf"}\r',
     "\r",
   ].join("\n");
+
   const events = parseSse(text);
   expect(events).toEqual([
     { data: "hello", event: "message", raw: "hello" },

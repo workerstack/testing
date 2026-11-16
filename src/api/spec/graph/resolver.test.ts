@@ -66,6 +66,7 @@ describe("operationResolver", () => {
         "/projects/{project_id}/tables/{table_id}": { get: { operationId: "table.read", responses: ok(member) } },
       }),
     );
+
     expect(tables("GET", "/projects/a/tables/t1")?.pathParams).toEqual({ project_id: "a", table_id: "t1" });
   });
 

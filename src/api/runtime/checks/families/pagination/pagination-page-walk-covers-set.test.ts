@@ -12,9 +12,12 @@ const unsorted = listDoc({ params: ["limit", "page"] });
 /** A backend whose walks at two per page go through `walk(n, body, query)`, n counting from 1. */
 function walks(edit: (n: number, body: ReturnType<typeof page>, query: Record<string, unknown>) => Answer): Responder {
   let n = 0;
+
   return pagedBackend(rows, (body, query) => {
     if (query["limit"] !== 2) return { body, status: 200 };
+
     if (query["page"] === 1) n += 1;
+
     return edit(n, body, query);
   });
 }
@@ -22,6 +25,7 @@ function walks(edit: (n: number, body: ReturnType<typeof page>, query: Record<st
 /** Two per page, starting one record late past the first page. */
 function offByOne(body: ReturnType<typeof page>, query: Record<string, unknown>): Answer {
   if (query["page"] === 1) return { body, status: 200 };
+
   return {
     body: page(rows, { ...query, page: undefined, offset: ((query["page"] as number) - 1) * 2 + 1 }),
     status: 200,
@@ -65,6 +69,7 @@ describe("pagination.page-walk-covers-set: walks that drop or repeat records", (
       body: { ...body, items: page(rows, { limit: 2, sort: "tag.asc" }).items },
       status: 200,
     }));
+
     const { ctx, findings } = stage(doc, stuck, rows);
     expect(await runCheck(pageWalkCoversSet, ctx)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     expect(findings.findings[0]?.summary).toBe("paging returns the same record on more than one page");
@@ -78,6 +83,7 @@ describe("pagination.page-walk-covers-set: walks that drop or repeat records", (
       walks((_n, body, query) => offByOne(body, query)),
       rows,
     );
+
     expect(await runCheck(pageWalkCoversSet, ctx)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     expect(findings.findings[0]?.summary).toBe("paging skips records that a single large page returns");
     expect(findings.findings[0]?.detail).toBe(
@@ -90,6 +96,7 @@ describe("pagination.page-walk-covers-set: walks that drop or repeat records", (
       body: { ...body, items: n === 2 ? body.items.toReversed() : body.items },
       status: 200,
     }));
+
     const { ctx, findings } = stage(doc, swap, rows);
     expect(await runCheck(pageWalkCoversSet, ctx)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     expect(findings.findings[0]?.summary).toBe("identical page walks return records in different orders");
@@ -111,10 +118,11 @@ describe("pagination.page-walk-covers-set: walks that drop or repeat records", (
 
 describe("pagination.page-walk-covers-set: walks that cannot see the whole set", () => {
   it("does not count records past the page cap as missing", async () => {
-    /* At two per page the backend never ends, so the walk stops at the cap short of the set. */
+    // At two per page the backend never ends, so the walk stops at the cap short of the set.
     const endless = pagedBackend(rows, (body, query) => {
       if (query["limit"] !== 2) return { body, status: 200 };
       const start = ((query["page"] as number) - 1) * 2;
+
       return {
         body: {
           items: [
@@ -125,6 +133,7 @@ describe("pagination.page-walk-covers-set: walks that cannot see the whole set",
         status: 200,
       };
     });
+
     const { ctx, findings } = stage(doc, endless, rows);
     expect(await runCheck(pageWalkCoversSet, ctx)).toEqual({ kind: "asserted" });
     expect(findings.findings).toEqual([]);
@@ -134,6 +143,7 @@ describe("pagination.page-walk-covers-set: walks that cannot see the whole set",
     const refused = pagedBackend(rows, (body, query) =>
       query["limit"] === 2 ? { body, status: 200 } : { status: 400 },
     );
+
     const { ctx, findings } = stage(doc, refused, rows);
     expect(await runCheck(pageWalkCoversSet, ctx)).toEqual({ kind: "asserted" });
     expect(findings.findings).toEqual([]);

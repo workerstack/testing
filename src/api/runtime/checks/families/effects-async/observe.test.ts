@@ -10,6 +10,7 @@ const seeded = [{ id: "w1", name: "seeded" }];
 describe("currentRecords", () => {
   it("reads the instance fresh and keeps the seeded records behind it", async () => {
     const respond = routes({ "GET /widgets/w1": () => ({ body: { id: "w1", name: "renamed" }, status: 200 }) });
+
     const { ctx, sent } = contextFor(model, "listWidgets", {
       respond,
       fields: {
@@ -17,20 +18,23 @@ describe("currentRecords", () => {
         records: seeded,
       },
     });
+
     expect(await currentRecords(ctx, { id: "w1" })).toEqual([{ id: "w1", name: "renamed" }, ...seeded]);
     expect(sent[0]).toMatchObject({ method: "GET", options: { operationId: "getWidget" }, path: "/widgets/w1" });
   });
 
   it("keeps the seeded records when there is no read, or the scope cannot name the instance", async () => {
-    const { ctx, sent } = contextFor(model, "listWidgets", { respond: () => undefined, fields: { records: seeded } });
+    const { ctx, sent } = contextFor(model, "listWidgets", { respond: () => {}, fields: { records: seeded } });
     expect(await currentRecords(ctx, { id: "w1" })).toBe(seeded);
+
     const unnamed = contextFor(model, "listWidgets", {
-      respond: () => undefined,
+      respond: () => {},
       fields: {
         readOp: op(model, "getWidget"),
         records: seeded,
       },
     });
+
     expect(await currentRecords(unnamed.ctx, {})).toBe(seeded);
     expect([...sent, ...unnamed.sent]).toEqual([]);
   });
@@ -48,13 +52,14 @@ describe("currentRecords", () => {
         records: seeded,
       },
     });
+
     expect(await currentRecords(ctx, { id: "w1" })).toBe(seeded);
   });
 });
 
 describe("listOpFor", () => {
   it("is the entity's list operation, and undefined for an entity without one or not in the model", () => {
-    const { ctx } = contextFor(model, "listWidgets", { respond: () => undefined });
+    const { ctx } = contextFor(model, "listWidgets", { respond: () => {} });
     expect(listOpFor(ctx, "card")?.operationId).toBe("listCards");
     expect(listOpFor(ctx, "job")).toBeUndefined();
     expect(listOpFor(ctx, "nothing")).toBeUndefined();
@@ -79,7 +84,7 @@ describe("observe", () => {
   });
 
   it("is unfillable when the scope lacks a path parameter, and sends nothing", async () => {
-    const { ctx, sent } = contextFor(model, "listWidgets", { respond: () => undefined });
+    const { ctx, sent } = contextFor(model, "listWidgets", { respond: () => {} });
     expect(await observe(ctx, op(model, "listCards"), {})).toEqual({ status: "unfillable" });
     expect(sent).toEqual([]);
   });
@@ -92,7 +97,7 @@ describe("observe", () => {
   });
 
   it("is an error with the read's reason when it covered only part of the collection", async () => {
-    /* Every page serves the same record: the walk cannot reach the end of the set. */
+    // Every page serves the same record: the walk cannot reach the end of the set.
     const { ctx } = contextFor(model, "listWidgets", { respond: () => ({ body: [{ name: "e1" }], status: 200 }) });
     const seen = await observe(ctx, op(model, "listEvents"));
     expect(seen).toMatchObject({ reason: "pages repeat the same records", status: "error" });

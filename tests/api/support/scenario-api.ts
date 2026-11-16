@@ -3,23 +3,25 @@ import type { AddressInfo } from "node:net";
 
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 
-/*
- * The notes API the scenario tests drive: notes to write, rename and list, stats that show writes
- * after a lag, and the endpoints an auth flow, a browser checkout and a signing ceremony call.
- */
+// The notes API the scenario tests drive: notes to write, rename and list, stats that show writes
+// after a lag, and the endpoints an auth flow, a browser checkout and a signing ceremony call.
 
 const json = { "application/json": { schema: { type: "object" } } };
+
 const noteSchema = {
   properties: { id: { type: "string" }, text: { type: "string" } },
   required: ["id", "text"],
   type: "object",
 };
+
 const noteJson = { "application/json": { schema: noteSchema } };
+
 const noteList = {
   "application/json": {
     schema: { properties: { items: { items: noteSchema, type: "array" } }, required: ["items"], type: "object" },
   },
 };
+
 const noteWrite = {
   content: {
     "application/json": {
@@ -116,21 +118,21 @@ function spec(): OpenApiDocument {
   } as unknown as OpenApiDocument;
 }
 
-export interface Api {
+export type Api = {
   close: () => Promise<void>;
   url: string;
   /** Writes to stats become visible this long after they happen. */
   statsLagMs: number;
-}
+};
 
-interface Store {
+type Store = {
   brokenRename: boolean;
   notes: Map<string, { id: string; text: string }>;
   statWrites: Array<{ at: number; text: string }>;
   statsLagMs: number;
-}
+};
 
-interface Exchange {
+type Exchange = {
   authorization: unknown;
   body: Record<string, unknown>;
   method: string;
@@ -138,14 +140,14 @@ interface Exchange {
   raw: string;
   send: (status: number, value: unknown) => void;
   type: string;
-}
+};
 
-interface Route {
+type Route = {
   handle: (store: Store, exchange: Exchange, params: string[]) => void;
   /** `*` answers any method. */
   method: string;
   path: RegExp | string;
-}
+};
 
 function writeNote(store: Store, exchange: Exchange): void {
   const note = { id: `n${store.notes.size + 1}`, text: String(exchange.body["text"]) };
@@ -156,7 +158,9 @@ function writeNote(store: Store, exchange: Exchange): void {
 
 function renameNote(store: Store, exchange: Exchange, params: string[]): void {
   const note = store.notes.get(params[0] ?? "");
+
   if (note === undefined) return exchange.send(404, { error: "not_found" });
+
   if (!store.brokenRename) note.text = String(exchange.body["text"]);
   exchange.send(200, note);
 }
@@ -213,35 +217,45 @@ const ROUTES: readonly Route[] = [
 /** The captured path parameters when `route` answers `exchange`, else undefined. */
 function matchRoute(route: Route, exchange: Exchange): string[] | undefined {
   if (route.method !== "*" && route.method !== exchange.method) return undefined;
+
   if (typeof route.path === "string") return route.path === exchange.path ? [] : undefined;
+
   return route.path.exec(exchange.path)?.slice(1);
 }
 
 async function readExchange(req: IncomingMessage, res: ServerResponse): Promise<Exchange> {
   const url = new URL(req.url ?? "/", "http://127.0.0.1");
   let raw = "";
+
   for await (const chunk of req) raw += chunk;
   const type = String(req.headers["content-type"] ?? "");
   const body = raw === "" || !type.includes("json") ? {} : (JSON.parse(raw) as Record<string, unknown>);
+
   const send = (status: number, value: unknown) => {
     res.writeHead(status, { "content-type": "application/json" });
     res.end(JSON.stringify(value));
   };
+
   const method = (req.method ?? "GET").toUpperCase();
+
   return { authorization: req.headers.authorization, body, method, path: url.pathname, raw, send, type };
 }
 
 function respond(store: Store, document: OpenApiDocument, exchange: Exchange): void {
   if (exchange.path === "/openapi.json") return exchange.send(200, document);
+
   if (exchange.authorization !== "Bearer alpha") return exchange.send(401, { error: "unauthorized" });
   const writes = exchange.method === "POST" || exchange.method === "PATCH";
-  if (writes && exchange.path.startsWith("/v1/notes") && typeof exchange.body["text"] !== "string") {
+
+  if (writes && exchange.path.startsWith("/v1/notes") && typeof exchange.body["text"] !== "string")
     return exchange.send(400, { error: "text_required" });
-  }
+
   for (const route of ROUTES) {
     const params = matchRoute(route, exchange);
+
     if (params !== undefined) return route.handle(store, exchange, params);
   }
+
   exchange.send(404, { error: "not_found" });
 }
 
@@ -253,12 +267,16 @@ export async function serveNotes(options: { brokenRename?: boolean; statsLagMs?:
     statWrites: [],
     statsLagMs: options.statsLagMs ?? 0,
   };
+
   const document = spec();
+
   const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
     respond(store, document, await readExchange(req, res));
   });
+
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   const close = () => new Promise<void>((resolve) => server.close(() => resolve()));
+
   return { close, statsLagMs: store.statsLagMs, url };
 }

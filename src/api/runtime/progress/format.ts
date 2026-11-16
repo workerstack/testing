@@ -7,6 +7,7 @@ function logfmt(pairs: Record<string, string>): string {
   return Object.entries(pairs)
     .map(([key, value]) => {
       if (value !== "" && !/[\s="\\]/.test(value)) return `${key}=${value}`;
+
       return `${key}=${JSON.stringify(value)}`;
     })
     .join(" ");
@@ -23,6 +24,7 @@ function numberOrNull(value: string): number | null {
 
 export function formatProgressLine(snap: ProgressSnapshot, now: number = Date.now()): string {
   const f = progressFields(snap, now);
+
   return logfmt({
     ts: new Date(now).toISOString(),
     status: f.status,
@@ -49,6 +51,7 @@ export function formatProgressLine(snap: ProgressSnapshot, now: number = Date.no
 
 export function formatProgressTsv(snap: ProgressSnapshot, now: number = Date.now()): string {
   const f = progressFields(snap, now);
+
   return [
     now,
     f.status,
@@ -76,6 +79,7 @@ export function formatProgressTsv(snap: ProgressSnapshot, now: number = Date.now
 export function formatProgressJsonl(snap: ProgressSnapshot, now: number = Date.now()): string {
   const f = progressFields(snap, now);
   const inflight = snap.inflight !== undefined;
+
   return JSON.stringify({
     check: textOrNull(f.check),
     done: snap.entityIndex ?? null,

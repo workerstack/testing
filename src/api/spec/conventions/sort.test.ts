@@ -14,7 +14,9 @@ const at = (sortGrammar: SortGrammar, extra: Partial<QueryConventions> = {}): Qu
 });
 
 const parsed = parseSortGrammar({ asc: "up", desc: "down", join: "repeat", term: "{field}_{direction}" });
+
 if (!parsed.ok) throw new Error(parsed.error);
+
 const template = at("template", { sortSpec: parsed.spec });
 
 describe("sortSpec", () => {
@@ -47,6 +49,7 @@ describe("sort terms", () => {
       ["a", "asc"],
       ["b", "desc"],
     ] as const;
+
     expect(sortKeys(at("dotted"), keys)).toBe("a.asc,b.desc");
     expect(sortKeys(template, keys)).toEqual(["a_up", "b_down"]);
   });

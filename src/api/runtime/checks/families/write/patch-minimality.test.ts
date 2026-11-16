@@ -5,70 +5,80 @@ import { runCheck } from "../../core/run.ts";
 import { GATED, type Note, notesContext, notesModel, notesServer, type NotesServer } from "./__fixtures__/notes.ts";
 import { patchMinimality } from "./patch-minimality.ts";
 
-/*
- * PATCH changes the fields it names and nothing else. Defect: patch-acts-as-put — the update
- * replaces the record with the body, dropping every field it did not carry. Fields that move on
- * their own (timestamps, generated fields, a counter that moves between two reads, whatever also
- * moved on an untouched control record) are not the PATCH's doing.
- */
+// PATCH changes the fields it names and nothing else. Defect: patch-acts-as-put — the update
+// replaces the record with the body, dropping every field it did not carry. Fields that move on
+// their own (timestamps, generated fields, a counter that moves between two reads, whatever also
+// moved on an untouched control record) are not the PATCH's doing.
 
 const CONTROL: Note = { code: "c", id: "c1", name: "control", rev: 0, title: "t" };
 
 type Override = (server: NotesServer) => Responder;
 
 /** A backend over a notes store holding the control record, `override` answering first. */
-function backend(override: Override = () => () => undefined, fields: { records?: Note[] } = {}, model = notesModel()) {
+function backend(override: Override = () => () => {}, fields: { records?: Note[] } = {}, model = notesModel()) {
   const server = notesServer([{ ...CONTROL }]);
   const first = override(server);
+
   const respond: Responder = (method, path, options) =>
     first(method, path, options) ?? server.respond(method, path, options);
+
   return { server, ...notesContext(model, respond, { records: fields.records ?? [CONTROL] }) };
 }
 
-/* A PATCH that replaces the record with its body, as PUT would. */
+// A PATCH that replaces the record with its body, as PUT would.
 const actsAsPut: Override = (server) => (method, path, options) => {
-  if (method !== "PATCH") return undefined;
+  if (method !== "PATCH") return;
   const id = path.slice("/notes/".length);
   const replaced = { ...(options.body as Note), id };
   server.records.set(id, replaced);
+
   return { body: replaced, status: 200 };
 };
 
-/* Every write bumps `rev` on every record: drift the whole collection shares. */
+// Every write bumps `rev` on every record: drift the whole collection shares.
 const revisesAll: Override = (server) => (method, path, options) => {
-  if (method === "GET") return undefined;
+  if (method === "GET") return;
   const answer = server.respond(method, path, options);
+
   for (const record of server.records.values()) record["rev"] = Number(record["rev"] ?? 0) + 1;
+
   return answer;
 };
 
 const paths = (sent: { method: string; path: string }[]) => sent.map((s) => `${s.method} ${s.path}`);
 
-/* A record whose view count moves on every read. */
+// A record whose view count moves on every read.
 const counting: Override = (server) => (method, path) => {
   const record = server.records.get(path.slice("/notes/".length));
+
   if (method === "GET" && record !== undefined) record["views"] = Number(record["views"] ?? 0) + 1;
-  return undefined;
+
+  return;
 };
 
-/* `revisesAll`, and a `tick` the update moves. */
+// `revisesAll`, and a `tick` the update moves.
 const ticking: Override = (server) => (method, path, options) => {
   const answer = revisesAll(server)(method, path, options);
   const record = server.records.get(path.slice("/notes/".length));
+
   if (record !== undefined && method === "PATCH") record["tick"] = "moved";
+
   return answer;
 };
 
-/* Every write stamps `key` on every record; with no control record nothing else excuses it. */
+// Every write stamps `key` on every record; with no control record nothing else excuses it.
 const stamping =
   (key: string): Override =>
   (server) =>
   (method, path, options) => {
-    if (method === "GET") return undefined;
+    if (method === "GET") return;
     const answer = server.respond(method, path, options);
+
     for (const record of server.records.values()) record[key] = Number(record[key] ?? 0) + 1;
+
     return answer;
   };
+
 const stamped = async (key: string) =>
   (await runCheck(patchMinimality, backend(stamping(key), { records: [] }).ctx)).kind;
 
@@ -77,22 +87,27 @@ const restamping =
   (key: string, value: (n: number) => unknown): Override =>
   (server) => {
     let writes = 0;
+
     return (method, path, options) => {
-      if (method === "GET") return undefined;
+      if (method === "GET") return;
       const answer = server.respond(method, path, options);
       writes += 1;
+
       for (const record of server.records.values()) record[key] = value(writes);
+
       return answer;
     };
   };
+
 const stampedWith = async (key: string, value: (n: number) => unknown) =>
   (await runCheck(patchMinimality, backend(restamping(key, value), { records: [] }).ctx)).kind;
 
-/* `answer` for the `nth` request of `method` on the scratch record. */
+// `answer` for the `nth` request of `method` on the scratch record.
 const onTarget =
   (method: string, answer: { status: number; body?: unknown }, nth = 1): Override =>
   () => {
     let seen = 0;
+
     return (m, path) => (m === method && path === "/notes/n1" && ++seen === nth ? answer : undefined);
   };
 
@@ -117,7 +132,7 @@ describe("patch.minimality verdicts", () => {
     expect(await runCheck(patchMinimality, ctx)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     expect(findings.findings[0]?.summary).toBe("PATCH changed fields the request did not mention");
     expect(findings.findings[0]?.evidence.map((e) => e.method)).toEqual(["GET", "PATCH", "GET"]);
-    /* The control is read again only once something moved. */
+    // The control is read again only once something moved.
     expect(paths(sent).at(-1)).toBe("GET /notes/c1");
   });
 
@@ -132,19 +147,24 @@ describe("patch.minimality verdicts", () => {
       (server) => {
         let seen = 0;
         const revise = revisesAll(server);
+
         return (method, path, options) => {
           if (method === "GET" && path === at && ++seen === nth) return { status: 500 };
+
           return revise(method, path, options);
         };
       };
+
     const garble: Override = (server) => (method, path, options) =>
       method === "GET" && path === "/notes/c1"
         ? { body: "text", status: 200 }
         : revisesAll(server)(method, path, options);
+
     for (const override of [refuse("/notes/c1", 1), refuse("/notes/c1", 2), garble]) {
       const { ctx } = backend(override);
       expect(await runCheck(patchMinimality, ctx)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     }
+
     const alone = backend(revisesAll, { records: [] });
     expect(await runCheck(patchMinimality, alone.ctx)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
   });
@@ -198,8 +218,10 @@ describe("patch.minimality fields that move on their own", () => {
 
   it("compares against the first read when the second is refused", async () => {
     let reads = 0;
+
     const second: Override = () => (method, path) =>
       method === "GET" && path === "/notes/n1" && ++reads === 2 ? { status: 503 } : undefined;
+
     const { ctx } = backend(second, { records: [] });
     expect(await runCheck(patchMinimality, ctx)).toEqual({ kind: "asserted" });
   });
@@ -255,14 +277,14 @@ describe("patch.minimality plan", () => {
   });
 });
 
-/* Null on the create, a date from the first write on. */
+// Null on the create, a date from the first write on.
 const stampedLater = (n: number) => (n === 1 ? null : new Date(Date.UTC(2026, 0, n)).toISOString());
 
 describe("patch.minimality on a timestamp unset until the first write", () => {
   it("ignores an unambiguous timestamp a first write stamps from null, and judges a bare name that was null", async () => {
-    for (const key of ["updatedAt", "modified_on", "updateTime", "modifiedDate", "lastUpdated", "dateModified"]) {
+    for (const key of ["updatedAt", "modified_on", "updateTime", "modifiedDate", "lastUpdated", "dateModified"])
       expect(await stampedWith(key, stampedLater)).toBe("asserted");
-    }
+
     for (const key of ["updated", "modified"]) expect(await stampedWith(key, stampedLater)).toBe("finding");
   });
 });

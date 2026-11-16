@@ -9,17 +9,20 @@ import type { EntityModel, OperationModel } from "./types.ts";
 const entityWith = (fields: Partial<EntityModel>): Map<string, EntityModel> => {
   const entities = new Map<string, EntityModel>();
   Object.assign(entityNamed(entities, fields.name ?? "note"), fields);
+
   return entities;
 };
 
 describe("invertInvalidate", () => {
   it("adds each GET route a mutator invalidates to its entity's surface, once, and flags unknown ones", () => {
     const list = operation({ operationId: "notes.list", route: "GET /notes" });
+
     const create = operation({
       entity: "note",
       invalidates: ["GET /notes", "GET /notes", "POST /notes", "nonsense", "GET /gone"],
       operationId: "notes.create",
     });
+
     const quiet = operation({ entity: "note", invalidates: [] });
     const nameless = operation({ entity: null, invalidates: ["GET /notes"] });
     const entities = new Map<string, EntityModel>();

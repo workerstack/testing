@@ -4,12 +4,10 @@ import { inProcess } from "../../../src/api/conformance/harness/launch.ts";
 import { judgeDefect } from "../../../src/api/conformance/matrix/cases.ts";
 import type { DefectName } from "../../../src/api/reference/defects/table.ts";
 
-/*
- * The precondition defects, each judged as the conformance matrix judges it, against the reference in
- * process: the defect must trip its primary check and nothing the expected table does not accept.
- * The ETag one runs again where the update is a PUT and where the document declares status ranges,
- * the two shapes whose update and read the precondition is declared on differently.
- */
+// The precondition defects, each judged as the conformance matrix judges it, against the reference in
+// process: the defect must trip its primary check and nothing the expected table does not accept.
+// The ETag one runs again where the update is a PUT and where the document declares status ranges,
+// the two shapes whose update and read the precondition is declared on differently.
 
 const CASES: ReadonlyArray<[DefectName, string | undefined]> = [
   ["ETAG_IGNORED", undefined],

@@ -19,12 +19,15 @@ afterEach(async () => {
 describe("exchange journal from a run", () => {
   it("flushes from Client.onExchange and skips the dir when save is off", async () => {
     const world = new WidgetWorld();
+
     const server = await listen((req, res) => {
       world.handle(req, res);
     });
+
     closers.push(server.close);
     const { url } = server;
     const on = await scratch();
+
     const saved = await run({
       baseUrl: url,
       cohortSize: 1,
@@ -34,6 +37,7 @@ describe("exchange journal from a run", () => {
       seed: 1,
       spec: `${url}/v1/openapi/spec`,
     });
+
     expect(saved.exchanges?.count).toBeGreaterThan(0);
     expect(existsSync(join(on, "exchanges.jsonl"))).toBe(true);
     expect(existsSync(join(on, "exchanges"))).toBe(true);
@@ -41,6 +45,7 @@ describe("exchange journal from a run", () => {
     expect(listing.length).toBe(saved.exchanges?.count);
 
     const off = await scratch();
+
     const skipped = await run({
       baseUrl: url,
       cohortSize: 1,
@@ -49,6 +54,7 @@ describe("exchange journal from a run", () => {
       seed: 1,
       spec: `${url}/v1/openapi/spec`,
     });
+
     expect(skipped.exchanges).toBeUndefined();
     expect(existsSync(join(off, "exchanges"))).toBe(false);
   });
@@ -60,8 +66,10 @@ describe("Client records operationId and fixture on the exchange", () => {
       res.writeHead(200, { "content-type": "application/json", "x-request-id": "from-server" });
       res.end("{}");
     });
+
     closers.push(server.close);
     const seen: Exchange[] = [];
+
     const client = new Client({
       baseUrl: server.url,
       headers: {},
@@ -71,6 +79,7 @@ describe("Client records operationId and fixture on the exchange", () => {
       },
       redactor: new Redactor(),
     });
+
     const pdfRead = await client.get("/v1/x", { as: { anonymous: true }, fixture: "a.pdf", operationId: "x.read" });
     expect(pdfRead.operationId).toBe("x.read");
     expect(pdfRead.fixture).toBe("a.pdf");

@@ -13,6 +13,7 @@ function cohortRun(respond: Responder, document: NotesOptions = {}, options: Par
   const model = modelOf(notes(document));
   const fake = fakeClient(respond);
   const events: string[] = [];
+
   const run: CohortRun = {
     acknowledged: false,
     unverified: undefined,
@@ -41,6 +42,7 @@ function cohortRun(respond: Responder, document: NotesOptions = {}, options: Par
     },
     uniqueGap: undefined,
   };
+
   return { events, run, sent: fake.sent };
 }
 
@@ -48,7 +50,8 @@ const member = (body: Record<string, unknown>): CohortMember => ({ body, variant
 
 describe("recordCreated", () => {
   it("keeps the record the answer names and reports it made", async () => {
-    const { run, events } = cohortRun(() => undefined);
+    const { run, events } = cohortRun(() => {});
+
     const record = await recordCreated(
       run,
       exchange("POST", run.path, { body: { id: "n1", name: "a" }, status: 201 }),
@@ -56,6 +59,7 @@ describe("recordCreated", () => {
         name: "a",
       },
     );
+
     expect(record).toEqual({ id: "n1", name: "a" });
     expect(events).toEqual(["created note n1"]);
     expect(run.acknowledged).toBe(false);
@@ -71,10 +75,10 @@ describe("recordCreated", () => {
   });
 
   it("reports a record it cannot identify, with or without a listener", async () => {
-    const { run, events } = cohortRun(() => undefined);
+    const { run, events } = cohortRun(() => {});
     expect(await recordCreated(run, exchange("POST", run.path, { body: { ok: 1 }, status: 200 }), {})).toBeNull();
     expect(events).toEqual(["unidentified note note.create"]);
-    const quiet = cohortRun(() => undefined).run;
+    const quiet = cohortRun(() => {}).run;
     quiet.seeding.options = { principal: "alpha", roots: {}, seed: 1 };
     expect(await recordCreated(quiet, exchange("POST", quiet.path, { body: { ok: 1 }, status: 200 }), {})).toBeNull();
     expect(await recordCreated(quiet, exchange("POST", quiet.path, { body: { id: "n3" }, status: 200 }), {})).toEqual({
@@ -90,6 +94,7 @@ describe("posting members", () => {
         requestBody: { content: { "application/x-www-form-urlencoded": { schema: NOTE } }, required: true },
       },
     };
+
     const { run, sent } = cohortRun(() => ({ body: { id: "n1" }, status: 201 }), form);
     await postMember(run, member({ id: "a", name: "x" }), { seed: 1 });
     expect(sent[0]?.options.contentType).toBe("application/x-www-form-urlencoded");
@@ -140,7 +145,7 @@ describe("posting members", () => {
 
 describe("withGap", () => {
   it("adds what the run learned, and only that", () => {
-    const { run } = cohortRun(() => undefined);
+    const { run } = cohortRun(() => {});
     const cohort = { featureGate: null, members: [], records: [] };
     expect(withGap(run, cohort)).toEqual(cohort);
     const lost = { exchange: exchange("POST", "/", { status: 500 }), variant: "unicode" };
@@ -157,18 +162,20 @@ describe("withGap", () => {
 
 describe("failOrAdopt", () => {
   it("keeps the cohort it has when a later create fails", async () => {
-    const { run } = cohortRun(() => undefined);
+    const { run } = cohortRun(() => {});
     run.records.push({ id: "n1" });
     expect(await failOrAdopt(run, member({}), refusal(500, null))).toMatchObject({ records: [{ id: "n1" }] });
   });
 
   it("stands down on a documented feature gate", async () => {
-    const { run } = cohortRun(() => undefined, { create: { "x-feature-gate": "notes_pro" } });
+    const { run } = cohortRun(() => {}, { create: { "x-feature-gate": "notes_pro" } });
+
     const gated = await failOrAdopt(
       run,
       member({}),
       refusal(403, { vars: { feature: "notes_pro", type: "feature_gate" } }),
     );
+
     expect(gated.featureGate).toMatchObject({
       detail: "x-feature-gate: notes_pro (feature: notes_pro)",
       key: "notes_pro",

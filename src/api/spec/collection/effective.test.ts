@@ -39,6 +39,7 @@ describe("effective", () => {
       ],
       properties: { name: { type: "string" } },
     });
+
     expect(merged).toEqual({
       items: { type: "string" },
       properties: { id: { type: "string" }, name: { type: "string" }, tag: {} },

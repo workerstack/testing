@@ -7,9 +7,9 @@ import { closeStore, createdIds, type Reference, referenceState, snapshot, type 
 import { handle } from "./router.ts";
 import { PRINCIPALS, type ReferenceOptions } from "./state.ts";
 
-export interface ReferenceServer extends Omit<Reference, "fetch"> {
+export type ReferenceServer = Omit<Reference, "fetch"> & {
   server: Server;
-}
+};
 
 /** One server, any store: the handler `createReference` runs, listening on 127.0.0.1. */
 export async function createReferenceServer(
@@ -19,8 +19,9 @@ export async function createReferenceServer(
 ): Promise<ReferenceServer> {
   const state = await referenceState(options, createStore);
   const listening = await listen((request) => handle(state, request), create);
+
   return {
-    /* The store is closed once the socket is, whatever a persistent backend still holds. */
+    // The store is closed once the socket is, whatever a persistent backend still holds.
     close: async () => {
       await listening.close();
       await closeStore(state);

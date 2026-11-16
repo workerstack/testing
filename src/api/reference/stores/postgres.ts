@@ -13,18 +13,19 @@
 
 import postgres from "postgres";
 
+import { parseCell, type Row } from "../cell.ts";
 import type { DefectSet } from "../defects/defect-set.ts";
 import { ENTITIES } from "../model/entities.ts";
 import type { EntityDef, FieldDef } from "../model/types.ts";
 import type { SelectPlan } from "../query-types.ts";
-import type { Row, Store } from "../store-api.ts";
+import type { Store } from "../store-api.ts";
 import { type SqlFlavor, type SqlParam, compileOrder, compileWhere, likeText } from "./sql-compile.ts";
 
 /** What the store needs of a Postgres connection. postgres.js's client is one; a test passes its own. */
-export interface PgConnection {
+export type PgConnection = {
   unsafe(query: string, args?: SqlParam[]): PromiseLike<readonly Row[]>;
   end(options: { timeout: number }): Promise<void>;
-}
+};
 
 /** Opens a connection pool of at most `max` sessions to one database. */
 export type PgConnect = (database: string, max: number) => PgConnection;
@@ -44,31 +45,35 @@ const PG_TYPE: Record<FieldDef["type"], string> = {
 };
 
 function ident(name: string): string {
-  return `"${name.replace(/"/g, '""')}"`;
+  return `"${name.replaceAll('"', '""')}"`;
 }
 
-/* How Postgres spells what the shared compiler leaves to the engine. */
+// How Postgres spells what the shared compiler leaves to the engine.
 function pgFlavor(): SqlFlavor {
   return {
     binary: (expr) => `${expr} COLLATE "C"`,
     bind: (args, value) => {
       args.push(value);
+
       return `$${args.length}`;
     },
     bool: (value) => value,
-    /* Reads name the declared column. Under COLUMN_NAME_MISMATCH DDL named it otherwise,
-     * and Postgres refuses the read outright where SQLite might silently answer. */
+    // Reads name the declared column. Under COLUMN_NAME_MISMATCH DDL named it otherwise,
+    // and Postgres refuses the read outright where SQLite might silently answer.
     column: (_entity, field) => ident(field),
     hasElement: (expr, element, args) => {
       args.push(element);
+
       return `jsonb_exists(${expr}::jsonb, $${args.length})`;
     },
     like: (expr, { insensitive, segments }, args) => {
       args.push(likeText(segments));
+
       return `${expr} ${insensitive ? "ILIKE" : "LIKE"} $${args.length} ESCAPE '\\'`;
     },
     position: (expr, { caseSensitive, text }, args) => {
       args.push(text);
+
       return caseSensitive
         ? `strpos(${expr}, $${args.length}::text)`
         : `strpos(lower(${expr}), lower($${args.length}::text))`;
@@ -78,14 +83,14 @@ function pgFlavor(): SqlFlavor {
   };
 }
 
-/* The store's working parts: its database, the admin session that made it, and what it models. */
-interface PgParts {
+// The store's working parts: its database, the admin session that made it, and what it models.
+type PgParts = {
   sql: PgConnection;
   admin: PgConnection;
   dbName: string;
   defects: DefectSet;
   entities: readonly EntityDef[];
-}
+};
 
 export class PgStore implements Store {
   private readonly flavor: SqlFlavor = pgFlavor();
@@ -114,13 +119,15 @@ export class PgStore implements Store {
     const sql = connect(dbName, 4);
     const store = new PgStore({ admin, dbName, defects, entities, sql });
     await store.migrate();
+
     return store;
   }
 
   async close(): Promise<void> {
     await this.sql.end({ timeout: 5 });
-    /* Drop with FORCE: a lingering session would otherwise leave scratch databases behind on
-     * every run, which is the same litter problem the API tester reports in the systems it tests. */
+
+    // Drop with FORCE: a lingering session would otherwise leave scratch databases behind on
+    // every run, which is the same litter problem the API tester reports in the systems it tests.
     try {
       await this.admin.unsafe(`DROP DATABASE IF EXISTS ${ident(this.dbName)} WITH (FORCE)`);
     } finally {
@@ -132,8 +139,10 @@ export class PgStore implements Store {
     for (const entity of this.entities) {
       const columns = entity.fields.map((field) => {
         const notNull = field.required === true ? " NOT NULL" : "";
+
         return `${ident(this.physical(field.name))} ${PG_TYPE[field.type]}${notNull}`;
       });
+
       await this.sql.unsafe(
         `CREATE TABLE ${ident(entity.plural)} (${columns.join(", ")}, PRIMARY KEY (${ident(this.physical(entity.identity))}))`,
       );
@@ -155,9 +164,9 @@ export class PgStore implements Store {
   private selectList(entity: EntityDef): string {
     return entity.fields
       .map((f) => {
-        if (!this.defects.has("COLUMN_NAME_MISMATCH") || f.name !== "name") {
+        if (!this.defects.has("COLUMN_NAME_MISMATCH") || f.name !== "name")
           return `${ident(f.name)} AS ${ident(f.name)}`;
-        }
+
         return `'${f.name}'::text AS ${ident(f.name)}`;
       })
       .join(", ");
@@ -171,6 +180,7 @@ export class PgStore implements Store {
       `INSERT INTO ${ident(entity.plural)} (${columns}) VALUES (${holes})`,
       names.map((n) => toPg(record[n])),
     );
+
     return (await this.byId(entity, record[entity.identity] as string | number)) ?? record;
   }
 
@@ -179,12 +189,15 @@ export class PgStore implements Store {
       `SELECT ${this.selectList(entity)} FROM ${ident(entity.plural)} WHERE ${ident(this.physical(entity.identity))} = $1`,
       [id],
     );
+
     const row = rows[0] as Row | undefined;
+
     return row === undefined ? null : this.decode(entity, row);
   }
 
   async update(entity: EntityDef, id: string | number, patch: Row): Promise<Row | null> {
     const names = Object.keys(patch).filter((n) => entity.fields.some((f) => f.name === n));
+
     if (names.length > 0) {
       const assignments = names.map((n, i) => `${ident(this.physical(n))} = $${i + 1}`).join(", ");
       await this.sql.unsafe(
@@ -192,6 +205,7 @@ export class PgStore implements Store {
         [...names.map((n) => toPg(patch[n])), id],
       );
     }
+
     return this.byId(entity, id);
   }
 
@@ -205,10 +219,12 @@ export class PgStore implements Store {
     const args: SqlParam[] = [];
     const where = compileWhere(plan.where, { args, entity, flavor: this.flavor });
     const order = compileOrder(plan, entity, this.flavor);
+
     const rows = await this.sql.unsafe(
       `SELECT ${this.selectList(entity)} FROM ${ident(entity.plural)} WHERE ${where}${order}`,
       args,
     );
+
     return rows.map((row) => this.decode(entity, row));
   }
 
@@ -218,27 +234,33 @@ export class PgStore implements Store {
    */
   private decode(entity: EntityDef, row: Row): Row {
     const out: Row = {};
+
     for (const field of entity.fields) {
       const raw = row[field.name];
+
       if (raw === undefined || raw === null) {
         out[field.name] = null;
         continue;
       }
+
       out[field.name] =
         field.type === "integer" || field.type === "number"
           ? Number(raw)
           : field.type === "boolean"
             ? raw === true
             : (field.type === "object" || field.type === "array") && typeof raw === "string"
-              ? JSON.parse(raw)
+              ? parseCell(raw)
               : raw;
     }
+
     return out;
   }
 }
 
 function toPg(value: unknown): SqlParam {
   if (value === undefined) return null;
+
   if (value !== null && typeof value === "object") return JSON.stringify(value);
+
   return value as SqlParam;
 }

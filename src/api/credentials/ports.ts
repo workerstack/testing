@@ -1,33 +1,31 @@
 import type { Hooks } from "../config/types/hooks.ts";
 import type { AuthStep } from "../config/types/steps.ts";
 
-/*
- * What the runtime lends the credentials library. Sending a request needs the run's clients, paths
- * and body encoders, which sit above this layer, so the library asks for them through these ports
- * and the run injects them.
- */
+// What the runtime lends the credentials library. Sending a request needs the run's clients, paths
+// and body encoders, which sit above this layer, so the library asks for them through these ports
+// and the run injects them.
 
 export type { Sends } from "../config/types/hooks.ts";
 
 /** What an answer gives a recipe to read a credential, a lifetime or a claim from. */
-export interface StepAnswer {
+export type StepAnswer = {
   status: number;
   body: unknown;
   headers: Readonly<Record<string, string>>;
   cookies: Readonly<Record<string, string>>;
-}
+};
 
 /** How a credential hop is sent: `probe` when it is meant to be refused, so its exchange is labeled one. */
-export interface Hop {
+export type Hop = {
   probe?: true;
-}
+};
 
 /**
  * Runs login and refresh steps, each once: `bind`, `saveAs`, `saveClaimsFrom` and `outOfBand` as in a
  * scenario. It resolves with the scope the steps bound and the last answer, and rejects with an Error
  * whose message is the reason when a step fails or a value is missing.
  */
-export interface StepRunner {
+export type StepRunner = {
   run(
     steps: readonly AuthStep[],
     input: {
@@ -37,7 +35,7 @@ export interface StepRunner {
       secrets?: readonly string[];
     } & Hop,
   ): Promise<{ scope: Record<string, string>; answer: StepAnswer }>;
-}
+};
 
 /**
  * Calls a documented operation as a principal sending one scheme, for mint and revoke: the run's
@@ -45,7 +43,7 @@ export interface StepRunner {
  * the operation's path parameters, over the principal's own. It resolves with whatever the backend
  * answered, and rejects with the reason when the principal holds no credential for the scheme.
  */
-interface OperationCaller {
+type OperationCaller = {
   call(input: {
     operationId: string;
     body?: unknown;
@@ -59,48 +57,48 @@ interface OperationCaller {
     /** Where the answer holds a credential, as `from` addresses it: a secret before the answer is recorded. */
     secrets?: readonly string[];
   }): Promise<StepAnswer>;
-}
+};
 
 /**
  * The record a minted credential is, named as its declared revoke would remove it: the revoke
  * operation, the scope that fills its path, and who sends it.
  */
-export interface CredentialRecord {
+export type CredentialRecord = {
   operationId: string;
   scope: Readonly<Record<string, string>>;
   as: { principal: string; scheme: string };
-}
+};
 
 /** What the run knows of a minted credential's record, so teardown never revokes a key twice. */
-export interface CredentialRecords {
+export type CredentialRecords = {
   /** Whether the run already saw an accepted DELETE remove the record. */
   removed(record: CredentialRecord): boolean;
   /** Whether the document's read of the record shows it gone; false when nothing can read it. */
   gone(record: CredentialRecord): Promise<boolean>;
-}
+};
 
 /** POSTs a form, `application/x-www-form-urlencoded`, to an OAuth 2 token URL. */
-interface TokenPoster {
+type TokenPoster = {
   post(url: string, form: Readonly<Record<string, string>>, hop?: Hop): Promise<StepAnswer>;
-}
+};
 
 /**
  * The run's redactor, as a recipe registers a value it sends from a principal's identity: never
  * printed from then on, whatever its key is called. Too-short values are ignored, as for any secret.
  */
-interface SecretRegistry {
+type SecretRegistry = {
   register(value: string): void;
-}
+};
 
 /** `hooks.resolveCredential`, as a `{ hook: true }` recipe calls it. */
 type CredentialHook = NonNullable<Hooks["resolveCredential"]>;
 
 /** Every port a run lends the credentials library. The hook is absent when the config sets none. */
-export interface CredentialPorts {
+export type CredentialPorts = {
   steps: StepRunner;
   operations: OperationCaller;
   records: CredentialRecords;
   tokens: TokenPoster;
   secrets: SecretRegistry;
   resolveCredential?: CredentialHook;
-}
+};

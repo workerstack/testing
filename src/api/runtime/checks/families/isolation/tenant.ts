@@ -7,5 +7,6 @@ import type { OperationModel } from "../../../../spec/graph/types.ts";
  */
 export function tenantBoundary(op: OperationModel | undefined): boolean {
   if (op === undefined) return false;
+
   return !(op.tenantSource === null && (op.tenantParam === null || op.tenantParam === undefined));
 }

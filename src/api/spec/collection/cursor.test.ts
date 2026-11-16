@@ -14,8 +14,7 @@ describe("nextCursorOf", () => {
   });
 
   it("ends the walk on anything else", () => {
-    for (const value of ["", null, undefined, Number.NaN, Number.POSITIVE_INFINITY, true, {}, ["2"]]) {
+    for (const value of ["", null, undefined, Number.NaN, Number.POSITIVE_INFINITY, true, {}, ["2"]])
       expect(nextCursorOf(value)).toBeUndefined();
-    }
   });
 });

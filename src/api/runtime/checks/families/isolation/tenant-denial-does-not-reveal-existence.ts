@@ -35,14 +35,14 @@ export const denialDoesNotRevealExistence: Check<{
   plan: (ctx) => {
     const { peer, readOp } = ctx;
     const target = ctx.records[0];
-    if (peer === undefined || readOp === undefined || target === undefined || !tenantBoundary(readOp)) {
-      return cannot();
-    }
+
+    if (peer === undefined || readOp === undefined || target === undefined || !tenantBoundary(readOp)) return cannot();
+
     return ready({ peer, readOp, target });
   },
   dependsOn: [
-    /* If the record is readable across tenants at all, that is the finding — how the denial
-     * would have been phrased is beside the point. */
+    // If the record is readable across tenants at all, that is the finding — how the denial
+    // would have been phrased is beside the point.
     "tenant.item-not-readable-cross-tenant",
   ],
   id: "tenant.denial-does-not-reveal-existence",
@@ -50,11 +50,13 @@ export const denialDoesNotRevealExistence: Check<{
   subjects: subjectsOf.read,
   async run(ctx, { peer, readOp, target }): Promise<Outcome> {
     const realId = idOf(target, ctx.identity);
+
     if (realId === undefined)
       return ctx.findings.unresolved(this.id, ctx.entityName, `the record carries no "${ctx.identity}"`);
-    /* Shaped like a real identifier so the difference under test is existence, not format —
-     * a backend may legitimately reject a malformed id differently. */
+    // Shaped like a real identifier so the difference under test is existence, not format —
+    // a backend may legitimately reject a malformed id differently.
     const absentProbe = constructedAbsentId(ctx);
+
     if (absentProbe === null) {
       return ctx.findings.unresolved(
         this.id,
@@ -72,8 +74,8 @@ export const denialDoesNotRevealExistence: Check<{
     const existing = await ask(realId);
     const absent = await ask(absentProbe);
 
-    /* Only a denial pair is meaningful. A 2xx on the existing record is a cross-tenant read,
-     * which the check above owns and this one is suppressed by. */
+    // Only a denial pair is meaningful. A 2xx on the existing record is a cross-tenant read,
+    // which the check above owns and this one is suppressed by.
     if (existing.status < 400 || absent.status < 400) {
       return ctx.findings.unresolved(
         this.id,
@@ -81,6 +83,7 @@ export const denialDoesNotRevealExistence: Check<{
         "one of the two probes was not denied, so there is no pair of denials to compare",
       );
     }
+
     if (existing.status === absent.status) return ASSERTED;
 
     return ctx.findings.security(this.id, ctx.entityName, {

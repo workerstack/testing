@@ -11,6 +11,7 @@ import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 const DEFECT_VERDICTS = new Set(["BACKEND_BUG", "SECURITY", "SPEC_BUG"]);
 
 let open: Array<{ close: () => Promise<void> }> = [];
+
 afterEach(async () => {
   for (const server of open) await server.close();
   open = [];
@@ -18,12 +19,13 @@ afterEach(async () => {
 
 function spec(): OpenApiDocument {
   const ok = { "200": { description: "ok" } };
+
   return {
     components: { securitySchemes: { bearer: { scheme: "bearer", type: "http" } } },
     info: { title: "one-shot", version: "1" },
     openapi: "3.1.0",
     paths: {
-      /* Public by declaration: an operation the document leaves unsecured says nothing either way. */
+      // Public by declaration: an operation the document leaves unsecured says nothing either way.
       "/health": { get: { operationId: "gateway.health", responses: ok, security: [] } },
       "/v1/needs-query": {
         get: {
@@ -42,44 +44,58 @@ function spec(): OpenApiDocument {
 async function serve(healthStatus: number): Promise<{ hits: string[]; url: string }> {
   const hits: string[] = [];
   const document = spec();
+
   const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
     const method = (req.method ?? "GET").toUpperCase();
     const authed = req.headers.authorization === "Bearer alpha";
-    /* A request to the private read without alpha's credential is a security probe's: it is refused. */
+    // A request to the private read without alpha's credential is a security probe's: it is refused.
     const refused = url.pathname === "/v1/private" && !authed;
     hits.push(`${method} ${url.pathname}${refused ? " refused" : ""}`);
+
     if (url.pathname === "/openapi.json" && method === "GET") {
       res.writeHead(200, { "content-type": "application/json" });
       res.end(JSON.stringify(document));
+
       return;
     }
+
     if (url.pathname === "/health" && method === "GET") {
       res.writeHead(healthStatus, { "content-type": "application/json" });
       res.end(JSON.stringify({ ok: healthStatus === 200 }));
+
       return;
     }
+
     if (refused) {
       res.writeHead(401, { "content-type": "application/json" });
       res.end(JSON.stringify({ error: "unauthorized" }));
+
       return;
     }
+
     if (url.pathname === "/v1/private" && method === "GET") {
       res.writeHead(200, { "content-type": "application/json" });
       res.end(JSON.stringify({ ok: true }));
+
       return;
     }
+
     if (url.pathname === "/v1/needs-query" && method === "GET" && url.searchParams.get("token") !== null) {
       res.writeHead(200, { "content-type": "application/json" });
       res.end(JSON.stringify({ ok: true }));
+
       return;
     }
+
     res.writeHead(500, { "content-type": "application/json" });
     res.end(JSON.stringify({ error: "should not have been called" }));
   });
+
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   open.push({ close: () => new Promise<void>((resolve) => server.close(() => resolve())) });
+
   return { hits, url };
 }
 
@@ -102,8 +118,8 @@ describe("a public read with no id", () => {
     const health = result.scope.operations.find((op) => op.operationId === "gateway.health");
     expect(health?.status).toBe("passed");
     expect(health?.checks.passed).toContain("response.public-get-returns-success");
-    /* Each operation is called once as alpha; the private read is also probed without a credential
-     * and with an invalid one, and both probes are refused. */
+    // Each operation is called once as alpha; the private read is also probed without a credential
+    // and with an invalid one, and both probes are refused.
     expect(hits.filter((hit) => hit !== "GET /openapi.json").sort()).toEqual([
       "GET /health",
       "GET /v1/needs-query",
@@ -111,6 +127,7 @@ describe("a public read with no id", () => {
       "GET /v1/private refused",
       "GET /v1/private refused",
     ]);
+
     for (const id of ["needs.query", "private.read"]) {
       const row = result.scope.operations.find((op) => op.operationId === id);
       expect(row?.status).toBe("passed");
@@ -134,6 +151,7 @@ describe("a public read with no id", () => {
       dialect: "postgrest",
       via: listening,
     });
+
     expect(failed.error).toBeUndefined();
     expect(failed.detected).toBe(true);
     expect(failed.spurious).toEqual([]);

@@ -11,20 +11,20 @@ import { SAFE } from "../../spec/methods.ts";
 import type { Hosted, Via } from "./launch.ts";
 
 /** What an exchange says about who sent it; a run's transcript holds one per request it made. */
-export interface Sent {
+export type Sent = {
   method: string;
   check?: string;
   purpose?: string;
   issuedBy?: string;
   /** The hops a followed redirect made: each was a call of its own. */
   redirects?: readonly unknown[];
-}
+};
 
 /** Where a run's stage changed: the transcript's length when it did, and the stage it moved to. */
-export interface Mark {
+export type Mark = {
   at: number;
   stage: string;
-}
+};
 
 /** A request's purpose, when no check or credential store claims it. */
 const BY_PURPOSE: Readonly<Record<string, string>> = {
@@ -34,36 +34,39 @@ const BY_PURPOSE: Readonly<Record<string, string>> = {
   teardown: "teardown",
 };
 
-/*
- * The stage a progress move is in. The contract floor enters "test" with no check, which a lane never
- * does, then "contract"; the scenarios have their own phase. Every other stage goes by its phase.
- */
+// The stage a progress move is in. The contract floor enters "test" with no check, which a lane never
+// does, then "contract"; the scenarios have their own phase. Every other stage goes by its phase.
 function stageOf(snap: ProgressSnapshot): string {
   if (snap.phase === "contract" || (snap.phase === "test" && snap.check === undefined)) return "contract floor";
+
   if (snap.phase === "scenario") return "scenarios";
+
   return `phase ${snap.phase}`;
 }
 
 /** A progress listener for one run, and the stage marks it has collected. */
 export function marker(): { onProgress: ProgressHandler; marks: Mark[] } {
   const marks: Mark[] = [];
+
   return {
     marks,
     onProgress: (snap) => {
       const stage = stageOf(snap);
+
       if (marks.at(-1)?.stage !== stage) marks.push({ at: snap.requests, stage });
     },
   };
 }
 
-/*
- * One exchange's source. A security stage's probe without a check is its own overhead: a GET reads a
- * target back, a write makes a throwaway to aim at. The store's requests are its own whatever they are for.
- */
+// One exchange's source. A security stage's probe without a check is its own overhead: a GET reads a
+// target back, a write makes a throwaway to aim at. The store's requests are its own whatever they are for.
 function sourceOf(sent: Sent, stage: string): string {
   if (sent.issuedBy === "credentials") return "credentials";
+
   if (sent.check !== undefined) return `check ${sent.check}`;
+
   if (sent.purpose === "probe") return SAFE.has(sent.method) ? "security overhead" : "throwaway creates";
+
   return (sent.purpose === undefined ? undefined : BY_PURPOSE[sent.purpose]) ?? stage;
 }
 
@@ -72,35 +75,37 @@ export function sourcesOf(transcript: readonly Sent[], marks: readonly Mark[]): 
   const sources: Record<string, number> = {};
   let next = 0;
   let stage = "phase load";
+
   for (const [index, sent] of transcript.entries()) {
     while (next < marks.length && (marks[next] as Mark).at <= index) stage = (marks[next++] as Mark).stage;
     const source = sourceOf(sent, stage);
     sources[source] = (sources[source] ?? 0) + 1 + (sent.redirects?.length ?? 0);
   }
+
   return sources;
 }
 
 /** A leg's requests: all of them, and how many each source sent. */
-export interface Requests {
+export type Requests = {
   total: number;
   /**
    * Per source, summing to `total`. `unattributed` is what no run's transcript holds: a document
    * load, a probe of the base URL, a suite's own call, or a run that threw before it answered.
    */
   sources: Readonly<Record<string, number>>;
-}
+};
 
 /** A way to reach things that counts, and the count so far. */
-export interface Counted {
+export type Counted = {
   via: Via;
   /** Every request sent to whatever `via` launched or hosted, since the counter began. */
   requests: () => Requests;
-}
+};
 
 /** A counted transport: it takes the sources of a run that went through it. */
-interface Attributing {
+type Attributing = {
   attribute: (sources: Readonly<Record<string, number>>) => void;
-}
+};
 
 function attributing(transport: unknown): transport is Attributing {
   return typeof transport === "function" && "attribute" in transport;
@@ -109,8 +114,10 @@ function attributing(transport: unknown): transport is Attributing {
 /** `tallies` added up, source by source. */
 export function sumRequests(tallies: readonly Requests[]): Requests {
   const sources: Record<string, number> = {};
+
   for (const tally of tallies)
     for (const [source, count] of Object.entries(tally.sources)) sources[source] = (sources[source] ?? 0) + count;
+
   return { sources, total: tallies.reduce((sum, tally) => sum + tally.total, 0) };
 }
 
@@ -120,6 +127,7 @@ export function requestLines(requests: Requests): string {
     .filter(([, count]) => count > 0)
     .sort(([a], [b]) => (a < b ? -1 : 1))
     .map(([source, count]) => `    ${source}: ${count}\n`);
+
   return `  requests: ${requests.total}\n${sources.length === 0 ? "" : `  requests by source:\n${sources.join("")}`}`;
 }
 
@@ -131,21 +139,28 @@ export function requestLines(requests: Requests): string {
 export function counting(via: Via, socket: typeof fetch = globalThis.fetch): Counted {
   let total = 0;
   const attributed: Requests[] = [];
+
   const attribute = (sources: Readonly<Record<string, number>>): void => {
     attributed.push({ sources, total: Object.values(sources).reduce((sum, count) => sum + count, 0) });
   };
+
   const counted = <T extends Hosted>(hosted: T): T => {
     const inner = hosted.fetch ?? socket;
+
     const send = (input: Parameters<typeof fetch>[0], init?: RequestInit): Promise<Response> => {
       total += 1;
+
       return inner(input, init);
     };
+
     return { ...hosted, fetch: Object.assign(send, { attribute }) };
   };
+
   return {
     requests: () => {
       const runs = sumRequests(attributed);
       const unattributed = total - runs.total;
+
       return { sources: unattributed === 0 ? runs.sources : { ...runs.sources, unattributed }, total };
     },
     via: {
@@ -162,8 +177,10 @@ export function counting(via: Via, socket: typeof fetch = globalThis.fetch): Cou
  */
 export async function run(options: RunOptions): Promise<RunResult> {
   const transport = options.network?.fetch;
+
   if (!attributing(transport)) return runTester(options);
   const progress = marker();
+
   const result = await runTester({
     ...options,
     onProgress: (snap) => {
@@ -171,6 +188,8 @@ export async function run(options: RunOptions): Promise<RunResult> {
       options.onProgress?.(snap);
     },
   });
+
   transport.attribute(sourcesOf(result.client.transcript, progress.marks));
+
   return result;
 }

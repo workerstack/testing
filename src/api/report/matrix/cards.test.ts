@@ -17,6 +17,7 @@ describe("entityCards", () => {
         invalidates: [{ routes: ["GET /table", "GET /table"], writer: "row" }],
       }),
     );
+
     expect(html.startsWith('<div class="cards"><div class="card">')).toBe(true);
     expect(html).toContain('<div class="meta">id table.id · 1 surfaces · does not invalidate another entity</div>');
     expect(html).toContain('<div class="meta">no identity · 1 surfaces · invalidates table</div>');
@@ -32,6 +33,7 @@ describe("forestSummary", () => {
         .slice(2)
         .map((name) => [name, { "query.axes-compose": "blocked" as const }]),
     );
+
     const html = forestSummary(
       graphOf({
         cells: { ...blocked, e0: { "list.read-after-write": "failed" } },
@@ -39,6 +41,7 @@ describe("forestSummary", () => {
         invalidates: [{ routes: ["GET /e1"], writer: "e0" }],
       }),
     );
+
     expect(html).toContain("    19 entities passed every check that applied.\n    Showing 1 entities that disagreed.");
     expect(html).toContain('<div class="meta">1 disagreed · 0 stood down · invalidates e1</div>');
     expect(html).toContain('<div class="meta">0 disagreed · 1 stood down · does not invalidate another entity</div>');

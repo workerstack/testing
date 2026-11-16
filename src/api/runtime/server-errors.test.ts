@@ -42,7 +42,9 @@ function judge(transcripts: Exchange[][], over: Partial<ServerErrorInput> = {}):
     transcripts,
     ...over,
   };
+
   reportServerErrors(input);
+
   return input;
 }
 
@@ -50,10 +52,12 @@ describe("reportServerErrors", () => {
   it("reports every unreported 5xx once per operation, graded and attributed to it", () => {
     const first = crash("/rows", 500, { operationId: "rows.list" });
     const again = crash("/rows", 503, { responseHeaders: { "Retry-After": "1" }, operationId: "rows.list" });
+
     const { checksRun, findings, grades } = judge([
       [first, crash("/rows", 200, { operationId: "rows.list" })],
       [again],
     ]);
+
     expect(checksRun.has(SERVER_ERROR_CHECK_ID)).toBe(true);
     expect(grades.ran.get("rows.list")).toEqual(new Set([SERVER_ERROR_CHECK_ID]));
     expect(findings.findings).toMatchObject([
@@ -92,10 +96,12 @@ describe("reportServerErrors", () => {
       network: { attempt: 1, kind: "timeout", message: "t" },
       operationId: "rows.list",
     });
+
     const refused = crash("/rows", 0, {
       network: { attempt: 1, kind: "refused", message: "r" },
       operationId: "rows.list",
     });
+
     expect(judge([[timeout, refused]]).findings.findings.map((f) => f.summary)).toEqual([
       "rows.list did not answer before the request timed out",
     ]);
@@ -109,6 +115,7 @@ describe("what reportServerErrors leaves alone", () => {
     const findings = new FindingCollector();
     findings.backend("filter.empty-in", "row", { detail: "d", evidence: [reported], summary: "s" });
     findings.gap("filter.empty-in", "row", { detail: "d", summary: "s" });
+
     const quiet = judge(
       [
         [
@@ -119,6 +126,7 @@ describe("what reportServerErrors leaves alone", () => {
       ],
       { findings },
     );
+
     expect(quiet.findings.findings.filter((f) => f.check === SERVER_ERROR_CHECK_ID)).toEqual([]);
   });
 
@@ -127,6 +135,7 @@ describe("what reportServerErrors leaves alone", () => {
       inScope: () => false,
       mode: "targeted",
     });
+
     expect(input.findings.findings).toEqual([]);
   });
 });

@@ -18,6 +18,6 @@ export const contractCallCheck: Check = {
   needs: "an operation nothing else graded, with every path parameter resolvable",
   plan: () => ({ ok: false }),
   run: (): Promise<Outcome> => Promise.resolve(ASSERTED),
-  /* Runs after every check and scenario, over what they left ungraded. `runContractCalls` does. */
+  // Runs after every check and scenario, over what they left ungraded. `runContractCalls` does.
   subjects: () => [],
 };

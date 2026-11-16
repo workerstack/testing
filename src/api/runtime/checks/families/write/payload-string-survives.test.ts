@@ -13,6 +13,7 @@ import { stringPayloadSurvives } from "./payload-string-survives.ts";
 
 function stage(respond: Responder, options: WidgetDocOptions = {}, fields: Partial<Listed> = {}) {
   const model = modelOf(widgetDoc(options));
+
   return contextFor(model, "listWidgets", {
     respond,
     fields: {
@@ -25,7 +26,7 @@ function stage(respond: Responder, options: WidgetDocOptions = {}, fields: Parti
   });
 }
 
-/* The field the probe writes: `note`, the nullable string. */
+// The field the probe writes: `note`, the nullable string.
 const noteOf = (body: unknown): unknown => (body as { note?: unknown } | undefined)?.note;
 const GERMAN = STRING_PAYLOADS.find((payload) => payload.id === "german")?.value;
 const GATED = { body: { vars: { type: "feature_gate" } }, status: 403 };
@@ -46,7 +47,7 @@ describe("payload.string-survives through an update", () => {
     const { ctx, findings, sent } = stage(widgetApi());
     expect(await runCheck(stringPayloadSurvives, ctx)).toEqual({ kind: "asserted" });
     expect(findings.findings).toEqual([]);
-    /* One scratch record per lane, the ASCII control first, then the whole fitting catalog. */
+    // One scratch record per lane, the ASCII control first, then the whole fitting catalog.
     expect(sent.filter((s) => s.method === "POST")).toHaveLength(4);
     const patched = sent.filter((s) => s.method === "PATCH").map((s) => noteOf(s.options.body));
     expect(patched[0]).toBe(ASCII_PAYLOAD_PROBE);
@@ -57,12 +58,16 @@ describe("payload.string-survives through an update", () => {
   it("reports a backend that strips non-ASCII and surrounding whitespace on write", async () => {
     const rows: Rows = new Map();
     const api = widgetApi(rows);
+
     const mangling: Responder = (method, path, options) => {
       const note = noteOf(options.body);
+
       if (method !== "PATCH" || typeof note !== "string") return api(method, path, options);
-      const stripped = note.replace(/[^\x20-\x7e]/g, "").trim();
+      const stripped = note.replaceAll(/[^\x20-\x7e]/g, "").trim();
+
       return api(method, path, { ...options, body: { note: stripped } });
     };
+
     const { ctx, findings } = stage(mangling);
     expect(await runCheck(stringPayloadSurvives, ctx)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     const [finding] = findings.findings;
@@ -74,11 +79,13 @@ describe("payload.string-survives through an update", () => {
 
   it("reports a row that is never served back, not even to its creator", async () => {
     const rows: Rows = new Map();
+
     const hiding = overriding(widgetApi(rows), (method, path) =>
       method === "GET" && noteOf(rows.get(path.slice("/widgets/".length))) === ASCII_PAYLOAD_PROBE
         ? { status: 404 }
         : undefined,
     );
+
     const { ctx, findings } = stage(hiding);
     expect(await runCheck(stringPayloadSurvives, ctx)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     expect(findings.findings[0]?.summary).toBe("an ordinary ASCII write did not persist exactly");
@@ -104,12 +111,15 @@ describe("payload.string-survives refusals through an update", () => {
       [{ status: 429 }, { kind: "stood-down", reason: "the request was rate limited" }],
       [{ status: 503 }, { kind: "finding", verdict: "BACKEND_BUG" }],
     ];
+
     for (const [answer, outcome] of cases) {
       const { ctx, sent } = stage(writing(ASCII_PAYLOAD_PROBE, answer));
       expect(await runCheck(stringPayloadSurvives, ctx)).toEqual(outcome);
       expect(sent.filter((s) => s.method === "PATCH")).toHaveLength(1);
     }
+
     const model = modelOf(widgetDoc());
+
     const { ctx } = stage(
       writing(ASCII_PAYLOAD_PROBE, GATED),
       {},
@@ -117,6 +127,7 @@ describe("payload.string-survives refusals through an update", () => {
         updateOp: { ...op(model, "updateWidget"), featureGate: "beta" },
       },
     );
+
     expect(await runCheck(stringPayloadSurvives, ctx)).toEqual({
       kind: "stood-down",
       reason: "a documented feature gate refused the request",
@@ -149,15 +160,21 @@ describe("payload.string-survives refusals through an update", () => {
 describe("payload.string-survives stops and narrowing", () => {
   it("stops when authentication is lost mid-catalog, and reports only what failed before", async () => {
     let lost = false;
+
     const losing = (rows?: Rows, mangle = false): Responder => {
       const api = widgetApi(rows);
+
       return (method, path, options) => {
         if (method === "PATCH" && noteOf(options.body) === GERMAN) lost = true;
+
         if (lost && method === "PATCH") return { status: 401 };
+
         if (mangle && method === "PATCH" && noteOf(options.body) === "") return { body: { note: null }, status: 200 };
+
         return api(method, path, options);
       };
     };
+
     const { ctx, sent } = stage(losing());
     expect(await runCheck(stringPayloadSurvives, ctx)).toEqual({
       kind: "unresolved",
@@ -189,12 +206,13 @@ describe("payload.string-survives stops and narrowing", () => {
 
 describe("payload.string-survives on a write path the whole catalog already ran on", () => {
   it("sends one case of each family to a write path the whole catalog already ran on", async () => {
-    /* A first entity runs the whole catalog on this path; the second gets the narrowed set. */
+    // A first entity runs the whole catalog on this path; the second gets the narrowed set.
     const claims = new PayloadClaims();
     const payloads = { claims, policy: "per-write-path" as const };
     const { ctx: first, findings: firstFindings } = stage(widgetApi(), {}, { entityName: "gadget", payloads });
     const { ctx, findings, sent } = stage(widgetApi(), {}, { payloads });
     const writeOp = first.updateOp;
+
     if (writeOp === undefined) throw new Error("the widget document has an update");
     const path = writePathOf(first, writeOp, "note");
     claims.plan([
@@ -203,7 +221,7 @@ describe("payload.string-survives on a write path the whole catalog already ran 
     ]);
     await runCheck(stringPayloadSurvives, first);
     expect(firstFindings.byVerdict("COVERAGE_GAP")).toEqual([]);
-    /* The path's coverage is whole: the narrowing is a note on the run, not a gap. */
+    // The path's coverage is whole: the narrowing is a note on the run, not a gap.
     const outcome = await runCheck(stringPayloadSurvives, ctx);
     expect(outcome).toEqual({
       kind: "asserted",
@@ -220,6 +238,7 @@ describe("payload.string-survives on a write path the whole catalog already ran 
     const { ctx: first } = stage(writing(GERMAN, { status: 429 }), {}, { entityName: "gadget", payloads });
     const { ctx, findings, sent } = stage(widgetApi(), {}, { payloads });
     const writeOp = first.updateOp;
+
     if (writeOp === undefined) throw new Error("the widget document has an update");
     const path = writePathOf(first, writeOp, "note");
     claims.plan([
@@ -227,7 +246,7 @@ describe("payload.string-survives on a write path the whole catalog already ran 
       { entity: ctx.entityName, path },
     ]);
     expect(await runCheck(stringPayloadSurvives, first)).toMatchObject({ kind: "stood-down" });
-    /* The lane settles an entity once it is done; the first never ran the catalog to its end. */
+    // The lane settles an entity once it is done; the first never ran the catalog to its end.
     claims.settle("gadget");
     expect(await runCheck(stringPayloadSurvives, ctx)).toEqual({ kind: "asserted" });
     expect(findings.findings).toEqual([]);
@@ -239,9 +258,11 @@ describe("payload.string-survives on a write path the whole catalog already ran 
 describe("payload.string-survives lane records", () => {
   it("runs on the records it could make when later scratch records fail", async () => {
     let posts = 0;
+
     const { ctx, sent } = stage(
       overriding(widgetApi(), (method) => (method === "POST" && ++posts > 2 ? { status: 500 } : undefined)),
     );
+
     expect(await runCheck(stringPayloadSurvives, ctx)).toEqual({ kind: "asserted" });
     expect(new Set(sent.filter((s) => s.method === "PATCH").map((s) => s.path)).size).toBe(2);
     const { ctx: none } = stage(overriding(widgetApi(), (method) => (method === "POST" ? { status: 500 } : undefined)));
@@ -272,12 +293,14 @@ describe("payload.string-survives through create", () => {
   it("reports a create that fails with 5xx on non-ASCII, and leaves nothing to remove", async () => {
     const crashing = overriding(widgetApi(), (method, _, options) => {
       const note = noteOf(options.body);
+
       return method === "POST" &&
         typeof note === "string" &&
         [...note].some((char) => (char.codePointAt(0) ?? 0) > 0x7f)
         ? { status: 500 }
         : undefined;
     });
+
     const { ctx, findings, sent } = stage(crashing, CREATE_ONLY);
     expect(await runCheck(stringPayloadSurvives, ctx)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     expect(findings.findings[0]?.detail).toContain("got HTTP 500");
@@ -302,6 +325,7 @@ describe("payload.string-survives through create", () => {
 
   it("is unresolved when the control create names no record", async () => {
     const reason = "the ASCII control write did not return an identity, so the value could not be read back";
+
     for (const answer of [{ body: {}, status: 201 }, { status: 302 }]) {
       const { ctx } = stage(writing(ASCII_PAYLOAD_PROBE, answer), CREATE_ONLY);
       expect(await runCheck(stringPayloadSurvives, ctx)).toEqual({ kind: "unresolved", reason });
@@ -326,6 +350,7 @@ describe("payload.string-survives plan", () => {
       properties: { id: { readOnly: true, type: "string" }, kind: { enum: ["a"], type: "string" } },
       type: "object",
     };
+
     expect(stringPayloadSurvives.plan(stage(widgetApi(), { item }).ctx)).toEqual({
       needs: "a writable string field without a format or pattern to probe payloads against",
       ok: false,

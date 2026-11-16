@@ -1,10 +1,8 @@
-/*
- * The principal a dedicated credential is held under: `<owner>#probe-<n>`. The store enrolls it so
- * the credential is never the owner's own session; nothing else ever sees it. An exchange, a finding
- * or a teardown record names the owner instead, so no file a run writes carries a probe's id. A
- * credential a create handed its creator for the record it made is held the same way, under
- * `<owner>#record-<n>`, and named by its owner too.
- */
+// The principal a dedicated credential is held under: `<owner>#probe-<n>`. The store enrolls it so
+// the credential is never the owner's own session; nothing else ever sees it. An exchange, a finding
+// or a teardown record names the owner instead, so no file a run writes carries a probe's id. A
+// credential a create handed its creator for the record it made is held the same way, under
+// `<owner>#record-<n>`, and named by its owner too.
 
 const SUFFIX = /#probe-\d+$/;
 const HELD_FOR = /#(?:probe|record)-\d+$/;

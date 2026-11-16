@@ -9,7 +9,7 @@ import { runSelfIdentity } from "./identity.ts";
 
 const SIGNUP = { properties: { handle: { type: "string" } }, required: ["handle"], type: "object" };
 
-/* The anonymous probe is a 401; a request as the caller is up to `answer`. */
+// The anonymous probe is a 401; a request as the caller is up to `answer`.
 const caller =
   (answer: (method: string, path: string, options: Omit<RequestOptions, "as">) => Answer | undefined): Responder =>
   (method, path, options) =>
@@ -17,25 +17,28 @@ const caller =
 
 function check(respond: Responder, document: MeOptions = {}) {
   const { input, findings, sent } = selfInput(respond, me(document));
+
   return { findings, result: runSelfIdentity(input), sent };
 }
 
-/* A caller whose profile keeps what it is sent. */
+// A caller whose profile keeps what it is sent.
 function stored(initial: Record<string, unknown>): Responder {
   let profile = { ...initial };
+
   return caller((method, _path, options) => {
     if (method === "PATCH" || method === "POST") profile = { ...profile, ...(options.body as Record<string, unknown>) };
+
     return { body: profile, status: method === "POST" ? 201 : 200 };
   });
 }
 
 describe("runSelfIdentity", () => {
   it("has nothing to probe without a read or an update, or on a route that needs an id", async () => {
-    expect(await check(() => undefined, { create: SIGNUP, read: false, update: false }).result).toEqual({
+    expect(await check(() => {}, { create: SIGNUP, read: false, update: false }).result).toEqual({
       kind: "unresolved",
       reason: "no read or update",
     });
-    expect(await check(() => undefined, { read: "/me/{slot}" }).result).toEqual({
+    expect(await check(() => {}, { read: "/me/{slot}" }).result).toEqual({
       kind: "unresolved",
       reason: "me.get needs a path id",
     });
@@ -52,6 +55,7 @@ describe("runSelfIdentity", () => {
       caller(() => ({ status: 204 })),
       { read: false },
     );
+
     expect(await result).toBe(ASSERTED);
     expect(sent.map((request) => `${request.method} ${request.path}`)).toEqual(["PATCH /me", "PATCH /me"]);
     expect(sent[1]?.options.body).toEqual({ note: "Tst" });
@@ -101,6 +105,7 @@ describe("runSelfIdentity with a create and more reads", () => {
       create: SIGNUP,
       secondRead: "/me/settings",
     });
+
     expect(await result).toBe(ASSERTED);
     expect(sent.slice(1, 5).map((request) => `${request.method} ${request.path}`)).toEqual([
       "POST /me",
@@ -131,15 +136,19 @@ describe("runSelfIdentity with a create and more reads", () => {
     const forgetful = caller((method) =>
       method === "POST" ? { status: 201 } : { body: { handle: "someone" }, status: 200 },
     );
+
     const missed = check(forgetful, { create: SIGNUP });
     expect(await missed.result).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     expect(missed.findings.findings[0]?.summary).toBe("the create did not show up on the next read");
+
     const confused = caller((method, path, options) => {
       if (path === "/me/lookup") return { body: { handle: "other" }, status: 200 };
+
       return method === "POST"
         ? { status: 201 }
         : { body: options.body ?? { handle: "Quarterly Report 0" }, status: 200 };
     });
+
     const acted = check(confused, { action: ["handle"], create: SIGNUP });
     expect(await acted.result).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     expect(acted.findings.findings[0]?.summary).toBe("the caller query answered about a different value");
@@ -176,6 +185,7 @@ describe("runSelfIdentity and what the caller signs in with", () => {
 
   function guarded(respond: Responder, document: MeOptions, disposable: string | { blocked: string } = NONE) {
     const { input, findings, sent } = selfInput(respond, me(document), { ownRecords: records(disposable) });
+
     return { findings, result: runSelfIdentity(input), sent };
   }
 

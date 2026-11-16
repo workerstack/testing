@@ -10,10 +10,12 @@ const model = modelOf(notesDocument());
 const HOME = { org_id: "o1" };
 const owner = actor("owner", { rank: 2, scope: HOME, tenant: "o1" });
 const viewer = actor("viewer", { rank: 0, scope: HOME, tenant: "o1" });
-/* Same tenant, though the run made it parents of its own: it is still home. */
+
+// Same tenant, though the run made it parents of its own: it is still home.
 const member = actor("member", { rank: 1, scope: { ...HOME, shelf_id: "s9" }, tenant: "o1" });
 const stranger = actor("stranger", { rank: 0, scope: { org_id: "o2" }, tenant: "o2" });
-/* Another tenant, though its scope reads like the owner's: it is not home. */
+
+// Another tenant, though its scope reads like the owner's: it is not home.
 const guest = actor("guest", { rank: 1, scope: HOME, tenant: "o2" });
 
 /** Each principal's status for the read of note n1. */
@@ -26,6 +28,7 @@ describe("auth.rank-is-monotonic", () => {
     const { ctx, findings, sent } = notesContext(model, reads({ member: 200, owner: 200, viewer: 200 }), {
       actors: [owner, member, viewer, stranger, guest],
     });
+
     expect(await runCheck(rankIsMonotonic, ctx)).toEqual({ kind: "asserted" });
     expect(sent.map((s) => `${caller(s)} ${s.path} ${s.options.operationId}`)).toEqual([
       "owner /orgs/o1/notes/n1 readNote",
@@ -39,6 +42,7 @@ describe("auth.rank-is-monotonic", () => {
     const { ctx, findings } = notesContext(model, reads({ member: 404, owner: 200, viewer: 403 }), {
       actors: [owner, member, viewer],
     });
+
     expect(await runCheck(rankIsMonotonic, ctx)).toEqual({ kind: "asserted" });
     expect(findings.findings).toEqual([]);
   });
@@ -47,6 +51,7 @@ describe("auth.rank-is-monotonic", () => {
     const { ctx, findings } = notesContext(model, reads({ member: 200, owner: 403, viewer: 200 }), {
       actors: [owner, member, viewer],
     });
+
     expect(await runCheck(rankIsMonotonic, ctx)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     const [finding] = findings.findings;
     expect(finding?.summary).toBe("a lower-ranked role can read a record a higher-ranked role cannot");
@@ -58,6 +63,7 @@ describe("auth.rank-is-monotonic", () => {
     const { ctx, findings } = notesContext(model, reads({ member: 404, owner: 500, viewer: 200 }), {
       actors: [owner, member, viewer],
     });
+
     expect(await runCheck(rankIsMonotonic, ctx)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     expect(findings.findings).toHaveLength(1);
     expect(findings.findings[0]?.detail).toContain("viewer (rank 0) was served note n1; member (rank 1) was denied");
@@ -71,9 +77,9 @@ describe("auth.rank-is-monotonic", () => {
       { actors: [owner, stranger] },
       { actors: [owner, guest] },
       { actors: [owner, actor("peer", { rank: 2, scope: HOME, tenant: "o1" })] },
-    ]) {
+    ])
       expect(rankIsMonotonic.plan(notesContext(model, reads({}), fields).ctx)).toEqual({ ok: false });
-    }
+
     const { ctx } = notesContext(model, reads({}), { actors: [owner, viewer], records: [{ title: "x" }] });
     expect(rankIsMonotonic.plan(ctx)).toEqual({ needs: "a record that carries its identity", ok: false });
   });

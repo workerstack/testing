@@ -36,18 +36,20 @@ export const COHORT: readonly Variant[] = [
 /** Deterministic PRNG — same seed, same cohort, every run. */
 export function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
+
   return () => {
     a = (a + 0x6d2b79f5) >>> 0;
     let t = Math.imul(a ^ (a >>> 15), 1 | a);
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
 
-export interface CohortMember {
+export type CohortMember = {
   variant: Variant;
   body: Record<string, unknown>;
-}
+};
 
 /**
  * Thrown when no valid body can be built for an operation. The pointer names the field; the
@@ -71,18 +73,19 @@ export class FixtureOverflow extends Error {
 }
 
 export function overflowFrom(error: unknown, operationId: string, pointer = "/"): FixtureOverflow {
-  if (error instanceof FixtureOverflow) {
+  if (error instanceof FixtureOverflow)
     return new FixtureOverflow(operationId, error.pointer === "/" ? pointer : error.pointer, error.reason);
-  }
+
   return new FixtureOverflow(operationId, pointer);
 }
 
 export function isOverflowError(error: unknown): boolean {
   if (error instanceof FixtureOverflow) return true;
+
   return error instanceof RangeError;
 }
 
-interface CohortOptions {
+type CohortOptions = {
   /** The operation an overflow names; default "unknown". */
   operationId?: string;
   /** Recursive schemas the document refers to as `testing-defs#/$defs/<name>`. */
@@ -91,7 +94,7 @@ interface CohortOptions {
   nonce?: string;
   /** Top-level fields whose values must be distinct across runs too — the x-unique columns. */
   distinct?: ReadonlySet<string>;
-}
+};
 
 /**
  * The request schema as any writer may fill it: readOnly properties gone, and an optional property
@@ -106,7 +109,7 @@ export function ordinaryRequestSchema(schema: JsonSchema | boolean): JsonSchema 
     : schema;
 }
 
-/* The request schema as generation reads it; one that cannot even be read is an overflow naming why. */
+// The request schema as generation reads it; one that cannot even be read is an overflow naming why.
 function readable(schema: JsonSchema | boolean, operationId: string): JsonSchema | boolean {
   try {
     return ordinaryRequestSchema(schema);
@@ -116,15 +119,16 @@ function readable(schema: JsonSchema | boolean, operationId: string): JsonSchema
 }
 
 /** A cohort to build: the variants to make, default the whole `COHORT`, and how to make them. */
-export interface CohortBuild extends CohortOptions {
+export type CohortBuild = CohortOptions & {
   variants?: readonly Variant[];
-}
+};
 
 /** One body per variant, each valid for the schema — or a `FixtureOverflow` naming what is not. */
 export function buildCohort(bodySchema: JsonSchema | boolean, seed: number, options: CohortBuild = {}): CohortMember[] {
   const { operationId = "unknown", variants = COHORT } = options;
   const schema = readable(bodySchema, operationId);
   const distinct = new Set([...(options.distinct ?? []), ...identityNames(schema)]);
+
   return variants.map((variant, index) => {
     const result = generate(schema, {
       ...(options.defs === undefined ? {} : { defs: options.defs }),
@@ -134,23 +138,27 @@ export function buildCohort(bodySchema: JsonSchema | boolean, seed: number, opti
       rand: mulberry32(seed + index * 7919),
       variant,
     });
+
     if (!result.ok) throw new FixtureOverflow(operationId, result.pointer, result.reason);
     const body = isObject(result.value) ? result.value : {};
-    /* The self-check: a body the API tester invented must satisfy the document before it is sent. */
+
+    // The self-check: a body the API tester invented must satisfy the document before it is sent.
     if (typeof schema === "object" && !isVacuous(schema)) {
       const errors = instanceErrors(schema, body, options.defs);
+
       if (errors.length > 0) throw new FixtureOverflow(operationId, "/", errors.slice(0, 3).join("; "));
     }
+
     return { body, variant };
   });
 }
 
 /** Which body to draw: its variant, the random source, and its position in a cohort. */
-export interface BodyDraw {
+export type BodyDraw = {
   variant: Variant;
   rand: () => number;
   index: number;
-}
+};
 
 /**
  * One body, with the required fields that could not be made rather than an exception — for
@@ -163,13 +171,13 @@ export function generateBody(
   const schema = ordinaryRequestSchema(bodySchema);
   const { index, rand, variant } = draw;
   const result = generate(schema, { index, rand, variant });
+
   if (result.ok) return { body: isObject(result.value) ? result.value : {}, missingRequired: [] };
-  /*
-   * Without the failing field, the rest may still be made: drop it from `required` and retry. Only a
-   * field this level declares can be dropped; one required through `allOf` would fail the same way
-   * on every retry. (A required field nothing declares is always made, so it never fails here.)
-   */
+  // Without the failing field, the rest may still be made: drop it from `required` and retry. Only a
+  // field this level declares can be dropped; one required through `allOf` would fail the same way
+  // on every retry. (A required field nothing declares is always made, so it never fails here.)
   const field = result.pointer.split("/")[1];
+
   if (
     field !== undefined &&
     typeof schema === "object" &&
@@ -180,8 +188,10 @@ export function generateBody(
     const properties = { ...schema.properties };
     delete properties[field];
     const rest = generateBody({ ...schema, properties, required }, draw);
+
     return { body: rest.body, missingRequired: [result.pointer, ...rest.missingRequired] };
   }
+
   return { body: {}, missingRequired: [result.pointer] };
 }
 
@@ -195,9 +205,9 @@ function isObject(value: unknown): value is Record<string, unknown> {
  * seven members — the extra members are dropped and the caller records a gap.
  */
 /** What a member's unique columns are redrawn from: the body schema, and how cohort values are made. */
-export interface Redrawing extends CohortOptions {
+export type Redrawing = CohortOptions & {
   schema: JsonSchema | boolean;
-}
+};
 
 export function ensureDistinctUniqueValues(
   members: CohortMember[],
@@ -208,29 +218,36 @@ export function ensureDistinctUniqueValues(
   const normalized = ordinaryRequestSchema(schema);
   const properties = typeof normalized === "object" && isObject(normalized.properties) ? normalized.properties : {};
   const kept: CohortMember[] = [];
+
   for (const member of members) {
     const body = distinctBody(member, sets, { kept, options, properties });
+
     if (body !== undefined) kept.push({ body, variant: member.variant });
   }
-  /* The first member is always kept: there is nothing before it to collide with. */
+
+  // The first member is always kept: there is nothing before it to collide with.
   if (kept.length === members.length) return { gap: null, members: kept };
+
   return { gap: uniqueDistinctGap(sets), members: kept };
 }
 
 /** What redrawing a member's unique columns needs: the members kept so far and the column schemas. */
-interface Redraw {
+type Redraw = {
   kept: readonly CohortMember[];
   options: CohortOptions;
   properties: Record<string, unknown>;
-}
+};
 
 /** `member`'s body made distinct from every kept member on every set, or `undefined` if it cannot be. */
 function distinctBody(member: CohortMember, sets: string[][], redraw: Redraw): Record<string, unknown> | undefined {
   const body = { ...member.body };
+
   for (const set of sets) {
     redrawSet(body, set, redraw);
+
     if (collides(redraw.kept, body, set)) return undefined;
   }
+
   return body;
 }
 
@@ -238,7 +255,9 @@ function distinctBody(member: CohortMember, sets: string[][], redraw: Redraw): R
 function redrawSet(body: Record<string, unknown>, set: string[], { kept, options, properties }: Redraw): void {
   for (let attempt = 0; collides(kept, body, set) && attempt < 16; attempt++) {
     const col = set.find((name) => Object.hasOwn(body, name) && isObject(properties[name]));
+
     if (col === undefined) return;
+
     const redrawn = generate(
       { properties: { [col]: properties[col] }, required: [col], type: "object" },
       {
@@ -248,6 +267,7 @@ function redrawSet(body: Record<string, unknown>, set: string[], { kept, options
         nonce: `${options.nonce ?? ""}${attempt}`,
       },
     );
+
     if (!redrawn.ok) return;
     body[col] = (redrawn.value as Record<string, unknown>)[col];
   }
@@ -259,11 +279,14 @@ function collides(kept: readonly CohortMember[], body: Record<string, unknown>, 
 
 function uniqueDistinctGap(sets: string[][]): string {
   const shown = sets.map((set) => `[${set.join(", ")}]`).join("; ");
+
   return `x-unique cannot express distinct values for ${shown} within the schema; extra variants skipped`;
 }
 
 function sameUniqueTuple(a: Record<string, unknown>, b: Record<string, unknown>, set: string[]): boolean {
   const cols = set.filter((col) => Object.hasOwn(a, col) || Object.hasOwn(b, col));
+
   if (cols.length === 0) return false;
+
   return cols.every((col) => JSON.stringify(a[col]) === JSON.stringify(b[col]));
 }

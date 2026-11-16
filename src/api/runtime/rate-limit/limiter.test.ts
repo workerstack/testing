@@ -9,6 +9,7 @@ const rule = (category: string, path: string, rps: number): CompiledRateLimitRul
   source: "tag",
   test: (_method, pathname) => pathname === path,
 });
+
 const RULES = [rule("reads", "/a", 1), rule("reads", "/b", 1), rule("writes", "/w", 10)];
 
 beforeEach(() => {
@@ -40,9 +41,11 @@ describe("RateLimiter buckets", () => {
     const limiter = new RateLimiter(RULES, { maxRps: 1 });
     await limiter.acquireCeiling();
     let admitted = false;
+
     const next = limiter.acquireCeiling().then(() => {
       admitted = true;
     });
+
     await vi.advanceTimersByTimeAsync(999);
     expect(admitted).toBe(false);
     await vi.advanceTimersByTimeAsync(1);
@@ -84,19 +87,23 @@ describe("RateLimiter after a 429", () => {
   });
 });
 
-/* When each waiter leaves, from fake time 0. */
+// When each waiter leaves, from fake time 0.
 async function leaving(limiter: RateLimiter, waiters: number, drive: () => Promise<unknown>): Promise<number[]> {
   const left: number[] = [];
+
   const waits = Array.from({ length: waiters }, () =>
     limiter.waitImplicit("DELETE").then(() => left.push(performance.now())),
   );
+
   await drive();
   await Promise.all(waits);
+
   return left.toSorted((a, b) => a - b);
 }
 
 const sequence = (values: number[]) => {
   let next = 0;
+
   return () => values[next++ % values.length] as number;
 };
 

@@ -16,6 +16,7 @@ describe("describeFilterGrammar", () => {
       or: "terms",
       term: "{conj}_{field}_{op}_{value}",
     });
+
     if (!result.ok) throw new Error(result.error);
     expect(describeFilterGrammar(result.spec)).toBe(
       'template {conj}_{field}_{op}_{value}  ops eq=eq in=in  null {field}_null / {field}_notnull  list ","  ' +

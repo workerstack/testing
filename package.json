@@ -72,13 +72,13 @@
   "scripts": {
     "bisect": "node labs/api/bisect.mjs",
     "build": "bun scripts/steps.ts build",
-    "build:api": "tsc -p tsconfig.json",
+    "build:api": "tsc -p tsconfig.build.json",
     "build:web": "tsc -p tsconfig.web.json",
     "check": "bun scripts/steps.ts typecheck",
     "conformance": "node dist/api/cli.js conformance",
     "conformance:sharded": "bun scripts/conformance-sharded.ts",
     "demo": "bun scripts/steps.ts demo",
-    "dev": "tsc -p tsconfig.json --watch",
+    "dev": "tsc -p tsconfig.build.json --watch",
     "fmt": "repo fmt",
     "fmt:check": "repo fmt --check",
     "labs": "node labs/api/serve.ts",
@@ -98,9 +98,7 @@
     "test:targets": "vitest run -c vitest.targets.config.ts",
     "test:unit": "vitest run --project unit --coverage",
     "test:web": "bun scripts/steps.ts test:web",
-    "typecheck": "bun run check",
-    "typecheck:test": "tsc -p tsconfig.test.json --noEmit",
-    "typecheck:web-test": "tsc -p tsconfig.web-test.json --noEmit"
+    "typecheck": "bun run check"
   },
   "dependencies": {
     "ajv": "^8.17.1",
@@ -117,7 +115,7 @@
     "@types/node": "^22.10.0",
     "@vitest/browser-playwright": "5.0.5",
     "@vitest/coverage-v8": "5.0.5",
-    "@workerstack/repo": "0.2.0-rc.2",
+    "@workerstack/repo": "0.2.0",
     "fast-check": "4.10.2",
     "hono": "^4.9.0",
     "oxc-parser": "0.152.0",

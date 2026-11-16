@@ -1,14 +1,18 @@
 {
   "compilerOptions": {
     "allowImportingTsExtensions": true,
-    "declaration": true,
-    "declarationMap": false,
+    // The bin and lab scripts are JavaScript: read for their types, so lint knows `process`, not checked.
+    "allowJs": true,
+    // Declarations are the build's: tsconfig.build.json emits them and tsconfig.src.json holds src to
+    // isolatedDeclarations. Tests and scripts emit none.
+    "declaration": false,
     "exactOptionalPropertyTypes": true,
-    "isolatedDeclarations": true,
+    "isolatedDeclarations": false,
+    // No DOM: its Blob and fetch types are not Node's. src/web and tests/web add it in their own tsconfig.json.
     "lib": ["ES2023"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "noEmit": false,
+    "noEmit": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitOverride": true,
     "noImplicitReturns": true,
@@ -16,17 +20,32 @@
     "noUncheckedIndexedAccess": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
+    // Emits nothing: tsconfig.build.json writes dist. knip reads this to map the package's dist exports onto src.
     "outDir": "dist",
     "rewriteRelativeImportExtensions": true,
-    "rootDir": "src",
+    // The labs configs import the build ("../dist/index.js"); with no build, as in CI's check, that resolves to the
+    // source. A build that exists is still read first, whatever this order: tests/structure/labs-typecheck.test.ts
+    // checks labs against the source with the build hidden.
+    "rootDirs": ["src", "dist"],
     "skipLibCheck": true,
-    "sourceMap": false,
     "strict": true,
     "target": "ES2023",
     "types": ["node"],
     "verbatimModuleSyntax": true
   },
-  "exclude": ["dist", "node_modules", "examples", "lab", "src/web", "src/**/*.test.ts", "src/**/__fixtures__/**"],
+  // Every TypeScript file but the web ones, which src/web/tsconfig.json and tests/web/tsconfig.json own, so the
+  // type-aware lint reads each file with these flags (tests/structure/typecheck-covers-tree.test.ts).
+  "exclude": ["dist", "node_modules", ".tmp", ".worktrees", "src/web", "tests/web"],
   "extends": "@workerstack/repo/tsconfig/base",
-  "include": ["src/**/*.ts"]
+  "include": [
+    "*.ts",
+    "bin/*.js",
+    "labs/**/*.mjs",
+    "src/**/*.ts",
+    "tests/**/*.ts",
+    "tests/**/*.tsx",
+    "lint/**/*.ts",
+    "labs/**/*.ts",
+    "scripts/**/*.ts"
+  ]
 }

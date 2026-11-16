@@ -15,7 +15,7 @@ const clean: FuzzCase = {
   unresolved: [{ defect: "ORDER_IGNORED", reason: "one row" }],
 };
 
-/* Diagnosed correctly, but only because a check stood down everywhere: shown, never silent. */
+// Diagnosed correctly, but only because a check stood down everywhere: shown, never silent.
 const excused: FuzzCase = {
   ...clean,
   cascaded: [],
@@ -74,6 +74,7 @@ describe("renderPrecision", () => {
       { findings: [{ check: "a.b", entity: "widget", summary: "a broke" }], inconclusive: 0, seed: 2 },
       { error: "fetch failed", findings: [], inconclusive: 0, seed: 3 },
     ];
+
     const { failures, text } = renderPrecision(cases);
     expect(failures).toBe(2);
     expect(text.split("\n")).toEqual([

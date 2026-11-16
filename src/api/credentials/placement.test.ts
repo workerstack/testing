@@ -4,6 +4,7 @@ import type { SecurityScheme } from "../spec/security/schemes.ts";
 import { sendsFor, UnsupportedSchemeError } from "./placement.ts";
 
 const bearer: SecurityScheme = { deprecated: false, kind: "bearer", name: "jwt" };
+
 const apiKey = (location: "header" | "query" | "cookie", param: string): SecurityScheme => ({
   deprecated: false,
   in: location,
@@ -41,6 +42,7 @@ describe("sendsFor: extra places, basic and unsupported schemes", () => {
         { in: "header" as const, name: "X-Token" },
       ],
     };
+
     expect(sendsFor(bearer, recipe, "v")).toEqual({
       secrets: {
         cookies: ["session"],
@@ -69,6 +71,7 @@ describe("sendsFor: extra places, basic and unsupported schemes", () => {
 
   it("refuses a scheme the API tester cannot send, with the reason", () => {
     const digest: SecurityScheme = { deprecated: false, kind: "unsupported", name: "d", unsupported: "http digest" };
+
     const thrown = (() => {
       try {
         return sendsFor(digest, {}, "x");
@@ -76,6 +79,7 @@ describe("sendsFor: extra places, basic and unsupported schemes", () => {
         return error;
       }
     })();
+
     expect(thrown).toBeInstanceOf(UnsupportedSchemeError);
     expect(thrown).toMatchObject({
       message: 'the API tester cannot send the "d" scheme: http digest',

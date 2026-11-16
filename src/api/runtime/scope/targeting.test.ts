@@ -44,7 +44,7 @@ describe("targetPattern", () => {
     expect(() => targetPattern(targeting({ origins: new Map() }), "api:row.get")).toThrow(
       'testing api: --ops "api:row.get" names origin "api", which is not configured.',
     );
-    /* Without origins, a prefixed id is just an id the primary may not have. */
+    // Without origins, a prefixed id is just an id the primary may not have.
     expect(() => targetPattern(targeting(), "api:row.get")).toThrow(
       'testing api: --ops "api:row.get" matches no operation.',
     );
@@ -56,6 +56,7 @@ describe("targetPattern", () => {
       openapi: "3.1.0",
       paths: { "/jobs/{id}:cancel": { post: { responses: { "200": { description: "ok" } } } } },
     } as unknown as OpenApiDocument);
+
     const t = targeting({ origins: new Map([["cdn", model]]) }, unnamed);
     targetPattern(t, "post /jobs/{id}:cancel");
     expect([...t.targets]).toEqual(["POST /jobs/{id}:cancel"]);
@@ -82,6 +83,7 @@ describe("targetEntity", () => {
         ["empty", { ...model, entities: new Map() }],
       ]),
     });
+
     targetEntity(t, "job");
     expect(t.targets.has("job.list")).toBe(true);
     expect(t.targets.has("job.start")).toBe(false);

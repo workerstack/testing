@@ -13,11 +13,13 @@ import type { ScenarioRun } from "./types.ts";
 import { isExternal, isOutOfBand } from "./validate.ts";
 
 export async function runStep(run: ScenarioRun, step: ScenarioStep, index: number): Promise<void> {
-  for (const [name, literal] of Object.entries("bind" in step && step.bind !== undefined ? step.bind : {})) {
+  for (const [name, literal] of Object.entries("bind" in step && step.bind !== undefined ? step.bind : {}))
     run.scope[name] = String(interpolate(literal, run.scope));
-  }
+
   if (isOutOfBand(step)) return outOfBandStep(run, step);
+
   if (isExternal(step)) return externalStep(run, step, index);
+
   return requestStep(run, step, index);
 }
 
@@ -38,22 +40,25 @@ async function outOfBandStep(run: ScenarioRun, step: OutOfBandStep): Promise<voi
 
 async function externalStep(run: ScenarioRun, step: ExternalStep, index: number): Promise<void> {
   const { hooks } = run.input;
-  if (hooks.external === undefined) {
+
+  if (hooks.external === undefined)
     throw new StepFailure(`step ${index + 1} needs hooks.external for "${step.external}"`, [], []);
-  }
+
   const value = await hooks.external(
     step.external,
     interpolate(step.input ?? {}, run.scope, run.objects) as Record<string, unknown>,
   );
-  if (value === null || value === "") {
+
+  if (value === null || value === "")
     throw new StepFailure(`hooks.external("${step.external}") returned nothing`, [], []);
-  }
+
   run.scope[step.as] = value;
+
   if (/^\s*[[{]/.test(value)) {
     try {
       run.objects.set(step.as, JSON.parse(value));
     } catch {
-      /* A string that only looks like JSON stays a string. */
+      // A string that only looks like JSON stays a string.
     }
   }
 }

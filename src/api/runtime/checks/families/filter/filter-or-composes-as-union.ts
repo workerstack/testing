@@ -23,11 +23,11 @@ export const filterOrComposesAsUnion: Check<Compound> = defineCheck<Compound>({
     "create.persists-submitted-fields",
     "filter.equality-selects-exactly-one",
     "pagination.page-walk-covers-set",
-    /* Deliberately does *not* depend on filter.and-composes-as-intersection: and() and or()
-     * being broken by the same defect is two independent manifestations of one root cause, not
-     * one causing the other. A defect that swaps the combinators corrupts both requests, and
-     * suppressing this as and()'s cascade would hide the half of the bug this check is the
-     * only thing that can see. */
+    // Deliberately does *not* depend on filter.and-composes-as-intersection: and() and or()
+    // being broken by the same defect is two independent manifestations of one root cause, not
+    // one causing the other. A defect that swaps the combinators corrupts both requests, and
+    // suppressing this as and()'s cascade would hide the half of the bug this check is the
+    // only thing that can see.
   ],
   id: "filter.or-composes-as-union",
   lists: true,
@@ -35,6 +35,7 @@ export const filterOrComposesAsUnion: Check<Compound> = defineCheck<Compound>({
   subjects: subjectsOf.list,
   async run(ctx, { combined, fieldA, fieldB, termA, termB, valueA, valueB }): Promise<Outcome> {
     const composed = await readComposed(ctx, { combined, termA, termB }, (a, b) => new Set([...a, ...b]));
+
     if (composed === "rejected") {
       return ctx.findings.unresolved(
         this.id,
@@ -42,6 +43,7 @@ export const filterOrComposesAsUnion: Check<Compound> = defineCheck<Compound>({
         "one of the three listings needed for the union was rejected",
       );
     }
+
     if (composed === "incomplete") {
       return ctx.findings.unresolved(
         this.id,
@@ -49,19 +51,19 @@ export const filterOrComposesAsUnion: Check<Compound> = defineCheck<Compound>({
         "the collection is larger than the walk covers, so the union cannot be verified",
       );
     }
+
     if (composed === "moving") return ctx.findings.unresolved(this.id, ctx.entityName, MOVING_COLLECTION);
     const { expected, extra, got, missing, onlyA, onlyB, setA, setB } = composed;
+
     if (missing.length === 0 && extra.length === 0) return ASSERTED;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
       summary: "or() does not compose as the union of its terms",
-      detail:
-        `or(${fieldA}.eq.${valueA},${fieldB}.eq.${valueB}) returned ${got.size} record(s); ` +
-        `${fieldA}.eq.${valueA} alone returned ${setA.size}, ${fieldB}.eq.${valueB} alone returned ` +
-        `${setB.size}, whose union is ${expected.size}. ` +
-        (missing.length > 0 ? `Missing from the combined result: ${missing.slice(0, 3).join(", ")}. ` : "") +
-        (extra.length > 0 ? `Present but matches neither term individually: ${extra.slice(0, 3).join(", ")}. ` : "") +
-        "A disjunction must select exactly the records either term matches alone.",
+      detail: `or(${fieldA}.eq.${valueA},${fieldB}.eq.${valueB}) returned ${got.size} record(s); ${fieldA}.eq.${valueA} alone returned ${setA.size}, ${fieldB}.eq.${valueB} alone returned ${setB.size}, whose union is ${expected.size}. ${
+        missing.length > 0 ? `Missing from the combined result: ${missing.slice(0, 3).join(", ")}. ` : ""
+      }${
+        extra.length > 0 ? `Present but matches neither term individually: ${extra.slice(0, 3).join(", ")}. ` : ""
+      }A disjunction must select exactly the records either term matches alone.`,
       evidence: [onlyA.last.exchange, onlyB.last.exchange, composed.combined.last.exchange],
     });
   },

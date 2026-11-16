@@ -13,7 +13,9 @@ import type { FieldEncoding } from "./types.ts";
  */
 export function formPairs(name: string, value: unknown, encoding: FieldEncoding | undefined): Array<[string, string]> {
   if (value === undefined || value === null) return [];
+
   if (encoding?.contentType?.includes("json") === true) return [[name, JSON.stringify(value)]];
+
   return unencodedPairs({ ...encoding, name }, value);
 }
 
@@ -22,8 +24,9 @@ export function encodeUrlencoded(
   encoding?: Record<string, FieldEncoding>,
 ): URLSearchParams {
   const params = new URLSearchParams();
-  for (const [name, value] of Object.entries(fields)) {
+
+  for (const [name, value] of Object.entries(fields))
     for (const [key, item] of formPairs(name, value, encoding?.[name])) params.append(key, item);
-  }
+
   return params;
 }

@@ -20,10 +20,10 @@ function json(item: unknown): Blob {
 }
 
 /** One field of a form: its name and the value generated for it. */
-export interface FormField {
+export type FormField = {
   name: string;
   value: unknown;
-}
+};
 
 /**
  * One multipart field: a part per array item, and an object as one JSON part (the OpenAPI
@@ -32,18 +32,24 @@ export interface FormField {
 export function appendValue(form: FormData, { name, value }: FormField, encoding: FieldEncoding | undefined): void {
   if (encoding?.contentType?.includes("json") === true) {
     form.append(name, json(value));
+
     return;
   }
+
   if (Array.isArray(value)) {
     for (const item of value) {
       if (item !== null && typeof item === "object") form.append(name, json(item));
       else form.append(name, String(item));
     }
+
     return;
   }
+
   if (value !== null && typeof value === "object") {
     form.append(name, json(value));
+
     return;
   }
+
   form.append(name, String(value));
 }

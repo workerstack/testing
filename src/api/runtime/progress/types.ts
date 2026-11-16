@@ -1,6 +1,6 @@
 /** Live run status: one snapshot per event, handed to whoever prints or records it. */
 
-export interface ProgressLast {
+export type ProgressLast = {
   method: string;
   url: string;
   status: number;
@@ -12,19 +12,19 @@ export interface ProgressLast {
   at: number;
   /** Set when the last completed call never got an HTTP status. */
   network?: string;
-}
+};
 
 /** A request that has been dispatched and has not yet returned. */
-export interface ProgressInflight {
+export type ProgressInflight = {
   method: string;
   url: string;
   /** Wall clock when `fetch` was called, unix ms. */
   at: number;
   requestId?: string;
   requestBytes?: number;
-}
+};
 
-export interface ProgressSnapshot {
+export type ProgressSnapshot = {
   phase: "load" | "auth" | "seed" | "test" | "scenario" | "contract" | "teardown" | "done";
   entity?: string;
   entityIndex?: number;
@@ -37,6 +37,6 @@ export interface ProgressSnapshot {
   inflight?: ProgressInflight;
   message?: string;
   elapsedMs: number;
-}
+};
 
 export type ProgressHandler = (snap: ProgressSnapshot) => void;

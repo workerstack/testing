@@ -13,6 +13,7 @@ describe("stepRunner", () => {
     const { ctx, sent } = stepStage(() => ({ body: { token: "t1" }, headers: { "x-h": "1" }, status: 200 }));
     const { principalId: _, ...shared } = ctx;
     const runner = stepRunner(shared);
+
     const out = await runner.run(
       [{ body: { user: "{who}" }, operationId: "auth.token", saveAs: { token: "$.token" } }],
       {
@@ -20,6 +21,7 @@ describe("stepRunner", () => {
         scope: { who: "b" },
       },
     );
+
     expect(out).toEqual({
       answer: { body: { token: "t1" }, cookies: {}, headers: { "x-h": "1" }, status: 200 },
       scope: { token: "t1", who: "b" },

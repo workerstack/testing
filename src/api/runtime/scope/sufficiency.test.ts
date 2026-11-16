@@ -5,6 +5,7 @@ import { sufficiencyOf } from "./sufficiency.ts";
 
 const op = (method: string, fields: { effects?: unknown[]; noEffects?: boolean } = {}) =>
   ({ effects: fields.effects ?? [], method, noEffects: fields.noEffects ?? false }) as never;
+
 const contract = {} as PassEvidence;
 
 describe("sufficiencyOf", () => {

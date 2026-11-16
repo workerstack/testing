@@ -14,6 +14,7 @@ const ids = (count: number) => Array.from({ length: count }, (_, at) => `n${at +
 async function relist(paging: Paging, held: Store, wanted: string[]) {
   const model = notesModel(paging);
   const listOp = model.byOperationId.get("notes.list") as OperationModel;
+
   const group: ListGroup = {
     identity: "id",
     items: wanted.map((id) => disposable("note", id)),
@@ -21,7 +22,9 @@ async function relist(paging: Paging, held: Store, wanted: string[]) {
     owner: owner("alpha"),
     path: listOp.path,
   };
+
   const { client, sent } = notesClient(held);
+
   return { listed: await stillListed(model, client, group), sent };
 }
 
@@ -33,6 +36,7 @@ const network = new NetworkError({
   method: "GET",
   url: "u",
 });
+
 const fenced = new FencedError({ method: "GET", phase: "teardown", reason: "no", url: "u" });
 
 describe("stillListed: paging", () => {
@@ -48,6 +52,7 @@ describe("stillListed: paging", () => {
       expect([...(listed ?? [])]).toEqual(["n5"]);
       expect(sent.map((request) => request.options.query)).toHaveLength(3);
     }
+
     const { sent } = await relist("offset", store({ alpha: ids(5) }, { pageSize: 2 }), ["n9"]);
     expect(sent.map((request) => (request.options.query as Record<string, unknown>)["offset"])).toEqual([
       undefined,
@@ -61,6 +66,7 @@ describe("stillListed: paging", () => {
       { alpha: ids(2) },
       { answers: { "GET /notes": { body: { items: [{ id: "n1" }] }, status: 200 } } },
     );
+
     expect((await relist("page", repeated, ["n9"])).sent).toHaveLength(2);
     expect((await relist("page", store({ alpha: ids(3) }, { pageSize: 2 }), ["n9"])).sent).toHaveLength(2);
     expect((await relist("cursor", store({ alpha: ids(2) }, { pageSize: 2 }), ["n9"])).sent).toHaveLength(1);
@@ -72,6 +78,7 @@ describe("stillListed: paging", () => {
       {},
       { answers: { "GET /notes": { body: { items: [{ name: "x" }, { id: "n1" }] }, status: 200 } } },
     );
+
     expect([...((await relist("none", held, ["n1"])).listed ?? [])]).toEqual(["n1"]);
   });
 
@@ -86,6 +93,7 @@ describe("stillListed: shapes", () => {
     const answers = { "GET /notes/n1/comments": { body: [{ id: "c1" }], status: 200 } };
     const model = notesModel();
     const listOp = model.byOperationId.get("comments.list") as OperationModel;
+
     const group: ListGroup = {
       identity: "id",
       items: [disposable("comment", "c1")],
@@ -93,6 +101,7 @@ describe("stillListed: shapes", () => {
       owner: owner("alpha"),
       path: "/notes/n1/comments",
     };
+
     const { client } = notesClient(store({}, { answers }));
     expect([...((await stillListed(model, client, group)) ?? [])]).toEqual(["c1"]);
   });
@@ -104,12 +113,15 @@ const failingAt = (failing: number, answer: () => never | { status: number }): S
   const full = held;
   held.answers["GET /notes"] = (options: Omit<RequestOptions, "as">) => {
     const page = Number((options.query as Record<string, unknown>)["page"] ?? 1);
+
     if (page === failing) return answer();
+
     return {
       body: { items: (full.notes.get("alpha") ?? []).slice((page - 1) * 2, page * 2).map((id) => ({ id })) },
       status: 200,
     };
   };
+
   return held;
 };
 
@@ -166,6 +178,7 @@ describe("stillListed: a list it cannot ask", () => {
     const blocked = failingAt(1, () => {
       throw new UnsatisfiedSecurity("blocked", "signed in again, and the new credential is refused");
     });
+
     expect((await relist("page", blocked, ["n1"])).listed).toBeNull();
   });
 
@@ -186,8 +199,10 @@ describe("stillListed: a list it cannot ask", () => {
 async function walkOf(paging: Paging, held: Store, envelope?: OperationModel["conventions"]["envelope"]) {
   const model = notesModel(paging);
   const declared = model.byOperationId.get("notes.list") as OperationModel;
+
   const listOp =
     envelope === undefined ? declared : { ...declared, conventions: { ...declared.conventions, envelope } };
+
   const group: ListGroup = {
     identity: "id",
     items: [disposable("note", "n9")],
@@ -195,7 +210,9 @@ async function walkOf(paging: Paging, held: Store, envelope?: OperationModel["co
     owner: owner("alpha"),
     path: listOp.path,
   };
+
   const { client } = notesClient(held);
+
   return listing(model, client, group);
 }
 

@@ -3,11 +3,9 @@ import { describe, expect, it } from "vitest";
 import { findingKey, normalizeDetail } from "./finding-key.ts";
 import type { Finding } from "./finding.ts";
 
-/*
- * The same defect found by two runs must be recognizable as the same: a baseline matches it and a
- * diff calls it persisting. Its detail carries run-specific values — record ids, UUIDs, ports,
- * timestamps — that change every run while the defect does not.
- */
+// The same defect found by two runs must be recognizable as the same: a baseline matches it and a
+// diff calls it persisting. Its detail carries run-specific values — record ids, UUIDs, ports,
+// timestamps — that change every run while the defect does not.
 
 const finding = (overrides: Partial<Finding> = {}): Finding => ({
   check: "list.read-after-write",
@@ -30,6 +28,7 @@ describe("findingKey", () => {
         "http://127.0.0.1:40001/v1/tables, listed 1760600000000 ms later: missing",
       operations: ["table.create", "table.list"],
     });
+
     expect(findingKey(other)).toBe(findingKey(finding()));
   });
 

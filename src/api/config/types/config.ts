@@ -1,4 +1,4 @@
-/* The config file's top level: the target, the principals, and every knob a run reads. */
+// The config file's top level: the target, the principals, and every knob a run reads.
 
 import type { Hooks, OutOfBandConfig, Uploads } from "./hooks.ts";
 import type {
@@ -12,9 +12,9 @@ import type { PrincipalsConfig, SecurityConfig } from "./security.ts";
 import type { ExternalsConfig, Scenario } from "./steps.ts";
 
 /** Per-entity overlays. Only `query` is in scope this release. Unknown names are ignored. */
-export interface EntityConfig {
+export type EntityConfig = {
   query?: QueryConfig;
-}
+};
 
 /** Query capabilities, plus the grammar filter terms are written in when the API tester cannot infer it. */
 export type QueryConfig = QueryCapabilities & {
@@ -35,7 +35,7 @@ export type QueryConfig = QueryCapabilities & {
 };
 
 /** A second host with its own OpenAPI. Its schemes send the primary's credentials only where `security` maps them. */
-export interface OriginSpec {
+export type OriginSpec = {
   id: string;
   baseUrl: string;
   /** This origin's document, read as the primary `spec` is: a relative path from this config's folder. */
@@ -46,9 +46,9 @@ export interface OriginSpec {
   overlay?: SpecOverlay;
   /** Which primary recipe each of this origin's schemes sends, e.g. `{ bearer: "jwt" }`. An unmapped scheme sends nothing. */
   security?: Record<string, string>;
-}
+};
 
-/* -------------------------------------------------------------------- profiles */
+// -------------------------------------------------------------------- profiles
 
 /**
  * Which operations a run is allowed to touch, filtering on what `x-cost` / `x-destructive`
@@ -58,7 +58,7 @@ export interface OriginSpec {
  * behavior) and `"cheap"` (`{ maxCost: "low" }`). Anything more specific than a cost band —
  * "skip the extraction endpoints that call a paid inference API" — is a named entry here.
  */
-export interface ProfileSpec {
+export type ProfileSpec = {
   /** Inclusive ceiling. An operation costing more than this is excluded. */
   maxCost?: "low" | "medium" | "high";
   /** Excludes every operation declaring `x-destructive: true`. */
@@ -67,9 +67,9 @@ export interface ProfileSpec {
   exclude?: string[];
   /** Skips each scenario with a step whose external has one of these `externals.kinds`. */
   excludeExternalKinds?: string[];
-}
+};
 
-/* ----------------------------------------------------------------- rate limits */
+// ----------------------------------------------------------------- rate limits
 
 /**
  * A path/operation matcher paired with a rate, independent of any `x-rate-limit` tag — this is
@@ -77,7 +77,7 @@ export interface ProfileSpec {
  * against an environment (staging, usually) whose real limit differs from what the document
  * claims for production.
  */
-export interface RateLimitSpec {
+export type RateLimitSpec = {
   /**
    * One of: an exact `operationId`; a path pattern such as `/v1/auth/*` (optionally prefixed
    * with a method, `POST /v1/auth/login`), `*` matching one path segment; or `category:<name>`
@@ -91,24 +91,24 @@ export interface RateLimitSpec {
    * entire category. Defaults to `match`, so a route-scoped rule still works standalone.
    */
   category?: string;
-}
+};
 
-/* --------------------------------------------------------------------- config */
+// --------------------------------------------------------------------- config
 
 /** How much of the string payload catalog a run sends. */
 export type PayloadPolicy = "full" | "per-write-path";
 
 /** Checks that run only when switched on, by check id. Every other check runs wherever it applies. */
-export interface CheckSwitches {
+export type CheckSwitches = {
   /**
    * Sends failed logins, for an identity that does not exist, until the login answers 429 or a cap
    * is reached. Off by default: a throttle that counts by address or client can still slow every
    * login from the machine running the API tester for a while.
    */
   "auth.login-throttled"?: boolean;
-}
+};
 
-export interface ApiConfig {
+export type ApiConfig = {
   /** Declared flows for operations the matrix cannot reach. See `Scenario`. */
   scenarios?: Scenario[];
   /** Each scenario external's kind, which a profile's `excludeExternalKinds` can leave out. */
@@ -262,10 +262,10 @@ export interface ApiConfig {
      */
     requestTimeoutMs?: number;
   };
-}
+};
 
 /** Where a run reads the target's version from, to stamp the report with it. */
-export interface TargetVersionSpec {
+export type TargetVersionSpec = {
   /** The operation to read it from. Its path parameters come from the writer's scope. */
   operationId?: string;
   /**
@@ -277,12 +277,12 @@ export interface TargetVersionSpec {
   scheme?: string;
   /** `$.json.path` into the body, or `header:<name>`. */
   from: string;
-}
+};
 
 /**
  * Patches to a document the tester cannot change, applied from config before anything reads it.
  */
-export interface SpecOverlay {
+export type SpecOverlay = {
   /** Patches by `operationId`. A patch's own `operationId` renames the operation. */
   operations?: Record<string, Record<string, unknown>>;
   /** Patches by component schema name. */
@@ -294,4 +294,4 @@ export interface SpecOverlay {
   securitySchemes?: Record<string, Record<string, unknown> | null>;
   /** The document's root `security`, replaced: `[{ bearer: [] }]` requires that scheme everywhere it is not overridden. */
   security?: Array<Record<string, string[]>>;
-}
+};

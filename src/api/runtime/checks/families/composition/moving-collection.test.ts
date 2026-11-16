@@ -17,13 +17,11 @@ import { filterSortSelectCompose } from "./query-filter-sort-select-compose.ts";
 import { searchAndFilterCompose } from "./query-search-and-filter-compose.ts";
 import { querySearchAndSelectCompose } from "./query-search-and-select-compose.ts";
 
-/*
- * Lanes run side by side, and an entity in another lane can write to the collection a query check
- * reads term by term. A full prod run read q="the API tester", q="Quarterly" and a filter, then another entity
- * created a template matching "Quarterly Report 0", and the next reads held it: tokens-and and
- * search-and-filter-compose each reported the combination one record off its intersection. A
- * check that compares several reads must read again before blaming the backend.
- */
+// Lanes run side by side, and an entity in another lane can write to the collection a query check
+// reads term by term. A full prod run read q="the API tester", q="Quarterly" and a filter, then another entity
+// created a template matching "Quarterly Report 0", and the next reads held it: tokens-and and
+// search-and-filter-compose each reported the combination one record off its intersection. A
+// check that compares several reads must read again before blaming the backend.
 
 const CHECKS = [
   searchTokensAnd,
@@ -39,7 +37,7 @@ const CHECKS = [
   negationPartitions,
 ] as Check[];
 
-/* The checks that plan only on a paged listing, a declared empty-q policy, or a filterable identity. */
+// The checks that plan only on a paged listing, a declared empty-q policy, or a filterable identity.
 const DOCS = new Map<Check, OpenApiDocument>([
   [searchEmptyQ as Check, queryDoc({ searchEmpty: "match-all" })],
   [filterAndPagingCompose as Check, PAGED],
@@ -49,9 +47,10 @@ const DOCS = new Map<Check, OpenApiDocument>([
 async function judge(check: Check, after: number, move: (typeof MOVES)[number]): Promise<string[]> {
   const doc = DOCS.get(check);
   const staged = stage(check, { ...(doc === undefined ? {} : { doc }), respond: moving(after, move) });
-  /* A check that never plans proves nothing about its reads. */
+  // A check that never plans proves nothing about its reads.
   expect(staged.plan()).toMatchObject({ ok: true });
   await staged.run();
+
   return staged.findings.findings.filter((f) => f.verdict === "BACKEND_BUG").map((f) => `${f.check}: ${f.summary}`);
 }
 

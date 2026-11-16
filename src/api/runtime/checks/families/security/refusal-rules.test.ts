@@ -20,15 +20,14 @@ import { scopeEnforced } from "./auth-scope-enforced.ts";
 import { wrongSchemeRefused } from "./auth-wrong-scheme-refused.ts";
 import { BY_VALIDATION } from "./probing.ts";
 
-/*
- * The rules every refusal check that writes obeys. A write probe's body is the record cut to what the
- * request accepts from any writer, so it never carries a readOnly or x-privileged property a strict
- * API refuses before it judges the caller. And a 400 or 422 is never a pass: only 401 or 403 is, since an API that validates before it
- * authenticates would otherwise hide an unguarded route behind its validation.
- */
+// The rules every refusal check that writes obeys. A write probe's body is the record cut to what the
+// request accepts from any writer, so it never carries a readOnly or x-privileged property a strict
+// API refuses before it judges the caller. And a 400 or 422 is never a pass: only 401 or 403 is, since an API that validates before it
+// authenticates would otherwise hide an unguarded route behind its validation.
 
 const project = { in: "path", name: "project_id", required: true, schema: { type: "string" } };
 const noteId = { in: "path", name: "note_id", required: true, schema: { type: "string" } };
+
 const note = {
   properties: {
     id: { readOnly: true, type: "string" },
@@ -37,7 +36,8 @@ const note = {
   },
   type: "object",
 };
-/* `notes.pin` writes one note with jwt alone, so the wrong-scheme check has a scheme to send it. */
+
+// `notes.pin` writes one note with jwt alone, so the wrong-scheme check has a scheme to send it.
 const model = modelOf(
   securedDoc({
     "/projects/{project_id}/notes/{note_id}/pin": {
@@ -50,16 +50,18 @@ const model = modelOf(
     },
   }),
 );
+
 const PIN_TARGET: WriteTarget = { ...NOTE_TARGET, path: "/projects/proj_a/notes/n1/pin" };
 const alpha = actorOf("alpha", { rank: 2, scope: { project_id: "proj_a" }, tenant: "proj_a" });
 const viewer = actorOf("alpha_viewer", { readOnly: true, scope: { project_id: "proj_a" }, tenant: "proj_a" });
 const beta = actorOf("beta", { scope: { project_id: "proj_b" }, tenant: "proj_b" });
+
 const probe = {
   held: (request: { scheme: string; scopes?: readonly string[] }) => ({ value: keyValue(request) }),
   recipes: { apiKey: { kind: "mint" as const }, jwt: { kind: "login" as const } },
 };
 
-/* Each refusal check that writes, with a write it probes and the run-created record it may send to. */
+// Each refusal check that writes, with a write it probes and the run-created record it may send to.
 const WRITES: ReadonlyArray<{ check: OperationCheck; operationId: string; target: WriteTarget }> = [
   { check: missingCredentialRefused, operationId: "notes.update", target: NOTE_TARGET },
   { check: invalidCredentialRefused, operationId: "notes.update", target: NOTE_TARGET },
@@ -80,14 +82,15 @@ function staged(at: { operationId: string; target?: WriteTarget }, respond: Sent
 
 const writes = (sent: Sent[]) => sent.filter((s) => s.method !== "GET");
 
-/* A backend that checks no credential but validates first: a body with a readOnly id is a 400. */
+// A backend that checks no credential but validates first: a body with a readOnly id is a 400.
 const validatesFirst: SentResponder = ({ method, options }) => {
   if (method === "GET") return { status: 200 };
   const body = options.body as Record<string, unknown> | undefined;
+
   return body === undefined || "id" in body ? { status: 400 } : { status: 200 };
 };
 
-/* Refuses every probe, and lets in the key issued with the scopes that auth.scope-enforced sends as its control. */
+// Refuses every probe, and lets in the key issued with the scopes that auth.scope-enforced sends as its control.
 const refusingFor = (check: OperationCheck): SentResponder =>
   check === scopeEnforced ? (sent) => ({ status: isScopedKey(sent) ? 200 : 401 }) : () => ({ status: 401 });
 
@@ -97,8 +100,10 @@ describe("a refusal check's write probe", () => {
       const stage = staged(at, refusingFor(at.check));
       expect(await runOperationCheck(at.check, stage.ctx)).toEqual({ kind: "asserted" });
       expect(writes(stage.sent).length).toBeGreaterThan(0);
+
       for (const s of writes(stage.sent)) expect(s.options.body).toEqual({ title: "first" });
     }
+
     const crossTenant = staged({ operationId: "notes.update", target: NOTE_TARGET }, () => ({ status: 401 }));
     expect((await runOperationCheck(crossTenantKeyRefused, crossTenant.ctx)).kind).toBe("stood-down");
     expect(crossTenant.sent).toEqual([]);
@@ -106,13 +111,16 @@ describe("a refusal check's write probe", () => {
 
   it("carries the record's current value in every field it sends: no refusal probe changes one", async () => {
     const current = { id: "n9", title: "kept", verified: true };
+
     for (const at of WRITES) {
       const stage = staged({ ...at, target: { ...at.target, current } }, refusingFor(at.check));
       await runOperationCheck(at.check, stage.ctx);
       expect(writes(stage.sent).length).toBeGreaterThan(0);
+
       for (const s of writes(stage.sent)) {
         const body = s.options.body as Record<string, unknown>;
         expect(Object.keys(body)).toEqual(["title"]);
+
         for (const [field, value] of Object.entries(body))
           expect(value).toEqual(current[field as keyof typeof current]);
       }

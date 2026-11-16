@@ -21,6 +21,7 @@ export function isPlainRecord(value: unknown): value is Record_ {
  */
 export function recordOf(op: { recordPath: string | null }, body: unknown): Record_ | undefined {
   const record = op.recordPath === null ? body : readPath(body, op.recordPath);
+
   return isPlainRecord(record) ? record : undefined;
 }
 
@@ -31,6 +32,7 @@ export function recordOf(op: { recordPath: string | null }, body: unknown): Reco
  */
 export function idOf(record: Record_ | undefined, identity: string): string | undefined {
   const value = record?.[identity];
+
   return isScalarId(value) ? String(value) : undefined;
 }
 
@@ -45,12 +47,14 @@ export type RowsAt = Pick<CollectionShape, "key" | "within">;
 export function recordsFromList(body: unknown, rows: RowsAt | null): Record_[] {
   const key = rows?.key ?? null;
   const list = Array.isArray(body) ? body : key === null || !isPlainRecord(body) ? undefined : body[key];
+
   if (!Array.isArray(list)) return [];
   const within = rows?.within ?? [];
+
   return list.map((row) => within.reduce(field, row)).filter(isPlainRecord);
 }
 
-/* One property down, or nothing below what is not a record. */
+// One property down, or nothing below what is not a record.
 function field(node: unknown, name: string): unknown {
   return isPlainRecord(node) ? node[name] : undefined;
 }

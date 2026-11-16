@@ -29,7 +29,7 @@ describe("formPairs, arrays", () => {
     expect(formPairs("tag", ["a", "b"], { explode: false, style: "pipeDelimited" })).toEqual([["tag", "a|b"]]);
   });
 
-  /* OAS 3.1 Encoding Object: explode defaults to true for form only, false for every other style. */
+  // OAS 3.1 Encoding Object: explode defaults to true for form only, false for every other style.
   it("joins a delimited style that does not say explode, as the OAS default has it", () => {
     expect(formPairs("tag", ["a", "b"], { style: "pipeDelimited" })).toEqual([["tag", "a|b"]]);
     expect(formPairs("tag", ["a", "b"], { style: "spaceDelimited" })).toEqual([["tag", "a b"]]);
@@ -52,13 +52,13 @@ describe("formPairs, objects", () => {
     expect(formPairs("filter", { a: 1, b: "x" }, { explode: false })).toEqual([["filter", "a,1,b,x"]]);
   });
 
-  /* OAS 3.1 §4.8.12.4, the style examples for color = {R:100,G:200,B:150} with explode=false. */
+  // OAS 3.1 §4.8.12.4, the style examples for color = {R:100,G:200,B:150} with explode=false.
   it("joins a non-exploded object with the style's delimiter, as the OAS style table writes it", () => {
     const color = { R: 100, G: 200, B: 150 };
     const wire = (style: string) => encodeUrlencoded({ color }, { color: { explode: false, style } }).toString();
     expect(wire("form")).toBe("color=R%2C100%2CG%2C200%2CB%2C150");
     expect(wire("pipeDelimited")).toBe("color=R%7C100%7CG%7C200%7CB%7C150");
-    /* The table's %20; a urlencoded body writes a space as "+". */
+    // The table's %20; a urlencoded body writes a space as "+".
     expect(wire("spaceDelimited")).toBe("color=R+100+G+200+B+150");
     expect(formPairs("color", color, { explode: false, style: "spaceDelimited" })).toEqual([
       ["color", decodeURIComponent("R%20100%20G%20200%20B%20150")],

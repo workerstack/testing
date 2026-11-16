@@ -6,8 +6,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import { run } from "../../../src/api/runtime/run/index.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 
-/* An operation that documents a redirect answers with the redirect. Following it grades the page at
- * the other end, which the document never described. */
+// An operation that documents a redirect answers with the redirect. Following it grades the page at
+// the other end, which the document never described.
 
 const closers: Array<() => Promise<void>> = [];
 
@@ -39,16 +39,21 @@ describe("documented redirects", () => {
       if (req.url === "/v1/openapi/spec") {
         res.writeHead(200, { "content-type": "application/json" });
         res.end(JSON.stringify(spec));
+
         return;
       }
+
       if (req.url === "/v1/reference") {
         res.writeHead(301, { location: "/elsewhere" });
         res.end();
+
         return;
       }
+
       res.writeHead(200, { "content-type": "text/html" });
       res.end("<html>reference</html>");
     });
+
     await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
     closers.push(() => new Promise((resolve) => server.close(() => resolve())));
     const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;

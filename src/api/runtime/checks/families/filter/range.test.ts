@@ -11,7 +11,9 @@ const CHECK = "filter.gte-is-gt-or-eq";
 function probeFor(options: Parameters<typeof stage>[0]): { probe: RangeProbe; staged: ReturnType<typeof stage> } {
   const staged = stage(options);
   const plan = rangePlan(staged.ctx, "gte", "gt");
+
   if (!plan.ok) throw new Error("the range plan stood down");
+
   return { probe: plan.value, staged };
 }
 

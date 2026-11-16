@@ -87,7 +87,7 @@ describe("guardWrite", () => {
       body: { first_name: "Tst", profile: { theme: "dark" } },
       dropped: ["email", "profile.password"],
     });
-    /* The body it was given is not changed. */
+    // The body it was given is not changed.
     expect(body.profile.password).toBe("p");
   });
 
@@ -124,10 +124,12 @@ describe("guardedClient", () => {
     { identity: null, method: "PATCH", operationId: "user.update", path: "/users/{id}", pathParams: ["id"] },
     { identity: null, method: "GET", operationId: "me.get", path: "/users/me", pathParams: [] },
   ].map((one) => ({ ...one, statuses: { exact: [200], ranges: [] } }));
+
   const model = {
     byOperationId: new Map(ops.map((one) => [one.operationId, one])),
     operations: ops,
   } as unknown as SpecModel;
+
   const records: OwnRecords = {
     disposable: () => Promise.resolve({ blocked: "no signup" }),
     identityOf: (principal) => (probeOwner(principal) === "alpha" ? identity : undefined),
@@ -136,13 +138,16 @@ describe("guardedClient", () => {
 
   function staged() {
     const sent: Array<[string, string, unknown]> = [];
+
     const client = {
       request: (method: string, path: string, options: RequestOptions) => {
         sent.push([method, path, options.body]);
+
         return Promise.resolve({ status: 200 } as Exchange);
       },
       view: () => client,
     } as unknown as Client;
+
     return { client: guardedClient(client, records, model), sent };
   }
 
@@ -183,11 +188,13 @@ const REACH_OPS = [
   { identity: null, method: "PATCH", operationId: "me.update", path: "/users/me", pathParams: [] },
   { identity: null, method: "PATCH", operationId: "user.update", path: "/users/{id}", pathParams: ["id"] },
 ].map((one) => ({ ...one, statuses: { exact: [200], ranges: [] } }));
+
 const REACH_MODEL = {
   byOperationId: new Map(REACH_OPS.map((one) => [one.operationId, one])),
   operations: REACH_OPS,
 } as unknown as SpecModel;
-/* alpha's config names only how it signs in: its own server-side id is learned from the self read. */
+
+// alpha's config names only how it signs in: its own server-side id is learned from the self read.
 const learning = (): OwnRecords =>
   ownRecordsFrom({
     disposable: () => Promise.resolve({ blocked: "no signup" }),
@@ -198,26 +205,32 @@ const learning = (): OwnRecords =>
 describe("guardedClient's reach", () => {
   it("refuses a protected field however deep the body nests it", async () => {
     const sent: string[] = [];
+
     const inner = {
       request: (m: string, p: string) => (sent.push(`${m} ${p}`), Promise.resolve({} as Exchange)),
       view: () => inner,
     };
+
     const client = guardedClient(inner as unknown as Client, learning(), REACH_MODEL);
+
     for (const body of [{ user: { password: "p" } }, { data: { attributes: { email: "e" } } }]) {
       await expect(client.request("PATCH", "/users/me", { as: { principal: "alpha" }, body })).rejects.toThrow(
         ProtectedWriteError,
       );
     }
+
     expect(sent).toEqual([]);
   });
 
   it("learns the principal's own id from its self read, and guards a write to that record", async () => {
     const answers = new Map([["GET /me", { id: "u-9", name: "Ann" }]]);
+
     const inner = {
       request: (method: string, path: string) =>
         Promise.resolve({ responseBody: answers.get(`${method} ${path}`), status: 200 } as unknown as Exchange),
       view: () => inner,
     };
+
     const client = guardedClient(inner as unknown as Client, learning(), REACH_MODEL);
     await client.request("GET", "/me", { as: { principal: "alpha" } });
     await expect(
@@ -236,25 +249,29 @@ describe("guardedClient learning and every way it sends", () => {
     guard.learn?.("alpha", "u-9");
     guard.learn?.("alpha", { id: "u-9", name: "Ann", project_id: "p-1", tags: ["x"], user_id: 4 });
     expect(guard.identityOf("disposable-0")).toBeUndefined();
-    /* A foreign key names the tenant, not the caller's own record. */
+    // A foreign key names the tenant, not the caller's own record.
     expect(guard.identityOf("alpha")).toEqual({ email: "ann@x.io", id: "u-9", user_id: 4 });
   });
 
   it("refuses through every way a real client sends: request, its views, and views of views", async () => {
     const wire = transport(() => json({}));
+
     const real = new Client({
       baseUrl: "http://api.test",
       network: { fetchImpl: wire.fetch },
       redactor: new Redactor(),
     });
+
     const client = guardedClient(real, learning(), REACH_MODEL);
     const write = { as: { principal: "alpha" }, body: { email: "e" } } as const;
+
     const senders = [
       () => client.request("PATCH", "/users/me", write),
       () => client.view({}).request("PATCH", "/users/me", write),
       () => client.view({}).view({}).request("PATCH", "/users/me", write),
       () => (client.readOnlyView({}) as unknown as Client).request("PATCH", "/users/me", write),
     ];
+
     for (const send of senders) await expect(send()).rejects.toThrow(/would change email|does not mutate/);
     expect(wire.sent).toEqual([]);
   });
@@ -302,10 +319,12 @@ const HELD_OPS = [
     pathParams: ["id"],
   },
 ].map((one) => ({ ...one, statuses: { exact: [200], ranges: [] } }));
+
 const HELD_MODEL = {
   byOperationId: new Map(HELD_OPS.map((one) => [one.operationId, one])),
   operations: HELD_OPS,
 } as unknown as SpecModel;
+
 const HELD: OwnRecords = {
   credentials: () => [{ entity: "api-key", id: "k-1", operationId: "apiKey.create" }],
   disposable: () => Promise.resolve({ blocked: "no signup" }),
@@ -315,10 +334,12 @@ const HELD: OwnRecords = {
 
 function heldStage() {
   const sent: string[] = [];
+
   const inner = {
     request: (method: string, path: string) => (sent.push(`${method} ${path}`), Promise.resolve({} as Exchange)),
     view: () => inner,
   };
+
   return { client: guardedClient(inner as unknown as Client, HELD, HELD_MODEL), sent };
 }
 

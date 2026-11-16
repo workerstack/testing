@@ -13,14 +13,14 @@ describe("answersRecord", () => {
 
   it("is the record when it names every required field and every field the create sent", () => {
     expect(answersRecord({ id: "n1", name: "a", size: 1 }, expected)).toBe(true);
-    /* Names, not values: a field the server normalized is still the record's. */
+    // Names, not values: a field the server normalized is still the record's.
     expect(answersRecord({ id: "n1", name: "A", size: null }, expected)).toBe(true);
   });
 
   it("is not the record when it lacks a required field or one the create sent", () => {
     expect(answersRecord({ id: "n1", size: 1 }, expected)).toBe(false);
     expect(answersRecord({ id: "n1", name: "a" }, expected)).toBe(false);
-    /* An acknowledgment's own fields do not make it the record. */
+    // An acknowledgment's own fields do not make it the record.
     expect(answersRecord({ id: "n1", message: "created" }, expected)).toBe(false);
   });
 });
@@ -31,6 +31,7 @@ describe("expectedFields", () => {
       properties: { name: { type: "string" }, secret: { type: "string", writeOnly: true }, size: { type: "integer" } },
       type: "object",
     };
+
     const model = modelOf(notes({ body }));
     const createOp = op(model, "note.create");
     expect(expectedFields(model, createOp, { name: "a", secret: "s", size: undefined, tags: [] })).toEqual({
@@ -58,6 +59,7 @@ function readBack(input: {
   const model = modelOf(notes(input.document ?? {}));
   const { read } = input;
   const fake = fakeClient(() => (typeof read === "function" ? read() : (read ?? { status: 404 })));
+
   const result = readBackCreated({
     client: fake.client,
     createOp: op(model, "note.create"),
@@ -68,6 +70,7 @@ function readBack(input: {
     sent: { name: "a" },
     ...(input.readable === undefined ? {} : { readable: () => input.readable as boolean }),
   });
+
   return { result, sent: fake.sent };
 }
 
@@ -129,6 +132,7 @@ describe("readBackCreated, what the create answered", () => {
   it("lays the read over what the create answered: a field the read leaves out keeps the answer's", async () => {
     const model = modelOf(notes({}));
     const fake = fakeClient(() => ({ body: { id: "n1", name: "stored" }, status: 200 }));
+
     const made = await readBackCreated({
       answered: { columns: [{ id: "c1" }], name: "answered" },
       client: fake.client,
@@ -139,12 +143,14 @@ describe("readBackCreated, what the create answered", () => {
       scope,
       sent: { name: "a" },
     });
+
     expect(made).toEqual({ acknowledged: false, record: { columns: [{ id: "c1" }], id: "n1", name: "stored" } });
   });
 
   it("keeps what the create answered in an unverified record, over the body it sent", async () => {
     const model = modelOf(notes({}));
     const fake = fakeClient(() => ({ status: 404 }));
+
     const made = await readBackCreated({
       answered: { columns: [{ id: "c1" }], name: "server-named" },
       client: fake.client,
@@ -155,6 +161,7 @@ describe("readBackCreated, what the create answered", () => {
       scope,
       sent: { name: "a", title: "t" },
     });
+
     expect(made).toEqual({
       acknowledged: false,
       record: { columns: [{ id: "c1" }], id: "n1", name: "server-named", title: "t" },
@@ -166,8 +173,9 @@ describe("readBackCreated, what the create answered", () => {
 describe("readBackCreated, a body that is not a record", () => {
   it("keeps only the id when what was sent is not a record", async () => {
     const model = modelOf(notes({ read: false }));
+
     const made = await readBackCreated({
-      client: fakeClient(() => undefined).client,
+      client: fakeClient(() => {}).client,
       createOp: op(model, "note.create"),
       id: { id: "7" as never, trusted: true, value: 7 },
       model,
@@ -175,6 +183,7 @@ describe("readBackCreated, a body that is not a record", () => {
       scope,
       sent: "name=a",
     });
+
     expect(made).toEqual({ acknowledged: false, record: { id: 7 }, unverified: "no item read" });
   });
 });
@@ -186,6 +195,7 @@ describe("readBackCreated, a read the creator cannot send", () => {
         throw new UnsatisfiedSecurity("unsatisfied", "no credential for jwt");
       },
     });
+
     expect(await unmet.result).toEqual({
       acknowledged: false,
       record: { id: "n1", name: "a" },
@@ -199,6 +209,7 @@ describe("readBackCreated, a read the creator cannot send", () => {
         throw new FencedError({ method: "GET", phase: "seed", reason: "no reads", url: "http://api.test/n1" });
       },
     });
+
     expect(await fenced.result).toMatchObject({ unverified: expect.stringMatching(/^read back could not be sent: /) });
   });
 
@@ -208,6 +219,7 @@ describe("readBackCreated, a read the creator cannot send", () => {
         throw new TypeError("fetch failed");
       },
     });
+
     await expect(offline.result).rejects.toThrow("fetch failed");
   });
 });

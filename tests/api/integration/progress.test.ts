@@ -32,14 +32,17 @@ function snap(over: Partial<ProgressSnapshot> = {}): ProgressSnapshot {
 
 function field(line: string, key: string): string | undefined {
   const match = new RegExp(`(?:^|\\s)${key}=("(?:[^"\\\\]|\\\\.)*"|\\S+)`).exec(line);
+
   if (match?.[1] === undefined) return undefined;
   const raw = match[1];
+
   return raw.startsWith('"') ? (JSON.parse(raw) as string) : raw;
 }
 
 describe("in-flight progress format", () => {
   it("uses status=in_flight and the live path, not the last completed call", () => {
     const started = Date.parse("2026-08-18T12:00:00.000Z");
+
     const line = formatProgressLine(
       snap({
         inflight: { at: started, method: "POST", requestBytes: 120, url: EXTRACT },
@@ -56,6 +59,7 @@ describe("in-flight progress format", () => {
       }),
       started + 3_500,
     );
+
     expect(field(line, "status")).toBe("in_flight");
     expect(field(line, "method")).toBe("POST");
     expect(field(line, "path")).toBe("/v1/projects/p1/extract");
@@ -88,6 +92,7 @@ describe("in-flight progress format", () => {
 describe("in-flight progress format", () => {
   it("emits a completed line with http, last_ms, and idle_ms=0", () => {
     const at = Date.parse("2026-08-18T12:00:10.000Z");
+
     const line = formatProgressLine(
       snap({
         last: {
@@ -103,6 +108,7 @@ describe("in-flight progress format", () => {
       }),
       at,
     );
+
     expect(field(line, "status")).toBe("ok");
     expect(field(line, "path")).toBe("/v1/projects/p1/extract");
     expect(field(line, "http")).toBe("200");
@@ -113,6 +119,7 @@ describe("in-flight progress format", () => {
 
   it("marks stall only after a completed call sits idle", () => {
     const at = 1_000;
+
     const line = formatProgressLine(
       snap({
         last: {
@@ -128,6 +135,7 @@ describe("in-flight progress format", () => {
       }),
       at + 15_000,
     );
+
     expect(field(line, "status")).toBe("stall");
     expect(field(line, "path")).toBe("/v1/tables");
   });
@@ -158,10 +166,12 @@ describe("in-flight progress format", () => {
         url: "http://127.0.0.1/v1/tables",
       },
     });
+
     const flying = snap({
       inflight: { at: 10, method: "POST", url: EXTRACT },
       ...(idle.last === undefined ? {} : { last: idle.last }),
     });
+
     const done = snap({
       last: {
         at: 20,
@@ -174,6 +184,7 @@ describe("in-flight progress format", () => {
         url: EXTRACT,
       },
     });
+
     expect(progressEventKey(flying)).not.toBe(progressEventKey(idle));
     expect(progressEventKey(done)).not.toBe(progressEventKey(flying));
   });
@@ -188,10 +199,12 @@ describe("progress pump heartbeat", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-18T12:00:00.000Z"));
     const writes: Array<{ idle: string | undefined; path: string | undefined }> = [];
+
     const pump = createProgressPump(Date.now(), (current, now) => {
       const line = formatProgressLine(current, now);
       writes.push({ idle: field(line, "idle_ms"), path: field(line, "path") });
     });
+
     pump.emit(
       snap({
         elapsedMs: 0,
@@ -217,8 +230,10 @@ function send(res: ServerResponse, status: number, body?: unknown): void {
   if (body === undefined) {
     res.writeHead(status);
     res.end();
+
     return;
   }
+
   const text = JSON.stringify(body);
   res.writeHead(status, { "content-length": String(Buffer.byteLength(text)), "content-type": "application/json" });
   res.end(text);
@@ -233,6 +248,7 @@ async function listen(handler: (req: IncomingMessage, res: ServerResponse) => vo
     server.listen(0, "127.0.0.1", resolve);
   });
   const addr = server.address() as AddressInfo;
+
   const handle = {
     close: () =>
       new Promise<void>((resolve, reject) => {
@@ -240,7 +256,9 @@ async function listen(handler: (req: IncomingMessage, res: ServerResponse) => vo
       }),
     url: `http://127.0.0.1:${addr.port}`,
   };
+
   closers.push(handle.close);
+
   return handle;
 }
 
@@ -248,12 +266,15 @@ describe("Client HTTP hooks", () => {
   it("fires start before fetch returns and end after", async () => {
     const events: string[] = [];
     let release!: () => void;
+
     const gate = new Promise<void>((resolve) => {
       release = resolve;
     });
+
     const server = await listen((_req, res) => {
       void gate.then(() => send(res, 200, { ok: true }));
     });
+
     const client = new Client({
       baseUrl: server.url,
       httpHooks: {
@@ -270,6 +291,7 @@ describe("Client HTTP hooks", () => {
       },
       redactor: new Redactor(),
     });
+
     const pending = client.request("POST", "/v1/projects/p1/extract", { as: { anonymous: true } });
     await vi.waitFor(() => {
       expect(events[0]).toBe("start:POST:/v1/projects/p1/extract");
@@ -362,27 +384,31 @@ const SPEC = {
 
 type Widget = { id: string; name: string };
 
-/* The item a request names, and its method. */
-interface ItemRequest {
+// The item a request names, and its method.
+type ItemRequest = {
   id: string;
   method: string;
-}
+};
 
-/* A read, update or delete of one widget; the update changes nothing. */
+// A read, update or delete of one widget; the update changes nothing.
 function widgetItem(rows: Map<string, Widget>, { id, method }: ItemRequest, res: ServerResponse) {
   if (method === "DELETE") {
     rows.delete(id);
+
     return send(res, 204);
   }
+
   const row = rows.get(id);
+
   if (row === undefined || (method !== "GET" && method !== "PATCH")) return send(res, 404);
+
   return send(res, 200, row);
 }
 
-interface SlowWidgets {
+type SlowWidgets = {
   rows: Map<string, Widget>;
   seq: number;
-}
+};
 
 const slow = () => new Promise((resolve) => setTimeout(resolve, 80));
 
@@ -391,36 +417,45 @@ async function createWidget(store: SlowWidgets, res: ServerResponse) {
   store.seq += 1;
   const row = { id: `w_${store.seq}`, name: "n" };
   store.rows.set(row.id, row);
+
   return send(res, 201, row);
 }
 
 async function extractWidget(store: SlowWidgets, id: string, res: ServerResponse) {
   await slow();
   const row = store.rows.get(id);
+
   return row === undefined ? send(res, 404) : send(res, 200, row);
 }
 
-/* Widgets whose create and extract each take 80ms to answer. */
+// Widgets whose create and extract each take 80ms to answer.
 async function routeSlowWidgets(store: SlowWidgets, req: IncomingMessage, res: ServerResponse) {
   const url = new URL(req.url ?? "/", "http://127.0.0.1");
   const method = (req.method ?? "GET").toUpperCase();
+
   if (url.pathname === "/v1/openapi/spec" && method === "GET") return send(res, 200, SPEC);
+
   if (url.pathname === "/v1/widgets" && method === "GET") return send(res, 200, { items: [...store.rows.values()] });
+
   if (url.pathname === "/v1/widgets" && method === "POST") return createWidget(store, res);
   const item = /^\/v1\/widgets\/([^/]+)$/.exec(url.pathname);
-  if (item !== null && ["GET", "PATCH", "DELETE"].includes(method)) {
+
+  if (item !== null && ["GET", "PATCH", "DELETE"].includes(method))
     return widgetItem(store.rows, { id: item[1] ?? "", method }, res);
-  }
+
   const extract = /^\/v1\/widgets\/([^/]+)\/extract$/.exec(url.pathname);
+
   if (extract !== null && method === "POST") return extractWidget(store, extract[1] ?? "", res);
+
   return send(res, 404);
 }
 
-/* The first create goes in flight before any create completes, and reads as in flight while it waits. */
+// The first create goes in flight before any create completes, and reads as in flight while it waits.
 function expectCreateStartsInFlight(events: ProgressSnapshot[]) {
   const firstCreate = events.findIndex(
     (event) => event.inflight?.url.endsWith("/v1/widgets") && event.inflight.method === "POST",
   );
+
   expect(firstCreate).toBeGreaterThanOrEqual(0);
   expect(
     events
@@ -442,6 +477,7 @@ describe("run() in-flight progress", () => {
   it("publishes a start event before the completed line for a slow POST", { timeout: 30_000 }, async () => {
     const store: SlowWidgets = { rows: new Map(), seq: 0 };
     const events: ProgressSnapshot[] = [];
+
     const server = await listen((req, res) => {
       void routeSlowWidgets(store, req, res);
     });
@@ -463,6 +499,7 @@ describe("run() in-flight progress", () => {
     });
 
     expectCreateStartsInFlight(events);
+
     const finished = events.find(
       (event) =>
         event.last?.url.endsWith("/v1/widgets") &&
@@ -470,6 +507,7 @@ describe("run() in-flight progress", () => {
         event.last.status === 201 &&
         event.inflight === undefined,
     );
+
     expect(finished?.last?.durationMs).toBeGreaterThanOrEqual(80);
     expect(result.entitiesTested).toEqual(["widget"]);
   });

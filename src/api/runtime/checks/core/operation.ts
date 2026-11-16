@@ -1,4 +1,4 @@
-/* Helpers an operation check plans with. */
+// Helpers an operation check plans with.
 
 import { isParamSegment, segmentsOf } from "../../../spec/graph/segments.ts";
 import type { OperationModel } from "../../../spec/graph/types.ts";
@@ -23,13 +23,16 @@ export function placementOf(
   op: OperationModel,
 ): ProbePlacement {
   if (check.mutatesCredentials === true || !isReadMethod(op)) return "write";
+
   return isParamSegment(segmentsOf(op.path).at(-1) ?? "") ? "item-read" : "read";
 }
 
 /** The record a write or item-read probe sends to, or a stand-down naming what is missing. */
 export function targetPlan(ctx: OperationContext): Plan<WriteTarget> {
   const { operation, target, untargeted, untargetedBy } = ctx;
+
   if (target !== undefined) return ready(target);
+
   return cannot(untargeted ?? `a record this run created that ${operation.operationId} can be sent to`, {
     blockedBy: untargetedBy,
   });

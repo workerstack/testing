@@ -19,6 +19,7 @@ describe("report", () => {
       { shape: "path-prefix" },
       { shape: "wrapped-records", untagged: true },
     ];
+
     for (const options of variants) {
       const { model, externalRefs } = await referenceModel(options);
       expect(report.doctor(model, { externalRefs }).text).toContain("  testable   ");

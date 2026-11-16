@@ -1,11 +1,12 @@
 /** Everything one reference server holds between requests. */
 
+import type { Row } from "../cell.ts";
 import type { DefectSet } from "../defects/defect-set.ts";
 import type { Dialect } from "../dialect/types.ts";
 import type { EntityDef } from "../model/types.ts";
 import type { QueryConventions } from "../query/conventions.ts";
 import type { ReferenceShape } from "../shapes/types.ts";
-import type { Row, Store } from "../store-api.ts";
+import type { Store } from "../store-api.ts";
 import type { Account, AuthState } from "./auth/types.ts";
 import type { Ids } from "./ids.ts";
 import type { ReferenceResponse } from "./wire.ts";
@@ -38,24 +39,24 @@ export const TENANT_FIELD = "project_id";
 export type Scope = Record<string, string | number>;
 
 /** A collection: an entity, under the path scope that names it. */
-export interface Collection {
+export type Collection = {
   entity: EntityDef;
   scope: Scope;
-}
+};
 
 /** A stored record, with the entity it is a record of. */
-export interface EntityRecord {
+export type EntityRecord = {
   entity: EntityDef;
   record: Row;
-}
+};
 
 /** Where one record is kept: its entity and its identifier. */
-export interface RecordKey {
+export type RecordKey = {
   entity: EntityDef;
   id: string | number;
-}
+};
 
-export interface ReferenceOptions {
+export type ReferenceOptions = {
   defects?: string[];
   untagged?: boolean;
   dialect?: string;
@@ -65,25 +66,25 @@ export interface ReferenceOptions {
   throttleLogins?: boolean;
   /** Milliseconds since the epoch, for token expiry and the login throttle. Default: the wall clock. */
   clock?: () => number;
-}
+};
 
 /** An invitation to a table: readable by the invitee once accepted, until revoked. */
-export interface Grant {
+export type Grant = {
   accepted: boolean;
   entity: string;
   grantId: string;
   granteeKey: string;
   resourceId: string;
   token: string;
-}
+};
 
 /** The signed-up caller's profile; a phone number only under the string guard. */
-export interface Profile {
+export type Profile = {
   first_name: string;
   phone_number?: string;
-}
+};
 
-export interface ReferenceState {
+export type ReferenceState = {
   untagged: boolean;
   defects: DefectSet;
   shape: ReferenceShape;
@@ -121,4 +122,4 @@ export interface ReferenceState {
   readCache: Map<string, { response: ReferenceResponse; storedAt: number }>;
   /** Milliseconds since the epoch: the read cache's clock. */
   clock: () => number;
-}
+};

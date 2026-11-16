@@ -1,13 +1,13 @@
 import type { Exchange } from "./exchange.ts";
 
 /** The request a seed failed on, when the failure was an HTTP response. */
-export interface FailedRequest {
+export type FailedRequest = {
   /** Status the failing request returned. */
   status: number;
   /** The create that failed — a parent's, not always the entity's own. */
   operationId?: string;
   exchange?: Exchange;
-}
+};
 
 /** Why a record the API tester needed could not be made or found: the parameter or operation, and the answer. */
 export class SeedError extends Error {

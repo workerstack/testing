@@ -24,29 +24,34 @@ export async function checkReproSyntax(findings: Finding[]): Promise<string[]> {
 export async function checkScripts(scripts: ReturnType<typeof renderRepros>): Promise<string[]> {
   if (scripts.length === 0) return [];
   const dir = await mkdtemp(join(tmpdir(), "testing-repro-"));
+
   try {
     return await checkEach(dir, scripts);
   } finally {
-    /* A self-test that litters the temp directory is the same failure it reports elsewhere. */
+    // A self-test that litters the temp directory is the same failure it reports elsewhere.
     await rm(dir, { force: true, recursive: true });
   }
 }
 
 async function checkEach(dir: string, scripts: ReturnType<typeof renderRepros>): Promise<string[]> {
   const failures: string[] = [];
+
   for (const script of scripts) {
     const path = join(dir, script.filename);
     await writeFile(path, script.content);
+
     try {
       await exec("bash", ["-n", path]);
     } catch (error) {
       failures.push(`${script.filename}: ${messageOf(error)}`);
     }
-    /* An unexpanded variable inside single quotes is syntactically valid and semantically
-     * wrong, so parse success is not enough. Checked per line and skipping comments: prose
-     * apostrophes ("schema's") would otherwise let the match span into unrelated code. */
+
+    // An unexpanded variable inside single quotes is syntactically valid and semantically
+    // wrong, so parse success is not enough. Checked per line and skipping comments: prose
+    // apostrophes ("schema's") would otherwise let the match span into unrelated code.
     for (const line of script.content.split("\n")) {
       if (line.trimStart().startsWith("#")) continue;
+
       if (/'[^']*\$(BASE|TOKEN)[^']*'/.test(line)) {
         failures.push(
           `${script.filename}: $BASE/$TOKEN appears inside single quotes and will not expand — ${line.trim()}`,
@@ -54,5 +59,6 @@ async function checkEach(dir: string, scripts: ReturnType<typeof renderRepros>):
       }
     }
   }
+
   return failures;
 }

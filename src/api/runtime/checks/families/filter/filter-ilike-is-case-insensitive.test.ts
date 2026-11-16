@@ -13,6 +13,7 @@ const COHORT = [
   { name: "Alpha" },
   { id: "w-3", name: "beta" },
 ];
+
 const DOC = { xQuery: { filterable: [{ field: "name", ops: ["eq", "like", "ilike"] }] } };
 
 describe("filter.ilike-is-case-insensitive", () => {
@@ -45,11 +46,13 @@ describe("filter.ilike-is-case-insensitive", () => {
   it("is unresolved when a probe is refused or a set is larger than a read", async () => {
     const refused = stage({ behavior: REFUSE_FILTERED, doc: DOC, records: COHORT });
     expect(await runCheck(check, refused.ctx)).toMatchObject({ reason: "like/ilike probe was rejected" });
+
     const ilikeRefused = stage({
       behavior: { status: (query) => (String(query["filter"]).includes("ilike") ? 400 : undefined) },
       doc: DOC,
       records: COHORT,
     });
+
     expect(await runCheck(check, ilikeRefused.ctx)).toMatchObject({ reason: "like/ilike probe was rejected" });
     const partial = stage({ ...endless(DOC), records: COHORT });
     expect(await runCheck(check, partial.ctx)).toMatchObject({ reason: "the sets are larger than a read covers" });

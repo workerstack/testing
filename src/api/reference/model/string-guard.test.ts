@@ -11,6 +11,7 @@ describe("guardStrings", () => {
       { generated: true, name: "id", type: "string" },
       { name: "count", type: "integer" },
     ];
+
     expect(guardStrings(fields)).toEqual([
       { name: "name", patterns: [STRING_GUARD], type: "string" },
       { name: "phone", patterns: [PHONE_PATTERN, STRING_GUARD], type: "string" },

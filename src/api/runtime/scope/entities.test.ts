@@ -14,9 +14,10 @@ import {
 
 const model = referenceModel();
 
-/* The entity without the given operations, as a document that lacks them would model it. */
+// The entity without the given operations, as a document that lacks them would model it.
 const omit = <T extends object>(value: T, ...keys: Array<keyof T>): T =>
   Object.fromEntries(Object.entries(value).filter(([key]) => !keys.includes(key as keyof T))) as T;
+
 const none = new Set<string>();
 
 describe("staticSubjects", () => {
@@ -55,11 +56,13 @@ describe("authStepOperationIds", () => {
       key: { mint: { from: "$.key", operationId: "keys.create", with: "jwt" } },
       plain: { static: "s" },
     };
+
     const principals: PrincipalsConfig = {
       alpha: {},
       beta: { security: { jwt: { login: { from: "$.t", steps: [{ operationId: "auth.otp" }] } } } },
       gamma: { security: { plain: { holds: ["a"] } } },
     };
+
     expect([...authStepOperationIds({ principals, security })]).toEqual([
       "auth.register",
       "auth.refresh",
@@ -80,6 +83,7 @@ describe("authStepOperationIds", () => {
       },
       key: { mint: { from: "$.key", operationId: "apiKey.create", revoke: "apiKey.revoke", with: "jwt" } },
     };
+
     expect([...authStepOperationIds({ security })]).toEqual([
       "auth.token",
       "auth.revoke",
@@ -102,9 +106,8 @@ describe("untestableEntityReason", () => {
   const row = entityOf(model, "row");
 
   it("tests an entity with a cohort, an invite, a caller identity, a root identity, effects, or a list alone", () => {
-    for (const name of ["table", "row", "job", "profile", "notice", "overview"]) {
+    for (const name of ["table", "row", "job", "profile", "notice", "overview"])
       expect(untestableEntityReason(entityOf(model, name), model, none)).toBeNull();
-    }
   });
 
   it("does not test an entity the auth flow creates with no item route", () => {
@@ -123,7 +126,7 @@ describe("untestableEntityReason", () => {
   });
 });
 
-/* A create's 201 answer: a JSON object of these properties. */
+// A create's 201 answer: a JSON object of these properties.
 const json = (properties: Record<string, unknown>) => ({
   content: { "application/json": { schema: { properties, type: "object" } } },
   description: "made",
@@ -131,10 +134,13 @@ const json = (properties: Record<string, unknown>) => ({
 
 describe("untestableEntityReason and where a mint's answer names the record", () => {
   const mints = Object.assign(new Set(["key.create", "key.delete"]), { mints: new Set(["key.create"]) });
+
   const reason = (keys: ReturnType<typeof keyModel>, identity?: null) => {
     const key = entityOf(keys, "key");
+
     return untestableEntityReason(identity === null ? { ...key, identity } : key, keys, mints);
   };
+
   const blind =
     '"key" holds credentials a security recipe mints with key.create, whose answer names no id to protect them by, so no check may';
 
@@ -163,10 +169,11 @@ describe("untestableEntityReason and credentials", () => {
         apiKey: { mint: { from: "$.key", operationId: "apiKey.create", revoke: "apiKey.revoke", with: "jwt" } },
       },
     });
+
     expect(untestableEntityReason(entityOf(model, "api-key"), model, keys)).toBeNull();
-    /* A mint makes credentials, not an account: the lanes may send it for records of their own. */
+    // A mint makes credentials, not an account: the lanes may send it for records of their own.
     expect(createIsAuthProvisioned(model.byOperationId.get("apiKey.create") as OperationModel, keys)).toBe(false);
-    /* A mint that answers no id and no Location leaves nothing to protect the credential by. */
+    // A mint that answers no id and no Location leaves nothing to protect the credential by.
     const blind = { ...row, create: "auth.revoke" };
     expect(untestableEntityReason(blind, model, new Set(["auth.revoke", "row.delete"]))).toBe(
       '"row" holds credentials a security recipe mints with auth.revoke, whose answer names no id to protect them by, so no check may',
@@ -214,7 +221,7 @@ describe("untestableReason", () => {
     expect(
       untestableReason(model.byOperationId.get("row.create") as OperationModel, model, new Set(["row.create"])),
     ).toBe("no-applicable-check: no check judges row.create");
-    /* Rows whose records the API tester cannot identify after a create. */
+    // Rows whose records the API tester cannot identify after a create.
     const row = { ...entityOf(model, "row"), trackable: false };
     const untrackable = { ...model, entities: new Map([...model.entities, ["row", row]]) };
     expect(untestableReason(model.byOperationId.get("row.create") as OperationModel, untrackable, none)).toBe(

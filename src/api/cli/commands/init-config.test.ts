@@ -14,7 +14,7 @@ import { anyrow, cloudflare, everyScheme, immich, keycloak } from "../../spec/se
 import type { OpenApiDocument } from "../../spec/types.ts";
 import { renderInitConfig } from "./init-config.ts";
 
-/* The config `testing api init` writes, from each real-world security shape: exact text, then loaded and validated. */
+// The config `testing api init` writes, from each real-world security shape: exact text, then loaded and validated.
 
 const render = (doc: OpenApiDocument) =>
   renderInitConfig(doc, { out: "testing.api.config.ts", spec: "./openapi.json" });
@@ -36,7 +36,7 @@ const PRINCIPALS = `	principals: {
 
 const UNTESTED = "Operations that need only it are reported untested.";
 
-/* A document of `schemes`, its operations each needing what `needs` says. */
+// A document of `schemes`, its operations each needing what `needs` says.
 const secured = (
   schemes: Record<string, unknown>,
   needs: Record<string, Array<Record<string, string[]>>> = {},
@@ -49,10 +49,10 @@ const secured = (
   ),
 });
 
-/* One oauth2 flow, its scopes and URLs. */
+// One oauth2 flow, its scopes and URLs.
 const flows = (flow: string, extra: Record<string, unknown> = {}) => ({ flows: { [flow]: { scopes: {}, ...extra } } });
 
-/* Grants the API tester runs and one it cannot, a name long enough to wrap, a two-line description, two http schemes it cannot send. */
+// Grants the API tester runs and one it cannot, a name long enough to wrap, a two-line description, two http schemes it cannot send.
 const grants = secured(
   {
     anExtremelyLongBasicAuthenticationSchemeName: { scheme: "basic", type: "http" },
@@ -68,13 +68,15 @@ const grants = secured(
   },
 );
 
-/* The text, its import pointed at this checkout, loaded from a fresh folder with every env var it names set. */
+// The text, its import pointed at this checkout, loaded from a fresh folder with every env var it names set.
 async function load(doc: OpenApiDocument): Promise<Record<string, unknown>> {
   const { env, text } = render(doc);
+
   for (const name of env) vi.stubEnv(name, name === "TESTING_API_BASE_URL" ? "http://api.test" : `value-of-${name}`);
   const index = pathToFileURL(join(import.meta.dirname, "..", "..", "index.ts")).href;
   const file = join(mkdtempSync(join(tmpdir(), "testing-init-")), "testing.api.config.ts");
   writeFileSync(file, text.replace('"@workerstack/testing/api"', JSON.stringify(index)));
+
   return ((await import(pathToFileURL(file).href)) as { default: Record<string, unknown> }).default;
 }
 
@@ -178,6 +180,7 @@ describe("renderInitConfig's base URL and env names", () => {
 	// overlay: { securitySchemes: { bearer: { type: "http", scheme: "bearer" } }, security: [{ bearer: [] }] },
 	// security: { bearer: { static: env("TESTING_API_BEARER_TOKEN") } },
 `;
+
     expect(render(keycloak)).toEqual({
       env: ["TESTING_API_BASE_URL"],
       schemes: 0,
@@ -202,6 +205,7 @@ ${stub}${PRINCIPALS}`);
       apiKey: { in: "header", name: "X-B", type: "apiKey" },
       api_key: { in: "header", name: "X-C", type: "apiKey" },
     });
+
     const config = render(doc);
     expect(config.text).toContain(`		"api-key": { static: env("TESTING_API_API_KEY_KEY") },
 		// apiKey in header X-B
@@ -226,6 +230,7 @@ ${stub}${PRINCIPALS}`);
         variables: { region: { default: "eu" }, version: { default: "2" } },
       },
     ];
+
     const config = render({ ...keycloak, servers } as OpenApiDocument);
     expect(config.text).toContain(`	baseUrl: "https://eu.api.test/v2",\n`);
     expect(render({ ...keycloak, servers: [{ url: "ftp://files.test" }] }).env).toEqual(["TESTING_API_BASE_URL"]);
@@ -287,6 +292,7 @@ describe("renderInitConfig on odd declarations", () => {
       nothing: null,
       plain: { type: "http" },
     });
+
     expect(render(doc).text).toBe(`${HEAD}	security: {
 		// apiKey in header X
 		"-": { static: env("TESTING_API_SCHEME_KEY") },
@@ -343,12 +349,13 @@ describe("renderInitConfig and the roots a run cannot create", () => {
         "\t\t},",
       ].join("\n"),
     );
-    /* An id a flow yields (the invite's token, its grant) is no root to stub. */
+    // An id a flow yields (the invite's token, its grant) is no root to stub.
     expect(text).not.toMatch(/(token|grant_id|\bid): ""|(token|grant_id) unlocks/);
   });
 
   it("names every operation a root unlocks when there are few", () => {
     const rows = { items: { properties: { id: { type: "string" } }, type: "object" }, type: "array" };
+
     const list = {
       get: {
         operationId: "widget.list",
@@ -356,6 +363,7 @@ describe("renderInitConfig and the roots a run cannot create", () => {
         responses: { "200": { content: { "application/json": { schema: rows } }, description: "ok" } },
       },
     };
+
     const paths = { "/orgs/{org_id}/widgets": list };
     const doc = { info: { title: "t", version: "1" }, openapi: "3.1.0", paths } as unknown as OpenApiDocument;
     const { text } = renderInitConfig(dereference(doc).doc, { out: "testing.api.config.ts", spec: "openapi.json" });
@@ -367,6 +375,7 @@ describe("renderInitConfig and the roots a run cannot create", () => {
       out: "testing.api.config.ts",
       spec: "openapi.json",
     });
+
     expect(text).toContain("\t\talpha: {},");
   });
 });

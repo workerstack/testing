@@ -25,7 +25,7 @@ describe("expected", () => {
   });
 });
 
-/* What an assert wants, spelled out. */
+// What an assert wants, spelled out.
 const want = (mode: Want["mode"], from: string, value: string): Want => ({ from, mode, value });
 
 describe("shownValue / holds", () => {

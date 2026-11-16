@@ -19,6 +19,7 @@ import {
 
 const updateFrom = (current: unknown): UpdateProbe => {
   const { run } = selfRun();
+
   return {
     before: locateProbe({ display_name: current }, "display_name"),
     field: { kind: "string", maxLength: 40, name: "display_name" },
@@ -29,10 +30,11 @@ const updateFrom = (current: unknown): UpdateProbe => {
 };
 
 function selfRun(document = me()) {
-  const { findings, model, input } = selfInput(() => undefined, document);
+  const { findings, model, input } = selfInput(() => {}, document);
   const readOp = model.byOperationId.get("me.get");
   const updateOp = model.byOperationId.get("me.update");
   const probe = readOp ?? op(model, "me.update");
+
   const run: SelfRun = {
     entity: input.entity,
     findings,
@@ -42,6 +44,7 @@ function selfRun(document = me()) {
     readOps: readOp === undefined ? [] : [readOp],
     updateOp,
   };
+
   return { findings, model, run };
 }
 

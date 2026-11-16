@@ -10,7 +10,7 @@ declare module "vitest/browser" {
   }
 }
 
-/* vitest's browser module, loaded on the first call, so a node test can import this entry. */
+// vitest's browser module, loaded on the first call, so a node test can import this entry.
 const browser: HydrationRuntime["browser"] = () =>
   import("vitest/browser").catch((cause: unknown) => {
     throw new Error("hydrate: runs in vitest's browser mode; this test runs in node", { cause });

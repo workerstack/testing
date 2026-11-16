@@ -2,7 +2,7 @@ import type { RemovalVerdict, RemovedRecord } from "../../config/types/hooks.ts"
 import type { ProvenId } from "../proven-id.ts";
 
 /** A record the API tester made: its entity, the id the backend gave back, and the path parameters in scope. */
-export interface Created {
+export type Created = {
   entity: string;
   id: ProvenId;
   scope: Record<string, string>;
@@ -11,14 +11,14 @@ export interface Created {
    * that a read then showed: inferred, not declared.
    */
   inferred?: true;
-}
+};
 
 /** The principal a record belongs to, as far as removing it goes: removed as it, `as: { principal: id }`. */
-export interface Owner {
+export type Owner = {
   id: string;
-}
+};
 
-export interface Disposable {
+export type Disposable = {
   entity: string;
   id: string;
   /** Path parameters in scope when the record was created. */
@@ -27,10 +27,10 @@ export interface Disposable {
   owner: Owner;
   /** Ledgered from an answer that named a new id, not from a declared create. */
   inferred?: true;
-}
+};
 
 /** A create that answered 2xx without an id the API tester could read: what it made may remain. */
-export interface UnidentifiedCreate {
+export type UnidentifiedCreate = {
   entity: string;
   operationId: string;
   method: string;
@@ -38,9 +38,9 @@ export interface UnidentifiedCreate {
   status: number;
   /** The exchange's sequence number in the run's transcript. */
   seq: number;
-}
+};
 
-export interface TeardownReport {
+export type TeardownReport = {
   removed: number;
   /** Records still in place, each with the principal that created it. */
   failed: Array<{ entity: string; id: string; principal: string; reason: string }>;
@@ -54,24 +54,24 @@ export interface TeardownReport {
   unidentified: UnidentifiedCreate[];
   /** What `hooks.verifyRemoved` threw, once per call that did; those records keep teardown's verdict. */
   verifyHookErrors?: string[];
-}
+};
 
-export interface UnwindOptions {
+export type UnwindOptions = {
   onItem?: (done: number, total: number, item: Disposable) => void;
-  /* Read each list again afterwards, so a 2xx delete that kept its record is not counted gone. */
+  // Read each list again afterwards, so a 2xx delete that kept its record is not counted gone.
   verify?: boolean;
-  /* Asked about every record counted removed and every one teardown could not show gone. */
+  // Asked about every record counted removed and every one teardown could not show gone.
   verifyRemoved?: (record: RemovedRecord) => RemovalVerdict | Promise<RemovalVerdict>;
-}
+};
 
 /** One record's line in the report, updated as the unwind learns whether it is gone. */
 export type RecordState = TeardownReport["records"][number];
 
 /** What the unwind asks of the ledger it unwinds. */
-export interface LedgerView {
+export type LedgerView = {
   /** What moved the record away, when an accepted write did. */
   movedAway: (item: Disposable) => string | undefined;
   /** Whether the record's creator ever read it back. */
   seenByCreator: (item: Disposable) => boolean;
   sighted: (entity: string, id: string, principal: string) => void;
-}
+};

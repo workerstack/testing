@@ -1,22 +1,24 @@
 import { answers, type Target } from "../target.ts";
 
-/* Two ordinary accounts, one per tenant: alpha owns the books, beta reaches for them. */
+// Two ordinary accounts, one per tenant: alpha owns the books, beta reaches for them.
 const USERS = { ALPHA: "testing-alpha", BETA: "testing-beta" } as const;
 
-/* The admin VAmPI seeds with /createdb. */
+// The admin VAmPI seeds with /createdb.
 const ADMIN = { password: "pass1", username: "admin" } as const;
 
 async function call(url: string, init?: RequestInit): Promise<unknown> {
   const response = await fetch(url, { ...init, headers: { "content-type": "application/json" } });
   const body = (await response.json()) as { status?: string; message?: string };
+
   if (!response.ok || body.status === "fail")
     throw new Error(`${url} answered ${response.status}: ${JSON.stringify(body)}`);
+
   return body;
 }
 
 const target: Target = {
   baseUrl: "http://127.0.0.1:15002",
-  /* VAmPI's own document, as published: its login example carries a sample JWT, so it is not committed. */
+  // VAmPI's own document, as published: its login example carries a sample JWT, so it is not committed.
   vendored: [
     {
       path: "openapi3.yml",
@@ -26,20 +28,22 @@ const target: Target = {
   ],
   async prepare(baseUrl) {
     await answers(`${baseUrl}/`, 60_000);
-    /* VAmPI starts with no tables; /createdb makes them and seeds its three users. */
+    // VAmPI starts with no tables; /createdb makes them and seeds its three users.
     await call(`${baseUrl}/createdb`);
-    /* VAmPI seeds an admin (README: admin / pass1), the one account that may delete a user: the run's
-     * teardown hook removes the account its sign-up probe made as it. Signed in once here, so a seed
-     * that changed fails the target before the run. */
+    // VAmPI seeds an admin (README: admin / pass1), the one account that may delete a user: the run's
+    // teardown hook removes the account its sign-up probe made as it. Signed in once here, so a seed
+    // that changed fails the target before the run.
     await call(`${baseUrl}/users/v1/login`, {
       body: JSON.stringify({ password: ADMIN.password, username: ADMIN.username }),
       method: "POST",
     });
+
     const env: Record<string, string> = {
       VAMPI_ADMIN_PASSWORD: ADMIN.password,
       VAMPI_ADMIN_USER: ADMIN.username,
       VAMPI_URL: baseUrl,
     };
+
     for (const [key, username] of Object.entries(USERS)) {
       const password = `${username}-password`;
       await call(`${baseUrl}/users/v1/register`, {
@@ -49,6 +53,7 @@ const target: Target = {
       env[`VAMPI_${key}_USER`] = username;
       env[`VAMPI_${key}_PASSWORD`] = password;
     }
+
     return env;
   },
   readyWithinMs: 60_000,

@@ -7,11 +7,9 @@ import { afterEach, describe, expect, it } from "vitest";
 import { inProcess } from "./harness/launch.ts";
 import { runTask } from "./tasks.ts";
 
-/*
- * A task's answer carries what its worker held afterwards, and with TESTING_API_HEAP_SNAPSHOTS set, a heap
- * snapshot after each task: how a leg's leftovers are found. Every kind runs against the reference
- * in process here; the gate's workers reach it behind a socket.
- */
+// A task's answer carries what its worker held afterwards, and with TESTING_API_HEAP_SNAPSHOTS set, a heap
+// snapshot after each task: how a leg's leftovers are found. Every kind runs against the reference
+// in process here; the gate's workers reach it behind a socket.
 
 const nothing = { defects: ["NO_SUCH_DEFECT"], kind: "scope", known: {} } as const;
 
@@ -50,7 +48,7 @@ describe("a leg's tasks", () => {
       ["baseline (untagged spec)", true, undefined],
     ]);
     expect(results[0]?.findings.every((finding) => finding.evidence.length === 0)).toBe(true);
-    /* Every request both runs sent, counted where it left, and each by who sent it. */
+    // Every request both runs sent, counted where it left, and each by who sent it.
     const { sources, total } = answer.requests;
     expect(total).toBeGreaterThan(1000);
     expect(Object.values(sources).reduce((sum, count) => sum + count, 0)).toBe(total);
@@ -69,6 +67,7 @@ describe("a leg's tasks", () => {
       1,
       inProcess,
     );
+
     expect(answer).toMatchObject({ kind: "results", results: [{ ok: true }] });
   }, 120_000);
 });

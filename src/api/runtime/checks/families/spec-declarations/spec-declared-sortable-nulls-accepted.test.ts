@@ -20,18 +20,19 @@ const ok = refusing(400);
 
 describe("spec.declared-sortable-nulls-accepted plan", () => {
   it("applies when a sortable field declares a nulls token, on its own or for every field", () => {
-    for (const capabilities of [caps([{ field: "name", nulls: ["first"] }]), caps([{ field: "name" }], ["last"])]) {
+    for (const capabilities of [caps([{ field: "name", nulls: ["first"] }]), caps([{ field: "name" }], ["last"])])
       expect(declaredSortableNullsAccepted.plan(stage(ok, { capabilities }).ctx).ok).toBe(true);
-    }
   });
 
   it("stands down without an order parameter, a nulls token in the grammar, or a declared token", () => {
     const declared = caps([{ field: "name", nulls: ["first"] }]);
+
     const contexts = [
       stage(ok, { capabilities: declared, listOp: listing({}, "order") }).ctx,
       stage(ok, { capabilities: declared, listOp: listing({ sortGrammar: "prefixed" }) }).ctx,
       stage(ok, { capabilities: caps([{ field: "name" }]) }).ctx,
     ];
+
     for (const ctx of contexts) expect(declaredSortableNullsAccepted.plan(ctx).ok).toBe(false);
   });
 });
@@ -45,6 +46,7 @@ describe("spec.declared-sortable-nulls-accepted run", () => {
         { field: "id" },
       ]),
     });
+
     expect(await runCheck(declaredSortableNullsAccepted, ctx)).toEqual({ kind: "asserted" });
     expect(queries(sent)).toEqual([
       { limit: 5, order: "name.asc.nullsfirst" },
@@ -57,6 +59,7 @@ describe("spec.declared-sortable-nulls-accepted run", () => {
 
   it("reports the document when the backend refuses a declared token, citing at most three", async () => {
     const respond = refusing(400, "nullsfirst");
+
     const { ctx, findings } = stage(
       (m, p, o) => (o.query?.["order"] === "id.asc.nullslast" ? { status: 500 } : respond(m, p, o)),
       {
@@ -66,6 +69,7 @@ describe("spec.declared-sortable-nulls-accepted run", () => {
         ),
       },
     );
+
     expect(await runCheck(declaredSortableNullsAccepted, ctx)).toEqual({ kind: "finding", verdict: "SPEC_BUG" });
     const [finding] = findings.findings;
     expect(finding?.check).toBe("spec.declared-sortable-nulls-accepted");
@@ -91,6 +95,7 @@ describe("spec.declared-sortable-nulls-accepted run", () => {
       capabilities: caps([{ field: "name", nulls: ["first"] }]),
       listOp: listing({ sortGrammar: "prefixed" }),
     });
+
     expect(await declaredSortableNullsAccepted.run(ctx, undefined)).toEqual({ kind: "asserted" });
     expect(sent).toEqual([]);
   });

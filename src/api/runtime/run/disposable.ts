@@ -41,53 +41,61 @@ export function enrollerOf(ctx: RunContext): DisposableInput["enroll"] {
   return async (label) => {
     const id = `disposable-${label}`;
     const made = await provision(ctx, { entry: {}, id, label });
+
     if ("blocked" in made) return made;
     const reason = await logIn(ctx, id, {});
+
     if (reason !== undefined) return { blocked: reason };
+
     if (await callersOwn(ctx, id)) {
       return {
         blocked: `every scheme's recipe is static and gives ${id} the suite caller's own credential; a second user needs a login recipe`,
       };
     }
+
     const enrolled: Enrolled = { ...made, scope: boundOf(ctx.store.identityOf(id)).scope };
     const scheme = refreshedScheme(ctx.options.security ?? {});
+
     return scheme === undefined ? enrolled : { ...enrolled, renew: () => renew(ctx, { id, scheme }) };
   };
 }
 
-/*
- * Whether `id` would act as the suite caller: every recipe static, each filling it the value the
- * caller sends. A destructive call it makes then ends the caller's own session.
- */
+// Whether `id` would act as the suite caller: every recipe static, each filling it the value the
+// caller sends. A destructive call it makes then ends the caller's own session.
 async function callersOwn(ctx: RunContext, id: string): Promise<boolean> {
   const security = ctx.options.security ?? {};
   const schemes = Object.keys(security);
+
   if (schemes.length === 0) return false;
+
   if (Object.values(security).some((recipe) => recipeKind(recipe) !== "static")) return false;
+
   for (const scheme of schemes) {
-    /* A blocked credential has no value: one blocked for the session alone is not the caller's. */
+    // A blocked credential has no value: one blocked for the session alone is not the caller's.
     const own = (await ctx.store.acquire({ principal: id, scheme })) as Partial<Credential>;
     const caller = (await ctx.store.acquire({ principal: ctx.principals.alpha.id, scheme })) as Partial<Credential>;
+
     if (own.value !== caller.value) return false;
   }
+
   return true;
 }
 
-/* The first scheme whose recipe declares a refresh: the one a session's renewal runs. */
+// The first scheme whose recipe declares a refresh: the one a session's renewal runs.
 function refreshedScheme(security: Readonly<Record<string, Partial<Recipe>>>): string | undefined {
   return Object.keys(security).find((scheme) => effectiveRecipe(security[scheme], undefined)?.refresh !== undefined);
 }
 
-/*
- * The session's declared refresh, run once for the credential it holds, never a fresh sign-in; the
- * exchange it ended on, which a refused refresh still leaves. A refusal BLOCKS that session's
- * credential, which is what an ended session should be.
- */
+// The session's declared refresh, run once for the credential it holds, never a fresh sign-in; the
+// exchange it ended on, which a refused refresh still leaves. A refusal BLOCKS that session's
+// credential, which is what an ended session should be.
 async function renew(ctx: RunContext, held: { id: string; scheme: string }): Promise<Exchange | undefined> {
   const { client, store } = ctx;
   const before = client.transcript.length;
   const current = (await store.snapshot()).find((entry) => entry.principal === held.id && entry.scheme === held.scheme);
+
   if (current === undefined) return undefined;
   await store.refresh({ principal: held.id, scheme: held.scheme, sentValue: current.credential.value });
+
   return client.transcript.slice(before).at(-1);
 }

@@ -2,7 +2,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 
 import { stubs } from "./stubs.ts";
 
-/* Node has none of these DOM classes, so each test that needs one sets a bare stand-in, cleared after it. */
+// Node has none of these DOM classes, so each test that needs one sets a bare stand-in, cleared after it.
 class FakeMouseEvent extends Event {
   readonly clientX: number;
   constructor(type: string, init: MouseEventInit = {}) {
@@ -11,7 +11,7 @@ class FakeMouseEvent extends Event {
   }
 }
 
-/* A bare class that stands for the browser's `name`. */
+// A bare class that stands for the browser's `name`.
 const standIn = (name: string): new () => object =>
   class {
     readonly standsFor = name;
@@ -33,9 +33,11 @@ const OUTSIDE = "call it inside a test or a beforeEach, so it is undone after th
 describe("stubs.resizeObserver", () => {
   it("puts in a ResizeObserver that never reports, and restore takes it out again, once", () => {
     const restore = stubs.resizeObserver();
+
     const observer = new ResizeObserver(() => {
       throw new Error("a stub never reports");
     });
+
     observer.observe(new Element());
     observer.unobserve(new Element());
     observer.disconnect();
@@ -90,8 +92,8 @@ describe("stubs.matchMedia", () => {
     const restore = stubs.matchMedia((query) => query.includes("reduce"));
     const reduce = matchMedia("(prefers-reduced-motion: reduce)");
     expect([reduce.matches, reduce.media, reduce.onchange]).toEqual([true, "(prefers-reduced-motion: reduce)", null]);
-    reduce.addListener(() => undefined);
-    reduce.removeListener(() => undefined);
+    reduce.addListener(() => {});
+    reduce.removeListener(() => {});
     restore();
     stubs.matchMedia();
     expect(matchMedia("(prefers-reduced-motion: reduce)").matches).toBe(false);
@@ -120,6 +122,7 @@ describe("stubs.pointerEvent", () => {
     ]);
     expect([plain.tangentialPressure, plain.persistentDeviceId]).toEqual([0, 0]);
     expect([plain.getCoalescedEvents(), plain.getPredictedEvents()]).toEqual([[], []]);
+
     const init = {
       altitudeAngle: 1,
       azimuthAngle: 2,
@@ -135,6 +138,7 @@ describe("stubs.pointerEvent", () => {
       twist: 8,
       width: 9,
     };
+
     expect(new PointerEvent("pointermove", init)).toMatchObject(init);
   });
 });
@@ -157,6 +161,7 @@ describe("stubs.animate", () => {
     expect(animation).toMatchObject({ pending: false, playState: "finished", playbackRate: 1 });
     expect(await animation.finished).toBe(animation);
     expect(await animation.ready).toBe(animation);
+
     for (const call of ["cancel", "commitStyles", "finish", "pause", "persist", "play", "reverse"] as const)
       animation[call]();
     animation.updatePlaybackRate(2);

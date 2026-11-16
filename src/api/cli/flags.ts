@@ -1,8 +1,8 @@
-/* The command line: every command and flag once, parsed from argv and printed as the help. */
+// The command line: every command and flag once, parsed from argv and printed as the help.
 
 import type { FlagKind, FlagKinds } from "./flag-kinds.ts";
 
-export interface FlagSpec<Kind extends FlagKind = FlagKind> {
+export type FlagSpec<Kind extends FlagKind = FlagKind> = {
   kind: Kind;
   /** A value that must parse as a number of this kind. */
   number?: "integer" | "positive";
@@ -10,7 +10,7 @@ export interface FlagSpec<Kind extends FlagKind = FlagKind> {
   value?: string;
   /** One line of help; a flag two commands share says what it means to each. */
   help: string;
-}
+};
 
 /** Every flag, once: whether it takes a value, what kind, and what it is for. Parsing and help both read this. */
 export const FLAGS: { readonly [Name in FlagName]: Readonly<FlagSpec<FlagKinds[Name]>> } = {
@@ -143,11 +143,11 @@ export const FLAGS: { readonly [Name in FlagName]: Readonly<FlagSpec<FlagKinds[N
 export type FlagName = keyof FlagKinds;
 
 /** What parsing leaves for each kind: a switch is `true`, a value its text, an optional value either. */
-interface ValueOfKind {
+type ValueOfKind = {
   boolean: true;
   value: string;
   "optional-value": string | true;
-}
+};
 
 /** The flags of one kind, by name. */
 type NamesOf<Kind extends FlagKind> = {
@@ -190,22 +190,25 @@ export const USAGE: string = /* @__PURE__ */ usage();
 function usage(): string {
   const column = Math.max(...COMMANDS.map((command) => command.usage.length)) + 3;
   const commands = COMMANDS.map((command) => `  testing api ${command.usage.padEnd(column)}${command.help}`);
+
   const named = Object.entries(SPECS).map(([name, spec]) => [
     `--${name}${spec.value === undefined ? "" : ` ${spec.value}`}`,
     spec.help,
   ]);
+
   const width = Math.max(...named.map(([flag]) => (flag as string).length)) + 2;
   const flags = named.map(([flag, help]) => `  ${(flag as string).padEnd(width)}${help}`);
+
   return `testing api — test a live HTTP API against its OpenAPI document\n\n${commands.join("\n")}\n\nFlags\n${flags.join("\n")}\n`;
 }
 
 /** A command and its flags, as parsed. */
-export interface Args {
+export type Args = {
   command: string;
   flags: Flags;
   /** Arguments that are not flags or flag values, in order: `testing api diff <runA> <runB>`. Absent when none. */
   positionals?: string[];
-}
+};
 
 /**
  * `testing api <command> [--flag value | --flag=value | --switch] …`. A value flag must have its value;
@@ -222,20 +225,27 @@ export function parseArgs(argv: readonly string[]): Args & { error?: string } {
   const positionals: string[] = [];
   let unknown: string | undefined;
   let error: string | undefined;
+
   for (let i = 0; i < rest.length; i++) {
     const token = rest[i] as string;
+
     if (!token.startsWith("--")) {
       positionals.push(token);
       continue;
     }
+
     const read = readFlag(token, rest[i + 1]);
+
     if (read.consumed) i++;
+
     if (!isKnownFlag(read.key)) unknown ??= read.key;
     error ??= read.error;
     keep(flags, read.key, read.value);
   }
+
   if (unknown !== undefined) error = `unknown flag "--${unknown}"`;
   const extra = positionals.length === 0 ? {} : { positionals };
+
   return error === undefined ? { command, flags, ...extra } : { command, error, flags, ...extra };
 }
 
@@ -248,14 +258,18 @@ function readFlag(
   const key = equals === -1 ? token.slice(2) : token.slice(2, equals);
   const inline = equals === -1 ? undefined : token.slice(equals + 1);
   const spec = SPECS[key];
+
   if (spec === undefined || spec.kind === "boolean") {
     const error = inline !== undefined && spec !== undefined ? `--${key} takes no value` : undefined;
+
     return { consumed: false, error, key, value: inline ?? true };
   }
+
   if (inline !== undefined) return { consumed: false, error: numberProblem(key, spec, inline), key, value: inline };
-  if (next !== undefined && !next.startsWith("--")) {
+
+  if (next !== undefined && !next.startsWith("--"))
     return { consumed: true, error: numberProblem(key, spec, next), key, value: next };
-  }
+
   return {
     consumed: false,
     error: spec.kind === "optional-value" ? undefined : `--${key} needs a value`,
@@ -275,7 +289,9 @@ function numberProblem(key: string, spec: FlagSpec, value: string): string | und
   if (spec.number === undefined) return undefined;
   const parsed = Number(value);
   const integer = value.trim() !== "" && Number.isSafeInteger(parsed);
+
   if (integer && (spec.number !== "positive" || parsed >= 1)) return undefined;
+
   return `--${key} must be ${spec.number === "positive" ? "a positive" : "an"} integer, got "${value}"`;
 }
 
@@ -285,6 +301,7 @@ type ValueName = NamesOf<"value" | "optional-value">;
 /** A flag's value as given, or nothing when it is absent or a bare switch. */
 export function str(flags: Flags, name: ValueName): string | undefined {
   const value = flags[name];
+
   return typeof value === "string" ? value : undefined;
 }
 

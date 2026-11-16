@@ -9,24 +9,25 @@ import type { CheckContext } from "./context.ts";
 import { cannot, ready } from "./plan.ts";
 import { checkSalts, NEEDS_LIST, planOn, runCheck, runOn } from "./run.ts";
 
-/*
- * What the scheduler does for one check: plan it, and run it only when the plan applies, with what
- * the plan found; otherwise the check stands down, saying what it needed.
- */
+// What the scheduler does for one check: plan it, and run it only when the plan applies, with what
+// the plan found; otherwise the check stands down, saying what it needed.
 
 /** A check whose plan is `plan` and whose run records the value it was handed. */
 function stubCheck(plan: Check["plan"], needs?: string): { check: Check; ran: unknown[] } {
   const ran: unknown[] = [];
+
   const check: Check = {
     id: "sort.order-is-applied",
     plan,
     run: async (_ctx, value) => {
       ran.push(value);
+
       return { kind: "asserted" } satisfies Outcome;
     },
     subjects: () => [],
     ...(needs === undefined ? {} : { needs }),
   };
+
   return { check, ran };
 }
 
@@ -57,16 +58,19 @@ describe("runCheck", () => {
 /** A check that reads the listing, recording what its plan handed its run. */
 function listing(): { check: Check; ran: unknown[] } {
   const ran: unknown[] = [];
+
   const check: Check = {
     id: "sort.order-is-applied",
     lists: true,
     plan: (ctx) => ready(ctx.listOp.operationId),
     run: async (_ctx, value) => {
       ran.push(value);
+
       return { kind: "asserted" } satisfies Outcome;
     },
     subjects: () => [],
   };
+
   return { check, ran };
 }
 
@@ -95,10 +99,11 @@ describe("a check that reads the entity's listing", () => {
   });
 });
 
-/* The list can sort by `name` and filter by `id`, but declares no parameter for either. */
+// The list can sort by `name` and filter by `id`, but declares no parameter for either.
 function withheld() {
   const { ctx } = notesContext();
   const capabilities = { ...emptyCapabilities(), filterable: [], sortable: [] };
+
   return {
     ...ctx,
     capabilities,
@@ -115,14 +120,17 @@ describe("runCheck with withheld query capabilities", () => {
     const sorts = stubCheck((ctx: CheckContext) =>
       ctx.query?.sortable[0] === undefined ? cannot("a sortable field") : ready({}),
     );
+
     expect(await runCheck(sorts.check, withheld())).toEqual({
       kind: "stood-down",
       reason: "a sort parameter, which the list operation does not declare",
     });
     expect(sorts.ran).toEqual([]);
+
     const filters = stubCheck((ctx: CheckContext) =>
       ctx.query?.filterable.includes("id") === true ? ready({}) : cannot(),
     );
+
     expect(await runCheck(filters.check, withheld())).toMatchObject({
       reason: "the `id` query parameter, which the list operation does not declare",
     });
@@ -132,6 +140,7 @@ describe("runCheck with withheld query capabilities", () => {
     const both = stubCheck((ctx: CheckContext) =>
       (ctx.query?.sortable.length ?? 0) > 0 && (ctx.query?.filterable.length ?? 0) > 0 ? ready({}) : cannot(),
     );
+
     expect(await runCheck(both.check, withheld())).toMatchObject({
       reason:
         "the `id` query parameter, which the list operation does not declare; a sort parameter, which the list " +
@@ -147,6 +156,7 @@ describe("runCheck with withheld query capabilities", () => {
       run: async () => ({ kind: "asserted" }),
       subjects: () => [],
     };
+
     expect(await runCheck(sorts, { ...withheld(), listOp: undefined })).toEqual({
       kind: "stood-down",
       reason: NEEDS_LIST,

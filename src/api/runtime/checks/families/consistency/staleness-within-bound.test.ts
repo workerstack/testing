@@ -7,11 +7,9 @@ import { notesContext, notesModel, notesServer } from "../write/__fixtures__/not
 import { SYSTEM_CLOCK } from "./staleness-watch.ts";
 import { STALENESS_TIMING, stalenessWithinBound } from "./staleness-within-bound.ts";
 
-/*
- * After a write, a read sent past no bypass may answer the old value for a while. The check
- * measures how long; past a declared x-consistency.staleness it is a finding, and with none declared
- * the window is reported, never failed.
- */
+// After a write, a read sent past no bypass may answer the old value for a while. The check
+// measures how long; past a declared x-consistency.staleness it is a finding, and with none declared
+// the window is reported, never failed.
 
 afterEach(() => {
   STALENESS_TIMING.clock = SYSTEM_CLOCK;
@@ -28,23 +26,32 @@ function cached(windowMs: number, more: { stalenessMs?: number; deleteOp?: false
   };
   const server = notesServer();
   const copies = new Map<string, { answer: Answer; at: number }>();
+
   const respond: Responder = (method, path, options) => {
     const overridden = more.override?.(method, path, options);
+
     if (overridden !== undefined) return overridden;
+
     if (method !== "GET" || options.cache !== "use") return server.respond(method, path, options);
     const copy = copies.get(path);
+
     if (copy !== undefined && now - copy.at < windowMs) {
       return {
         ...copy.answer,
         headers: { age: String(Math.floor((now - copy.at) / 1000)), "cache-status": "edge; hit" },
       };
     }
+
     const answer = server.respond(method, path, options);
+
     if (answer?.status === 200) copies.set(path, { answer, at: now });
+
     return answer;
   };
+
   const model = notesModel();
   const readOp = op(model, "note.get");
+
   return notesContext(model, respond, {
     readOp:
       more.stalenessMs === undefined
@@ -55,10 +62,10 @@ function cached(windowMs: number, more: { stalenessMs?: number; deleteOp?: false
   });
 }
 
-/* The delete answers success and keeps the record. */
+// The delete answers success and keeps the record.
 const keeps: Responder = (method) => (method === "DELETE" ? { body: {}, status: 200 } : undefined);
 
-/* The update is refused; everything else answers. */
+// The update is refused; everything else answers.
 const refuse: Responder = (method) => (method === "PATCH" ? { status: 500 } : undefined);
 
 const paths = (sent: { method: string; path: string; options: { cache?: string } }[]) =>
@@ -84,7 +91,7 @@ describe("consistency.staleness-within-bound", () => {
       "DELETE /notes/n2",
       "GET /notes/n2 (cache)",
     ]);
-    /* A read of a record it deleted expects it gone: a probe, which no documentation judge grades. */
+    // A read of a record it deleted expects it gone: a probe, which no documentation judge grades.
     expect(sent.filter((s) => s.method === "GET").map((s) => s.options.probe === true)).toEqual([
       false,
       false,

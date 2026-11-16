@@ -3,14 +3,13 @@ import { describe, expect, it } from "vitest";
 import { DIALECTS } from "../reference/dialect/presets.ts";
 import { COMMANDS, FLAGS, type FlagSpec, isKnownFlag, list, parseArgs, str, USAGE } from "./flags.ts";
 
-/*
- * The command line from one table: argv parses against it, and the help is printed from it, so a
- * flag the parser knows cannot be missing from the help.
- */
+// The command line from one table: argv parses against it, and the help is printed from it, so a
+// flag the parser knows cannot be missing from the help.
 
 describe("USAGE", () => {
   it("names every command and every flag, with its value", () => {
     for (const { usage } of COMMANDS) expect(USAGE).toContain(`testing api ${usage}`);
+
     for (const [name, spec] of Object.entries<FlagSpec>(FLAGS)) {
       const flag = `--${name}${spec.value === undefined ? "" : ` ${spec.value}`}`;
       const line = USAGE.split("\n").find((text) => text.trimStart().startsWith(`${flag} `));
@@ -34,9 +33,10 @@ describe("USAGE", () => {
     expect(isKnownFlag("parser")).toBe(true);
   });
 
-  /* A dialect `--dialect` accepts but the help does not name is one nobody finds. */
+  // A dialect `--dialect` accepts but the help does not name is one nobody finds.
   it("names every dialect the reference speaks on the --dialect line", () => {
     const line = USAGE.split("\n").find((text) => text.trimStart().startsWith("--dialect")) ?? "";
+
     for (const name of Object.keys(DIALECTS)) expect(line).toContain(name);
   });
 });

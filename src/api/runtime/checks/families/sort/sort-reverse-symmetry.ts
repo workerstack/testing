@@ -15,23 +15,25 @@ import type { SetRead } from "../../sets/read.ts";
 export const sortReverseSymmetry: Check<{ field: string }> = defineCheck<{ field: string }>({
   plan: (ctx) => {
     if (ctx.records.length <= 1) return cannot();
-    /* A nullable sort key exercises null ordering, where the interesting bugs live. */
+
+    // A nullable sort key exercises null ordering, where the interesting bugs live.
     const field =
       nullableField(ctx, ctx.query?.sortable ?? []) ??
       ctx.query?.sortable.find((f) => f !== ctx.identity) ??
       ctx.query?.sortable[0];
+
     return field === undefined ? cannot() : ready({ field });
   },
-  /* The property is asserted over a *nullable* sort key, because that is where null-ordering
-   * bugs live. A backend that drops submitted fields leaves that column uniformly null, and a
-   * sort over one repeated value is symmetric no matter how badly the backend sorts. */
+  // The property is asserted over a *nullable* sort key, because that is where null-ordering
+  // bugs live. A backend that drops submitted fields leaves that column uniformly null, and a
+  // sort over one repeated value is symmetric no matter how badly the backend sorts.
   dependsOn: [
     "create.persists-submitted-fields",
-    /* Reversing an order that is never applied returns the same page twice. Every sort
-     * property is untestable until ordering itself is known to work. */
+    // Reversing an order that is never applied returns the same page twice. Every sort
+    // property is untestable until ordering itself is known to work.
     "sort.order-is-applied",
-    /* Both directions are gathered across pages, so a walk that skips or repeats records
-     * changes the membership this check compares — for reasons that are not about sorting. */
+    // Both directions are gathered across pages, so a walk that skips or repeats records
+    // changes the membership this check compares — for reasons that are not about sorting.
     "pagination.page-walk-covers-set",
   ],
   id: "sort.reverse-symmetry",
@@ -40,11 +42,12 @@ export const sortReverseSymmetry: Check<{ field: string }> = defineCheck<{ field
   subjects: subjectsOf.list,
   async run(ctx, { field }): Promise<Outcome> {
     const limit = pageSize(ctx);
-    /* Gathered across pages: a collection larger than one page would otherwise leave this
-     * property — that a reversal reorders a set without changing its membership — untested on
-     * exactly the collections where sorting matters most. */
+    // Gathered across pages: a collection larger than one page would otherwise leave this
+    // property — that a reversal reorders a set without changing its membership — untested on
+    // exactly the collections where sorting matters most.
     const ascending = await collectSet(ctx, limit, {}, { order: sortTerm(conv(ctx), { direction: "asc", field }) });
     const descending = await collectSet(ctx, limit, {}, { order: sortTerm(conv(ctx), { direction: "desc", field }) });
+
     if (ascending === null || descending === null) {
       return ctx.findings.unresolved(
         this.id,
@@ -53,9 +56,9 @@ export const sortReverseSymmetry: Check<{ field: string }> = defineCheck<{ field
       );
     }
 
-    /* Only comparable when a single page holds the whole collection. Otherwise asc and desc
-     * return opposite *windows* of it — legitimately different sets, and comparing them would
-     * report every capped collection as broken. */
+    // Only comparable when a single page holds the whole collection. Otherwise asc and desc
+    // return opposite *windows* of it — legitimately different sets, and comparing them would
+    // report every capped collection as broken.
     if (!ascending.complete || !descending.complete) {
       return ctx.findings.unresolved(
         this.id,
@@ -75,15 +78,17 @@ export const sortReverseSymmetry: Check<{ field: string }> = defineCheck<{ field
           collectSet(ctx, limit, {}, { order: sortTerm(conv(ctx), { direction: "desc", field }), fresh: true }),
       },
     );
+
     if (settled === "moving") return ctx.findings.unresolved(this.id, ctx.entityName, MOVING);
-    if (settled === null) {
+
+    if (settled === null)
       return ctx.findings.unresolved(this.id, ctx.entityName, `ordering by "${field}" was rejected on a repeat read`);
-    }
+
     return judgeReversal(ctx, this.id, field, settled);
   },
 });
 
-/* The listed values of `field`, nulls left out, as comparable text. */
+// The listed values of `field`, nulls left out, as comparable text.
 function presentValues(items: Record_[], field: string): string[] {
   return items
     .map((item) => item[field])
@@ -100,6 +105,7 @@ function judgeReversal(
 ): Outcome {
   const forward = ids(ascending.items, ctx.identity);
   const backward = ids(descending.items, ctx.identity);
+
   if (forward.length !== backward.length) {
     return ctx.findings.backend(check, ctx.entityName, {
       summary: "ascending and descending sorts return different numbers of records",
@@ -107,11 +113,13 @@ function judgeReversal(
       evidence: [ascending.last.exchange, descending.last.exchange],
     });
   }
+
   if (forward.join(",") === backward.toReversed().join(",")) return ASSERTED;
 
-  /* Values may legitimately tie; only flag when the multisets differ or a strict field
-   * ordering is violated, not when equal keys land in a different arrangement. */
+  // Values may legitimately tie; only flag when the multisets differ or a strict field
+  // ordering is violated, not when equal keys land in a different arrangement.
   const sameMembers = [...forward].sort().join(",") === [...backward].sort().join(",");
+
   if (!sameMembers) {
     const onlyAsc = forward.filter((id) => !backward.includes(id));
     const onlyDesc = backward.filter((id) => !forward.includes(id));
@@ -124,14 +132,18 @@ function judgeReversal(
         "Sort direction must reorder a collection, never change its membership.",
       evidence: [ascending.last.exchange, descending.last.exchange],
     });
+
     return ASSERTED;
   }
-  /* Up to ties, descending is ascending reversed — whatever the collation, since both come
-   * from the same backend. Compared by value, so tied records may land in any arrangement;
-   * nulls are left out, as either end is a legitimate place for them in either direction. */
+
+  // Up to ties, descending is ascending reversed — whatever the collation, since both come
+  // from the same backend. Compared by value, so tied records may land in any arrangement;
+  // nulls are left out, as either end is a legitimate place for them in either direction.
   const up = presentValues(ascending.items, field);
   const down = presentValues(descending.items, field);
+
   if (up.join("\u0000") === down.toReversed().join("\u0000")) return ASSERTED;
+
   return ctx.findings.backend(check, ctx.entityName, {
     summary: "descending order is not ascending order reversed",
     detail:

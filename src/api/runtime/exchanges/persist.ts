@@ -27,28 +27,39 @@ function isPersisted(body: unknown): boolean {
 
 export async function persistRequestBody(body: unknown, store: BlobStore): Promise<unknown> {
   if (body === undefined) return undefined;
+
   if (isPersisted(body)) return body;
+
   if (isFormData(body)) {
     const parts: unknown[] = [];
+
     for (const [field, value] of body.entries()) {
       if (typeof value === "string") {
         parts.push(formFieldPart(field, value, store.redactor));
         continue;
       }
+
       const bytes = new Uint8Array(await value.arrayBuffer());
       const blob = await store.put(bytes);
       parts.push(formFilePart(field, value, blob));
     }
+
     return { parts };
   }
+
   if (isURLSearchParams(body)) return store.redactor.json(Object.fromEntries(body.entries()));
   const raw = await bytesOf(body);
+
   if (raw !== undefined) {
     const blob = await store.put(raw);
+
     return { ...blob, mediaType: "application/octet-stream" };
   }
+
   if (typeof body === "string") return store.spillText(body, "text/plain");
+
   if (body !== null && typeof body === "object") return store.persistJson(body, "application/json");
+
   return describeRequestBody(body);
 }
 
@@ -59,31 +70,43 @@ export async function persistRequestBody(body: unknown, store: BlobStore): Promi
  */
 function persistPlainResponse(body: unknown, mediaType: string, store: BlobStore): unknown {
   if (body === undefined) return undefined;
+
   if (typeof body === "string") {
     const asFrames = sseEvents(body);
+
     if (asFrames !== null) return redactedFrames(asFrames, store.redactor);
+
     return store.spillText(body, primaryMediaType(mediaType, "text/plain"));
   }
-  if (body !== null && typeof body === "object") {
+
+  if (body !== null && typeof body === "object")
     return store.persistJson(body, primaryMediaType(mediaType, "application/json"));
-  }
+
   return body;
 }
 
 export async function persistResponseBody(exchange: Exchange, store: BlobStore): Promise<unknown> {
   const mediaType = presentHeader(exchange.responseHeaders, "content-type") ?? "";
   const body = exchange.responseBody;
+
   if (isPersisted(body)) return body;
+
   if (mediaType.toLowerCase().includes("text/event-stream")) {
     const frames = sseEvents(body);
+
     if (frames !== null) return redactedFrames(frames, store.redactor);
+
     if (typeof body === "string") return store.spillText(body, primaryMediaType(mediaType, "text/event-stream"));
   }
+
   if (isBinaryMediaType(mediaType)) {
     const bytes =
       typeof body === "string" ? utf8Encode(body) : ((await bytesOf(body)) ?? utf8Encode(JSON.stringify(body)));
+
     const blob = await store.put(bytes);
+
     return { ...blob, mediaType: primaryMediaType(mediaType, "application/octet-stream") };
   }
+
   return persistPlainResponse(body, mediaType, store);
 }

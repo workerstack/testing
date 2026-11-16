@@ -5,22 +5,23 @@ import { runCheck } from "../../core/run.ts";
 import { GATED, notesContext, notesModel, notesServer } from "./__fixtures__/notes.ts";
 import { immutableRejected } from "./patch-immutable-field-rejected.ts";
 
-/*
- * A field the document declares `x-immutable` must refuse a write (400, 422 or 409). Defect:
- * immutable-accepted — the PATCH answers 200 and the new value persists.
- */
+// A field the document declares `x-immutable` must refuse a write (400, 422 or 409). Defect:
+// immutable-accepted — the PATCH answers 200 and the new value persists.
 
 const MODEL = notesModel({ immutable: ["code"] });
 
 /** A backend over `server`, with `override` answering first where it returns something. */
-function backend(override: Responder = () => undefined, model = MODEL) {
+function backend(override: Responder = () => {}, model = MODEL) {
   const server = notesServer();
   const moved: string[] = [];
+
   const respond: Responder = (method, path, options) =>
     override(method, path, options) ?? server.respond(method, path, options);
+
   const stage = notesContext(model, respond, {
     recordMoved: (_entity, id, reason) => moved.push(`${id}: ${reason}`),
   });
+
   return { moved, server, ...stage };
 }
 
@@ -41,7 +42,7 @@ describe("patch.immutable-field-rejected verdicts", () => {
     const { ctx, findings, moved } = backend((method) => (method === "PATCH" ? { status: 204 } : undefined));
     expect(await runCheck(immutableRejected, ctx)).toEqual({ kind: "asserted" });
     expect(findings.findings).toEqual([]);
-    /* An accepted write to a key may still have moved the record. */
+    // An accepted write to a key may still have moved the record.
     expect(moved).toEqual(['n1: moved by a write to "code" the backend accepted (note.update)']);
   });
 
@@ -54,10 +55,12 @@ describe("patch.immutable-field-rejected verdicts", () => {
 
   it("fails a backend whose read shows the new value though the answer did not echo it", async () => {
     const { ctx, findings, server } = backend((method, path, options) => {
-      if (method !== "PATCH") return undefined;
+      if (method !== "PATCH") return;
       server.respond(method, path, options);
+
       return { status: 204 };
     });
+
     expect(await runCheck(immutableRejected, ctx)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     expect(findings.findings[0]?.evidence.map((e) => e.method)).toEqual(["PATCH", "GET"]);
   });

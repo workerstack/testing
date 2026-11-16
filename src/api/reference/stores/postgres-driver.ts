@@ -1,9 +1,7 @@
 import { UsageError } from "../../errors/usage-error.ts";
 
-/*
- * `postgres` (postgres.js) is an optional peer dependency: only the Postgres reference backend uses
- * it, so an install without it runs every other command, and the Postgres path asks for it by name.
- */
+// `postgres` (postgres.js) is an optional peer dependency: only the Postgres reference backend uses
+// it, so an install without it runs every other command, and the Postgres path asks for it by name.
 
 /** The driver range package.json declares as the optional peer (tests/structure/postgres-driver.test.ts). */
 export const POSTGRES_RANGE = "^3.4";

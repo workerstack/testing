@@ -23,6 +23,7 @@ describe("Fence", () => {
     const fence = new Fence((sent) =>
       Promise.resolve(sent.method === "DELETE" ? { allow: false, reason: "no deletes" } : { allow: true }),
     );
+
     const refusal = fence.check(request({ operationId: "row.delete" }));
     await expect(refusal).rejects.toBeInstanceOf(FencedError);
     await expect(refusal).rejects.toThrow("fenced: no deletes (DELETE http://api.test/rows/1)");

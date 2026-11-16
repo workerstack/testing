@@ -8,7 +8,7 @@ import type { Exchange } from "../exchange.ts";
 import { contextOf, LOGIN, notesApi, optionsFor, planned, withLogin } from "./__fixtures__/api.ts";
 import { earlyResult, finalResult, scopeReport, settle } from "./result.ts";
 
-/* The result as the report reads it: everything the run gathered, however far it got. */
+// The result as the report reads it: everything the run gathered, however far it got.
 
 const journaled = () => ({ exchangeDir: mkdtempSync(join(tmpdir(), "testing-result-")) });
 
@@ -22,6 +22,7 @@ describe("settle", () => {
         principals: { a: { email: "a@x.test", inviteAs: "a@x.test", rank: 2, tenant: "t1" }, b: {} },
       }),
     );
+
     await ctx.client.get("/notes", AS_A);
     const settled = await settle(ctx);
     expect(settled).toEqual({
@@ -48,6 +49,7 @@ describe("settle", () => {
         security: LOGIN,
       }),
     );
+
     const persisted = (await settle(ctx)).principals;
     expect(persisted.map((principal) => [principal.id, principal.blocked])).toEqual([
       ["alpha", undefined],
@@ -88,7 +90,7 @@ describe("earlyResult", () => {
 });
 
 describe("a journal that cannot be flushed", () => {
-  /* The journal is observability: a disk that fails it does not fail the run. */
+  // The journal is observability: a disk that fails it does not fail the run.
   const failing = { count: 2, flush: () => Promise.reject(new Error("disk full")) } as never;
 
   it("does not stop the run settling, or its early result", async () => {
@@ -108,6 +110,7 @@ describe("finalResult", () => {
         hooks: { beforeRequest: () => ({ allow: true }) },
       }),
     );
+
     ctx.targetVersion = { value: "b-1" };
     ctx.state.interrupted = true;
     ctx.state.checksRun.add("z.last").add("a.first");

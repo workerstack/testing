@@ -32,10 +32,12 @@ describe("defineWebConfig", () => {
     expect(defineWebConfig({}, { CI: "true" }).forbidOnly).toBe(true);
     expect(defineWebConfig({}, {}).forbidOnly).toBe(false);
     expect(defineWebConfig({}, { CI: "" }).forbidOnly).toBe(false);
+
     const own = defineWebConfig(
       { forbidOnly: false, server: server("app", 40001), use: { baseURL: "http://example.test", locale: "en-US" } },
       { CI: "true" },
     );
+
     expect(own.forbidOnly).toBe(false);
     expect(own.use).toEqual({ baseURL: "http://example.test", locale: "en-US" });
   });

@@ -6,10 +6,12 @@ import type { OpenApiDocument } from "../spec/types.ts";
 import { satisfy } from "./satisfy.ts";
 
 const login: Partial<Recipe> = { from: "$.token", steps: [{ operationId: "auth.login" }] } as never;
+
 const recipesOf =
   (recipes: Record<string, Partial<Recipe>>) =>
   (scheme: string): Partial<Recipe> | undefined =>
     recipes[scheme];
+
 const need = (scheme: string, ...scopes: string[]): Requirement => ({ scheme, scopes });
 const offered = (...alternatives: Requirement[][]) => ({ alternatives });
 

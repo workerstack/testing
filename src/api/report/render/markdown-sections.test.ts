@@ -16,6 +16,7 @@ import {
 } from "./markdown-sections.ts";
 
 const teardown = { failed: [], records: [], removed: 0, unidentified: [], unsupported: [] };
+
 const create = {
   entity: "row",
   method: "POST",
@@ -24,6 +25,7 @@ const create = {
   status: 201,
   url: `${BASE}/v1/rows?token=abc`,
 };
+
 const record = { entity: "row", id: "r1", principal: "alpha", reason: "still listed" };
 
 describe("leftoverSections", () => {
@@ -38,6 +40,7 @@ describe("leftoverSections", () => {
       reportOf({ teardown: { ...teardown, failed: [record], unidentified: [create] } }),
       new Redactor(),
     );
+
     expect(lines.slice(0, 2)).toEqual(["## Leftovers", ""]);
     expect(lines).toContain("- `POST http://h.test/v1/rows?token=%3Credacted%3E` · row.create · 201 · exchange #7");
     expect(lines).toContain("- row `r1` · as alpha · still listed");
@@ -47,10 +50,12 @@ describe("leftoverSections", () => {
     const unremoved = leftoverSections(reportOf({ teardown: { ...teardown, failed: [record] } }), new Redactor());
     expect(unremoved[0]).toBe("## Leftovers");
     expect(unremoved.join("\n")).not.toContain("Each create answered 2xx");
+
     const unidentified = leftoverSections(
       reportOf({ teardown: { ...teardown, unidentified: [create] } }),
       new Redactor(),
     );
+
     expect(unidentified.join("\n")).not.toContain("Records teardown could not show gone");
   });
 });
@@ -76,6 +81,7 @@ describe("fencedSection", () => {
   it("lists the refused requests, and says nothing when none were", () => {
     expect(fencedSection(reportOf(), new Redactor())).toEqual([]);
     expect(fencedSection(reportOf({ fenced: { failRun: true, requests: [] } }), new Redactor())).toEqual([]);
+
     const lines = fencedSection(
       reportOf({
         fenced: {
@@ -94,6 +100,7 @@ describe("fencedSection", () => {
       }),
       new Redactor(),
     );
+
     expect(lines).toEqual([
       "## Fenced requests",
       "",
@@ -107,6 +114,7 @@ describe("fencedSection", () => {
 describe("observedSection", () => {
   it("says each observation once, with the entities it held on", () => {
     expect(observedSection(reportOf())).toEqual([]);
+
     const lines = observedSection(
       reportOf({
         checkNotes: [
@@ -116,6 +124,7 @@ describe("observedSection", () => {
         ],
       }),
     );
+
     expect(lines).toEqual(["## Observed behavior", "", "- PATCH merges (row, table)", "- ids are opaque (row)", ""]);
   });
 });
@@ -165,6 +174,7 @@ describe("fixedSection", () => {
   it("lists baseline entries nothing matched, with where they applied", () => {
     expect(fixedSection(reportOf())).toEqual([]);
     expect(fixedSection(reportOf({ baseline: { fixed: [] } }))).toEqual([]);
+
     const lines = fixedSection(
       reportOf({
         baseline: {
@@ -177,6 +187,7 @@ describe("fixedSection", () => {
         },
       }),
     );
+
     expect(lines.slice(4)).toEqual([
       "- **a** — r1",
       "- **b** (row) — r2",
@@ -190,6 +201,7 @@ describe("fixedSection", () => {
 describe("coverageSections", () => {
   it("lists checks that applied nowhere and those that applied only on some entities", () => {
     expect(coverageSections(coverageByCheck(reportOf()))).toEqual([]);
+
     const coverage = coverageByCheck(
       reportOf({
         checksSkipped: [
@@ -200,6 +212,7 @@ describe("coverageSections", () => {
         entitiesTested: ["a", "b"],
       }),
     );
+
     expect(coverageSections(coverage)).toEqual([
       "## Did not apply anywhere",
       "",

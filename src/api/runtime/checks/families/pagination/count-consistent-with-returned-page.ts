@@ -22,13 +22,17 @@ export const countIsConsistentWithPage: Check = defineCheck({
   subjects: subjectsOf.list,
   async run(ctx): Promise<Outcome> {
     const result = await list(ctx, q(ctx, { limit: pageSize(ctx) }));
+
     if (result.exchange.status >= 400)
       return ctx.findings.unresolved(this.id, ctx.entityName, "the listing was rejected");
     const reported = envelopeValue(ctx, result, "total");
+
     if (typeof reported !== "number") return standDown("the listing reports no total");
     const returned = result.items.length;
+
     if (returned === 0)
       return ctx.findings.unresolved(this.id, ctx.entityName, "the listing returned nothing to count");
+
     if (reported >= returned) return ASSERTED;
 
     return ctx.findings.backend(this.id, ctx.entityName, {

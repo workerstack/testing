@@ -8,7 +8,7 @@ import { folder, json } from "../__fixtures__/files.ts";
 import { bufferWriter } from "../writer.ts";
 import { commandInit, specFromConfig } from "./init.ts";
 
-/* `testing api init`: a starter config from the document's security schemes, written once, never over a file. */
+// `testing api init`: a starter config from the document's security schemes, written once, never over a file.
 
 describe("commandInit", () => {
   it("writes testing.api.config.ts and prints the env vars", async () => {
@@ -30,6 +30,7 @@ describe("commandInit", () => {
     const spec = json(dir, "openapi.json", everyScheme);
     const cwd = process.cwd();
     process.chdir(dir);
+
     try {
       const writer = bufferWriter();
       expect(await commandInit(writer, { spec })).toBe(0);
@@ -70,6 +71,7 @@ describe("commandInit and the spec path", () => {
     mkdirSync(join(dir, "sub"));
     const cwd = process.cwd();
     process.chdir(dir);
+
     try {
       expect(await commandInit(bufferWriter(), { out: "sub/testing.api.config.ts", spec: "./api.json" })).toBe(0);
       expect(readFileSync(join(dir, "sub", "testing.api.config.ts"), "utf8")).toContain('spec: "../api.json",');

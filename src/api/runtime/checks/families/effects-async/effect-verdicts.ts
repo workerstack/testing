@@ -8,27 +8,25 @@ import type { WriteContext } from "../../core/context.ts";
 import { listOpFor, type Observation, observe } from "./observe.ts";
 import { subject } from "./requests.ts";
 
-/*
- * What effects.declared-effect-occurs concludes once the action has succeeded: each declared
- * effect's collection read again and compared, record by record, with the baseline read before it.
- */
+// What effects.declared-effect-occurs concludes once the action has succeeded: each declared
+// effect's collection read again and compared, record by record, with the baseline read before it.
 
 /** Where findings about one invocation of one action land. */
-export interface Reporter {
+export type Reporter = {
   check: string;
   ctx: WriteContext;
   op: OperationModel;
   fixture: string | undefined;
-}
+};
 
 /** One action that succeeded, with the baselines its effects are judged against. */
-export interface ActionRun extends Reporter {
+export type ActionRun = Reporter & {
   effects: readonly EffectSpec[];
   befores: ReadonlyMap<string, Observation>;
   invoked: Exchange;
   /** Path parameters bound so far; a created parent's id is added as it is learned. */
   scope: Record<string, string>;
-}
+};
 
 type Seen = Extract<Observation, { status: "ok" }>;
 
@@ -44,6 +42,7 @@ export function reportGap(run: Reporter, title: string, detail: string): void {
 /** `missing {a}, {b}`: the parameters `scope` cannot fill. */
 export function missingParams(params: readonly string[], scope: Record<string, string>): string {
   const missing = params.filter((name) => scope[name] === undefined);
+
   return `missing ${missing.map((name) => `{${name}}`).join(", ")}`;
 }
 
@@ -55,6 +54,7 @@ export async function judgeEffects(action: ActionRun): Promise<void> {
     bindAfterCreateEffects(action.ctx.model, action.effects, { body: action.invoked.responseBody, deltas }),
   );
   await bindCreatedParents(action, deltas);
+
   for (const effect of action.effects) await judgeEffect(action, effect);
 }
 
@@ -64,13 +64,17 @@ export async function judgeEffects(action: ActionRun): Promise<void> {
  */
 async function bindCreatedParents(action: ActionRun, deltas: Map<string, string[]>): Promise<void> {
   const { ctx, scope } = action;
+
   for (const effect of action.effects) {
     if (effect.op !== "create") continue;
     const param = identityPathParam(ctx.model, effect.entity);
+
     if (scope[param] !== undefined) continue;
     const listOp = listOpFor(ctx, effect.entity);
+
     if (listOp === undefined) continue;
     const afterParent = await observe(ctx, listOp, scope);
+
     if (afterParent.status !== "ok") continue;
     const before = action.befores.get(effect.entity);
     const prior = before?.status === "ok" ? before.ids : [];
@@ -83,32 +87,38 @@ async function bindCreatedParents(action: ActionRun, deltas: Map<string, string[
 async function judgeEffect(action: ActionRun, effect: EffectSpec): Promise<void> {
   const { ctx, op, scope, invoked } = action;
   const after = await observeAfter(action, effect);
+
   if (after === undefined) return;
 
   const before = action.befores.get(effect.entity);
+
   if (before?.status === "error") {
     reportGap(
       action,
       `${op.operationId} could not observe "${effect.entity}" before the write`,
       `${before.reason}; no baseline, so the effect is unverified`,
     );
+
     return;
   }
+
   const prior = before?.status === "ok" ? before.ids : [];
   const added = after.ids.filter((id) => !prior.includes(id));
   const removed = prior.filter((id) => !after.ids.includes(id));
-  /* Records the operation made on the API tester's behalf are the API tester's to remove. */
+
+  // Records the operation made on the API tester's behalf are the API tester's to remove.
   if (effect.op === "create" || effect.op === "append") {
     for (const id of listedIds(added))
       ctx.recordCreated?.({ entity: effect.entity, id, scope: { ...scope } }, invoked.principal);
   }
 
   if (effectHolds(effect, { added: added.length, delta: after.ids.length - prior.length, removed: removed.length })) {
-    if (effect.op === "create") {
+    if (effect.op === "create")
       Object.assign(scope, bindCreatedScope(ctx.model, effect.entity, { added, body: invoked.responseBody }));
-    }
+
     return;
   }
+
   reportUnheld(action, effect, { added: added.length, after, prior: prior.length, removed: removed.length });
 }
 
@@ -116,31 +126,39 @@ async function judgeEffect(action: ActionRun, effect: EffectSpec): Promise<void>
 async function observeAfter(action: ActionRun, effect: EffectSpec): Promise<Seen | undefined> {
   const { ctx, op, scope } = action;
   const listOp = listOpFor(ctx, effect.entity);
+
   if (listOp === undefined) {
     reportGap(
       action,
       `${op.operationId} declares an effect on "${effect.entity}", which has no list route`,
       "the effect cannot be observed, so it is not verified",
     );
+
     return undefined;
   }
+
   const after = await observe(ctx, listOp, scope);
+
   if (after.status === "unfillable") {
     reportGap(
       action,
       `${op.operationId} declares an effect on "${effect.entity}", but the list path cannot be filled`,
       `${missingParams(listOp.pathParams, scope)} after the write; the effect is unverified`,
     );
+
     return undefined;
   }
+
   if (after.status === "error") {
     reportGap(
       action,
       `${op.operationId} could not observe "${effect.entity}" after the write`,
       `${after.reason}; the declared effect is unverified`,
     );
+
     return undefined;
   }
+
   return after;
 }
 
@@ -154,6 +172,7 @@ function reportUnheld(
   const where = subject(ctx.entityName, op.operationId, fixture);
   const evidence = [invoked, sizes.after.exchange];
   const now = sizes.after.ids.length;
+
   if (effect.op === "create" || effect.op === "append") {
     ctx.findings.backend(action.check, where, {
       summary: `${op.operationId} did not produce the "${effect.entity}" records it declares`,
@@ -165,8 +184,10 @@ function reportUnheld(
       evidence,
       fixture,
     });
+
     return;
   }
+
   if (effect.op === "delete") {
     ctx.findings.backend(action.check, where, {
       summary: `${op.operationId} did not remove the "${effect.entity}" records it declares`,
@@ -176,8 +197,10 @@ function reportUnheld(
       evidence,
       fixture,
     });
+
     return;
   }
+
   ctx.findings.backend(action.check, where, {
     summary: `${op.operationId} changed the size of "${effect.entity}" while declaring ${effect.op}`,
     detail:

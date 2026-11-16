@@ -1,6 +1,6 @@
 /** A Postgres for unit tests: a connection port that records statements instead of opening a socket. */
 
-import type { Row } from "../../store-api.ts"
+import type { Row } from "../../cell.ts";
 import type { PgConnect } from "../postgres.ts"
 import type { SqlParam } from "../sql-compile.ts"
 

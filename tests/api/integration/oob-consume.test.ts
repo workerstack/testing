@@ -24,18 +24,20 @@ afterEach(async () => {
 
 type Handler = (req: IncomingMessage, res: ServerResponse) => void;
 
-interface OutOfBandSeen {
+type OutOfBandSeen = {
   address: string;
   kind: string;
   scope: Record<string, string>;
-}
+};
 
 function send(res: ServerResponse, status: number, body?: unknown): void {
   if (body === undefined) {
     res.writeHead(status);
     res.end();
+
     return;
   }
+
   const text = JSON.stringify(body);
   res.writeHead(status, { "content-length": String(Buffer.byteLength(text)), "content-type": "application/json" });
   res.end(text);
@@ -44,6 +46,7 @@ function send(res: ServerResponse, status: number, body?: unknown): void {
 function unsignedJwt(claims: Record<string, unknown>): string {
   const header = Buffer.from(JSON.stringify({ alg: "none", typ: "JWT" })).toString("base64url");
   const payload = Buffer.from(JSON.stringify(claims)).toString("base64url");
+
   return `${header}.${payload}.sig`;
 }
 
@@ -53,6 +56,7 @@ async function listen(handler: Handler): Promise<{ close: () => Promise<void>; u
     server.listen(0, "127.0.0.1", resolve);
   });
   const addr = server.address() as AddressInfo;
+
   return {
     close: () =>
       new Promise((resolve, reject) => {
@@ -66,6 +70,7 @@ async function listen(handler: Handler): Promise<{ close: () => Promise<void>; u
 async function serve(handler: Handler): Promise<{ url: string }> {
   const server = await listen(handler);
   closers.push(server.close);
+
   return server;
 }
 
@@ -73,6 +78,7 @@ async function serve(handler: Handler): Promise<{ url: string }> {
 function registerApi(body: unknown): Handler {
   return (req, res) => {
     if ((req.url ?? "").startsWith("/v1/auth/register")) return send(res, 200, body);
+
     return send(res, 404);
   };
 }
@@ -81,7 +87,7 @@ function client(url: string): Client {
   return new Client({ baseUrl: url, redactor: new Redactor() });
 }
 
-/* Sign-up is open; the item list takes the session cookie the verify link sets. */
+// Sign-up is open; the item list takes the session cookie the verify link sets.
 function model() {
   return buildModel(
     dereference({
@@ -110,6 +116,7 @@ function model() {
 function signIn(url: string, steps: readonly AuthStep[], more: { hooks?: Hooks; principal?: string } = {}) {
   const consumer = client(url);
   const ctx = { client: consumer, hooks: more.hooks ?? {}, model: model(), principalId: more.principal ?? "alpha" };
+
   return { consumer, signed: runSteps(ctx, steps) };
 }
 
@@ -127,18 +134,23 @@ function verifyApp(session: string, seen: string[], appCookies: Array<string | u
   return (req, res) => {
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
     seen.push(`${req.method} ${url.pathname}`);
+
     if (url.pathname === "/verify" && req.method === "GET") {
       res.writeHead(303, {
         location: "/app",
-        "set-cookie": ["session=" + session + "; Path=/; HttpOnly", "refresh=rt-cookie; Path=/"],
+        "set-cookie": [`session=${session}; Path=/; HttpOnly`, "refresh=rt-cookie; Path=/"],
       });
       res.end();
+
       return;
     }
+
     if (url.pathname === "/app" && req.method === "GET") {
       appCookies.push(req.headers.cookie);
+
       return send(res, 200, { ok: true });
     }
+
     return send(res, 404);
   };
 }
@@ -186,14 +198,17 @@ async function followsRedirectAndBindsCookie(): Promise<void> {
   const app = await serve(verifyApp(session, seen, appCookies));
   const api = await serve(registerApi({ access_token: unsignedJwt({ sub: "u1" }), refresh_token: "rt-1" }));
   let oob: OutOfBandSeen | undefined;
+
   const { consumer, signed } = signIn(api.url, cookieSessionSteps(), {
     hooks: {
       resolveOutOfBand: async (request) => {
         oob = request;
+
         return `${app.url}/verify?token=mailed`;
       },
     },
   });
+
   const { last, scope } = await signed;
   expect(oob?.address).toBe("a@x.test");
   expect(oob?.kind).toBe("email-verify");
@@ -206,7 +221,7 @@ async function followsRedirectAndBindsCookie(): Promise<void> {
   expect(scope["projectId"]).toBe("proj_1");
   expect(scope["address"]).toBe("a@x.test");
   expect(scope["credential"]).toBe(session);
-  /* What a login recipe's `from: "cookie:session"` reads out of the last answer. */
+  // What a login recipe's `from: "cookie:session"` reads out of the last answer.
   expect(last === undefined ? undefined : readAnswer(last, "cookie:session")).toBe(session);
   expectConsumedThroughRedirect(consumer, { api: api.url, app: app.url }, session);
 }
@@ -216,13 +231,17 @@ async function placesCookieSession(): Promise<void> {
   const app = await serve(verifyApp(session, [], []));
   const cookies: Array<string | undefined> = [];
   const register = registerApi({ access_token: unsignedJwt({ sub: "u1" }), refresh_token: "rt-1" });
+
   const api = await serve((req, res) => {
     if ((req.url ?? "").startsWith("/v1/items")) {
       cookies.push(req.headers.cookie);
+
       return send(res, 200, []);
     }
+
     return register(req, res);
   });
+
   const consumer = actingClient({
     baseUrl: api.url,
     hooks: { resolveOutOfBand: async () => `${app.url}/verify` },
@@ -232,6 +251,7 @@ async function placesCookieSession(): Promise<void> {
       session: { login: { from: "cookie:session", steps: cookieSessionSteps() as [AuthStep, ...AuthStep[]] } },
     },
   });
+
   const items = await consumer.get("/v1/items", { as: { principal: "alpha" } });
   expect(items.status).toBe(200);
   expect(items.principal).toBe("alpha");
@@ -241,21 +261,28 @@ async function placesCookieSession(): Promise<void> {
 
 async function stopsAtManualRedirect(): Promise<void> {
   const session = unsignedJwt({ sub: "u" });
+
   const app = await serve((req, res) => {
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
+
     if (url.pathname === "/verify") {
       res.writeHead(303, { location: "/login", "set-cookie": `session=${session}; Path=/` });
       res.end();
+
       return;
     }
+
     return send(res, 404, { error: "followed" });
   });
+
   const api = await serve(registerApi({ access_token: "reg" }));
+
   const { consumer, signed } = signIn(
     api.url,
     linkFlow({ expect: [303], redirect: "manual", saveAs: { credential: "cookie:session" } }),
     { hooks: { resolveOutOfBand: async () => `${app.url}/verify` } },
   );
+
   expect((await signed).scope["credential"]).toBe(session);
   const consume = consumer.transcript.find((e) => e.url.includes("/verify"));
   expect(consume?.status).toBe(303);
@@ -268,7 +295,9 @@ async function interpolatesScopeIntoSaveAs(): Promise<void> {
     res.writeHead(200, { "set-cookie": ["rt.u42=rt-u42; Path=/", "rt.u7=rt-u7; Path=/"] });
     res.end();
   });
+
   const api = await serve(registerApi({ access_token: unsignedJwt({ sub: "u42" }) }));
+
   const { signed } = signIn(
     api.url,
     [
@@ -283,15 +312,18 @@ async function interpolatesScopeIntoSaveAs(): Promise<void> {
     ],
     { hooks: { resolveOutOfBand: async () => `${app.url}/verify` } },
   );
+
   expect((await signed).scope["refreshToken"]).toBe("rt-u42");
 }
 
 async function failsClosedOnMissingCookie(): Promise<void> {
   const app = await serve((_req, res) => send(res, 200, { ok: true }));
   const api = await serve(registerApi({ access_token: "reg" }));
+
   const { signed } = signIn(api.url, linkFlow({ saveAs: { credential: "cookie:session" } }), {
     hooks: { resolveOutOfBand: async () => `${app.url}/verify` },
   });
+
   await expect(signed).rejects.toThrow(/saveAs\.credential = "cookie:session"/);
 }
 
@@ -300,6 +332,7 @@ async function bindsResponseHeader(): Promise<void> {
     res.writeHead(200, { "x-session": "hdr-tok", "content-type": "text/plain" });
     res.end("ok");
   });
+
   const api = await serve(registerApi({ access_token: "reg" }));
   const hooks = { resolveOutOfBand: async () => `${app.url}/verify` };
   const alpha = signIn(api.url, linkFlow({ saveAs: { credential: "header:x-session" } }), { hooks });
@@ -311,6 +344,7 @@ async function bindsResponseHeader(): Promise<void> {
 async function keepsJsonPathSaveAs(): Promise<void> {
   const token = unsignedJwt({ orgs: [{ oid: "org_z" }] });
   const api = await serve(registerApi({ access_token: token }));
+
   const { signed } = signIn(api.url, [
     {
       method: "POST",
@@ -319,6 +353,7 @@ async function keepsJsonPathSaveAs(): Promise<void> {
       saveClaimsFrom: { bind: { orgId: "orgs.0.oid" }, token: "$.access_token" },
     },
   ]);
+
   const { scope } = await signed;
   expect(scope["orgId"]).toBe("org_z");
   expect(scope["credential"]).toBe(token);
@@ -337,9 +372,11 @@ describe("absolute URL RequestStep + cookie saveAs", () => {
 describe("resolveOutOfBand extra fields", () => {
   it("passes the flow's scope into the hook", async () => {
     const seen: Array<{ scope: Record<string, string> }> = [];
+
     const value = await resolveOutOfBandValue(
       async (request) => {
         seen.push({ scope: request.scope });
+
         return request.attempt >= 1 ? "tok" : null;
       },
       "a@x.test",
@@ -350,6 +387,7 @@ describe("resolveOutOfBand extra fields", () => {
         scope: { credential: "live", address: "a@x.test" },
       },
     );
+
     expect(value).toBe("tok");
     expect(seen[0]?.scope["credential"]).toBe("live");
   });
@@ -422,20 +460,26 @@ async function callsTeardownWithLiveHeaders(): Promise<void> {
   const spec = teardownSpec();
   const called: Array<{ address: string; credential: string; headers: Record<string, string> }> = [];
   const oneArg: string[] = [];
+
   const server = await serve((req, res) => {
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
+
     if (url.pathname === "/openapi") return send(res, 200, spec);
+
     if (url.pathname === "/v1/auth/register") return send(res, 200, { access_token: token });
+
     if (url.pathname === "/v1/notes") return send(res, 200, { notes: [] });
+
     return send(res, 404);
   });
+
   await runRegistered(server.url, "a@x.test", async (address, ctx) => {
     called.push({ address, credential: ctx.credential, headers: ctx.sends.headers });
   });
   expect(called).toHaveLength(1);
   expect(called[0]?.address).toBe("a@x.test");
   expect(called[0]?.credential).toBe(token);
-  /* Placed as the bearer scheme places it, ready to send on the removing request. */
+  // Placed as the bearer scheme places it, ready to send on the removing request.
   expect(called[0]?.headers).toEqual({ Authorization: `Bearer ${token}` });
   await runRegistered(server.url, "b@x.test", async (address: string) => {
     oneArg.push(address);

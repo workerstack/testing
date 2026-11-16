@@ -17,17 +17,16 @@ import { json } from "./__fixtures__/transport.ts";
 import { CredentialCollision, UnsatisfiedSecurity } from "./credential-source.ts";
 import { toCurl } from "./curl.ts";
 
-/*
- * What a request carries, end to end through the client: the adapter over a real store with fake
- * ports, and a fake fetch. Each case is one of phase 8's acceptance bars or contract rules.
- */
+// What a request carries, end to end through the client: the adapter over a real store with fake
+// ports, and a fake fetch. Each case is one of phase 8's acceptance bars or contract rules.
 
 const dirs: string[] = [];
+
 afterEach(() => {
   for (const dir of dirs.splice(0)) rmSync(dir, { force: true, recursive: true });
 });
 
-/* The exchange file the run's journal writes for `exchange`, as text. */
+// The exchange file the run's journal writes for `exchange`, as text.
 async function journaled(exchange: Exchange, redactor: Parameters<typeof createExchangeJournal>[1]): Promise<string> {
   const dir = mkdtempSync(join(tmpdir(), "testing-client-acceptance-"));
   dirs.push(dir);
@@ -35,10 +34,12 @@ async function journaled(exchange: Exchange, redactor: Parameters<typeof createE
   await journal.record(exchange);
   await journal.flush();
   const line = JSON.parse(readFileSync(join(dir, "exchanges.jsonl"), "utf8").trim()) as { file: string };
+
   return readFileSync(join(dir, line.file), "utf8");
 }
 
 const keyRecipe = { format: "ApiKey {credential}", holds: ["rows:read"], static: "key_machine_123456" };
+
 const places = {
   hdr: { static: "hdr-secret-value-1" },
   jwt: { static: "jwt-secret-value-1" },
@@ -46,11 +47,11 @@ const places = {
   sess: { static: "sess-secret-value-1" },
 } as SecurityConfig;
 
-/* A backend that accepts only the token a renewal issued. */
+// A backend that accepts only the token a renewal issued.
 const secondTokenOnly = (request: { headers: Record<string, string> }): Response =>
   json({}, request.headers["Authorization"] === "Bearer token-2" ? 200 : 401);
 
-/* A backend that sends every request to another origin, echoing the query credential. */
+// A backend that sends every request to another origin, echoing the query credential.
 const elsewhere = (request: { url: string }): Response =>
   request.url.startsWith(BASE)
     ? new Response(null, { headers: { location: "http://other.test/next?k=echoed&x=1" }, status: 302 })
@@ -64,6 +65,7 @@ describe("bar 1: exactly the credentials of one satisfied alternative", () => {
       doc: anyrow,
       security: { apiKey: keyRecipe } as SecurityConfig,
     });
+
     const exchange = await client.get("/v1/rows", { as: { principal: "alpha" } });
     expect(sent[0]?.headers).toEqual({ Authorization: "ApiKey key_machine_123456" });
     expect(exchange).toMatchObject({ operationId: "row.list", principal: "alpha", schemes: ["apiKey"] });
@@ -74,12 +76,14 @@ describe("bar 1: exactly the credentials of one satisfied alternative", () => {
 
   it("sends the jwt when the principal holds both, since it comes first", async () => {
     const security = { apiKey: keyRecipe, jwt: { static: "jwt_alpha_123456" } } as SecurityConfig;
+
     const { client, sent } = clientOf({
       answer: () => json({}),
       client: { baseUrl: "http://api.test" },
       doc: anyrow,
       security,
     });
+
     const exchange = await client.get("/v1/rows", { as: { principal: "alpha" } });
     expect(sent[0]?.headers).toEqual({ Authorization: "Bearer jwt_alpha_123456" });
     expect(exchange.schemes).toEqual(["jwt"]);
@@ -91,10 +95,12 @@ describe("bar 2: an anonymous operation sends no credential", () => {
     const { client, sent } = clientOf({ answer: () => json({}), doc: placesDoc, security: places });
     const open = await client.get("/open", { as: { principal: "alpha" } });
     await client.get("/all", { as: { anonymous: true } });
+
     for (const request of sent) {
       expect(request.headers).toEqual({});
       expect(new URL(request.url).search).toBe("");
     }
+
     expect(open.principal).toBe("alpha");
     expect(open).not.toHaveProperty("schemes");
   });
@@ -110,6 +116,7 @@ describe("bar 4: redaction derives from placements", () => {
     expect(exchange.schemes).toEqual(["hdr", "qry", "sess"]);
     const file = await journaled(exchange, client.redactor);
     const curl = toCurl(exchange, { redactor: client.redactor });
+
     for (const written of [file, curl]) expect(written).not.toMatch(/secret-value/);
     const parsed = JSON.parse(file) as { requestHeaders: object; url: string; responseBody: unknown };
     expect(parsed.requestHeaders).toEqual({ "X-Key": REDACTED, cookie: REDACTED });
@@ -127,6 +134,7 @@ describe("BLOCKING 2: a forged value derived from a real credential is a secret"
     expect(sent[0]?.headers).toMatchObject({ Authorization: `Bearer ${derived}` });
     const file = await journaled(forged, client.redactor);
     const script = toCurl(forged, { redactor: client.redactor });
+
     for (const written of [file, script]) expect(written).not.toContain(derived);
     expect((JSON.parse(file) as { requestHeaders: object }).requestHeaders).toMatchObject({
       Authorization: `Bearer ${REDACTED}`,
@@ -141,23 +149,29 @@ describe("every value a recipe extracts is a secret before its answer is recorde
       data: { jwt: "jwt-neutral-key-1" },
       refresh_token: "rt-secret-123",
     };
+
     const { client } = clientOf({ answer: () => json(answer), doc: placesDoc, security: places });
     const secrets = ["$.access_token", "$.refresh_token", "$.data.jwt", "$.absent"];
+
     const signIn = await client.request("POST", "/login", {
       as: { anonymous: true },
       context: { purpose: "auth", secrets },
     });
+
     const file = await journaled(signIn, client.redactor);
+
     for (const value of ["at-secret-123", "rt-secret-123", "jwt-neutral-key-1"]) expect(file).not.toContain(value);
     expect((JSON.parse(file) as { responseBody: unknown }).responseBody).toEqual({
       access_token: REDACTED,
       data: { jwt: REDACTED },
       refresh_token: REDACTED,
     });
+
     const later = await client.request("POST", "/echo", {
       as: { anonymous: true },
       body: { note: "jwt-neutral-key-1" },
     });
+
     expect(toCurl(later, { redactor: client.redactor })).not.toContain("jwt-neutral-key-1");
   });
 });
@@ -165,16 +179,18 @@ describe("every value a recipe extracts is a secret before its answer is recorde
 describe("bar 5: refresh is single-flight", () => {
   it("renews once for 10 parallel 401s, and each request sends the renewal once", async () => {
     let issued = 0;
+
     const { ports, recorded } = fakePorts({
       run: async () => ({ answer: answerOf({ token: `token-${++issued}` }), scope: {} }),
     });
+
     const security = { jwt: { login: { from: "$.token", steps: [{ operationId: "auth.login" }] } } } as SecurityConfig;
     const { client, sent } = clientOf({ answer: secondTokenOnly, doc: placesDoc, ports, security });
     const requests = Array.from({ length: 10 }, () => client.get("/me", { as: { principal: "alpha" } }));
     const exchanges = await Promise.all(requests);
     expect(exchanges.map((exchange) => exchange.status)).toEqual(Array(10).fill(200));
     expect(recorded.runs).toHaveLength(2);
-    /* A request still waiting for a slot when the renewal began sends the renewal without a 401 first. */
+    // A request still waiting for a slot when the renewal began sends the renewal without a 401 first.
     const carried = (token: string) => sent.filter((request) => request.headers["Authorization"] === `Bearer ${token}`);
     expect(carried("token-2")).toHaveLength(10);
     expect(carried("token-1").length + carried("token-2").length).toBe(sent.length);
@@ -185,9 +201,11 @@ describe("bar 5: refresh is single-flight", () => {
 
   it("refreshes at most once per request, and answers the second 401 as it is", async () => {
     let issued = 0;
+
     const { ports, recorded } = fakePorts({
       run: async () => ({ answer: answerOf({ token: `token-${++issued}` }), scope: {} }),
     });
+
     const security = { jwt: { login: { from: "$.token", steps: [{ operationId: "auth.login" }] } } } as SecurityConfig;
     const { client, sent } = clientOf({ answer: () => json({}, 401), doc: placesDoc, ports, security });
     expect((await client.get("/me", { as: { principal: "alpha" } })).status).toBe(401);
@@ -196,24 +214,29 @@ describe("bar 5: refresh is single-flight", () => {
   });
 });
 
-/* A jwt login issuing `token-<n>`, whose declared refresh the server refuses. */
+// A jwt login issuing `token-<n>`, whose declared refresh the server refuses.
 function refusedRefresh() {
   let issued = 0;
   const steps: string[] = [];
+
   const { ports } = fakePorts({
     run: async (call) => {
       const step = call.steps[0] as { operationId: string };
       steps.push(step.operationId);
+
       if (step.operationId === "auth.refresh") throw new Error("auth step 1 answered 401");
+
       return { answer: answerOf({ token: `token-${++issued}` }), scope: {} };
     },
   });
+
   const security = {
     jwt: {
       login: { from: "$.token", steps: [{ operationId: "auth.login" }] },
       refresh: { from: "$.token", steps: [{ operationId: "auth.refresh" }] },
     },
   } as SecurityConfig;
+
   return { ports, security, steps };
 }
 
@@ -237,13 +260,17 @@ describe("a refused refresh", () => {
 describe("a renewal that fails", () => {
   it("answers the 401 as it is, and BLOCKS the principal for the requests after it", async () => {
     let runs = 0;
+
     const { ports } = fakePorts({
       run: async () => {
         runs += 1;
+
         if (runs > 1) throw new Error("auth step 1 answered 401");
+
         return { answer: answerOf({ token: "token-1" }), scope: {} };
       },
     });
+
     const security = { jwt: { login: { from: "$.token", steps: [{ operationId: "auth.login" }] } } } as SecurityConfig;
     const { client, sent } = clientOf({ answer: () => json({}, 401), doc: placesDoc, ports, security });
     expect((await client.get("/me", { as: { principal: "alpha" } })).status).toBe(401);
@@ -255,7 +282,7 @@ describe("a renewal that fails", () => {
   });
 });
 
-/* placesDoc with a second jwt read beside /me, so a route can refuse what /me accepts. */
+// placesDoc with a second jwt read beside /me, so a route can refuse what /me accepts.
 const rowsDoc = {
   ...placesDoc,
   paths: {
@@ -264,13 +291,16 @@ const rowsDoc = {
   },
 } as typeof placesDoc;
 
-/* A jwt login issuing `token-<n>`, counting its logins. */
+// A jwt login issuing `token-<n>`, counting its logins.
 function countedLogins() {
   const counted = { logins: 0 };
+
   const { ports } = fakePorts({
     run: async () => ({ answer: answerOf({ token: `token-${++counted.logins}` }), scope: {} }),
   });
+
   const security = { jwt: { login: { from: "$.token", steps: [{ operationId: "auth.login" }] } } } as SecurityConfig;
+
   return { counted, ports, security };
 }
 
@@ -280,12 +310,14 @@ describe("a renewal refused too: the control read", () => {
   it("blocks a principal the server refuses anywhere: 27 refused reads cost one renewal and one control", async () => {
     const { counted, ports, security } = countedLogins();
     const server = { killed: false };
+
     const { client, sent } = clientOf({
       answer: () => (server.killed ? json({}, 401) : json({})),
       doc: rowsDoc,
       ports,
       security,
     });
+
     expect((await client.get("/me", ALPHA)).status).toBe(200);
     server.killed = true;
     const refused = await Promise.all(Array.from({ length: 27 }, () => client.get("/rows", ALPHA)));
@@ -300,12 +332,14 @@ describe("a renewal refused too: the control read", () => {
 
   it("blocks nothing when the control is accepted, and never renews that value again", async () => {
     const { counted, ports, security } = countedLogins();
+
     const { client } = clientOf({
       answer: (request) => (request.url.endsWith("/rows") ? json({}, 401) : json({})),
       doc: rowsDoc,
       ports,
       security,
     });
+
     expect((await client.get("/me", ALPHA)).status).toBe(200);
     expect((await client.get("/rows", ALPHA)).status).toBe(401);
     expect((await client.get("/rows", ALPHA)).status).toBe(401);
@@ -315,12 +349,14 @@ describe("a renewal refused too: the control read", () => {
 
   it("decides nothing when no read accepted the principal before: the 401 stands, nothing is blocked", async () => {
     const { counted, ports, security } = countedLogins();
+
     const { client } = clientOf({
       answer: (request) => (request.url.endsWith("/rows") ? json({}, 401) : json({})),
       doc: rowsDoc,
       ports,
       security,
     });
+
     expect((await client.get("/rows", ALPHA)).status).toBe(401);
     expect((await client.get("/me", ALPHA)).status).toBe(200);
     expect(counted.logins).toBe(2);
@@ -334,19 +370,23 @@ describe("the collision guard", () => {
     const asking = caller.client.get("/h", { as: { principal: "alpha" }, headers: { "x-key": "mine" } });
     await expect(asking).rejects.toEqual(new CredentialCollision("header", { name: "x-key", scheme: "hdr" }));
     await expect(asking).rejects.toThrow(collides);
+
     const hooked = clientOf({
       answer: () => json({}),
       client: { resolveHeaders: async () => ({ "x-key": "hook" }) },
       doc: placesDoc,
       security: places,
     });
+
     await expect(hooked.client.get("/h", { as: { principal: "alpha" } })).rejects.toThrow(collides);
+
     const global = clientOf({
       answer: () => json({}),
       client: { headers: { "x-key": "g" } },
       doc: placesDoc,
       security: places,
     });
+
     await expect(global.client.get("/h", { as: { principal: "alpha" } })).rejects.toThrow(collides);
     await expect(global.client.get("/q", { as: { principal: "alpha" }, query: { k: "mine" } })).rejects.toThrow(
       'query "k" collides with the qry credential placement',
@@ -372,6 +412,7 @@ describe("forged values and probes", () => {
       doc: anyrow,
       security: { apiKey: keyRecipe } as SecurityConfig,
     });
+
     await client.get("/v1/rows", { as: { forged: { scheme: "apiKey", value: "forged-2" } } });
     expect(sent[0]?.headers).toEqual({ Authorization: "ApiKey forged-2" });
   });
@@ -397,6 +438,7 @@ describe("unsatisfied security", () => {
       doc: anyrow,
       security: {},
     });
+
     const error = await client.get("/v1/rows", { as: { principal: "alpha" } }).catch((caught: unknown) => caught);
     expect(error).toEqual(new UnsatisfiedSecurity("unsatisfied", "no credential for jwt; no credential for apiKey"));
     const { ports } = fakePorts({ run: () => Promise.reject(new Error("login answered 500")) });
@@ -413,11 +455,13 @@ describe("unsatisfied security", () => {
 describe("a cross-origin redirect", () => {
   it("strips every placed header, query parameter and cookie", async () => {
     const { client, sent } = clientOf({ answer: elsewhere, doc: placesDoc, security: places });
+
     const exchange = await client.get("/all", {
       as: { principal: "alpha" },
       headers: { accept: "json" },
       redirect: "follow",
     });
+
     expect(exchange.status).toBe(200);
     expect(sent[1]).toMatchObject({ headers: { accept: "json" }, url: "http://other.test/next?x=1" });
   });
@@ -452,7 +496,7 @@ describe("a continuation: a URL taken from a response", () => {
   });
 });
 
-/* What a principal's request that matches no documented operation, and names no scheme, is refused with. */
+// What a principal's request that matches no documented operation, and names no scheme, is refused with.
 const unmatched = (route: string): UnsatisfiedSecurity =>
   new UnsatisfiedSecurity(
     "unsatisfied",

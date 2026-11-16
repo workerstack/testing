@@ -6,27 +6,28 @@ import { createMemoryServer } from "../../../src/api/reference/http/engines.ts";
 import { EXIT } from "../../../src/api/runtime/exit.ts";
 import { latestReport, tester, referenceConfig, tempDirs } from "../support/cli-run.ts";
 
-/*
- * `--ops` grades the operations it names; `--only` grades every operation the entities it names
- * own; together they are a union. Everything else is support: called to reach or observe a target,
- * never graded, so a defect only support shows does not fail the run. `--ops` alone is covered in
- * cli-flags.test.ts; this file is the two together, and `--only`, against a defective backend.
- */
+// `--ops` grades the operations it names; `--only` grades every operation the entities it names
+// own; together they are a union. Everything else is support: called to reach or observe a target,
+// never graded, so a defect only support shows does not fail the run. `--ops` alone is covered in
+// cli-flags.test.ts; this file is the two together, and `--only`, against a defective backend.
 
 const dirs = tempDirs("testing-ops-only-");
+
 afterAll(dirs.removeAll);
 
-/* Seen on table.list and row.list, never on table.get. */
+// Seen on table.list and row.list, never on table.get.
 const DEFECT = "FILTER_IGNORED";
 
-/* `testing api run <flags>` against a reference with the defect; `runs` is its --out. */
+// `testing api run <flags>` against a reference with the defect; `runs` is its --out.
 async function runScoped(flags: string[]) {
   const server = await createMemoryServer({ defects: [DEFECT] });
+
   try {
     const dir = await dirs.make();
     const config = await referenceConfig(dir, server.url);
     const runs = join(dir, "runs");
     const { code, out } = await tester(["run", "--config", config, "--out", runs, "--quiet", ...flags]);
+
     return { code, runs, text: out };
   } finally {
     await server.close();

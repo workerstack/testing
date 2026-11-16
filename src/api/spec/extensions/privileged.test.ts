@@ -4,7 +4,7 @@ import type { OperationObject, JsonSchema } from "../types.ts";
 import { GapCollector } from "./gaps.ts";
 import { propertySchema, readPrivileged, requiredPrivileged } from "./privileged.ts";
 
-/* `x-privileged: true` on a request body property: only the highest-rank principal may set it. */
+// `x-privileged: true` on a request body property: only the highest-rank principal may set it.
 
 const table: JsonSchema = {
   properties: {
@@ -40,11 +40,13 @@ describe("readPrivileged", () => {
 
   it("reports a marker that is not a boolean, or not on a schema property, and does not read it", () => {
     const gaps = new GapCollector();
+
     const body: JsonSchema = {
       properties: { plan: { type: "string", "x-privileged": "admin" } },
       type: "object",
       "x-privileged": true,
     };
+
     const op = { "x-privileged": true } as unknown as OperationObject;
     expect(readPrivileged(op, { body, gaps, operationId: "project.update" })).toEqual([]);
     expect(gaps.gaps).toEqual([

@@ -15,10 +15,8 @@ import {
 } from "./body.ts";
 import { recordUpdateDrops } from "./update-drops.ts";
 
-/*
- * Request bodies the checks send: a valid body to base a negative probe on, a changed value for a
- * write probe, the field a write may change, and the exchange that made the cohort's record.
- */
+// Request bodies the checks send: a valid body to base a negative probe on, a changed value for a
+// write probe, the field a write may change, and the exchange that made the cohort's record.
 
 const FORM = {
   "/notes/import": {
@@ -38,7 +36,9 @@ const FORM = {
 function itemOf(properties: Record<string, unknown>): Listed {
   const { ctx } = notesContext();
   const collection = ctx.listOp.collection;
+
   if (collection === null) throw new Error("the notes list is a collection");
+
   return { ...ctx, listOp: { ...ctx.listOp, collection: { ...collection, itemSchema: { properties } } } };
 }
 
@@ -90,6 +90,7 @@ describe("pickWritableStringField", () => {
   it("passes over fields the update declares immutable or generated", () => {
     const { ctx } = notesContext();
     const updateOp = ctx.updateOp;
+
     if (updateOp === undefined) throw new Error("the notes have an update");
     const guarded = { ...ctx, updateOp: { ...updateOp, generated: ["slug"], immutable: ["name"] } };
     expect(pickWritableStringField(guarded, { body: "b", name: "a", slug: "s" })).toBe("body");
@@ -157,6 +158,7 @@ describe("createExchange", () => {
     const { ctx } = notesContext();
     expect(await createExchange({ ...ctx, createOp: undefined })).toBeUndefined();
     const createOp = ctx.createOp;
+
     if (createOp === undefined) throw new Error("the notes have a create");
     const nested = { ...ctx, createOp: { ...createOp, path: "/orgs/{orgId}/notes" } };
     expect(await createExchange(nested)).toBeUndefined();

@@ -7,17 +7,17 @@ import { against, type HarnessOptions, type Outcome } from "./backend.ts";
 import * as judge from "./judges.ts";
 
 /** One result a run is judged for. */
-interface Judged {
+type Judged = {
   name: string;
   why: string;
   judge: (outcome: Outcome) => judge.Verdict;
-}
+};
 
 /** One run, and every result it is judged for. */
-export interface UniqueCase {
+export type UniqueCase = {
   options: HarnessOptions;
   judged: readonly Judged[];
-}
+};
 
 /** Every run, in the order the suite reports them. */
 export const UNIQUE_CASES: readonly UniqueCase[] = [
@@ -206,12 +206,15 @@ export const UNIQUE_CASES: readonly UniqueCase[] = [
 export async function runCase(via: Via, { judged, options }: UniqueCase): Promise<ParserResult[]> {
   try {
     const outcome = await against(via, options);
+
     return judged.map((one) => {
       const { detail, ok } = one.judge(outcome);
+
       return { detail, name: one.name, ok, why: one.why };
     });
   } catch (error) {
     const detail = messageOf(error);
+
     return judged.map(({ name, why }) => ({ detail, name, ok: false, why }));
   }
 }

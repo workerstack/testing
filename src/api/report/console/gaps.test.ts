@@ -36,6 +36,7 @@ describe("gapLines", () => {
       ["operationId", [gap("operationId", 1)]],
       ["x-entity", [1, 2, 3, 4, 5, 6].map((n) => gap("x-entity", n))],
     ]);
+
     expect(gapLines({ ...empty, gapsByTag })).toEqual([
       "  gaps by tag",
       "    x-entity (6) — name the entity and action so this operation joins a lifecycle",
@@ -55,6 +56,7 @@ describe("gapLines", () => {
     const duplicated = modelOf(
       documentOf({ "/a": { get: listOp("a", "same.id") }, "/b": { get: listOp("b", "same.id") } }),
     ).model;
+
     expect(gapLines(doctorFacts(duplicated))).toContain("    operationId (1) — see the README");
   });
 
@@ -64,11 +66,14 @@ describe("gapLines", () => {
       callbacks: { onEvent: {} },
       responses: { "200": { description: "ok", links: { Next: { operationId: "a.list" } } } },
     };
+
     const doc = documentOf(
       { "/a": { additionalOperations: { COPY: { responses: { "200": { description: "ok" } } } }, get: subscribe } },
       { openapi: "3.2.0", webhooks: { newPet: { post: { responses: { "200": { description: "ok" } } } } } },
     );
+
     const lines = gapLines(doctorFacts(modelOf(doc).model));
+
     for (const expected of [
       "    webhooks (1) — not tested: the API tester makes no inbound or follow-up calls",
       "      webhook newPet: is a call the API sends to a subscriber's URL; the API tester receives no inbound call",
@@ -78,9 +83,8 @@ describe("gapLines", () => {
       '      a.list: response 200 links "Next" to a follow-up call the API tester does not make',
       "    additionalOperations (1) — not tested: the API tester sends only the methods OpenAPI fixes on a path item",
       "      COPY /a: declares method COPY under additionalOperations, which the API tester does not send",
-    ]) {
+    ])
       expect(lines).toContain(expected);
-    }
   });
 });
 
@@ -89,6 +93,7 @@ describe("gapLines and a scope list that is not an array", () => {
     const doc = documentOf({
       "/a": { get: { ...(listOp("a", "a.list") as object), security: [{ oauth2: null }] } },
     });
+
     expect(gapLines(doctorFacts(modelOf(doc).model))).toEqual(
       expect.arrayContaining([
         "    security (1) — give each scheme in a security requirement a list of scopes, [] for none",

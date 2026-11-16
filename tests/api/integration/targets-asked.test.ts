@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { targetsAsked } from "../targets/target.ts";
 
-/* `TESTING_API_TARGETS` picks which real APIs the target run starts; a dispatch that names none runs all. */
+// `TESTING_API_TARGETS` picks which real APIs the target run starts; a dispatch that names none runs all.
 
 describe("targetsAsked", () => {
   it("takes no list, or an empty one, as every target", () => {

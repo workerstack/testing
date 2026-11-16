@@ -19,6 +19,7 @@ describe("matchPattern", () => {
       openapi: "3.1.0",
       paths: { "/v1/pay": { post: { responses: { "200": { description: "ok" } } } } },
     } as unknown as OpenApiDocument);
+
     expect(matchPattern("post /v1/pay", unnamed, "post /v1/pay")).toEqual({ exact: true, ids: ["POST /v1/pay"] });
     expect(() => matchPattern("post /v1/pay/", unnamed, "post /v1/pay/")).toThrow(ScopeError);
   });

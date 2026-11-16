@@ -21,21 +21,23 @@ const PAGE = {
     description: "ok",
   },
 };
+
 const NAME_BODY = {
   .../* @__PURE__ */ json({ properties: { name: { type: "string" } }, required: ["name"], type: "object" }),
   required: true,
 };
+
 const CREATED = { "201": { .../* @__PURE__ */ json(ITEM), description: "created" } };
 const READ = { "200": { .../* @__PURE__ */ json(ITEM), description: "ok" } };
 const GONE = { "204": { description: "gone" } };
 
 const param = (name: string) => ({ in: "path", name, required: true, schema: { type: "string" } });
 
-interface Operation {
+type Operation = {
   parameters: string[];
   requestBody?: object;
   responses: object;
-}
+};
 
 function operation(entity: string, action: string, { parameters, requestBody, responses }: Operation): object {
   return {
@@ -48,11 +50,11 @@ function operation(entity: string, action: string, { parameters, requestBody, re
 }
 
 /** An entity's collection (list, create) and item (delete, read), under their path parameters. */
-interface Resource {
+type Resource = {
   collection: string[];
   item: string[];
   created: object;
-}
+};
 
 function resource(entity: string, { collection, item, created }: Resource): [object, object] {
   return [
@@ -74,6 +76,7 @@ function document(title: string, paths: Record<string, object>): OpenApiDocument
 /** Things with no `x-rate-limit` tag: a 429 can only be met reactively. */
 export function thingSpec(): OpenApiDocument {
   const [things, thing] = resource("thing", { collection: [], created: CREATED, item: [] });
+
   return document("untagged-429", { "/v1/things": things, "/v1/things/{id}": thing });
 }
 
@@ -84,7 +87,9 @@ export function planLimitSpec(): OpenApiDocument {
     created: { ...CREATED, "402": { description: "payment_required" } },
     item: ["table_id"],
   });
+
   const [rows, row] = resource("row", { collection: ["table_id"], created: CREATED, item: ["table_id", "row_id"] });
+
   return document("plan-limit", {
     "/v1/tables": tables,
     "/v1/tables/{table_id}": table,

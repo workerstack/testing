@@ -15,6 +15,7 @@ function streamed(chunks: Array<Uint8Array | undefined>): Response {
       controller.close();
     },
   });
+
   return new Response(stream, { headers: SSE });
 }
 

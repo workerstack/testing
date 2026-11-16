@@ -20,19 +20,19 @@ import type { Exchange } from "./exchange.ts";
  * after a call returned false, when AJV has set it, and with `messages` left on (the default)
  * every error carries its message.
  */
-interface ValidateFunction {
+type ValidateFunction = {
   (data: unknown): boolean;
   errors: Array<{ instancePath: string; message: string }>;
-}
+};
 
-interface AjvLike {
+type AjvLike = {
   compile: (schema: unknown) => ValidateFunction;
   addSchema: (schema: unknown, key?: string) => unknown;
-}
+};
 
 type AjvConstructor = new (options: Record<string, unknown>) => AjvLike;
 
-export interface ValidationResult {
+export type ValidationResult = {
   ok: boolean;
   errors: string[];
   /**
@@ -40,12 +40,12 @@ export interface ValidationResult {
    * validated, and the caller must say so — an uncompilable schema is not a passing one.
    */
   unchecked?: string;
-}
+};
 
 const OK: ValidationResult = { errors: [], ok: true };
 
-/* Both packages ship CJS whose `module.exports` is the callable itself, while their types put it on
- * `.default` under NodeNext resolution — hence the cast. */
+// Both packages ship CJS whose `module.exports` is the callable itself, while their types put it on
+// `.default` under NodeNext resolution — hence the cast.
 const Ajv2020 = ajvModule as unknown as AjvConstructor;
 const addFormats = formatsModule as unknown as (ajv: AjvLike) => void;
 
@@ -57,15 +57,16 @@ export class SchemaValidator {
   constructor(defs: Record<string, JsonSchema> = {}) {
     this.ajv = new Ajv2020({
       allErrors: true,
-      /* Specs in the wild carry annotations AJV does not know; refusing to compile over a
-       * vocabulary quibble would make the API tester useless on real documents. */
+      // Specs in the wild carry annotations AJV does not know; refusing to compile over a
+      // vocabulary quibble would make the API tester useless on real documents.
       strict: false,
       validateFormats: true,
     });
     addFormats(this.ajv);
-    /* Recursive schemas are referenced as `testing-defs#/$defs/<name>`, so they are registered
-     * once under that id and every compiled schema can reach them. */
+    // Recursive schemas are referenced as `testing-defs#/$defs/<name>`, so they are registered
+    // once under that id and every compiled schema can reach them.
     const $defs: Record<string, JsonSchema> = {};
+
     for (const [name, def] of Object.entries(defs)) $defs[name] = normalizeSchema(def, { direction: "response" });
     this.ajv.addSchema({ $defs, $id: DEFS_ID });
   }
@@ -73,22 +74,28 @@ export class SchemaValidator {
   /** Compiles the schema documented for this operation and status, if there is one. */
   private compile(op: OperationObject, key: string, status: number): ValidateFunction | { failed: string } | null {
     const cached = this.cache.get(key);
+
     if (cached !== undefined) return cached;
 
     const schema = schemaFor(op, status);
+
     if (schema === null) {
       this.cache.set(key, null);
+
       return null;
     }
+
     try {
       const validate = this.ajv.compile(normalizeSchema(schema, { direction: "response" }));
       this.cache.set(key, validate);
+
       return validate;
     } catch (error) {
-      /* An uncompilable schema is a spec defect, surfaced by the caller as a gap rather than
-       * crashing the run — and never as a pass. */
+      // An uncompilable schema is a spec defect, surfaced by the caller as a gap rather than
+      // crashing the run — and never as a pass.
       const failed = { failed: messageOf(error) };
       this.cache.set(key, failed);
+
       return failed;
     }
   }
@@ -101,10 +108,14 @@ export class SchemaValidator {
   ): ValidationResult {
     const { status } = response;
     const validate = this.compile(op, `${operationId}:${status}`, status);
+
     if (validate === null) return OK;
+
     if ("failed" in validate) return { errors: [], ok: true, unchecked: validate.failed };
-    if (validate(response.responseBody) === true) return OK;
+
+    if (validate(response.responseBody)) return OK;
     const errors = validate.errors.map((error) => `${error.instancePath || "(root)"} ${error.message}`);
+
     return { errors: [...new Set(errors)].slice(0, 12), ok: false };
   }
 
@@ -120,43 +131,51 @@ export class SchemaValidator {
   documentsNoBody(op: OperationObject, status: number): boolean {
     const responses = op.responses ?? {};
     const code = responseKeys(status).find((key) => responses[key] !== undefined);
+
     return code !== undefined && Object.keys(responses[code]?.content ?? {}).length === 0;
   }
 }
 
-/* The response keys a status falls under, most specific first. */
+// The response keys a status falls under, most specific first.
 function responseKeys(status: number): string[] {
   return [String(status), `${Math.floor(status / 100)}XX`, "default"];
 }
 
 function schemaFor(op: OperationObject, status: number): JsonSchema | null {
   const responses = op.responses ?? {};
+
   for (const code of responseKeys(status)) {
     const content = responses[code]?.content;
+
     if (content === undefined) continue;
-    for (const [mediaType, media] of Object.entries(content)) {
+
+    for (const [mediaType, media] of Object.entries(content))
       if (mediaType.includes("json") && media.schema !== undefined) return media.schema;
-    }
   }
+
   return null;
 }
 
-/* One AJV per set of definitions: each registers them under `testing-defs`, as the document names them. */
+// One AJV per set of definitions: each registers them under `testing-defs`, as the document names them.
 // per-process-constant: compiled-schema
 const instanceAjvs = /* @__PURE__ */ new WeakMap<object, AjvLike>();
 const NO_DEFS: Record<string, JsonSchema> = {};
+
 // per-process-constant: compiled-schema
 const instanceCache = /* @__PURE__ */ new WeakMap<object, ValidateFunction | { failed: string }>();
 
 function ajvFor(defs: Record<string, JsonSchema>): AjvLike {
   const existing = instanceAjvs.get(defs);
+
   if (existing !== undefined) return existing;
   const ajv = new Ajv2020({ allErrors: true, strict: false, validateFormats: true });
   addFormats(ajv);
   const $defs: Record<string, JsonSchema> = {};
+
   for (const [name, def] of Object.entries(defs)) $defs[name] = normalizeSchema(def, { direction: "request" });
   ajv.addSchema({ $defs, $id: DEFS_ID });
   instanceAjvs.set(defs, ajv);
+
   return ajv;
 }
 
@@ -170,15 +189,20 @@ export function instanceErrors(
   defs: Record<string, JsonSchema> = NO_DEFS,
 ): string[] {
   let compiled = instanceCache.get(schema);
+
   if (compiled === undefined) {
     try {
       compiled = ajvFor(defs).compile(schema);
     } catch (error) {
       compiled = { failed: messageOf(error) };
     }
+
     instanceCache.set(schema, compiled);
   }
+
   if ("failed" in compiled) return [`schema cannot be compiled: ${compiled.failed}`];
-  if (compiled(value) === true) return [];
+
+  if (compiled(value)) return [];
+
   return compiled.errors.map((error) => `${error.instancePath || "(root)"} ${error.message}`);
 }

@@ -14,9 +14,11 @@ export const limitRespectsMax: Check<{ max: number; limitParam: string }> = defi
   plan: (ctx) => {
     const max = ctx.query?.maxLimit;
     const limitParam = conv(ctx).limit;
-    /* Unless the collection holds more records than the cap, an uncapped backend and a
-     * capped one return the same thing and the check would prove nothing. */
+
+    // Unless the collection holds more records than the cap, an uncapped backend and a
+    // capped one return the same thing and the check would prove nothing.
     if (max === undefined || limitParam === undefined || ctx.records.length <= max) return cannot();
+
     return ready({ limitParam, max });
   },
   dependsOn: ["pagination.limit-bounds-page-size"],
@@ -25,11 +27,14 @@ export const limitRespectsMax: Check<{ max: number; limitParam: string }> = defi
   needs: "a declared maxLimit, and more records than it",
   subjects: subjectsOf.list,
   async run(ctx, { limitParam, max }): Promise<Outcome> {
-    /* Deliberately past the cap — the one request that may break the documented bound. */
+    // Deliberately past the cap — the one request that may break the documented bound.
     const result = await list(asProbe(ctx), { [limitParam]: max + 50 });
     const refused = judgeRefusal(ctx, this.id, ["validation"], result.exchange);
+
     if (refused !== null) return refused;
+
     if (result.items.length <= max) return ASSERTED;
+
     return ctx.findings.backend(this.id, ctx.entityName, {
       summary: "page size exceeds the documented maximum",
       detail:

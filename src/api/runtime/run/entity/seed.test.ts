@@ -7,20 +7,20 @@ import { contextOf, entityRunOf, notesApi, notesDoc, optionsFor, secured } from 
 import type { RunOptions } from "../types.ts";
 import { seedWorld } from "./seed.ts";
 
-/*
- * How an entity's records come to exist: a create the API tester may send seeds them; a create a scenario
- * owns, a profile excludes, or that sign-up already ran leaves the entity read as listed; a list
- * under a parent gets the parent made first.
- */
+// How an entity's records come to exist: a create the API tester may send seeds them; a create a scenario
+// owns, a profile excludes, or that sign-up already ran leaves the entity read as listed; a list
+// under a parent gets the parent made first.
 
 const SEEDS = { authProvisioned: false, inviteOnly: false, needsListedCohort: false };
 
 const card = { properties: { id: { type: "string" }, text: { type: "string" } }, type: "object" };
+
 const board = {
   properties: { id: { readOnly: true, type: "string" }, name: { type: "string" } },
   required: ["name"],
   type: "object",
 };
+
 const json = (schema: unknown) => ({ content: { "application/json": { schema } } });
 const boardId = { in: "path", name: "board_id", required: true, schema: { type: "string" } };
 
@@ -59,27 +59,35 @@ function boardsDoc(boardsCreate: boolean): OpenApiDocument {
 /** Boards made on request as b1, b2, …; cards c1 under any board. */
 function boardsApi(doc: OpenApiDocument): Responder {
   let made = 0;
+
   return (method, path) => {
     if (path === "/openapi.json") return { body: doc, status: 200 };
+
     if (path === "/boards" && method === "POST") {
       made += 1;
+
       return { body: { id: `b${made}`, name: `b${made}` }, status: 201 };
     }
+
     if (path === "/boards") return { body: [], status: 200 };
+
     if (/^\/boards\/[^/]+\/cards$/.test(path)) return { body: [{ id: "c1", text: "t" }], status: 200 };
-    return undefined;
+
+    return;
   };
 }
 
 /** Boards whose create breaks the transport itself. */
 const brokenBoards: Responder = (method, path, request) => {
   if (path === "/boards" && method === "POST") throw new Error("transport broke");
+
   return boardsApi(boardsDoc(true))(method, path, request);
 };
 
 async function runFor(respond: Responder, entity: string, extra: Partial<RunOptions> = {}) {
   const options = optionsFor(respond, extra);
   const ctx = await contextOf(options);
+
   return { ctx, options, run: entityRunOf(ctx, entity) };
 }
 
@@ -143,6 +151,7 @@ describe("seedWorld for an entity read as listed", () => {
     const given = await runFor(boardsApi(boardsDoc(true)), "card", {
       principals: { alpha: { scope: { board_id: "given" } } },
     });
+
     expect(await seedWorld(given.run, SEEDS)).toMatchObject({ scope: { values: { board_id: "given" } } });
     const invited = await runFor(boardsApi(boardsDoc(true)), "card");
     expect(await seedWorld(invited.run, { ...SEEDS, inviteOnly: true })).toMatchObject({ records: [] });

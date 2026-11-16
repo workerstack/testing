@@ -7,9 +7,11 @@ import { doctorFacts } from "./doctor-facts.ts";
 describe("doctorFacts and the operations a recipe names", () => {
   it("keeps an entity whose operations a security recipe calls when its create answers an id", async () => {
     const { model } = await referenceModel();
+
     const authCreates = Object.assign(new Set(["apiKey.create", "apiKey.revoke"]), {
       mints: new Set(["apiKey.create"]),
     });
+
     const facts = doctorFacts(model, { authCreates });
     expect(facts.entities.map((entity) => entity.name)).toContain("api-key");
     expect([facts.entities.length, facts.testable.length, facts.blocking]).toEqual([8, 8, 1]);
@@ -30,7 +32,7 @@ describe("doctorFacts and the gaps of a recipe's operations", () => {
 describe("doctorFacts", () => {
   it("counts what a run can follow and list, and blocks on roots it must be given", async () => {
     const facts = doctorFacts((await referenceModel()).model);
-    /* The reference reads its API keys back (apiKey.get), so api-key is a trackable entity of its own. */
+    // The reference reads its API keys back (apiKey.get), so api-key is a trackable entity of its own.
     expect(facts.entities.map((entity) => entity.name)).toEqual([
       "api-key",
       "job",
@@ -49,8 +51,8 @@ describe("doctorFacts", () => {
     expect(facts.inviting.map((entity) => entity.name)).toEqual(["table"]);
     expect(facts.featureGates).toEqual([]);
     expect([...facts.gapsByTag.keys()].sort()).toEqual(["x-entity", "x-tenant"]);
-    /* Health, logout, the sign-in RPCs (token, login, refresh, revoke), the styles read, the search
-     * QUERY and the untagged account update: none is a resource. */
+    // Health, logout, the sign-in RPCs (token, login, refresh, revoke), the styles read, the search
+    // QUERY and the untagged account update: none is a resource.
     expect(facts.gapsByTag.get("x-entity")).toHaveLength(9);
     expect(facts.catalogs).toHaveLength(4);
     expect(facts.unknownEntities).toEqual([]);
@@ -73,6 +75,7 @@ describe("doctorFacts", () => {
       ).model,
       { entities: { b: {} } },
     );
+
     expect(facts.featureGates).toEqual([{ featureGate: "beta", operationId: "a.list" }]);
     expect(facts.testable.length).toBeLessThan(facts.entities.length);
     expect(facts.blocking).toBe(facts.untestable.length);
@@ -94,7 +97,7 @@ describe("doctorFacts and the roots a config supplies", () => {
     expect(facts.roots).toEqual({
       required: [],
       supplied: [{ by: "principal scope", root: "project_id" }],
-      /* Ids a flow yields (an invite's token and grant, a notice, a minted key) never block. */
+      // Ids a flow yields (an invite's token and grant, a notice, a minted key) never block.
       unmade: ["grant_id", "id", "token"],
     });
     const unscoped = doctorFacts(model, { credentials: { principals: { alpha: {}, beta: {} }, security: {} } });
@@ -104,6 +107,7 @@ describe("doctorFacts and the roots a config supplies", () => {
 
 describe("doctorFacts and a run agree on what is testable", () => {
   const record = { properties: { id: { type: "string" }, name: { type: "string" } }, type: "object" };
+
   const create = (entity: string) => ({
     operationId: `${entity}.create`,
     requestBody: {
@@ -112,7 +116,8 @@ describe("doctorFacts and a run agree on what is testable", () => {
     responses: { "201": { content: { "application/json": { schema: record } }, description: "made" } },
     "x-entity": { action: "create", identity: "id", name: entity },
   });
-  /* A list entity, an entity with only its item read, and one with neither a list nor a read. */
+
+  // A list entity, an entity with only its item read, and one with neither a list nor a read.
   const { model } = modelOf(
     documentOf({
       "/listed": { get: listOp("listed", "listed.list"), post: create("listed") },
@@ -122,6 +127,7 @@ describe("doctorFacts and a run agree on what is testable", () => {
       "/bare": { post: create("bare") },
     }),
   );
+
   const none = new Set<string>();
 
   it("counts testable, untestable and blocking by the run's own answer, with its reasons", () => {

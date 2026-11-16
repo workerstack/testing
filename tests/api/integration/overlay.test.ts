@@ -12,12 +12,10 @@ import { run } from "../../../src/api/runtime/run/index.ts";
 import { applyOverlay } from "../../../src/api/spec/overlay.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 
-/*
- * A team testing a backend whose document it cannot change patches the document from config:
- * an operation by its id, a component schema by its name. Objects merge, arrays replace, and
- * `null` deletes a key. A patch naming nothing that exists is a mistake in the config, not
- * something to skip quietly.
- */
+// A team testing a backend whose document it cannot change patches the document from config:
+// an operation by its id, a component schema by its name. Objects merge, arrays replace, and
+// `null` deletes a key. A patch naming nothing that exists is a mistake in the config, not
+// something to skip quietly.
 
 const DOC = {
   components: {
@@ -61,11 +59,12 @@ describe("applyOverlay", () => {
         },
       },
     });
+
     const list = listOf(patched);
     expect(list["parameters"]).toEqual([{ in: "query", name: "c", schema: { type: "string" } }]);
     expect(list).not.toHaveProperty("summary");
     expect(list["x-query"]).toEqual({ filterable: ["title"], maxLimit: 20, sortable: ["title"] });
-    /* The document it was given is left as it was. */
+    // The document it was given is left as it was.
     expect(listOf(DOC)["summary"]).toBe("List notes");
   });
 
@@ -89,6 +88,7 @@ describe("applyOverlay", () => {
 
 async function checksRunWith(overlay?: Parameters<typeof applyOverlay>[1]): Promise<string[]> {
   const server = await createMemoryServer({});
+
   try {
     const result = await run({
       baseUrl: server.url,
@@ -98,6 +98,7 @@ async function checksRunWith(overlay?: Parameters<typeof applyOverlay>[1]): Prom
       spec: `${server.url}/v1/openapi/spec`,
       ...(overlay === undefined ? {} : { overlay }),
     });
+
     return result.checksRun;
   } finally {
     await server.close();
@@ -107,13 +108,14 @@ async function checksRunWith(overlay?: Parameters<typeof applyOverlay>[1]): Prom
 describe("run with an overlay", () => {
   it("tests the document as the overlay leaves it", async () => {
     expect(await checksRunWith()).toContain("create.unique-conflict-rejected");
-    /* The overlay takes the uniqueness claim away, so nothing is left to check it against. */
+    // The overlay takes the uniqueness claim away, so nothing is left to check it against.
     const without = await checksRunWith({ operations: { "table.create": { "x-unique": null } } });
     expect(without).not.toContain("create.unique-conflict-rejected");
   }, 240_000);
 
   it("is a usage error when the overlay names an operation the document lacks", async () => {
     const server = await createMemoryServer({});
+
     try {
       await expect(
         run({
@@ -134,13 +136,17 @@ describe("run with an overlay", () => {
 async function cli(argv: string[]): Promise<{ code: number; out: string }> {
   const saved = process.argv;
   const chunks: string[] = [];
+
   const capture = (chunk: string | Uint8Array): boolean => {
     chunks.push(String(chunk));
+
     return true;
   };
+
   const write = vi.spyOn(process.stdout, "write").mockImplementation(capture);
   const err = vi.spyOn(process.stderr, "write").mockImplementation(capture);
   process.argv = ["node", "testing", ...argv];
+
   try {
     return { code: await main(), out: chunks.join("") };
   } finally {
@@ -154,19 +160,24 @@ describe("testing api doctor with an overlay", () => {
   it("reads the document as the overlay leaves it, and names a patch that matches nothing", async () => {
     const server = await createMemoryServer({});
     const dir = await mkdtemp(join(tmpdir(), "testing-overlay-"));
+
     const config = async (overlay: Record<string, unknown>): Promise<string> => {
       const path = join(dir, `config-${Math.random().toString(36).slice(2)}.json`);
       await writeFile(path, JSON.stringify({ baseUrl: server.url, overlay, spec: `${server.url}/v1/openapi/spec` }));
+
       return path;
     };
+
     try {
       const plain = await cli(["doctor", "--config", await config({})]);
       expect(plain.out).toContain("x-unique:");
+
       const patched = await cli([
         "doctor",
         "--config",
         await config({ operations: { "table.create": { "x-unique": null } } }),
       ]);
+
       expect(patched.out).not.toContain("x-unique:");
       const wrong = await cli(["doctor", "--config", await config({ operations: { "table.creat": {} } })]);
       expect(wrong.code).toBe(2);

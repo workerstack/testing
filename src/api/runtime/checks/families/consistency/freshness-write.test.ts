@@ -8,9 +8,12 @@ import { primedWrite, writeKinds } from "./freshness-write.ts";
 function notes(more: { updateMethod?: "patch" | "put"; override?: Responder } = {}) {
   const server = notesServer();
   const model = notesModel(more.updateMethod === undefined ? {} : { updateMethod: more.updateMethod });
+
   const respond: Responder = (method, path, options) =>
     more.override?.(method, path, options) ?? server.respond(method, path, options);
+
   const { ctx, sent } = notesContext(model, respond, { records: [] });
+
   return { ctx, readOp: ctx.readOp as NonNullable<typeof ctx.readOp>, sent };
 }
 
@@ -27,6 +30,7 @@ describe("primedWrite", () => {
   it("reads the scratch record through the cache, then patches one field, and knows the read that shows it", async () => {
     const { ctx, readOp, sent } = notes();
     const written = await primedWrite(ctx, { check: "c", kind: "update", readOp });
+
     if ("outcome" in written) throw new Error("expected a write");
     expect(sent.map((s) => `${s.method} ${s.path}${s.options.cache === "use" ? " (cache)" : ""}`)).toEqual([
       "POST /notes",
@@ -49,6 +53,7 @@ describe("primedWrite", () => {
   it("knows a delete shows as 404 or 410", async () => {
     const { ctx, readOp } = notes();
     const written = await primedWrite(ctx, { check: "c", kind: "delete", readOp });
+
     if ("outcome" in written) throw new Error("expected a write");
     expect(written.shows(exchange("GET", "/notes/n1", { status: 404 }))).toBe(true);
     expect(written.shows(exchange("GET", "/notes/n1", { status: 410 }))).toBe(true);

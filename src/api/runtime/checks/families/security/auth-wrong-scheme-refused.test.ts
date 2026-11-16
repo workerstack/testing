@@ -11,6 +11,7 @@ import { wrongSchemeRefused } from "./auth-wrong-scheme-refused.ts";
 const ok = { "200": { description: "ok" } };
 const project = { in: "path", name: "project_id", required: true, schema: { type: "string" } };
 const noteId = { in: "path", name: "note_id", required: true, schema: { type: "string" } };
+
 const model = modelOf(
   securedDoc({
     "/me": { get: { operationId: "me.read", responses: ok } },
@@ -24,8 +25,10 @@ const model = modelOf(
     },
   }),
 );
+
 const principals = [actorOf("alpha", { scope: { project_id: "proj_a" } })] as [ReturnType<typeof actorOf>];
 const held = { held: (request: { scheme: string }) => ({ value: request.scheme === "jwt" ? "jwt-1" : "ak_1" }) };
+
 const answering =
   (status: number): SentResponder =>
   () => ({ status });
@@ -37,6 +40,7 @@ describe("auth.wrong-scheme-refused", () => {
       probe: held,
       respond: answering(401),
     });
+
     expect(await runOperationCheck(wrongSchemeRefused, ctx)).toEqual({ kind: "asserted" });
     expect(calls.held).toEqual([{ principal: "alpha", scheme: "apiKey", scopes: ["notes:read"] }]);
     expect(sent.map((s) => [s.method, s.path, s.options])).toEqual([
@@ -55,6 +59,7 @@ describe("auth.wrong-scheme-refused", () => {
       probe: held,
       respond: answering(200),
     });
+
     expect(await runOperationCheck(wrongSchemeRefused, ctx)).toEqual({ kind: "finding", verdict: "SECURITY" });
     expect(findings.findings.map((f) => [f.summary, f.detail])).toEqual([
       [
@@ -76,12 +81,14 @@ describe("auth.wrong-scheme-refused", () => {
   it("probes a write only on the run-created record, with its current state", async () => {
     const backend = applyingBackend();
     const target = { ...NOTE_TARGET, path: "/projects/proj_a/notes/n1/pin" };
+
     const { ctx, sent } = operationContextFor(model, "notes.pin", {
       principals,
       probe: held,
       respond: backend.respond,
       target,
     });
+
     expect(await runOperationCheck(wrongSchemeRefused, ctx)).toEqual({ kind: "finding", verdict: "SECURITY" });
     expect(sent.map((s) => [s.method, s.path, s.options.body])).toEqual([["PUT", target.path, NOTE_TARGET.current]]);
     expect(backend.records).toEqual(untouched());

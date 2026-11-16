@@ -77,10 +77,12 @@ const petBranch = (field: string): JsonSchema => ({
 describe("SchemaValidator formats", () => {
   it("enforces the formats ajv-formats knows, url among them, and lets an unknown format pass", () => {
     const validator = new SchemaValidator();
+
     const op = returning("200", "application/json", {
       properties: { image: { format: "url", type: "string" }, shade: { format: "made-up", type: "string" } },
       type: "object",
     });
+
     expect(
       validator.validate("get", op, { responseBody: { image: "https://a.test/s.svg", shade: "x" }, status: 200 }).ok,
     ).toBe(true);
@@ -115,12 +117,14 @@ describe("SchemaValidator discriminator", () => {
       discriminator: { propertyName: "kind" },
       oneOf: ["Cat", "Dog"].map((name) => ({ $ref: `#/components/schemas/${name}` })),
     };
+
     const source = {
       components: { schemas: { Cat: petBranch("meow"), Dog: petBranch("bark"), Pet: pet } },
       info: { title: "t", version: "1" },
       openapi: "3.1.0",
       paths: {},
     };
+
     const { doc } = dereference(source as unknown as OpenApiDocument);
     const schema = doc.components?.schemas?.["Pet"] as JsonSchema;
     const validator = new SchemaValidator();

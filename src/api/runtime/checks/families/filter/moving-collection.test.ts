@@ -11,13 +11,11 @@ import { filterIsNullSelectsNulls } from "./filter-is-null-selects-nulls.ts";
 import { filterNinComplementsIn } from "./filter-nin-complements-in.ts";
 import { filterOrderedTriplePartitions } from "./filter-ordered-triple-partitions.ts";
 
-/*
- * Checks run side by side, and one may change a record while another reads the collection term
- * by term. A full prod run read `category.ne.general` (0 rows), then another check moved a row
- * into another category, then read `category.neq.general` (1 row), and reported the alias as
- * broken. A filter check that compares several reads must read again before blaming the backend:
- * when the same read now holds other rows, the collection moved, and nothing is concluded.
- */
+// Checks run side by side, and one may change a record while another reads the collection term
+// by term. A full prod run read `category.ne.general` (0 rows), then another check moved a row
+// into another category, then read `category.neq.general` (1 row), and reported the alias as
+// broken. A filter check that compares several reads must read again before blaming the backend:
+// when the same read now holds other rows, the collection moved, and nothing is concluded.
 
 const COHORT: Record_[] = [
   { amount: 1, category: "general", id: "w1", note: "a" },
@@ -25,7 +23,7 @@ const COHORT: Record_[] = [
   { amount: 9, category: "special", id: "w3", note: "c" },
 ];
 
-/* One filter term against one field: the stored value, the raw operand, its list and number forms. */
+// One filter term against one field: the stored value, the raw operand, its list and number forms.
 type Term = { list: string[]; number: number; raw: string; value: unknown };
 
 const OPERATORS: Readonly<Record<string, (term: Term) => boolean>> = {
@@ -43,32 +41,41 @@ const OPERATORS: Readonly<Record<string, (term: Term) => boolean>> = {
 
 function matches(row: Record_, term: string): boolean {
   const match = /^([a-z]+)\.([a-z]+)\.(.*)$/.exec(term);
+
   if (match === null) return true;
   const [, field = "", op = "", raw = ""] = match;
   const operator = Object.hasOwn(OPERATORS, op) ? OPERATORS[op] : undefined;
+
   if (operator === undefined) return false;
-  return operator({ list: raw.replace(/^\(|\)$/g, "").split(","), number: Number(raw), raw, value: row[field] });
+
+  return operator({ list: raw.replaceAll(/^\(|\)$/g, "").split(","), number: Number(raw), raw, value: row[field] });
 }
 
-/* A record another check made for itself, outside the cohort, that it is about to change. */
+// A record another check made for itself, outside the cohort, that it is about to change.
 const SCRATCH: Record_ = { amount: 7, category: "general", id: "s1", note: "x" };
 
-/* A correct backend, and one other writer: right after the first filtered read it moves its row. */
+// A correct backend, and one other writer: right after the first filtered read it moves its row.
 type Move = "update" | "create" | "delete";
 
 function moving(after: number, move: Move): Serve {
   const store = [...COHORT, SCRATCH].map((row) => ({ ...row }));
   let filtered = 0;
+
   return (url) => {
     const filter = url.searchParams.get("filter");
     const rows = filter === null ? store : store.filter((row) => matches(row, filter));
     const body = { widgets: rows.map((row) => ({ ...row })) };
+
     if (filter !== null && ++filtered === after) {
       const at = store.findIndex((row) => row["id"] === "s1");
+
       if (move === "update") Object.assign(store[at] ?? {}, { amount: 70, category: "special", note: null });
+
       if (move === "create") store.push({ amount: 3, category: "general", id: "s2", note: null });
+
       if (move === "delete") store.splice(at, 1);
     }
+
     return body;
   };
 }
@@ -84,8 +91,10 @@ function movingDoc(): OpenApiDocument {
     required: ["id"],
     type: "object",
   };
+
   const ops = ["eq", "ne", "neq", "in", "nin", "gt", "lt", "gte", "lte", "is"];
   const schema = { properties: { widgets: { items: item, type: "array" } }, type: "object" };
+
   return {
     info: { title: "moving", version: "1" },
     openapi: "3.1.0",
@@ -120,7 +129,9 @@ async function judge(check: Check, after: number, move: Move): Promise<string[]>
     fields: { collectionKey: "widgets", records: COHORT.map((row) => ({ ...row })) },
     serve: moving(after, move),
   });
+
   await runCheck(check, ctx);
+
   return findings.findings.map((finding) => `${finding.check}: ${finding.summary}`);
 }
 

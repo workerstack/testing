@@ -15,6 +15,7 @@ describe("normalizeSchema", () => {
       properties: { example: { type: "string", xml: {} } },
       type: "object",
     };
+
     expect(normalizeSchema(schema, response)).toEqual({
       examples: [{ id: 1 }],
       properties: { example: { type: "string" } },
@@ -42,6 +43,7 @@ describe("normalizeSchema", () => {
       patternProperties: { "^x-": { xml: {} }, "^y-": true },
       properties: "not a map",
     };
+
     expect(normalizeSchema(schema, response)).toEqual({
       additionalProperties: false,
       allOf: [{ type: ["string", "null"] }, true],
@@ -77,6 +79,7 @@ describe("normalizeSchema directions and nulls", () => {
       properties: { id: { readOnly: true }, name: {}, secret: { writeOnly: true }, raw: 5 },
       required: ["id", "name", "secret"],
     };
+
     expect(normalizeSchema(schema, request)).toEqual({
       properties: { name: {}, raw: 5, secret: { writeOnly: true } },
       required: ["name", "secret"],
@@ -175,6 +178,7 @@ describe("normalizeSchema for an ordinary writer", () => {
       properties: { name: {}, plan: { "x-privileged": true }, verified: { "x-privileged": true } },
       required: ["name", "plan"],
     };
+
     expect(normalizeSchema(schema, { direction: "request", ordinary: true })).toEqual({
       properties: { name: {}, plan: { "x-privileged": true } },
       required: ["name", "plan"],
@@ -196,6 +200,7 @@ describe("normalizeSchema discriminator", () => {
 
   it("pins each branch's tag to its values and requires it, in both directions", () => {
     const schema = { discriminator: { propertyName: "kind" }, oneOf: [cat, dog], [KEY]: tags };
+
     const expected = {
       oneOf: [
         {
@@ -210,9 +215,10 @@ describe("normalizeSchema discriminator", () => {
         },
       ],
     };
+
     expect(normalizeSchema(schema, response)).toEqual(expected);
     expect(normalizeSchema(schema, request)).toEqual(expected);
-    /* The branches themselves, reached elsewhere, are left as they are. */
+    // The branches themselves, reached elsewhere, are left as they are.
     expect((normalizeSchema({ items: [cat, schema] }, response).prefixItems as unknown[])[0]).toEqual(cat);
   });
 

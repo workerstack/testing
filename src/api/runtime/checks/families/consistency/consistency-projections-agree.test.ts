@@ -15,6 +15,7 @@ const rows = (): Record_[] => [
 function stage(respond: Responder, fields: Partial<Listed> = {}, doc = notesDoc()) {
   const model = modelOf(doc);
   const listOp = op(model, "notes.list");
+
   return contextFor(model, "notes.list", {
     respond,
     fields: {
@@ -30,7 +31,9 @@ function stage(respond: Responder, fields: Partial<Listed> = {}, doc = notesDoc(
 /** Plans and runs the check, failing the test when the plan does not apply. */
 async function drive(staged: ReturnType<typeof stage>) {
   const planned = projectionsAgree.plan(staged.ctx);
+
   if (!planned.ok) throw new Error(`the plan did not apply: ${planned.needs}`);
+
   return projectionsAgree.run(staged.ctx, planned.value);
 }
 
@@ -50,6 +53,7 @@ const plainList = (path: string, query: Record<string, unknown>): boolean =>
 const itemServes = (body: unknown): Responder =>
   over(rows(), (path) => {
     if (path === "/notes/n1") return { body, status: 200 };
+
     return path === "/notes" ? { body: [], status: 200 } : undefined;
   });
 
@@ -61,9 +65,12 @@ function narrowed(extra: string) {
       { in: "query", name: extra, schema: { type: "string" } },
     ],
   });
-  /* Too few parameters for the heuristic to derive capabilities; the full list's stand in. */
+
+  // Too few parameters for the heuristic to derive capabilities; the full list's stand in.
   const query = op(modelOf(notesDoc()), "notes.list").query;
+
   if (query === null) throw new Error("the notes list lost its query capabilities");
+
   return stage(notesBackend(rows()), { query: { ...query, filterable: ["status"], sortable: ["status"] } }, doc);
 }
 
@@ -115,7 +122,7 @@ describe("consistency.projections-agree read paths", () => {
       ["/notes", { limit: 5, sort: "status.asc" }],
       ["/notes", { limit: 5, page: 1, status: "open" }],
     ]);
-    /* Whatever the walk reads past its first page is the same filter. */
+    // Whatever the walk reads past its first page is the same filter.
     expect(queries.slice(5).every(([, query]) => (query as Record<string, unknown>)["status"] === "open")).toBe(true);
   });
 
@@ -127,9 +134,11 @@ describe("consistency.projections-agree read paths", () => {
 
   it("reports a collection that serves a different value than the item route", async () => {
     const stale = [{ id: "n1", status: "pending", title: "alpha" }];
+
     const staged = stage(
       over(rows(), (path, query) => (plainList(path, query) ? { body: stale, status: 200 } : undefined)),
     );
+
     expect(await drive(staged)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     const [finding] = staged.findings.findings;
     expect(finding?.summary).toBe("the same record carries different values depending on how it is read");
@@ -146,6 +155,7 @@ describe("consistency.projections-agree read paths", () => {
           : undefined,
       ),
     );
+
     await drive(staged);
     expect(staged.findings.findings[0]?.detail).toContain(
       'the sparse fieldset returns "stale", and the sorted page returns "stale"',
@@ -192,16 +202,19 @@ describe("consistency.projections-agree filter membership", () => {
     const staged = stage(
       over(rows(), (path, query) => (path === "/notes" && query["status"] !== undefined ? { status: 400 } : undefined)),
     );
+
     expect(await drive(staged)).toEqual({ kind: "unresolved", reason: 'filtering on "status" was rejected' });
   });
 
   it("does not call the record missing when the filtered walk could not finish", async () => {
     const other = { id: "x", status: "open", title: "x" };
+
     const staged = stage(
       over(rows(), (path, query) =>
         path === "/notes" && query["status"] !== undefined ? { body: [other], status: 200 } : undefined,
       ),
     );
+
     expect(await drive(staged)).toEqual({
       kind: "unresolved",
       reason: "the filtered set is larger than the walk covers, so the record's absence is not established",
@@ -216,6 +229,7 @@ describe("consistency.projections-agree filter membership", () => {
           : undefined,
       ),
     );
+
     expect(await drive(staged)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     const [finding] = staged.findings.findings;
     expect(finding?.detail).toContain('note n1 carries "status" = "open" on every read path');

@@ -39,6 +39,7 @@ describe("pagination.bounds-handled", () => {
   it("reports a page size that crashes the listing", async () => {
     const crash = (_m: string, _p: string, options: Parameters<typeof queryOf>[0]): Answer =>
       queryOf(options)["limit"] === "2.5" ? { status: 503 } : { body: { items: rows }, status: 200 };
+
     const { ctx, findings, sent } = stage(sizeOnly, crash, rows);
     expect(await runCheck(paginationBoundsHandled, ctx)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     expect(findings.findings[0]?.summary).toBe("a page size of 2.5 crashes the listing");
@@ -91,11 +92,13 @@ describe("pagination.bounds-handled: a collection it cannot read whole", () => {
       kind: "unresolved",
       reason: "page 1 was answered with 400",
     });
+
     const stuck = stage(
       pageOnly,
       pagedBackend(rows, (body) => ({ body: { ...body, items: rows }, status: 200 })),
       rows,
     );
+
     expect(await runCheck(paginationBoundsHandled, stuck.ctx)).toEqual({
       kind: "unresolved",
       reason: "pages repeat the same records",

@@ -33,11 +33,14 @@ export function dereference(doc: OpenApiDocument): {
     externalRefs: new Set(),
     memo: new Map(),
   };
+
   const out = walk(state, doc) as OpenApiDocument;
   const defs = recursiveSchemas(state, out);
-  /* Every ref into the bundled files is inlined or stored in the definitions by now. */
+  // Every ref into the bundled files is inlined or stored in the definitions by now.
   delete (out as Record<string, unknown>)[EXTERNAL_KEY];
+
   if (Object.keys(defs).length > 0) (out as Record<string, unknown>)[DEFS_KEY] = defs;
+
   return { danglingRefs: [...state.danglingRefs], doc: out, externalRefs: [...state.externalRefs] };
 }
 
@@ -47,14 +50,16 @@ export function dereference(doc: OpenApiDocument): {
  */
 function recursiveSchemas(state: Dereferencing, out: OpenApiDocument): Record<string, unknown> {
   const defs: Record<string, unknown> = {};
+
   for (const [ref, name] of state.defNames) {
-    /* A name is only given to a target that was being built, which is always an object. */
+    // A name is only given to a target that was being built, which is always an object.
     const target = resolvePointer(state.doc, ref) as object;
-    /* An Example Object is walked without a memo entry, so a cycle through one walks it again. */
+    // An Example Object is walked without a memo entry, so a cycle through one walks it again.
     const body = state.memo.get(target) ?? walk(state, target);
-    /* `$ref: "#"` names the document itself, which is about to carry these definitions: store a
-     * copy without them, or the definitions would contain themselves. */
+    // `$ref: "#"` names the document itself, which is about to carry these definitions: store a
+    // copy without them, or the definitions would contain themselves.
     defs[name] = body === out ? { ...out } : body;
   }
+
   return defs;
 }

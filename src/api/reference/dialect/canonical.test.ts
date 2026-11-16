@@ -24,8 +24,7 @@ describe("toCanonicalFilter", () => {
   });
 
   it("refuses an empty or malformed colon expression", () => {
-    for (const expression of ["", " , ", "name=x", "=eq:x", "name=EQ:x", "name=eq:x,junk"]) {
+    for (const expression of ["", " , ", "name=x", "=eq:x", "name=EQ:x", "name=eq:x,junk"])
       expect(toCanonicalFilter(expression, CLASSIC)).toBeNull();
-    }
   });
 });

@@ -13,17 +13,20 @@ type Cases = Parameters<Toolkit["suite"]["renderParserSuite"]>[0];
 export async function runSuites(writer: Writer, toolkit: Toolkit, beforeMatrix: boolean): Promise<number> {
   const { suite } = toolkit;
   let failures = 0;
+
   const print = (cases: Cases): void => {
     const rendered = suite.renderParserSuite(cases);
     writer.out(rendered.text);
     failures += rendered.failures;
   };
+
   const counted = suite.counting(suite.listening);
   const { via } = counted;
   print(suite.runParserSuite());
-  /* The documented example is checked in the same breath: it is the only place a reader sees
-   * where each tag goes, and documentation that drifts teaches a shape that no longer works. */
+  // The documented example is checked in the same breath: it is the only place a reader sees
+  // where each tag goes, and documentation that drifts teaches a shape that no longer works.
   print(await suite.runExampleSpecSuite());
+
   if (beforeMatrix) print(await suite.runTagUnlockSuite(via));
   print(suite.runCoverageReportSuite());
   print(await suite.runTenantScopeSuite(via));
@@ -34,5 +37,6 @@ export async function runSuites(writer: Writer, toolkit: Toolkit, beforeMatrix: 
   print(await toolkit.effects.runEffectsSuite(via));
   print(suite.runPayloadCatalogSuite());
   writer.out(suite.requestLines(counted.requests()));
+
   return failures;
 }

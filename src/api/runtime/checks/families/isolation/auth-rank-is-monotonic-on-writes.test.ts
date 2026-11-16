@@ -11,13 +11,14 @@ const HOME = { org_id: "o1" };
 const owner = actor("owner", { rank: 2, scope: HOME, tenant: "o1" });
 const viewer = actor("viewer", { rank: 0, scope: HOME, tenant: "o1" });
 const stranger = actor("stranger", { rank: 1, scope: { org_id: "o2" }, tenant: "o2" });
-/* Another tenant, though its scope reads like the owner's: it is not home. */
+
+// Another tenant, though its scope reads like the owner's: it is not home.
 const guest = actor("guest", { rank: 1, scope: HOME, tenant: "o2" });
 const MEMBERS = { owner: "o1", stranger: "o2", viewer: "o1" };
 const modelWith = (options: NotesOptions = {}) => modelOf(notesDocument(options));
 
-/* Every create answers a note whose only string is empty: nothing an update could change. */
-/* A create, and the read of what it made, answering a note whose only field is an empty title. */
+// Every create answers a note whose only string is empty: nothing an update could change.
+// A create, and the read of what it made, answering a note whose only field is an empty title.
 const blank = (method: string, path: string) =>
   method === "POST" || path.endsWith("/s1") ? { body: { id: "s1", title: "" }, status: 201 } : { status: 204 };
 
@@ -25,13 +26,16 @@ const blank = (method: string, path: string) =>
 const policy = (allowed: (who: string, kind: string) => boolean) =>
   notesBackend({ may: (who, kind) => allowed(who, kind), members: MEMBERS });
 
-/* Notes whose create requires a title only the highest rank may set. */
+// Notes whose create requires a title only the highest rank may set.
 function privilegedTitle() {
   const doc = structuredClone(notesDocument());
+
   type Create = { requestBody: { content: Record<string, { schema: { properties: Record<string, object> } }> } };
+
   const create = (doc.paths as Record<string, Record<string, Create>>)["/orgs/{org_id}/notes"]?.["post"] as Create;
   const title = create.requestBody.content["application/json"]?.schema.properties["title"] as Record<string, unknown>;
   title["x-privileged"] = true;
+
   return modelOf(doc);
 }
 
@@ -66,7 +70,7 @@ describe("auth.rank-is-monotonic-on-writes", () => {
       "POST /orgs/o1/notes owner",
       "DELETE /orgs/o1/notes/s5 viewer",
     ]);
-    /* Each try names its operation, so each is sent the credential its own security asks for. */
+    // Each try names its operation, so each is sent the credential its own security asks for.
     expect(sent.filter((s) => s.method !== "POST").map((s) => s.options.operationId)).toEqual([
       "updateNote",
       "deleteNote",
@@ -78,13 +82,16 @@ describe("auth.rank-is-monotonic-on-writes", () => {
 
   for (const kind of ["create", "update", "delete"]) {
     it(`reports a lower rank allowed to ${kind} where a higher rank is refused`, async () => {
-      /* The owner's scratch creates stay allowed: only its own try at `kind` is refused. */
+      // The owner's scratch creates stay allowed: only its own try at `kind` is refused.
       const tries = new Map<string, number>();
+
       const backend = policy((who, asked) => {
         if (asked !== kind || who !== "owner") return true;
         tries.set(who, (tries.get(who) ?? 0) + 1);
+
         return kind === "create" && (tries.get(who) ?? 0) > 1;
       });
+
       const { ctx, findings } = notesContext(modelWith(), backend, { actors: [owner, viewer] });
       expect(await runCheck(rankIsMonotonicOnWrites, ctx)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
       expect(findings.findings[0]?.summary).toBe(`a lower-ranked role can ${kind} where a higher-ranked role cannot`);
@@ -97,11 +104,14 @@ describe("auth.rank-is-monotonic-on-writes", () => {
     const lead = actor("lead", { rank: 2, scope: HOME, tenant: "o1" });
     const member = actor("member", { rank: 1, scope: HOME, tenant: "o1" });
     const backend = notesBackend({ members: { ...MEMBERS, lead: "o1", member: "o1" } });
+
     const refusing: Backend = (method, path, options) =>
       options.who === "lead" && method === "DELETE" ? { status: 401 } : backend(method, path, options);
+
     const { ctx, findings } = notesContext(modelWith({ without: ["updateNote"] }), refusing, {
       actors: [lead, member],
     });
+
     expect(await runCheck(rankIsMonotonicOnWrites, ctx)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     expect(findings.findings[0]?.detail).toContain("member (rank 1) was allowed to delete note (204)");
     expect(findings.findings[0]?.detail).toContain("lead (rank 2) was refused (401)");
@@ -111,8 +121,10 @@ describe("auth.rank-is-monotonic-on-writes", () => {
 describe("auth.rank-is-monotonic-on-writes without a verdict to compare", () => {
   it("does not read a write that failed for another reason as a refusal", async () => {
     const backend = policy(() => true);
+
     const failing: Backend = (method, path, options) =>
       options.who === "owner" && method === "PATCH" ? { status: 500 } : backend(method, path, options);
+
     const { ctx, findings } = notesContext(modelWith(), failing, { actors: [owner, viewer] });
     expect(await runCheck(rankIsMonotonicOnWrites, ctx)).toEqual({ kind: "asserted" });
     expect(findings.findings).toEqual([]);
@@ -121,8 +133,10 @@ describe("auth.rank-is-monotonic-on-writes without a verdict to compare", () => 
   it("hands back what a failed scratch create concluded, before an update or a delete", async () => {
     for (const without of [[], ["updateNote"]] as const) {
       const backend = policy(() => true);
+
       const failing: Backend = (method, path, options) =>
         method === "POST" && options.who === "owner" ? { status: 500 } : backend(method, path, options);
+
       const { ctx, sent } = notesContext(modelWith({ without }), failing, { actors: [owner, viewer] });
       expect((await runCheck(rankIsMonotonicOnWrites, ctx)).kind).toBe("unresolved");
       expect(sent.map((s) => s.method)).toEqual(["POST", "POST"]);
@@ -137,6 +151,7 @@ describe("auth.rank-is-monotonic-on-writes without a verdict to compare", () => 
         actors: [owner, viewer],
       },
     );
+
     expect(await runCheck(rankIsMonotonicOnWrites, ctx)).toEqual({
       kind: "stood-down",
       reason: "a create operation with a request body, to make a record this check may change",
@@ -152,6 +167,7 @@ describe("auth.rank-is-monotonic-on-writes with nothing to try", () => {
       policy(() => true),
       { actors: [owner, viewer] },
     );
+
     expect(await runCheck(rankIsMonotonicOnWrites, ctx)).toEqual({ kind: "asserted" });
     expect(sent).toEqual([]);
   });
@@ -164,14 +180,14 @@ describe("auth.rank-is-monotonic-on-writes with nothing to try", () => {
 
   it("stands down without principals, a create, or two ranks in one tenant", () => {
     const backend = policy(() => true);
+
     for (const fields of [
       { actors: [] },
       { actors: [owner, viewer], createOp: undefined },
       { actors: [owner, stranger] },
       { actors: [owner, guest] },
-    ]) {
+    ])
       expect(rankIsMonotonicOnWrites.plan(notesContext(modelWith(), backend, fields).ctx)).toEqual({ ok: false });
-    }
   });
 
   it("grades the entity's create, update and delete", () => {

@@ -6,6 +6,7 @@ import { createProgressPrinter, createProgressPump, HEARTBEAT_MS, progressEventK
 import type { ProgressSnapshot } from "./types.ts";
 
 const START = Date.parse("2030-01-01T00:00:00Z");
+
 const snap = (over: Partial<ProgressSnapshot> = {}): ProgressSnapshot => ({
   elapsedMs: 0,
   findings: 0,
@@ -13,6 +14,7 @@ const snap = (over: Partial<ProgressSnapshot> = {}): ProgressSnapshot => ({
   requests: 0,
   ...over,
 });
+
 const LAST = {
   at: START,
   durationMs: 1,
@@ -35,6 +37,7 @@ afterEach(() => {
 describe("progressEventKey", () => {
   it("changes with the phase, entity, check, message, call on the wire, and last call", () => {
     expect(progressEventKey(snap())).toBe("test|||||");
+
     const full = snap({
       check: "c",
       entity: "e",
@@ -42,6 +45,7 @@ describe("progressEventKey", () => {
       last: { ...LAST, at: 7 },
       message: "m",
     });
+
     expect(progressEventKey(full)).toBe("test|e|c|m|GET u 5|7");
   });
 });
@@ -52,6 +56,7 @@ describe("createProgressPump, on emit", () => {
     const pump = createProgressPump(START, (s) => writes.push(s.phase));
     pump.emit(snap());
     pump.emit(snap());
+
     for (const phase of ["load", "auth", "done"] as const) pump.emit(snap({ phase }));
     pump.emit(snap({ phase: "done" }));
     pump.emit(snap({ phase: "seed" }));

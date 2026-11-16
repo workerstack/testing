@@ -14,8 +14,8 @@ function componentSchemas(ctx: SpecContext): Json {
     required: ["x", "y"],
     type: "object",
   };
-  /* Recursive: a node's children are nodes. Real documents describe trees, comment threads and
-   * org charts this way, and nothing about it is unusual — except to a tool that inlines refs. */
+  // Recursive: a node's children are nodes. Real documents describe trees, comment threads and
+  // org charts this way, and nothing about it is unusual — except to a tool that inlines refs.
   schemas["TreeNode"] = {
     properties: {
       children: { items: { $ref: "#/components/schemas/TreeNode" }, type: "array" },
@@ -24,11 +24,12 @@ function componentSchemas(ctx: SpecContext): Json {
     required: ["name"],
     type: "object",
   };
-  /* The search's discriminated union refers to its branches here, where a discriminator's mapping can name them. */
+  // The search's discriminated union refers to its branches here, where a discriminator's mapping can name them.
   Object.assign(schemas, paymentSchemas());
-  if (ctx.shape.specLayout === true) {
+
+  if (ctx.shape.specLayout === true)
     for (const entity of ctx.entities) schemas[schemaName(entity)] = itemSchema(entity);
-  }
+
   return schemas;
 }
 

@@ -3,10 +3,8 @@ import { describe, expect, it } from "vitest";
 import { DAMAGES_BYSTANDERS } from "../reference/defects/bystanders.ts";
 import type { TeardownReport } from "../runtime/teardown/types.ts";
 import { damagedBystanders, ledgeredNotCreated, leftBehind, unreportedLeftovers } from "./leaks.ts";
-/*
- * A record left behind is a fault in the API tester unless the API tester said so: teardown names it as failed, or a
- * create the API tester could not identify accounts for it. Anything else left in the backend is silent litter.
- */
+// A record left behind is a fault in the API tester unless the API tester said so: teardown names it as failed, or a
+// create the API tester could not identify accounts for it. Anything else left in the backend is silent litter.
 
 const report = (over: Partial<TeardownReport>): TeardownReport => ({
   failed: [],
@@ -16,6 +14,7 @@ const report = (over: Partial<TeardownReport>): TeardownReport => ({
   unsupported: [],
   ...over,
 });
+
 const unknown = (entity: string, seq: number) => ({
   entity,
   method: "POST",
@@ -46,19 +45,19 @@ describe("unreportedLeftovers", () => {
   });
 });
 
-/*
- * Two rules every conformance case is held to, beside "leaves nothing behind": the API tester never deletes
- * or changes a record it did not create, and every id it ledgered for teardown is one the backend
- * created during the run. The second is what an id the API tester merely sent breaks.
- */
+// Two rules every conformance case is held to, beside "leaves nothing behind": the API tester never deletes
+// or changes a record it did not create, and every id it ledgered for teardown is one the backend
+// created during the run. The second is what an id the API tester merely sent breaks.
 
 describe("leftBehind", () => {
   it("names every live row present after the run and absent before it", () => {
     const before = { note: [{ id: 1 }] };
+
     const after = {
       note: [{ id: 1 }, { id: 2 }, { deleted_at: "2026-01-01", id: 3 }, { deleted_at: null, id: 4 }],
       tag: [{ id: "t1" }],
     };
+
     expect(leftBehind(before, after)).toEqual(["note 2", "note 4", "tag t1"]);
   });
 
@@ -85,6 +84,7 @@ describe("damagedBystanders", () => {
         { deleted_at: "2026-10-15T00:00:00Z", id: "t4", name: "tombstoned" },
       ],
     };
+
     expect(damagedBystanders(before, after)).toEqual([
       "table t2 changed name",
       "table t3 deleted",
@@ -117,6 +117,7 @@ describe("ledgeredNotCreated", () => {
       { entity: "tag", id: "n2" },
       { entity: "label", id: "g1" },
     ];
+
     expect(ledgeredNotCreated(records, created)).toEqual(["note n9", "tag n2", "label g1"]);
   });
 

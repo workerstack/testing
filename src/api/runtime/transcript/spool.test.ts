@@ -30,6 +30,7 @@ describe("transcript bodies past the memory budget", () => {
     const budget = 64 * 1024;
     const spool = new BodySpool({ memoryBytes: budget });
     const kept: Exchange[] = [];
+
     for (let seq = 1; seq <= 500; seq++) {
       const sent = { ...exchange(seq, { rows: "x".repeat(8 * 1024) }), responseBytes: 8 * 1024 };
       kept.push(sent);
@@ -37,6 +38,7 @@ describe("transcript bodies past the memory budget", () => {
       const resident = kept.filter((each) => !isSpooledBody(each.responseBody)).length;
       expect(resident * 8 * 1024).toBeLessThanOrEqual(budget);
     }
+
     expect((await spool.hydrate(kept[0] as Exchange)).responseBody).toEqual({ rows: "x".repeat(8 * 1024) });
     await spool.dispose();
   });
@@ -45,9 +47,10 @@ describe("transcript bodies past the memory budget", () => {
     const spool = new BodySpool({ memoryBytes: 100 });
     const sent = Array.from({ length: 8 }, (_, index) => exchange(index + 1, { rows: String(index).repeat(80) }));
     await Promise.all(sent.map((each) => spool.keep(each)));
-    for (const [index, each] of sent.entries()) {
+
+    for (const [index, each] of sent.entries())
       expect((await spool.hydrate(each)).responseBody).toEqual({ rows: String(index).repeat(80) });
-    }
+
     await spool.dispose();
   });
 });
@@ -79,6 +82,7 @@ describe("spooled bodies, at the edges", () => {
 describe("spooled bodies on disk", () => {
   it("are never written in the clear: a login's tokens moved out of memory stay unreadable there", async () => {
     const root = mkdtempSync(join(tmpdir(), "testing-spool-root-"));
+
     try {
       const spool = new BodySpool({ dir: root, memoryBytes: 100 });
       const login = { access_token: "acc-9f8e7d6c5b", refresh_token: "ref-1a2b3c4d5e", pad: "p".repeat(80) };
@@ -86,13 +90,16 @@ describe("spooled bodies on disk", () => {
       await spool.keep(first);
       await spool.keep(exchange(2, { rows: "b".repeat(80) }));
       expect(isSpooledBody(first.responseBody)).toBe(true);
+
       const written = readdirSync(root, { recursive: true, withFileTypes: true })
         .filter((entry) => entry.isFile())
         .map((entry) => readFileSync(join(entry.parentPath, entry.name), "latin1"));
+
       expect(written).toHaveLength(1);
-      for (const secret of ["acc-9f8e7d6c5b", "ref-1a2b3c4d5e", "key_alpha"]) {
+
+      for (const secret of ["acc-9f8e7d6c5b", "ref-1a2b3c4d5e", "key_alpha"])
         expect(written.some((text) => text.includes(secret))).toBe(false);
-      }
+
       const back = await spool.hydrate(first);
       expect([back.responseBody, back.requestBody]).toEqual([login, { key: "key_alpha" }]);
       await spool.dispose();
@@ -102,19 +109,20 @@ describe("spooled bodies on disk", () => {
   });
 });
 
-/* Every file the spool under `root` wrote, by path. */
+// Every file the spool under `root` wrote, by path.
 function spooled(root: string): string[] {
   return readdirSync(root, { recursive: true, withFileTypes: true })
     .filter((entry) => entry.isFile())
     .map((entry) => join(entry.parentPath, entry.name));
 }
 
-/* A spool under a fresh root that has moved one body, `body`, to disk. */
+// A spool under a fresh root that has moved one body, `body`, to disk.
 async function oneSpooled(root: string, body: unknown): Promise<{ spool: BodySpool; first: Exchange }> {
   const spool = new BodySpool({ dir: root, memoryBytes: 100 });
   const first = exchange(1, body);
   await spool.keep(first);
   await spool.keep(exchange(2, { rows: "b".repeat(80) }));
+
   return { first, spool };
 }
 
@@ -123,6 +131,7 @@ describe("spooled bodies, sealed", () => {
 
   it("never write the same bytes twice for the same body: a fresh nonce, a key of each spool's own", async () => {
     const root = mkdtempSync(join(tmpdir(), "testing-spool-seal-"));
+
     try {
       const one = await oneSpooled(root, body);
       const [first] = spooled(root);
@@ -131,8 +140,9 @@ describe("spooled bodies, sealed", () => {
       expect(readFileSync(first as string).equals(readFileSync(second))).toBe(false);
       await one.spool.dispose();
       await two.spool.dispose();
-      /* Within one spool, under one key, the nonce alone keeps the same body apart. */
+      // Within one spool, under one key, the nonce alone keeps the same body apart.
       const same = new BodySpool({ dir: root, memoryBytes: 100 });
+
       for (const seq of [1, 2, 3]) await same.keep(exchange(seq, body));
       const [a, b] = spooled(root).map((path) => readFileSync(path)) as [Buffer, Buffer];
       expect(a.equals(b)).toBe(false);
@@ -144,6 +154,7 @@ describe("spooled bodies, sealed", () => {
 
   it("throws on a file altered or cut short, never decrypting it to garbage", async () => {
     const root = mkdtempSync(join(tmpdir(), "testing-spool-tamper-"));
+
     try {
       const { first, spool } = await oneSpooled(root, body);
       const [path] = spooled(root) as [string];
@@ -166,6 +177,7 @@ describe("spooled bodies, when the process exits first", () => {
 
   it("are removed if the process exits before the spool is disposed of, and stop listening once it is", async () => {
     const root = mkdtempSync(join(tmpdir(), "testing-spool-exit-"));
+
     try {
       const before = process.listeners("exit").length;
       const { spool } = await oneSpooled(root, body);
@@ -187,13 +199,14 @@ describe("spooled bodies, when the process exits first", () => {
 describe("a spool disposed of while its directory is still being made", () => {
   it("leaves no exit listener behind", async () => {
     const root = mkdtempSync(join(tmpdir(), "testing-spool-race-"));
+
     try {
       const before = process.listeners("exit").length;
       const spool = new BodySpool({ dir: root, memoryBytes: 100 });
       await spool.keep(exchange(1, { rows: "a".repeat(80) }));
       const spooling = spool.keep(exchange(2, { rows: "b".repeat(80) }));
       await spool.dispose();
-      await spooling.catch(() => undefined);
+      await spooling.catch(() => {});
       expect(process.listeners("exit")).toHaveLength(before);
     } finally {
       rmSync(root, { force: true, recursive: true });

@@ -17,7 +17,9 @@ const EXAMPLE = {
 
 function parsed(raw: unknown): FilterGrammarSpec {
   const result = parseFilterGrammar(raw);
+
   if (!result.ok) throw new Error(result.error);
+
   return result.spec;
 }
 
@@ -25,6 +27,7 @@ const both: readonly FilterPredicate[] = [
   { field: "Qty", op: "eq", value: "2" },
   { field: "Name", op: "eq", value: "x" },
 ];
+
 const unwritable: readonly FilterPredicate[] = [both[0] as FilterPredicate, { field: "Name", op: "ilike", value: "x" }];
 const spec = parsed(EXAMPLE);
 const postgrest: FilterGrammarSpec = FILTER_PRESETS.postgrest;

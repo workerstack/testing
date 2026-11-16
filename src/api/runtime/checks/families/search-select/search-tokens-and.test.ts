@@ -5,17 +5,20 @@ import { backend, NOTES, PARAMS, queryDoc, queryOf, REJECT, stage } from "../com
 import { answering, notPaging } from "./__fixtures__/responders.ts";
 import { searchTokensAnd } from "./search-tokens-and.ts";
 
-/* Searches by the first token alone and drops the rest. */
+// Searches by the first token alone and drops the rest.
 const firstTokenOnly: Responder = (method, path, options) => {
   const query = queryOf(options);
   const first = query["q"]?.split(" ")[0];
+
   return backend()(method, path, { query: first === undefined ? query : { ...query, q: first } });
 };
 
-/* Reads several tokens as OR: any one of them selects a record. */
+// Reads several tokens as OR: any one of them selects a record.
 const tokensAsOr: Responder = (method, path, options) => {
   const query = queryOf(options);
+
   if (query["q"] !== "Alpha Beta") return backend()(method, path, options);
+
   return { body: NOTES.filter((row) => /alpha|beta/i.test(String(row["title"]))), status: 200 };
 };
 
@@ -70,6 +73,7 @@ describe("search.tokens-and plans", () => {
       { id: "c", title: "one" },
       { id: "d", title: "two" },
     ];
+
     expect(stage(searchTokensAnd, { rows }).plan()).toEqual({ ok: true, value: { a: "one", b: "two" } });
   });
 
@@ -90,6 +94,7 @@ describe("search.tokens-and plans", () => {
         PARAMS.filter((name) => name !== "q"),
       ),
     });
+
     expect(await noParam.run()).toEqual({
       kind: "stood-down",
       reason: "searchable fields and two tokens that split the cohort",

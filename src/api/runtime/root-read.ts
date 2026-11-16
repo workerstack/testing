@@ -15,7 +15,9 @@ export const ROOT_READ_CHECK_ID: Extract<CheckId, "read.matches-caller-root"> = 
 
 export function rootReadIds(entity: EntityModel): string[] {
   if (entity.identity !== "root") return [];
+
   if (entity.reads !== undefined && entity.reads.length > 0) return entity.reads;
+
   return entity.read === undefined ? [] : [entity.read];
 }
 
@@ -30,24 +32,31 @@ export async function runRootRead(input: {
 }): Promise<Outcome> {
   const ids = rootReadIds(input.entity);
   const findings = input.findings.attributed(ids).ownedBy(ROOT_READ_CHECK_ID);
+
   for (const id of ids) {
     const op = input.model.byOperationId.get(id);
+
     if (op === undefined) continue;
     const undeclared = noSecurityReason(op);
+
     if (undeclared !== undefined) return findings.unresolved(ROOT_READ_CHECK_ID, input.entity.name, undeclared);
     let path: string;
+
     try {
       path = fillPath(op.path, input.roots);
     } catch {
       return findings.unresolved(ROOT_READ_CHECK_ID, input.entity.name, `${op.operationId} needs a path id`);
     }
+
     const query = dateWindow(op.queryParamNames);
+
     const anonymous = await input.client.request(op.method, path, {
       as: { anonymous: true },
       operationId: op.operationId,
       probe: true,
       ...(query === undefined ? {} : { query }),
     });
+
     if (anonymous.status !== 401) {
       return findings.security(ROOT_READ_CHECK_ID, input.entity.name, {
         summary: "the parent read answered without a token",
@@ -55,11 +64,13 @@ export async function runRootRead(input: {
         evidence: [anonymous],
       });
     }
+
     const read = await input.client.request(op.method, path, {
       as: { principal: input.principal },
       operationId: op.operationId,
       ...(query === undefined ? {} : { query }),
     });
+
     if (read.status !== 200) {
       return findings.backend(ROOT_READ_CHECK_ID, input.entity.name, {
         summary: "the parent read failed",
@@ -68,6 +79,7 @@ export async function runRootRead(input: {
       });
     }
   }
+
   return ASSERTED;
 }
 
@@ -76,6 +88,7 @@ function dateWindow(names: readonly string[]): Record<string, string> | undefine
   if (!names.includes("from") || !names.includes("to")) return undefined;
   const to = new Date();
   const from = new Date(to.getTime() - 7 * 24 * 60 * 60 * 1000);
+
   return { from: from.toISOString(), to: to.toISOString() };
 }
 
@@ -84,6 +97,6 @@ export const rootReadCheck: Check = {
   needs: "x-entity.identity: root and a read",
   plan: () => ({ ok: false }),
   run: (): Promise<Outcome> => Promise.resolve(ASSERTED),
-  /* The entity loop calls `runRootRead` and returns. This entry keeps the id registered. */
+  // The entity loop calls `runRootRead` and returns. This entry keeps the id registered.
   subjects: () => [],
 };

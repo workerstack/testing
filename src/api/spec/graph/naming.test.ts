@@ -15,6 +15,7 @@ const views = (parent: string, param: string) => ({
 const entitiesAfter = (paths: Record<string, unknown>) => {
   const { operations } = operationsOf(paths);
   separateSameNamedCollections(operations);
+
   return operations.map((op) => [op.operationId, op.entity]);
 };
 
@@ -23,6 +24,7 @@ describe("separateSameNamedCollections", () => {
     const model = buildModel(
       dereference(doc({ ...members("projects", "project_id"), ...members("orgs", "org_id") })).doc,
     );
+
     expect([...model.entities.keys()].sort()).toEqual(["org-member", "project-member"]);
     expect(model.entities.get("project-member")?.list).toBe("projects.members.list");
     expect(model.entities.get("org-member")?.create).toBe("orgs.members.create");
@@ -30,9 +32,11 @@ describe("separateSameNamedCollections", () => {
 
   it("names a split collection by its final name when it reports a gap", () => {
     const both = doc({ ...views("projects", "project_id"), ...views("orgs", "org_id") });
+
     const found = buildModel(dereference(both).doc)
       .gaps.gaps.filter((gap) => gap.tag === "x-entity")
       .map((gap) => gap.detail);
+
     expect(found.some((detail) => detail.includes('treats "org-member" as its own entity'))).toBe(true);
     expect(found.some((detail) => detail.includes('treats "member"'))).toBe(false);
   });

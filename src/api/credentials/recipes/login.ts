@@ -11,22 +11,20 @@ import { readAnswer } from "../read.ts";
 import { answered } from "./answer.ts";
 import type { AcquireCtx, Issued } from "./types.ts";
 
-/*
- * Sign in by running the recipe's steps through the run's step runner, once: a failed login is
- * reported, never retried. The credential is what a step saved as `credential` (its latest save, an
- * out-of-band `as` included), else at `from` in the last answer, or a scope key a step saved. `claims` binds token claims or answer paths into the principal's identity. A recipe `refresh` runs its steps
- * with the scope the last run bound plus `credential`, so a rotated refresh token carries forward. A
- * declared `revoke` ends the session by sending exactly its value to that operation. Steps that
- * read a `{name}` nothing fills are refused before anything is sent, naming it. Each identity value a
- * login or refresh step sends is registered as a secret before it is sent, whatever its key is called.
- */
+// Sign in by running the recipe's steps through the run's step runner, once: a failed login is
+// reported, never retried. The credential is what a step saved as `credential` (its latest save, an
+// out-of-band `as` included), else at `from` in the last answer, or a scope key a step saved. `claims` binds token claims or answer paths into the principal's identity. A recipe `refresh` runs its steps
+// with the scope the last run bound plus `credential`, so a rotated refresh token carries forward. A
+// declared `revoke` ends the session by sending exactly its value to that operation. Steps that
+// read a `{name}` nothing fills are refused before anything is sent, naming it. Each identity value a
+// login or refresh step sends is registered as a secret before it is sent, whatever its key is called.
 
 type LoginRevoke = NonNullable<LoginRecipe["revoke"]>;
 
-interface Ran {
+type Ran = {
   scope: Record<string, string>;
   answer: StepAnswer;
-}
+};
 
 /** Signs the principal in by the login recipe; `options` are the recipe's shared options. */
 export async function acquireLogin(ctx: AcquireCtx, login: LoginRecipe, options: Partial<Recipe>): Promise<Issued> {
@@ -41,11 +39,11 @@ export async function acquireLogin(ctx: AcquireCtx, login: LoginRecipe, options:
   );
 }
 
-interface Issuing {
+type Issuing = {
   login: LoginRecipe;
   options: Partial<Recipe>;
   ran: Ran;
-}
+};
 
 async function run(
   ctx: AcquireCtx,
@@ -53,39 +51,47 @@ async function run(
   at: { scope: Record<string, string>; secrets: string[]; what: "login" | "refresh" } & Hop,
 ): Promise<Ran> {
   const unfilled = unfilledIn(steps, Object.keys(at.scope));
+
   if (unfilled !== undefined) {
     throw new Error(
       `${at.what} for "${ctx.principal.id}" reads {${unfilled.name}} at step ${unfilled.step}, ` +
         "which nothing it started from or an earlier step saved fills",
     );
   }
+
   const input = {
     principal: ctx.principal.id,
     scope: at.scope,
     secrets: at.secrets,
     ...(at.probe ? { probe: at.probe } : {}),
   };
+
   const filled = fillPrincipal(ctx.principal, steps);
+
   for (const value of principalValues(ctx.principal, steps.map(sentBy))) ctx.ports.secrets.register(value);
+
   return ctx.ports.steps.run(filled, input);
 }
 
-/* What a step sends, or binds for a later one to send; an out-of-band address never reaches the wire. */
+// What a step sends, or binds for a later one to send; an out-of-band address never reaches the wire.
 function sentBy(step: AuthStep): unknown {
   if ("outOfBand" in step) return null;
+
   return [step.bind, step.body, step.headers, step.query, "path" in step ? step.path : null];
 }
 
-/* Every address a login or its refresh reads a value from: each is a credential, or what renews one. */
+// Every address a login or its refresh reads a value from: each is a credential, or what renews one.
 function secretsOf(login: LoginRecipe, options: Partial<Recipe>): string[] {
   const steps = [...login.steps, ...(options.refresh?.steps ?? [])];
+
   const saved = steps.flatMap((step) =>
     "saveAs" in step && step.saveAs !== undefined ? Object.values(step.saveAs) : [],
   );
+
   return [...new Set([login.from, ...(options.refresh === undefined ? [] : [options.refresh.from]), ...saved])];
 }
 
-/* A step that saves `credential` names the credential itself; `from` is read only when none does. */
+// A step that saves `credential` names the credential itself; `from` is read only when none does.
 function savesCredential(steps: readonly AuthStep[]): boolean {
   return steps.some((step) =>
     "outOfBand" in step ? step.outOfBand.as === "credential" : step.saveAs?.["credential"] !== undefined,
@@ -95,25 +101,29 @@ function savesCredential(steps: readonly AuthStep[]): boolean {
 function issue(ctx: AcquireCtx, issuing: Issuing, read: { from: string; steps: readonly AuthStep[] }): Issued {
   const { login, options, ran } = issuing;
   const { from } = read;
+
   const value = savesCredential(read.steps)
     ? ran.scope["credential"]
     : (readAnswer(ran.answer, from) ?? ran.scope[from]);
+
   if (value === undefined || value === "") {
     const type = describeAnswerType(ran.answer.headers);
     throw new Error(`login for "${ctx.principal.id}" answered no credential at ${from} (${type})`);
   }
+
   const expiresAt = expiresAtOf({ body: answerBody(ran.answer), expiresIn: options.expiresIn, now: ctx.now(), value });
   const issued: Issued = { expiresAt, value };
+
   if (login.claims !== undefined) issued.identity = claimsOf(ctx, login.claims, { ...ran, value });
   const { revoke } = login;
+
   if (revoke !== undefined) issued.revoke = () => revokeSession(ctx, { ran, revoke, value });
+
   return renewable(ctx, issuing, issued);
 }
 
-/*
- * Ends one session: its revoke operation, sent with exactly that session's value, which fills the
- * body too. A 401 counts as revoked; any other refusal is a session the run could not end.
- */
+// Ends one session: its revoke operation, sent with exactly that session's value, which fills the
+// body too. A 401 counts as revoked; any other refusal is a session the run could not end.
 async function revokeSession(
   ctx: AcquireCtx,
   session: { ran: Ran; revoke: LoginRevoke; value: string },
@@ -124,20 +134,24 @@ async function revokeSession(
   const call = { as, operationId, scope: { ...ran.scope, credential: value }, value };
   const sent = body === undefined ? call : { ...call, body: fillCredential(body, value) };
   const answer = await ctx.ports.operations.call(sent);
-  /* It carried the very session it ends: a 401 says that session is unusable already, which is the revoke's aim. */
+
+  // It carried the very session it ends: a 401 says that session is unusable already, which is the revoke's aim.
   if (answer.status !== 401) answered(answer, `revoke ${operationId}`);
 }
 
-/* The recipe's declared refresh, run with the scope the credential came with plus the credential itself. */
+// The recipe's declared refresh, run with the scope the credential came with plus the credential itself.
 function renewable(ctx: AcquireCtx, issuing: Issuing, issued: Issued): Issued {
   const refresh = issuing.options.refresh;
+
   if (refresh === undefined) return issued;
   issued.refresh = async (hop = {}) => {
     const scope = { ...issuing.ran.scope, credential: issued.value };
     const secrets = secretsOf(issuing.login, issuing.options);
     const renewed = await run(ctx, refresh.steps, { scope, secrets, what: "refresh", ...hop });
+
     return issue(ctx, { ...issuing, ran: renewed }, refresh);
   };
+
   return issued;
 }
 
@@ -159,16 +173,15 @@ export function heldLogin(
   const ran = { answer: { body: undefined, cookies: {}, headers: {}, status: 200 }, scope: { ...held.scope } };
   const given = [...Object.keys(held.scope), "credential"];
   const { refresh } = options;
-  if (held.replaced !== undefined && refresh !== undefined && unfilledIn(refresh.steps, given) !== undefined) {
+
+  if (held.replaced !== undefined && refresh !== undefined && unfilledIn(refresh.steps, given) !== undefined)
     return { expiresAt, refresh: held.replaced, value };
-  }
+
   return renewable(ctx, { login: options.login as LoginRecipe, options, ran }, { expiresAt, value });
 }
 
-/*
- * A `$` path reads the answer body, as `from` does; any other value names a claim of the token,
- * which must then be a JWT. Either one missing is refused, naming it.
- */
+// A `$` path reads the answer body, as `from` does; any other value names a claim of the token,
+// which must then be a JWT. Either one missing is refused, naming it.
 function claimsOf(
   ctx: AcquireCtx,
   claims: Record<string, string>,
@@ -177,26 +190,34 @@ function claimsOf(
   const who = `login for "${ctx.principal.id}"`;
   const named = Object.values(claims).some((claim) => !claim.startsWith("$"));
   const decoded = named ? jwtClaims(issued.value) : {};
+
   if (decoded === null) throw new Error(`${who} binds claims, but its credential is not a JWT`);
   const identity: Record<string, string> = {};
+
   for (const [name, path] of Object.entries(claims)) {
     if (path.startsWith("$")) {
       const found = readAnswer(issued.answer, path);
+
       if (found === undefined) {
         const type = describeAnswerType(issued.answer.headers);
         throw new Error(`${who} binds ${name} to "${path}", which the answer does not carry (${type})`);
       }
+
       identity[name] = found;
       continue;
     }
+
     const claim = readPath(decoded, path);
+
     if (claim === undefined || claim === null) {
       throw new Error(
         `${who} binds ${name} to claim "${path}", which the token does not carry ` +
           `(it has ${Object.keys(decoded).join(", ")})`,
       );
     }
+
     identity[name] = String(claim);
   }
+
   return identity;
 }

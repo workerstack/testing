@@ -8,16 +8,15 @@ import type { RunOptions } from "../types.ts";
 import { runChecks } from "./check-loop.ts";
 import type { Check } from "./run-check.ts";
 
-/*
- * Every check on an entity, in order: readers batched together, a writer alone, a check whose
- * premise already failed suppressed — transitively, naming the root cause — and a check that does
- * not apply recorded, never dropped.
- */
+// Every check on an entity, in order: readers batched together, a writer alone, a check whose
+// premise already failed suppressed — transitively, naming the root cause — and a check that does
+// not apply recorded, never dropped.
 
 async function looped(checks: readonly Check[], extra: Partial<RunOptions> = {}, doc: OpenApiDocument = notesDoc()) {
   const ctx = await contextOf(optionsFor(notesApi(doc), extra));
   const loop = await loopOf(ctx);
   await runChecks(loop.run, loop.context, checks);
+
   return ctx;
 }
 
@@ -36,6 +35,7 @@ function traced(id: string, log: string[], extra: { mutates?: boolean; dependsOn
       log.push(`${id}+`);
       await new Promise((resolve) => setTimeout(resolve, 1));
       log.push(`${id}-`);
+
       return { kind: "asserted" };
     },
   });
@@ -77,6 +77,7 @@ describe("runChecks suppression", () => {
       checkOf({ dependsOn: ["mid"], id: "leaf" }),
       checkOf({ dependsOn: ["clean"], id: "fine" }),
     ]);
+
     expect(ctx.state.checksSuppressed).toEqual([
       { because: "root", check: "mid", entity: "note" },
       { because: "root", check: "leaf", entity: "note" },
@@ -99,6 +100,7 @@ describe("runChecks suppression", () => {
       checkOf({ id: "shy", run: async () => ({ kind: "stood-down", reason: "nothing" }) }),
       checkOf({ dependsOn: ["shy"], id: "after" }),
     ]);
+
     expect(ctx.state.checksSuppressed).toEqual([]);
     expect(ctx.state.checksRun.has("after")).toBe(true);
   });
@@ -111,6 +113,7 @@ describe("runChecks planning", () => {
       checkOf({ id: "own", needs: "a search field", plan: { ok: false } }),
       checkOf({ id: "silent", plan: { ok: false } }),
     ]);
+
     expect(ctx.state.checksSkipped.map((skip) => skip.needs)).toEqual([
       "an update route",
       "a search field",
@@ -124,16 +127,20 @@ describe("runChecks planning", () => {
   });
 
   it("names the parameter a check needed when the list declares none to carry it", async () => {
-    /* The list says it sorts by `title`, but declares no sort parameter: no order can be sent. */
+    // The list says it sorts by `title`, but declares no sort parameter: no order can be sent.
     const doc = structuredClone(notesDoc()) as unknown as {
       paths: Record<string, Record<string, Record<string, unknown>>>;
     };
+
     const listed = doc.paths["/notes"]?.["get"];
+
     if (listed !== undefined) listed["x-query"] = { sortable: ["title"] };
+
     const sorts: Check = {
       ...checkOf({ id: "sorts", needs: "a sortable field" }),
       plan: (ctx) => ((ctx.query?.sortable.length ?? 0) > 0 ? { ok: true, value: null } : { ok: false }),
     };
+
     const ctx = await looped([sorts], {}, doc as unknown as OpenApiDocument);
     expect(ctx.state.checksSkipped.map((skip) => skip.needs)).toEqual([
       "a sort parameter, which the list operation does not declare",
@@ -144,6 +151,7 @@ describe("runChecks planning", () => {
     const ctx = await looped([checkOf({ id: "other", subjects: ["notes.get"] }), checkOf({ id: "kept" })], {
       ops: ["notes.list"],
     });
+
     expect(ctx.state.checksOutOfScope).toEqual([{ check: "other", entity: "note" }]);
     expect(ctx.state.checksRun.has("kept")).toBe(true);
   });
@@ -153,6 +161,7 @@ describe("runChecks planning", () => {
       profile: "p",
       profiles: { p: { exclude: ["notes.update"] } },
     });
+
     expect(ctx.grades.ran.has("notes.update")).toBe(false);
     expect(ctx.grades.ran.has("notes.list")).toBe(true);
   });

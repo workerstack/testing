@@ -7,20 +7,21 @@ import type { WriteContext } from "../../core/context.ts";
 import { baseDocument, routes, withOperation } from "./__fixtures__/documents.ts";
 import { asyncReceiptIsResolvable as check } from "./async-receipt-identifies-the-job.ts";
 
-/*
- * The check judges traffic other checks already sent: each test sends the start through the fake
- * client first, as the async lifecycle check would, then asks this one about the transcript.
- */
+// The check judges traffic other checks already sent: each test sends the start through the fake
+// client first, as the async lifecycle check would, then asks this one about the transcript.
 
 const doc = withOperation(baseDocument(), "post /jobs", {
   operationId: "startJob",
   "x-async": { idFrom: "$.job.id", poll: "getJob" },
 });
+
 withOperation(doc, "post /orgs/{org}/jobs", {
   operationId: "startOrgJob",
   "x-async": { idFrom: "$.id", poll: "getJob" },
 });
+
 withOperation(doc, "post /exports", { operationId: "startExport", "x-async": { poll: "getJob" } });
+
 const model = modelOf(doc);
 const startJob = op(model, "startJob");
 
@@ -32,6 +33,7 @@ async function judged(
   const stage = contextFor(model, "listWidgets", { respond, fields: { asyncOps } });
   await send(stage.ctx);
   const outcome = await check.run(stage.ctx, undefined);
+
   return { ...stage, outcome };
 }
 
@@ -43,7 +45,8 @@ const acknowledged = () => ({ body: {}, status: 202 });
 describe("plan", () => {
   it("applies only when some async operation names where its job id is", () => {
     const plan = (asyncOps: OperationModel[]) =>
-      check.plan(contextFor(model, "listWidgets", { respond: () => undefined, fields: { asyncOps } }).ctx).ok;
+      check.plan(contextFor(model, "listWidgets", { respond: () => {}, fields: { asyncOps } }).ctx).ok;
+
     expect(plan([])).toBe(false);
     expect(plan([op(model, "startExport")])).toBe(false);
     expect(plan([op(model, "startExport"), startJob])).toBe(true);
@@ -81,10 +84,12 @@ describe("run, among several exchanges", () => {
   it("judges the first successful start, not an earlier refusal", async () => {
     let calls = 0;
     const respond = () => (calls++ === 0 ? { status: 409 } : { body: { job: { id: "j1" } }, status: 202 });
+
     const { findings } = await judged(respond, async (ctx) => {
       await start(ctx);
       await start(ctx);
     });
+
     expect(findings.findings).toEqual([]);
     expect(findings.inconclusive).toEqual([]);
   });
@@ -108,9 +113,10 @@ describe("run, among several exchanges", () => {
 
   it("says nothing when the operation was never started", async () => {
     const { findings } = await judged(
-      () => undefined,
-      async () => undefined,
+      () => {},
+      async () => {},
     );
+
     expect(findings.findings).toEqual([]);
     expect(findings.inconclusive).toEqual([]);
   });
@@ -124,6 +130,7 @@ describe("run, among several exchanges", () => {
       },
       [op(model, "startExport"), op(model, "startOrgJob"), { ...startJob, async: null }],
     );
+
     expect(findings.findings).toEqual([]);
   });
 });

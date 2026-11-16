@@ -16,6 +16,7 @@ describe("documentFixtures", () => {
       expect(fixture.why).not.toBe("");
       expect(fixture.expectOperations).toBeGreaterThanOrEqual(0);
     }
+
     expect(documentFixtures().map((fixture) => fixture.doc["openapi"])).toEqual([
       "3.1.0",
       "3.1.0",

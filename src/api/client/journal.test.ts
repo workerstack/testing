@@ -69,10 +69,13 @@ describe("Journal: a schema verdict taken at capture", () => {
 
   it("keeps the verdict beside a body the transcript holds only by reference, asked of the whole body", async () => {
     const asked: unknown[] = [];
+
     const validateAtCapture = (whole: Exchange) => {
       asked.push(whole.responseBody);
+
       return { errors: ["/rows must be array"] };
     };
+
     const journal = new Journal(new Redactor(), { validateAtCapture });
     await journal.record(exchange(1, big), undefined);
     expect(journal.transcript[0]?.schemaVerdict).toEqual({ errors: ["/rows must be array"] });
@@ -81,12 +84,15 @@ describe("Journal: a schema verdict taken at capture", () => {
 
   it("asks nothing of a body kept whole, and keeps no verdict where none is given", async () => {
     const asked: unknown[] = [];
+
     const journal = new Journal(new Redactor(), {
       validateAtCapture: (whole) => {
         asked.push(whole.seq);
-        return undefined;
+
+        return;
       },
     });
+
     await journal.record(exchange(1), undefined);
     await journal.record(exchange(2, big), undefined);
     expect(asked).toEqual([2]);

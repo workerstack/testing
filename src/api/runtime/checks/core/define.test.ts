@@ -21,6 +21,7 @@ describe("defineCheck", () => {
       run: async (_ctx, plan) => ({ kind: plan.n === 1 ? "passed" : "failed" }) as never,
       subjects: () => [],
     });
+
     expect(defined.id).toBe("list.read-after-write");
     expect(defined.subjects({} as never, {} as never)).toEqual([]);
   });
@@ -32,6 +33,7 @@ describe("defineCheck", () => {
       run: async () => ({ kind: "asserted" }),
       subject: "operation",
     });
+
     expect(defined.plan({ operation: { operationId: "notes.list" } } as never)).toEqual({
       ok: true,
       value: "notes.list",

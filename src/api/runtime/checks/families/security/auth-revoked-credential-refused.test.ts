@@ -6,22 +6,23 @@ import { actorOf, operationContextFor, sender } from "./__fixtures__/operation-c
 import { securedDoc, undeclaredDoc } from "./__fixtures__/secured-api.ts";
 import { revokedCredentialRefused } from "./auth-revoked-credential-refused.ts";
 
-/* A dedicated credential, revoked through its recipe's declared path, must be refused afterwards. */
+// A dedicated credential, revoked through its recipe's declared path, must be refused afterwards.
 
 const model = modelOf(securedDoc());
 const alpha = actorOf("alpha", { scope: { project_id: "proj_a" }, tenant: "proj_a" });
 const JWT = { issue: "auth.login", kind: "login", revoke: "auth.revoke" } as const;
 
-interface Backend {
+type Backend = {
   /** The status a request with the probe credential draws before and after its revoke. */
   before?: number;
   after: number;
   /** Whether the dedicated credential declares a revoke. */
   revocable?: boolean;
-}
+};
 
 function staged(operationId: string, backend: Backend) {
   let revoked = false;
+
   const dedicated = (): DedicatedCredential => ({
     actor: { principal: "alpha#probe-1" },
     owner: "alpha",
@@ -29,8 +30,10 @@ function staged(operationId: string, backend: Backend) {
     value: "probe-token",
     ...(backend.revocable === false ? {} : { revoke: async () => void (revoked = true) }),
   });
+
   const respond = (sent: Sent) =>
     sender(sent) === "alpha#probe-1" ? { status: revoked ? backend.after : (backend.before ?? 200) } : undefined;
+
   return operationContextFor(model, operationId, {
     principals: [alpha],
     probe: { dedicated, recipes: { jwt: JWT } },
@@ -40,7 +43,9 @@ function staged(operationId: string, backend: Backend) {
 
 async function run(stage: ReturnType<typeof staged>) {
   const planned = revokedCredentialRefused.plan(stage.ctx);
+
   if (!planned.ok) throw new Error(planned.needs);
+
   return revokedCredentialRefused.run(stage.ctx, planned.value);
 }
 
@@ -92,6 +97,7 @@ describe("auth.revoked-credential-refused (2)", () => {
   it("is untested when no dedicated credential can be had, or it has no revoke", async () => {
     const none = operationContextFor(model, "auth.revoke", { principals: [alpha], probe: { recipes: { jwt: JWT } } });
     const planned = revokedCredentialRefused.plan(none.ctx);
+
     if (!planned.ok) throw new Error("expected a plan");
     expect(await revokedCredentialRefused.run(none.ctx, planned.value)).toEqual({
       kind: "stood-down",
@@ -113,8 +119,9 @@ describe("auth.revoked-credential-refused (2)", () => {
   });
 });
 
-/* A record beta created in its own project: the probe's target, whose creator expects acceptance. */
+// A record beta created in its own project: the probe's target, whose creator expects acceptance.
 const beta = actorOf("beta", { scope: { project_id: "proj_b" }, tenant: "proj_b" });
+
 const BETA_TARGET = {
   current: { id: "n1" },
   entity: "note",
@@ -124,11 +131,11 @@ const BETA_TARGET = {
   path: "/projects/proj_b/notes/n1",
 };
 
-/* Beta's dedicated credential, which declares a revoke. */
+// Beta's dedicated credential, which declares a revoke.
 const betaCredential = (): DedicatedCredential => ({
   actor: { principal: "beta#probe-1" },
   owner: "beta",
-  revoke: async () => undefined,
+  revoke: async () => {},
   scheme: "jwt",
   value: "probe-token",
 });
@@ -141,6 +148,7 @@ describe("auth.revoked-credential-refused on a record another principal created"
       respond: (sent) => ({ status: sent.options.probe === true ? 401 : 200 }),
       target: BETA_TARGET,
     });
+
     expect(await run(stage)).toEqual({ kind: "asserted" });
     expect(stage.calls.dedicated).toEqual([{ principal: "beta", scheme: "jwt", scopes: [] }]);
     expect(stage.sent.map((s) => [s.path, sender(s)])).toEqual([
@@ -150,12 +158,11 @@ describe("auth.revoked-credential-refused on a record another principal created"
   });
 });
 
-/*
- * Immich's shape: the first read the credential protects needs an `albumId` the document gives no
- * value for, so it can never answer 2xx; a later read needs nothing. `extra` adds more paths.
- */
+// Immich's shape: the first read the credential protects needs an `albumId` the document gives no
+// value for, so it can never answer 2xx; a later read needs nothing. `extra` adds more paths.
 function immichDoc(paths: Record<string, unknown>) {
   const ok = { "200": { description: "ok" } };
+
   return modelOf({
     components: { securitySchemes: { jwt: { scheme: "bearer", type: "http" } } },
     info: { title: "immich", version: "1" },
@@ -164,16 +171,20 @@ function immichDoc(paths: Record<string, unknown>) {
     security: [{ jwt: [] }],
   } as never);
 }
+
 const albumId = { in: "query", name: "albumId", required: true, schema: { format: "uuid", type: "string" } };
+
 const activities = {
   get: { operationId: "getActivities", parameters: [albumId], responses: { "200": { description: "ok" } } },
 };
+
 const me = { get: { operationId: "getMyUser", responses: { "200": { description: "ok" } } } };
 
 describe("auth.revoked-credential-refused on a read the API tester can send", () => {
   it("skips a read with a required query parameter the API tester cannot fill, and concludes on one it can send", async () => {
     const immich = immichDoc({ "/activities": activities, "/users/me": me });
     let revoked = false;
+
     const stage = operationContextFor(immich, "auth.revoke", {
       principals: [alpha],
       probe: {
@@ -187,6 +198,7 @@ describe("auth.revoked-credential-refused on a read the API tester can send", ()
       },
       respond: (sent) => ({ status: sent.path === "/activities" ? 400 : revoked ? 401 : 200 }),
     });
+
     expect(await run(stage)).toEqual({ kind: "asserted" });
     expect(stage.sent.map((s) => [s.method, s.path, s.options.operationId])).toEqual([
       ["GET", "/users/me", "getMyUser"],
@@ -199,6 +211,7 @@ describe("auth.revoked-credential-refused on a read the API tester can send", ()
       principals: [alpha],
       probe: { recipes: { jwt: JWT } },
     });
+
     expect(revokedCredentialRefused.plan(stage.ctx)).toEqual({
       needs: "no read this credential protects that the API tester can send",
       ok: false,

@@ -17,12 +17,12 @@ const ID = "consistency.staleness-within-bound";
 export const STALENESS_TIMING: { clock: WatchClock } = { clock: SYSTEM_CLOCK };
 
 /** One write and how long the read took to show it. */
-interface Measured {
+type Measured = {
   kind: WriteKind;
   path: string;
   bracket: Bracket;
   write: Exchange;
-}
+};
 
 /**
  * After a write, how long a read answers the old value: the read as a client sends it, past no
@@ -35,8 +35,10 @@ export const stalenessWithinBound: Check<{ readOp: OperationModel; kinds: WriteK
 }>({
   plan: (ctx) => {
     const { createOp, readOp } = ctx;
+
     if (createOp === undefined || readOp === undefined) return cannot();
     const kinds = writeKinds(ctx);
+
     return kinds.length === 0
       ? cannot("an update or a delete whose effect the read can show")
       : ready({ kinds, readOp });
@@ -49,12 +51,16 @@ export const stalenessWithinBound: Check<{ readOp: OperationModel; kinds: WriteK
     const boundMs = readOp.consistency?.stalenessMs ?? null;
     const measured: Measured[] = [];
     let refused: Outcome | undefined;
+
     for (const kind of kinds) {
       const step = await measure(ctx, { boundMs, kind, readOp });
+
       if ("outcome" in step) refused ??= step.outcome;
       else measured.push(step);
     }
+
     if (measured.length === 0) return refused ?? standDown("no write could be measured");
+
     return judge(ctx, measured, boundMs);
   },
 });
@@ -64,22 +70,26 @@ async function measure(
   ask: { kind: WriteKind; readOp: OperationModel; boundMs: number | null },
 ): Promise<Step<Measured>> {
   const written = await primedWrite(ctx, { check: ID, kind: ask.kind, readOp: ask.readOp });
+
   if ("outcome" in written) return written;
   const capMs = watchCapMs(ask.boundMs);
   let pastStatus = 0;
+
   const bracket = await watchUntilFresh({
     capMs,
     clock: STALENESS_TIMING.clock,
     fresh: written.shows,
     read: () => ctx.client.get(written.path, { ...readAfter(written), as: { principal: ctx.actor.id }, cache: "use" }),
     schedule: stalenessSchedule(capMs),
-    /* A stale read is a cache's doing only if a read past every cache shows the write. */
+    // A stale read is a cache's doing only if a read past every cache shows the write.
     showsPastCache: async () => {
       const past = await ctx.client.get(written.path, { ...readAfter(written), as: { principal: ctx.actor.id } });
       pastStatus = past.status;
+
       return written.shows(past);
     },
   });
+
   if (bracket.neverTook) {
     return {
       outcome: standDown(
@@ -87,6 +97,7 @@ async function measure(
       ),
     };
   }
+
   return { bracket, kind: ask.kind, path: written.path, write: written.write };
 }
 
@@ -94,28 +105,35 @@ async function measure(
 function cacheEvidence(stale: Exchange | null): string {
   if (stale === null) return "";
   const { ageS, status } = readCacheSignals(stale.responseHeaders);
+
   const said = [
     ...status.map((entry) => `Cache-Status ${entry.cache} ${entry.hit ? "hit" : `fwd=${entry.fwd ?? "?"}`}`),
     ...(ageS === null ? [] : [`Age ${ageS}`]),
   ];
+
   return said.length === 0 ? "" : `; the stale answer said ${said.join(", ")}`;
 }
 
 function windowOf({ bracket, kind }: Measured): string {
   if (bracket.staleAtMs === null) return `after the ${kind} the read showed it at once`;
+
   if (bracket.freshAtMs === null) return `after the ${kind} the read was still stale at ${bracket.staleAtMs}ms`;
+
   return `after the ${kind} the read showed it at ${bracket.freshAtMs}ms (still stale at ${bracket.staleAtMs}ms)`;
 }
 
 function judge(ctx: WriteContext, measured: readonly Measured[], boundMs: number | null): Outcome {
   const windows = measured.map(windowOf).join("; ");
+
   if (boundMs === null) return asserted(`${windows}; no staleness is declared, so the window is reported, not judged`);
   const over = measured.find((m) => m.bracket.freshAtMs === null);
+
   if (over === undefined) return asserted(`${windows}, within the declared ${boundMs}ms`);
-  /* Stale at the longest watch, still short of a longer bound: noted, never judged past it. */
-  if ((over.bracket.staleAtMs ?? 0) < boundMs) {
+
+  // Stale at the longest watch, still short of a longer bound: noted, never judged past it.
+  if ((over.bracket.staleAtMs ?? 0) < boundMs)
     return asserted(`${windows}, the longest the API tester watches; the declared ${boundMs}ms is not judged past it`);
-  }
+
   return ctx.findings.backend(ID, ctx.entityName, {
     detail:
       `${windowOf(over)}: GET ${over.path} answered the old ${over.kind === "delete" ? "record" : "value"} ` +

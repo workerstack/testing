@@ -21,7 +21,7 @@ describe("readResponsePayload", () => {
       parsed: { a: 1 },
     });
     expect(await readResponsePayload(answer("plain"))).toEqual({ bodyBytes: 5, parsed: "plain" });
-    /* Bytes carry no Content-Type of their own: the body is read as UTF-8 text. */
+    // Bytes carry no Content-Type of their own: the body is read as UTF-8 text.
     expect(await readResponsePayload(answer(utf8Encode("[1]")))).toEqual({ bodyBytes: 3, parsed: [1] });
     expect(await readResponsePayload(answer(null, "application/json"))).toEqual({ bodyBytes: 0, parsed: null });
   });

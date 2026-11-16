@@ -15,6 +15,7 @@ const steps: [AuthStep, ...AuthStep[]] = [
     saveAs: { refreshToken: "$.refresh" },
   },
 ];
+
 const login: LoginRecipe = { from: "$.token", steps };
 
 describe("acquireLogin", () => {
@@ -22,6 +23,7 @@ describe("acquireLogin", () => {
     const { ports, recorded } = fakePorts({
       run: () => Promise.resolve({ answer: answerOf({ token: "t1" }), scope: { refreshToken: "r1" } }),
     });
+
     const issued = await acquireLogin(ctxOf(ports), login, {});
     expect([issued.value, issued.expiresAt, issued.refresh, issued.identity]).toEqual([
       "t1",
@@ -81,13 +83,17 @@ describe("acquireLogin: identity values it sends", () => {
       id: "ann",
       identity: { handle: "ann-h", key: "key_ann", org: "org-1", phone: "+1555", q: "q-1" },
     };
+
     let before: string[] = [];
+
     const { ports, recorded } = fakePorts({
       run: () => {
         before = [...recorded.secrets];
+
         return ok();
       },
     });
+
     const sending: LoginRecipe = {
       from: "$.token",
       steps: [
@@ -101,6 +107,7 @@ describe("acquireLogin: identity values it sends", () => {
         { bind: { who: "{principal.key}" }, method: "POST", path: "/users/{principal.handle}" },
       ],
     };
+
     await acquireLogin(ctxOf(ports, { principal }), sending, {});
     expect(before).toEqual(["key_ann", "org-1", "q-1", "ann-h"]);
     expect(recorded.secrets).toEqual(before);
@@ -108,15 +115,19 @@ describe("acquireLogin: identity values it sends", () => {
 
   it("registers what the refresh steps send when they run, a held credential's refresh included", async () => {
     const { ports, recorded } = fakePorts({ run: ok });
+
     const refreshSteps: [AuthStep, ...AuthStep[]] = [
       { body: { as: "{principal.email}" }, operationId: "auth.refresh" },
     ];
+
     const refresh = { from: "$.token", steps: refreshSteps };
+
     const issued = await acquireLogin(
       ctxOf(ports),
       { from: "$.token", steps: [{ operationId: "auth.login" }] },
       { refresh },
     );
+
     expect(recorded.secrets).toEqual([]);
     await (issued.refresh as () => Promise<unknown>)();
     expect(recorded.secrets).toEqual(["ann@x.io"]);
@@ -131,10 +142,12 @@ describe("acquireLogin: identity values and the redactor", () => {
     const redactor = new Redactor();
     const { ports } = fakePorts({ register: (value) => redactor.registerSecret(value), run: ok });
     const principal = { id: "ann", identity: { key: "key_alpha", pin: "abc" } };
+
     const recipe: LoginRecipe = {
       from: "$.token",
       steps: [{ body: { key: "{principal.key}", pin: "{principal.pin}" }, operationId: "auth.token" }],
     };
+
     await acquireLogin(ctxOf(ports, { principal }), recipe, {});
     expect(redactor.text("abc: a cabcade for key_alpha")).toBe(`abc: a cabcade for ${REDACTED}`);
   });
@@ -177,9 +190,11 @@ describe("acquireLogin: claims", () => {
 
   it("refuses claims from a value that is not a JWT, or a claim it does not carry", async () => {
     const answers = [answerOf({ token: "opaque" }), answerOf({ token: jwtOf({ sub: "u" }) })];
+
     const { ports } = fakePorts({
       run: () => Promise.resolve({ answer: answers.shift() ?? answerOf({}), scope: {} }),
     });
+
     const recipe = { ...login, claims: { tenant: "org_id" } };
     expect((await rejection(acquireLogin(ctxOf(ports), recipe, {}))).message).toBe(
       'login for "ann" binds claims, but its credential is not a JWT',
@@ -195,6 +210,7 @@ describe("acquireLogin: lifetime", () => {
     const { ports } = fakePorts({
       run: () => Promise.resolve({ answer: answerOf({ expires: 60, token: "t" }), scope: {} }),
     });
+
     expect((await acquireLogin(ctxOf(ports), login, { expiresIn: { from: "$.expires" } })).expiresAt).toBe(
       NOW + 60_000,
     );
@@ -216,15 +232,19 @@ describe("acquireLogin: refresh", () => {
       { answer: answerOf({ access: "t2", expires: 30 }), scope: { refreshToken: "r2" } },
       { answer: answerOf({ access: "t3" }), scope: { refreshToken: "r3" } },
     ];
+
     const { ports, recorded } = fakePorts({
       run: () => {
         const next = answers.shift();
+
         return next === undefined ? Promise.reject(new Error("no answer left")) : Promise.resolve(next);
       },
     });
+
     const refreshSteps: [AuthStep, ...AuthStep[]] = [
       { body: { by: "{principal.email}", token: "{refreshToken}" }, operationId: "auth.refresh" },
     ];
+
     const options = { expiresIn: { from: "$.expires" }, refresh: { from: "$.access", steps: refreshSteps } };
     const first = await acquireLogin(ctxOf(ports), login, options);
     const second = await (first.refresh as () => Promise<typeof first>)();
@@ -253,9 +273,11 @@ describe("acquireLogin: a saved credential", () => {
         { method: "GET", path: "{verifyLink}", saveAs: { credential: "cookie:sid" } },
       ],
     };
+
     const { ports } = fakePorts({
       run: () => Promise.resolve({ answer: answerOf({ access_token: "stale" }), scope: { credential: "sid-1" } }),
     });
+
     expect((await acquireLogin(ctxOf(ports), verified, {})).value).toBe("sid-1");
   });
 
@@ -264,20 +286,24 @@ describe("acquireLogin: a saved credential", () => {
       from: "$.token",
       steps: [{ outOfBand: { address: "{principal.email}", as: "credential", kind: "otp" } }],
     };
+
     const { ports } = fakePorts({
       run: () => Promise.resolve({ answer: answerOf({ token: "t1" }), scope: { credential: "mailed" } }),
     });
+
     expect((await acquireLogin(ctxOf(ports), mailed, {})).value).toBe("mailed");
   });
 });
 
-/* A login, then one refresh by `refreshSteps` whose runner leaves `renewed` in scope. */
+// A login, then one refresh by `refreshSteps` whose runner leaves `renewed` in scope.
 function refreshOf(refreshSteps: [AuthStep, ...AuthStep[]], renewed: Record<string, string>) {
   const answers = [
     { answer: answerOf({ token: "t1" }), scope: {} },
     { answer: answerOf({ access: "t2" }), scope: renewed },
   ];
+
   const { ports } = fakePorts({ run: () => Promise.resolve(answers.shift() as (typeof answers)[0]) });
+
   return acquireLogin(ctxOf(ports), login, { refresh: { from: "$.access", steps: refreshSteps } });
 }
 
@@ -299,6 +325,7 @@ describe("acquireLogin: refresh as a probe", () => {
     const { ports, recorded } = fakePorts({
       run: () => Promise.resolve({ answer: answerOf({ token: "t1" }), scope: {} }),
     });
+
     const refreshSteps: [AuthStep, ...AuthStep[]] = [{ operationId: "auth.refresh" }];
     const refresh = { from: "$.token", steps: refreshSteps };
     const issued = await acquireLogin(ctxOf(ports), login, { refresh });
@@ -313,6 +340,7 @@ describe("acquireLogin: revoke", () => {
       call: () => Promise.resolve(answerOf({}, 204)),
       run: () => Promise.resolve({ answer: answerOf({ token: "t1" }), scope: { refreshToken: "r1" } }),
     });
+
     const issued = await acquireLogin(ctxOf(ports), { ...login, revoke: "auth.logout" }, {});
     await issued.revoke?.();
     expect(recorded.calls).toEqual([
@@ -330,6 +358,7 @@ describe("acquireLogin: revoke", () => {
       call: () => Promise.resolve(answerOf({}, 200)),
       run: () => Promise.resolve({ answer: answerOf({ token: "t1" }), scope: {} }),
     });
+
     const revoke = { body: { token: "{credential}" }, operationId: "auth.revoke" };
     await (await acquireLogin(ctxOf(ports), { ...login, revoke }, {})).revoke?.();
     expect(recorded.calls[0]).toMatchObject({ body: { token: "t1" }, operationId: "auth.revoke", value: "t1" });
@@ -337,10 +366,12 @@ describe("acquireLogin: revoke", () => {
 
   it("counts a 401 as revoked, since it carried that very session, and fails on any other refusal", async () => {
     const statuses = [401, 403, 500];
+
     const { ports } = fakePorts({
       call: () => Promise.resolve(answerOf({}, statuses.shift() ?? 200)),
       run: () => Promise.resolve({ answer: answerOf({ token: "t1" }), scope: {} }),
     });
+
     const issued = await acquireLogin(ctxOf(ports), { ...login, revoke: "auth.logout" }, {});
     const revoke = issued.revoke as () => Promise<void>;
     await expect(revoke()).resolves.toBeUndefined();
@@ -360,11 +391,13 @@ describe("heldLogin", () => {
     const { ports, recorded } = fakePorts({
       run: () => Promise.resolve({ answer: answerOf({ token: "t2" }), scope: { refresh_token: "r2" } }),
     });
+
     const held = heldLogin(
       ctxOf(ports),
       { scope: { refresh_token: "r1" }, value: "t1" },
       { expiresIn: 60, login, refresh },
     );
+
     expect([held.value, held.expiresAt]).toEqual(["t1", NOW + 60_000]);
     const renewed = await (held.refresh as () => Promise<{ value: string }>)();
     expect([renewed.value, recorded.runs.map((run) => [run.steps[0], run.scope])]).toEqual([

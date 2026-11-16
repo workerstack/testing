@@ -5,7 +5,7 @@ import { defineProject } from "vitest/config";
 
 import { freePort } from "../../src/web/port.ts";
 
-/* Server HTML rendered in node by the plugin, hydrated in Chromium by the same fixtures compiled hydratable. */
+// Server HTML rendered in node by the plugin, hydrated in Chromium by the same fixtures compiled hydratable.
 export default defineProject({
   plugins: [solid({ refresh: false, solid: { hydratable: true } }), solidHydration()],
   test: {

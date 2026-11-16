@@ -10,20 +10,22 @@ import { accessPrincipal, issueSession, killAll, newAuthState, revokeJwt, rotate
 const [ALPHA, BETA] = PRINCIPALS as [(typeof PRINCIPALS)[0], (typeof PRINCIPALS)[0]];
 const T0 = 1_800_000_000_000;
 
-/* A reference whose clock reads `now.ms`, which a test moves. */
+// A reference whose clock reads `now.ms`, which a test moves.
 async function world(options: ReferenceOptions = {}) {
   const now = { ms: T0 };
   const state = await referenceState({ clock: () => now.ms, ...options }, memoryStore);
+
   return { now, state };
 }
 
-/* The refusal `run` throws: its status and message. */
+// The refusal `run` throws: its status and message.
 function refusal(run: () => unknown): { status: number; message: string } {
   try {
     run();
   } catch (error) {
     if (error instanceof HttpError) return { message: error.message, status: error.status };
   }
+
   throw new Error("no refusal");
 }
 
@@ -75,10 +77,13 @@ describe("issueSession", () => {
 describe("roles", () => {
   it("maps each rank to its role and back: admin 2, member 1, viewer 0", async () => {
     const { state } = await world();
+
     const roundTrip = PRINCIPALS.map((account) => {
       const token = issueSession(state, account).access_token;
+
       return [decodeJwt(state.auth.secret, token)?.claims["role"], accessPrincipal(state, token).rank];
     });
+
     expect(roundTrip).toEqual([
       ["admin", 2],
       ["admin", 2],
@@ -127,6 +132,7 @@ describe("accessPrincipal", () => {
       const family = issueSession(state, ALPHA).access_token;
       state.auth.revoked.add(String(decodeJwt(state.auth.secret, revoked)?.claims["jti"]));
       state.auth.revokedFamilies.add(String(decodeJwt(state.auth.secret, family)?.claims["fam"]));
+
       const outcome = (token: string): string => {
         try {
           return accessPrincipal(state, token).key;
@@ -134,6 +140,7 @@ describe("accessPrincipal", () => {
           return (error as HttpError).message;
         }
       };
+
       const expected = defects.length > 0 ? "key_alpha" : "token revoked";
       expect([revoked, family].map(outcome)).toEqual([expected, expected]);
       state.auth.killed.add("key_alpha");
@@ -194,6 +201,7 @@ describe("killAll", () => {
   it("refuses every account's tokens from then on, re-issued ones included", async () => {
     const { state } = await world();
     killAll(state.auth);
+
     for (const account of PRINCIPALS) {
       expect(refusal(() => accessPrincipal(state, issueSession(state, account).access_token)).message).toBe(
         "token revoked",

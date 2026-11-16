@@ -8,7 +8,7 @@ export type { HttpMethod } from "./methods.ts";
  * A JSON Schema node as a spec states it: the keywords the API tester reads, each still untrusted and checked
  * where it is read. Extensions (`x-*`) and keywords the API tester ignores sit behind the index signature.
  */
-export interface JsonSchema {
+export type JsonSchema = {
   $ref?: unknown;
   $id?: unknown;
   $schema?: unknown;
@@ -59,37 +59,37 @@ export interface JsonSchema {
   writeOnly?: unknown;
   contentEncoding?: unknown;
   contentMediaType?: unknown;
-  /* OpenAPI's own schema keywords. */
+  // OpenAPI's own schema keywords.
   nullable?: unknown;
   example?: unknown;
   discriminator?: unknown;
   xml?: unknown;
   externalDocs?: unknown;
-  /* The API tester's own: the name a file part is sent under. */
+  // The API tester's own: the name a file part is sent under.
   filename?: unknown;
   [extension: string]: unknown;
-}
+};
 
-export interface ParameterObject {
+export type ParameterObject = {
   name: string;
   in: "path" | "query" | "header" | "cookie";
   required?: boolean;
   schema?: JsonSchema;
   description?: string;
   [k: string]: unknown;
-}
+};
 
-export interface MediaTypeObject {
+export type MediaTypeObject = {
   schema?: JsonSchema;
   encoding?: Record<string, { contentType?: string }>;
-}
+};
 
-interface ResponseObject {
+type ResponseObject = {
   description?: string;
   content?: Record<string, MediaTypeObject>;
-}
+};
 
-export interface OperationObject {
+export type OperationObject = {
   operationId?: string;
   summary?: string;
   tags?: string[];
@@ -98,11 +98,11 @@ export interface OperationObject {
   responses?: Record<string, ResponseObject>;
   security?: Array<Record<string, string[]>>;
   [k: `x-${string}`]: unknown;
-}
+};
 
 type PathItemObject = Record<string, OperationObject | unknown>;
 
-export interface OpenApiDocument {
+export type OpenApiDocument = {
   openapi?: string;
   info?: Record<string, unknown>;
   servers?: Array<{ url: string }>;
@@ -110,12 +110,12 @@ export interface OpenApiDocument {
   components?: { schemas?: Record<string, JsonSchema>; securitySchemes?: Record<string, unknown> };
   security?: Array<Record<string, string[]>>;
   [k: `x-${string}`]: unknown;
-}
+};
 
 /** An operation lifted out of the document with its location attached. */
-export interface Endpoint {
+export type Endpoint = {
   operationId: string;
   method: HttpMethod;
   path: string;
   op: OperationObject;
-}
+};

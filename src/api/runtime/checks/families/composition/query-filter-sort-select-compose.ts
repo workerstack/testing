@@ -34,7 +34,9 @@ export const filterSortSelectCompose: Check<
       () =>
         andThen(subsetPlan(ctx), (subset) => {
           const projected = projectionBeside(ctx);
+
           if (projected === null) return cannot("a select grammar that can express a sparse fieldset");
+
           return ready({ ...subset, ...projected, sortField: sortFieldBeside(ctx, subset.field) });
         }),
     ),
@@ -45,8 +47,8 @@ export const filterSortSelectCompose: Check<
     "sort.order-is-applied",
     "select.projection-honored",
     "pagination.page-walk-covers-set",
-    /* Each pair has to hold before "the triple disagrees" means anything. A pair defect
-     * would also break this request, and reporting it again would name the wrong cause. */
+    // Each pair has to hold before "the triple disagrees" means anything. A pair defect
+    // would also break this request, and reporting it again would name the wrong cause.
     "query.axes-compose",
     "query.filter-and-select-compose",
     "query.filter-selects-from-whole-set",
@@ -60,12 +62,14 @@ export const filterSortSelectCompose: Check<
     const limit = pageSize(ctx);
 
     const filtered = await collectSet(ctx, limit, term);
+
     const triple = await collectSet(
       ctx,
       limit,
       { ...term, ...projection },
       { order: sortTerm(conventions, { direction: "desc", field: sortField }) },
     );
+
     if (filtered === null || triple === null) {
       return ctx.findings.unresolved(
         this.id,
@@ -73,6 +77,7 @@ export const filterSortSelectCompose: Check<
         "combining a filter with a sort and a select was rejected",
       );
     }
+
     if (!filtered.complete || !triple.complete) {
       return ctx.findings.unresolved(
         this.id,
@@ -80,6 +85,7 @@ export const filterSortSelectCompose: Check<
         "a side of the comparison is larger than the walk covers",
       );
     }
+
     if (triple.items.some((item) => item[ctx.identity] === undefined)) {
       return ctx.findings.unresolved(
         this.id,
@@ -92,7 +98,9 @@ export const filterSortSelectCompose: Check<
     const combined = new Set(ids(triple.items, ctx.identity));
     const missing = [...alone].filter((id) => !combined.has(id));
     const extraIds = [...combined].filter((id) => !alone.has(id));
+
     if (missing.length === 0 && extraIds.length === 0) return ASSERTED;
+
     const moved = await unlessMoved(ctx, this.id, {
       reads: [filtered, triple],
       terms: [
@@ -100,18 +108,19 @@ export const filterSortSelectCompose: Check<
         { order: sortTerm(conventions, { direction: "desc", field: sortField }), query: { ...term, ...projection } },
       ],
     });
+
     if (moved !== null) return moved;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
       summary: "adding a sort and a select together changes which records a filter returns",
       detail:
         `filter on "${field}" alone matched ${alone.size}; the same filter with ` +
-        `order=${sortField} desc and select=${[ctx.identity, extra].join(",")} matched ` +
-        `${combined.size}. ` +
-        (missing.length > 0 ? `Dropped: ${missing.slice(0, 3).join(", ")}. ` : "") +
-        (extraIds.length > 0 ? `Appeared: ${extraIds.slice(0, 3).join(", ")}. ` : "") +
-        "Each pair composes; the triple must too. A filter that only holds until both a " +
-        "sort and a projection are present is one a three-axis query plan is dropping.",
+        `order=${sortField} desc and select=${[ctx.identity, extra].join(",")} matched ${combined.size}. ${
+          missing.length > 0 ? `Dropped: ${missing.slice(0, 3).join(", ")}. ` : ""
+        }${
+          extraIds.length > 0 ? `Appeared: ${extraIds.slice(0, 3).join(", ")}. ` : ""
+        }Each pair composes; the triple must too. A filter that only holds until both a ` +
+        `sort and a projection are present is one a three-axis query plan is dropping.`,
       evidence: [filtered.last.exchange, triple.last.exchange],
     });
   },

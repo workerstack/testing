@@ -9,18 +9,20 @@ import { problemJsonShape } from "./schema-problem-json-shape.ts";
 const PROBLEM = "application/problem+json";
 
 /** One request the transcript already holds: the operation it reached, and how it was answered. */
-interface Sent {
+type Sent = {
   operationId?: string;
   answer: Answer;
   probe?: true;
-}
+};
 
-/* A context whose transcript holds `sent`, in order, and the operations the check said it judged. */
+// A context whose transcript holds `sent`, in order, and the operations the check said it judged.
 async function staged(sent: Sent[]) {
   const answers = sent.map((entry) => entry.answer);
+
   const { ctx, findings } = contextFor(modelOf(widgetDoc()), "listWidgets", {
     respond: () => answers.shift(),
   });
+
   for (const entry of sent) {
     await ctx.client.request("PATCH", "/widgets/w1", {
       as: { principal: "alpha" },
@@ -28,8 +30,10 @@ async function staged(sent: Sent[]) {
       ...(entry.probe === undefined ? {} : { probe: true }),
     });
   }
+
   const judged: string[] = [];
   ctx.judged = (ids) => judged.push(...ids);
+
   return { ctx, findings, judged };
 }
 
@@ -53,6 +57,7 @@ describe("schema.problem-json-shape", () => {
       { answer: problem(412, WELL_FORMED, `${PROBLEM}; charset=utf-8`), operationId: "updateWidget" },
       { answer: problem(404, { title: "Not Found", type: "/problems/missing" }), operationId: "getWidget" },
     ]);
+
     expect(await runCheck(problemJsonShape, ctx)).toEqual({ kind: "asserted" });
     expect(findings.findings).toEqual([]);
     expect(judged).toEqual(["updateWidget", "getWidget"]);
@@ -67,7 +72,8 @@ describe("schema.problem-json-shape", () => {
       { answer: { status: 200 }, operationId: "updateWidget" },
       { answer: problem(412, { status: 400 }), operationId: "deleteWidget" },
     ]);
-    /* An operation this run does not grade is not judged. */
+
+    // An operation this run does not grade is not judged.
     ctx.inScope = (op) => op.operationId !== "deleteWidget";
     expect(await runCheck(problemJsonShape, ctx)).toEqual({
       kind: "stood-down",
@@ -80,6 +86,7 @@ describe("schema.problem-json-shape", () => {
     const { ctx, findings } = await staged([
       { answer: problem(412, { ...WELL_FORMED, status: 400 }), operationId: "updateWidget", probe: true },
     ]);
+
     expect(await runCheck(problemJsonShape, ctx)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     const [finding] = findings.findings;
     expect(finding?.summary).toBe("a problem detail is not shaped as RFC 9457 defines it");
@@ -99,6 +106,7 @@ describe("schema.problem-json-shape findings", () => {
       { answer: problem(400, null), operationId: "createWidget" },
       { answer: problem(400, { type: 7 }), operationId: "createWidget" },
     ]);
+
     expect(await runCheck(problemJsonShape, ctx)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     const [finding] = findings.findings;
     expect(finding?.detail).toContain(
@@ -115,6 +123,7 @@ describe("schema.problem-json-shape findings", () => {
       answer: problem(412, { status: 1 }),
       operationId: "updateWidget",
     }));
+
     const { ctx, findings } = await staged(sent);
     await runCheck(problemJsonShape, ctx);
     expect(findings.findings[0]?.evidence).toHaveLength(6);
@@ -123,6 +132,7 @@ describe("schema.problem-json-shape findings", () => {
   it("grades every operation of the entity and always applies", () => {
     const model = modelOf(widgetDoc());
     const entity = model.entities.get("widget");
+
     if (entity === undefined) throw new Error("expected the widget entity");
     expect(problemJsonShape.subjects(entity, model).toSorted()).toEqual([
       "createWidget",

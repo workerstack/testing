@@ -7,11 +7,13 @@ import { scenario, unchecked } from "./scenario.ts";
 describe("scenario", () => {
   it("turns each builder into its step and keeps plain steps, in order", () => {
     const signUp = { anonymous: true, operationId: "auth.registerWithEmail" } as const;
+
     const built = scenario({
       covers: ["auth.deleteAccount"],
       id: "reauth",
       steps: [signUp, new RequestBuilder({ operationId: "auth.deleteAccount" }), mail("otp", "{address}").as("code")],
     });
+
     expect(built).toStrictEqual({
       covers: ["auth.deleteAccount"],
       id: "reauth",

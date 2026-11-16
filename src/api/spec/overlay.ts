@@ -27,22 +27,27 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 function merge(base: unknown, patch: unknown): unknown {
   if (!isRecord(patch) || !isRecord(base)) return structuredClone(patch);
   const out: Record<string, unknown> = { ...base };
+
   for (const [key, value] of Object.entries(patch)) {
     if (value === null) delete out[key];
     else out[key] = merge(base[key], value);
   }
+
   return out;
 }
 
 export function applyOverlay(doc: OpenApiDocument, overlay: SpecOverlay): OpenApiDocument {
   const out = structuredClone(doc);
+
   if (overlay.securitySchemes !== undefined) {
     const securitySchemes = merge(out.components?.securitySchemes ?? {}, overlay.securitySchemes);
     out.components = { ...out.components, securitySchemes: securitySchemes as Record<string, unknown> };
   }
+
   if (overlay.security !== undefined) out.security = structuredClone(overlay.security);
   patchOperations(operationSlots((out.paths ?? {}) as Record<string, unknown>), overlay.operations ?? {});
   patchSchemas((out.components?.schemas ?? {}) as Record<string, unknown>, overlay.schemas ?? {});
+
   return out;
 }
 
@@ -52,20 +57,24 @@ function patchOperations(
   patches: Record<string, Record<string, unknown>>,
 ): void {
   const keyOf = new Map<string, string>();
+
   for (const [key, patch] of Object.entries(patches)) {
     const name = resolveOperationName(key, slots);
-    if (name === undefined) {
+
+    if (name === undefined)
       throw new UsageError(`overlay.operations "${key}" matches no operation.${didYouMean(key, slots.keys())}`);
-    }
+
     const earlier = keyOf.get(name);
-    if (earlier !== undefined) {
+
+    if (earlier !== undefined)
       throw new UsageError(`overlay.operations "${earlier}" and "${key}" name the same operation`);
-    }
+
     keyOf.set(name, key);
     const renamed = patch["operationId"];
-    if (typeof renamed === "string" && renamed !== name && slots.has(renamed)) {
+
+    if (typeof renamed === "string" && renamed !== name && slots.has(renamed))
       throw new UsageError(`overlay.operations "${key}" renames it to "${renamed}", which another operation has`);
-    }
+
     const at = slots.get(name) as OperationSlot;
     at.item[at.method] = merge(at.item[at.method], patch);
   }
@@ -73,9 +82,9 @@ function patchOperations(
 
 function patchSchemas(schemas: Record<string, unknown>, patches: Record<string, unknown>): void {
   for (const [name, patch] of Object.entries(patches)) {
-    if (!Object.hasOwn(schemas, name)) {
+    if (!Object.hasOwn(schemas, name))
       throw new UsageError(`overlay.schemas["${name}"] names no schema under components.schemas`);
-    }
+
     schemas[name] = merge(schemas[name], patch);
   }
 }

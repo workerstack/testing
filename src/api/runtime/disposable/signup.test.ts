@@ -4,7 +4,7 @@ import { exchange } from "../checks/__fixtures__/harness.ts";
 import { accounts, accountsApi, accountsDoc, stageOf } from "./__fixtures__/accounts.ts";
 import { signUp } from "./signup.ts";
 
-/* A second user is a principal of the run's own: enrolled in its store, then sent as by id. */
+// A second user is a principal of the run's own: enrolled in its store, then sent as by id.
 
 describe("signUp", () => {
   it("signs a second user up through x-fresh-principal, as a principal its token is held for", async () => {
@@ -23,6 +23,7 @@ describe("signUp", () => {
 
   it("keeps the parameters bound for the second user, and how its session renews", async () => {
     const renewed = exchange("POST", "/v1/refresh", { status: 200 });
+
     const { input } = await stageOf(accountsDoc(), accountsApi(accounts()), {
       input: {
         enroll: async (label) => ({
@@ -33,6 +34,7 @@ describe("signUp", () => {
         }),
       },
     });
+
     const session = await signUp(input, "1");
     expect(session).toMatchObject({ principal: "disposable-1", scope: { org_id: "o9" } });
     expect(await (session as { renew: () => Promise<unknown> }).renew()).toBe(renewed);
@@ -43,6 +45,7 @@ describe("signUp", () => {
       accountsDoc(),
       accountsApi(accounts({ answers: { "POST /v1/register": { status: 409 } } })),
     );
+
     expect(await signUp(input, "0")).toEqual({ blocked: expect.stringMatching(/disposable-0.*auth\.register.*409/) });
   });
 });

@@ -23,15 +23,16 @@ import { userBackend } from "./seed-contract/users.ts";
 type Credentials = Pick<RunOptions, "principals" | "security">;
 
 /** One case: what it reports when it cannot run, and how it runs, adding what it found to `results`. */
-interface ContractCase {
+type ContractCase = {
   name: string;
   why: string;
   probe: (via: Via, results: ParserResult[]) => Promise<void>;
-}
+};
 
 /** testing api run once against `handle`, hosted through `via`, which serves its spec at `/v1/openapi/spec`. */
 async function hostedRun(via: Via, handle: Handle, options: Omit<RunOptions, "baseUrl" | "spec">): Promise<RunResult> {
   const hosted = await via.host(handle);
+
   try {
     return await run({ baseUrl: hosted.url, ...options, spec: `${hosted.url}/v1/openapi/spec`, ...reach(hosted) });
   } finally {
@@ -50,12 +51,14 @@ const HONORED = "effects must honor excludedByProfile";
 
 async function profiles(via: Via, results: ParserResult[]): Promise<void> {
   const cheapBackend = projectBackend();
+
   const cheap = await hostedRun(via, cheapBackend.handle, {
     only: ["project"],
     ...PROJECT,
     profile: "cheap",
     seed: 1,
   });
+
   const cheapPosted = cheap.client.transcript.some((e) => e.url.includes("/extract"));
   const skip = cheap.findings.find((f) => f.check === "profile.skip" && f.detail.includes("x-cost: high"));
   results.push({
@@ -66,12 +69,14 @@ async function profiles(via: Via, results: ParserResult[]): Promise<void> {
   });
 
   const fullBackend = projectBackend();
+
   const full = await hostedRun(via, fullBackend.handle, {
     only: ["project"],
     ...PROJECT,
     profile: "full",
     seed: 1,
   });
+
   const fullPosted = full.client.transcript.some((e) => e.url.includes("/extract"));
   results.push({
     detail: `hits=${fullBackend.extractHits()} posted=${fullPosted}`,
@@ -93,9 +98,11 @@ const INVITE: Credentials = {
 async function inviteOnly(via: Via, results: ParserResult[]): Promise<void> {
   const backend = memberBackend();
   const result = await hostedRun(via, backend.handle, { only: ["member"], ...INVITE, seed: 1 });
+
   const inviteWithPeer = backend.inviteBodies.some(
     (body) => (body as { invite_email?: unknown } | null | undefined)?.invite_email === "beta@x.test",
   );
+
   const generated = backend.seedBodies.length > 0;
   const ran = result.checksRun.includes("auth.invite-grants-then-revokes");
   results.push({
@@ -151,9 +158,10 @@ const CASES: readonly ContractCase[] = [
   },
 ];
 
-/* The invite operation is modeled as the entity's invite, never as its create. */
+// The invite operation is modeled as the entity's invite, never as its create.
 function inviteModel(): ParserResult {
   const member = buildModel(dereference(memberSpec()).doc).entities.get("member");
+
   return {
     detail: `create=${member?.create ?? "none"} invite=${String(member?.invite?.invite)}`,
     name: "invite op is not entity.create",
@@ -165,6 +173,7 @@ function inviteModel(): ParserResult {
 /** Every case; one that cannot run fails under its name with the error's message, and the rest still run. */
 export async function runSeedContractSuite(via: Via = listening): Promise<ParserResult[]> {
   const results = [...runFixtureWalkCases(), inviteModel()];
+
   for (const { name, probe, why } of CASES) {
     try {
       await probe(via, results);
@@ -172,5 +181,6 @@ export async function runSeedContractSuite(via: Via = listening): Promise<Parser
       results.push({ detail: messageOf(error), name, ok: false, why });
     }
   }
+
   return results;
 }

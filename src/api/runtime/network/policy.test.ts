@@ -18,6 +18,7 @@ describe("network policy", () => {
     expect(resolveRequestTimeoutMs(undefined)).toBe(DEFAULT_REQUEST_TIMEOUT_MS);
     expect(DEFAULT_REQUEST_TIMEOUT_MS).toBe(180_000);
     expect(resolveRequestTimeoutMs(500)).toBe(500);
+
     for (const off of [0, -1, Number.NaN, Number.POSITIVE_INFINITY])
       expect(resolveRequestTimeoutMs(off)).toBeUndefined();
   });

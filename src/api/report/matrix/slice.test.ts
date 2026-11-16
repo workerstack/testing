@@ -33,6 +33,7 @@ const input = report({
     },
   ],
 });
+
 const slice = sliceOf(input);
 
 describe("entitySlice", () => {
@@ -90,6 +91,7 @@ describe("entitySlice", () => {
         entities: ["table"],
       }),
     );
+
     expect(failing.roots).toEqual(["list.read-after-write"]);
   });
 });

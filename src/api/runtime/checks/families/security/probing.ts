@@ -1,10 +1,8 @@
-/*
- * What the security checks share: where a probe of an operation goes, how it is sent, and how a probe
- * that must be refused is judged. A collection read is probed under the actor's own scope; a read of
- * one record, or a write, only on the record the run created (`ctx.target`). A write's body is that
- * record's current state cut to what the request accepts (`writableBody`): harmless if a broken API
- * applies it, and never a readOnly property a strict one refuses before it judges the caller.
- */
+// What the security checks share: where a probe of an operation goes, how it is sent, and how a probe
+// that must be refused is judged. A collection read is probed under the actor's own scope; a read of
+// one record, or a write, only on the record the run created (`ctx.target`). A write's body is that
+// record's current state cut to what the request accepts (`writableBody`): harmless if a broken API
+// applies it, and never a readOnly property a strict one refuses before it judges the caller.
 
 import type { Actor } from "../../../../client/credential-source.ts";
 import type { RequestOptions } from "../../../../client/types.ts";
@@ -22,16 +20,16 @@ import { andThen, cannot, type Plan, ready, when } from "../../core/plan.ts";
 import { currentOf, writableBody } from "./writable.ts";
 
 /** Where a probe of the operation goes, and the body it carries. */
-export interface Address {
+export type Address = {
   path: string;
   body?: unknown;
   contentType?: string;
-}
+};
 
 /** A client either stage hands a check: a read-only one sends reads alone. */
-interface Sender {
+type Sender = {
   request(method: string, path: string, options: RequestOptions): Promise<Exchange>;
-}
+};
 
 /** What `send` needs of a context. */
 export type Sending = Pick<OperationContext, "operation"> & { client: Sender };
@@ -39,6 +37,7 @@ export type Sending = Pick<OperationContext, "operation"> & { client: Sender };
 /** Stands down where the document declares no security: a refusal is due only where one is declared. */
 export function declaredPlan(ctx: Pick<OperationContext, "operation">): Plan<undefined> {
   const undeclared = noSecurityReason(ctx.operation);
+
   return undeclared === undefined ? ready(undefined) : cannot(undeclared);
 }
 
@@ -60,6 +59,7 @@ export function securedPlan(ctx: Pick<OperationContext, "operation" | "security"
  */
 export function acceptorOf(ctx: Pick<OperationContext, "actor" | "principals" | "target">): Principal {
   const owner = ctx.target?.owner;
+
   return ctx.principals.find((principal) => principal.id === owner) ?? ctx.actor;
 }
 
@@ -69,6 +69,7 @@ export function acceptorOf(ctx: Pick<OperationContext, "actor" | "principals" | 
  */
 export function addressOf(ctx: OperationContext): Plan<Address> {
   if (ctx.placement === "read") return scopedAddress(ctx);
+
   return andThen(targetPlan(ctx), (target) => targetAddress(ctx, target));
 }
 
@@ -76,17 +77,20 @@ export function addressOf(ctx: OperationContext): Plan<Address> {
 export function scopedAddress(ctx: Pick<OperationContext, "actor" | "operation">): Plan<Address> {
   const { actor, operation } = ctx;
   const missing = operation.pathParams.filter((name) => !Object.hasOwn(actor.scope, name));
+
   return andThen(
     when(missing.length === 0, `a value for ${missing.join(" and ")} in ${operation.operationId}'s path`),
     () => ready({ path: fillPath(operation.path, actor.scope) }),
   );
 }
 
-/* The target's path, and for a write that takes a body, the target's current state as that body. */
+// The target's path, and for a write that takes a body, the target's current state as that body.
 function targetAddress(ctx: OperationContext, target: WriteTarget): Plan<Address> {
   if (ctx.placement !== "write" || !ctx.operation.hasRequestBody) return ready({ path: target.path });
   const record = currentOf(target);
+
   if (record === undefined) return cannot("the target record's current state, for a harmless body");
+
   return ready({ body: writableBody(ctx, record), path: target.path });
 }
 
@@ -102,10 +106,15 @@ export function send(
 ): Promise<Exchange> {
   const { operation } = ctx;
   const options: RequestOptions = { as, operationId: operation.operationId };
+
   if (expects === "refusal") options.probe = true;
+
   if (Object.keys(operation.requiredQuery).length > 0) options.query = { ...operation.requiredQuery };
+
   if (address.body !== undefined) options.body = address.body;
+
   if (address.contentType !== undefined) options.contentType = address.contentType;
+
   return ctx.client.request(operation.method.toUpperCase(), address.path, options);
 }
 
@@ -134,23 +143,27 @@ export function allowsAnonymous(security: ResolvedSecurity): boolean {
 export function singleSchemes(security: Pick<ResolvedSecurity, "alternatives">): Requirement[] {
   const seen = new Set<string>();
   const single: Requirement[] = [];
+
   for (const [requirement, ...rest] of security.alternatives) {
     if (requirement === undefined || rest.length > 0 || seen.has(requirement.scheme)) continue;
     seen.add(requirement.scheme);
     single.push(requirement);
   }
+
   return single;
 }
 
 /** Every declared scheme an operation of the document names, with the scopes it is first named with. */
 export function documentSchemes(model: SpecModel): Requirement[] {
   const first = new Map<string, Requirement>();
+
   for (const { security } of model.operations) {
     for (const requirement of security.alternatives.flat()) {
       if (security.undeclared.includes(requirement.scheme) || first.has(requirement.scheme)) continue;
       first.set(requirement.scheme, requirement);
     }
   }
+
   return [...first.values()];
 }
 
@@ -161,17 +174,17 @@ export function describeSecurity(security: Pick<ResolvedSecurity, "alternatives"
     .join(", or ");
 }
 
-/* One scheme in words, with the scopes it must carry. */
+// One scheme in words, with the scopes it must carry.
 function described({ scheme, scopes }: Requirement): string {
   return scopes.length === 0 ? scheme : `${scheme} with ${scopes.join(" ")}`;
 }
 
 /** One probe that must be refused: its answer, what it sent in the reader's terms, and the finding's line. */
-export interface Refusal {
+export type Refusal = {
   exchange: Exchange;
   sent: string;
   summary: string;
-}
+};
 
 /**
  * The verdict on probes that must each be refused: SECURITY for every one answered with a success,
@@ -184,6 +197,7 @@ export function judgeRefusals(
 ): Outcome {
   const accepted = probes.filter(({ exchange }) => exchange.status >= 200 && exchange.status < 300);
   let outcome: Outcome = ASSERTED;
+
   for (const { exchange, sent, summary } of accepted) {
     outcome = ctx.findings.security(check, ctx.subject, {
       detail: `${ctx.subject} answered ${exchange.status} to ${sent}. The document requires ${describeSecurity(ctx.security)}.`,
@@ -191,10 +205,13 @@ export function judgeRefusals(
       summary,
     });
   }
+
   if (accepted.length > 0) return outcome;
   const other = probes.find(({ exchange }) => !refused(exchange.status));
+
   if (other === undefined) return ASSERTED;
   const why = byValidation(other.exchange.status) ? BY_VALIDATION : "neither a refusal nor a success";
   const reason = `${ctx.subject} answered ${other.exchange.status} to ${other.sent}: ${why}`;
+
   return ctx.findings.unresolved(check, ctx.subject, reason);
 }

@@ -8,6 +8,7 @@ describe("renderParserSuite", () => {
       { detail: "3 ops, 1 entities", name: "plain", ok: true, why: "never shown" },
       { detail: "threw: boom", name: "hostile", ok: false, why: "the API tester must not throw" },
     ]);
+
     expect(failures).toBe(1);
     expect(text).toContain(`✓ ${"plain".padEnd(28)} 3 ops, 1 entities`);
     expect(text).toContain(`✗ ${"hostile".padEnd(28)} threw: boom\n      the API tester must not throw`);

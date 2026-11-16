@@ -8,7 +8,7 @@ import type { Enrolled } from "../disposable/types.ts";
 import { contextOf, EMAIL_LOGIN, notesApi, notesDoc, optionsFor, withSignup } from "./__fixtures__/api.ts";
 import { disposable, enrollerOf } from "./disposable.ts";
 
-/* An operation that consumes its subject runs on a principal of its own, never the run's. */
+// An operation that consumes its subject runs on a principal of its own, never the run's.
 
 const withAccountDelete = {
   "/account": {
@@ -34,6 +34,7 @@ describe("disposable", () => {
         },
       ),
     );
+
     const enrolled = await enrollerOf(ctx)("one");
     expect(enrolled).toMatchObject({ id: "disposable-one" });
     const email = String(ctx.store.identityOf("disposable-one")["email"]);
@@ -48,13 +49,14 @@ describe("disposable", () => {
         ops: ["notes.list"],
       }),
     );
+
     await disposable(ctx);
     expect(ctx.state.checksRun.has("auth.destructive-spares-the-caller")).toBe(false);
   });
 });
 
 describe("disposable sessions that end", () => {
-  /* Each second user adopts its signup's token, and renews by the declared refresh from its refresh_token. */
+  // Each second user adopts its signup's token, and renews by the declared refresh from its refresh_token.
   const security: SecurityConfig = {
     session: {
       login: { from: "$.access_token", steps: [{ operationId: "auth.register" }] },
@@ -68,6 +70,7 @@ describe("disposable sessions that end", () => {
   async function ended(refreshLives: boolean) {
     const doc = accountsDoc();
     const api = accountsApi(accounts({ refreshLives }));
+
     const options = optionsFor(
       (method, path, request) => (path === "/openapi.json" ? { body: doc, status: 200 } : api(method, path, request)),
       {
@@ -76,8 +79,10 @@ describe("disposable sessions that end", () => {
         security,
       },
     );
+
     const ctx = await contextOf(options);
     await disposable(ctx);
+
     return { ctx, seen: options.seen };
   }
 
@@ -101,6 +106,7 @@ describe("disposable sessions that end", () => {
 function serving(): Responder {
   const doc = accountsDoc();
   const api = accountsApi(accounts());
+
   return (method, path, request) =>
     path === "/openapi.json" ? { body: doc, status: 200 } : api(method, path, request);
 }
@@ -118,9 +124,10 @@ describe("enrollerOf", () => {
         },
       },
     };
+
     const ctx = await contextOf(optionsFor(serving(), { principals: alpha, security }));
     const enrolled = (await enrollerOf(ctx)("one")) as Enrolled;
-    /* The refresh answers 200 with no access_token, so the store BLOCKS the session's credential. */
+    // The refresh answers 200 with no access_token, so the store BLOCKS the session's credential.
     expect([enrolled.scope, (await enrolled.renew?.())?.status]).toEqual([{}, 200]);
     expect(await enrolled.renew?.()).toBeUndefined();
   });
@@ -130,9 +137,11 @@ describe("enrollerOf", () => {
     expect(await enrollerOf(ctx)("x")).toEqual({
       blocked: "signup for disposable-x: the document marks no x-fresh-principal operation",
     });
+
     const security: SecurityConfig = {
       session: { login: { from: "$.nope", steps: [{ operationId: "auth.register" }] } },
     };
+
     const odd = await contextOf(optionsFor(serving(), { principals: alpha, security }));
     expect(await enrollerOf(odd)("y")).toEqual({
       blocked: expect.stringMatching(/^login for disposable-y\/session: .*no credential at \$\.nope/),
@@ -146,12 +155,14 @@ describe("enrollerOf", () => {
       blocked:
         "every scheme's recipe is static and gives disposable-s the suite caller's own credential; a second user needs a login recipe",
     });
+
     const own = await contextOf(
       optionsFor(signup, {
         principals: { alpha: { email: "alpha@x.test" } },
         security: { bearer: { static: "tok-{principal.email}" } },
       }),
     );
+
     expect(await enrollerOf(own)("t")).toMatchObject({ id: "disposable-t" });
   });
 

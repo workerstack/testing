@@ -6,10 +6,8 @@ import type { EffectiveQueryCapabilities } from "./effective.ts";
 import { emptyCapabilities } from "./merge.ts";
 import { describeWithheld, filterIsGuess, queryOver, restoreWithheld, sendableCapabilities } from "./sendable.ts";
 
-/*
- * A query probe reaches the backend only through a parameter the list operation declares, or one
- * the config states for the entity. Whatever no parameter can carry is withheld, with the reason.
- */
+// A query probe reaches the backend only through a parameter the list operation declares, or one
+// the config states for the entity. Whatever no parameter can carry is withheld, with the reason.
 
 const EQUALITY: QueryConventions = { envelope: {}, grammar: "equality", selectGrammar: "csv", sortGrammar: "dotted" };
 const POSTGREST: QueryConventions = { ...EQUALITY, filter: "filter", grammar: "postgrest" };
@@ -30,6 +28,7 @@ describe("sendableCapabilities", () => {
       { conventions: EQUALITY, queryParamNames: ["enabled"] },
       true,
     );
+
     expect(capabilities.filterable).toEqual([{ field: "enabled", type: "boolean" }]);
     expect(withheld).toContainEqual({ axis: "filterable", row: { field: "id" } });
   });
@@ -45,6 +44,7 @@ describe("sendableCapabilities", () => {
       { conventions: { ...POSTGREST, order: "sort", search: "q", select: "fields" }, queryParamNames: ["filter"] },
       true,
     );
+
     expect(capabilities.filterable.map((field) => field.field)).toEqual(["id", "enabled"]);
     expect(capabilities.sortable).toEqual([{ field: "username" }]);
     expect(capabilities.searchable).toEqual(["username"]);
@@ -57,6 +57,7 @@ describe("sendableCapabilities", () => {
       { conventions: POSTGREST, queryParamNames: ["filter"] },
       false,
     );
+
     expect([capabilities.sortable, capabilities.searchable, capabilities.selectable]).toEqual([[], [], []]);
     expect(withheld).toEqual([
       { axis: "sortable", row: { field: "username" } },
@@ -73,6 +74,7 @@ describe("restoreWithheld", () => {
       { conventions: EQUALITY, queryParamNames: [] },
       true,
     );
+
     const restored = restoreWithheld(capabilities, withheld);
     expect(restored.filterable.map((field) => field.field)).toEqual(["id", "enabled"]);
     expect(restored.sortable).toEqual([{ field: "username" }]);

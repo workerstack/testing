@@ -8,7 +8,7 @@ import { fakeToolkit } from "../__fixtures__/toolkit.ts";
 import { bufferWriter } from "../writer.ts";
 import { aggregate, writeProven } from "./conformance-proven.ts";
 
-/* A sharded self-test: each leg's proven checks on disk, and their union judged at the end. */
+// A sharded self-test: each leg's proven checks on disk, and their union judged at the end.
 
 describe("writeProven", () => {
   it("writes the legs and their proven checks, sorted, making the folder", () => {

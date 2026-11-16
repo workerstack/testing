@@ -6,25 +6,26 @@ import { createMemoryServer } from "../../../src/api/reference/http/engines.ts";
 import { EXIT } from "../../../src/api/runtime/exit.ts";
 import { latestReport, tester, referenceConfig, tempDirs } from "../support/cli-run.ts";
 
-/*
- * The loop a team runs against a backend with known defects: run, write a baseline from that run,
- * run again after the backend changed, and diff the two runs. The baseline keeps known findings out
- * of the exit code; the diff names what is new, fixed and persisting, and is never a gate.
- */
+// The loop a team runs against a backend with known defects: run, write a baseline from that run,
+// run again after the backend changed, and diff the two runs. The baseline keeps known findings out
+// of the exit code; the diff names what is new, fixed and persisting, and is never a gate.
 
 const dirs = tempDirs("testing-baseline-diff-");
+
 afterAll(dirs.removeAll);
 
 const FILTER = "filter.unknown-field-rejected";
 const LIMIT = "pagination.limit-bounds-page-size";
 
-/* `testing api run --only table` against a reference with `defects`; returns the exit, output and run folder. */
+// `testing api run --only table` against a reference with `defects`; returns the exit, output and run folder.
 async function runAgainst(dir: string, defects: string[], extra: Record<string, unknown> = {}) {
   const server = await createMemoryServer({ defects });
+
   try {
     const config = await referenceConfig(dir, server.url, extra);
     const out = join(dir, "runs");
     const { code, out: text } = await tester(["run", "--config", config, "--out", out, "--only", "table", "--quiet"]);
+
     return { code, out, run: join(out, "latest"), text };
   } finally {
     await server.close();
@@ -41,7 +42,7 @@ describe("run, baseline, run again, diff", () => {
     const baseline = join(root, "testing.api.baseline.json");
     expect((await tester(["baseline", "--from", first.run, "--out", baseline])).code).toBe(0);
 
-    /* The backend regressed: the known defect is still there, and a new one joined it. */
+    // The backend regressed: the known defect is still there, and a new one joined it.
     const second = await runAgainst(join(root, "b"), ["FILTER_IGNORED", "LIMIT_IGNORED"], { baseline });
     expect(second.code).toBe(EXIT.defects);
     expect(second.text).toContain("result: defects — 1 root-cause finding");
@@ -61,6 +62,7 @@ describe("run, baseline, run again, diff", () => {
       fixed: unknown[];
       persisting: Array<{ check: string }>;
     };
+
     expect(json.new.map((finding) => finding.check)).toEqual([LIMIT]);
     expect(json.fixed).toEqual([]);
     expect(json.persisting.map((finding) => finding.check)).toEqual([FILTER]);

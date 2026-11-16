@@ -17,23 +17,29 @@ export const asyncReceiptIsResolvable: Check = defineCheck({
     for (const op of all.asyncOps) {
       const ctx = forOperation(all, op);
       const spec = op.async;
+
       if (spec?.idFrom === undefined) continue;
 
-      /* Match the async operation's own exchange by resolved path — any POST would do here
-       * otherwise, and a sibling create's response would be inspected instead. */
+      // Match the async operation's own exchange by resolved path — any POST would do here
+      // otherwise, and a sibling create's response would be inspected instead.
       let resolved: string;
+
       try {
         resolved = fillPath(op.path, ctx.scope);
       } catch {
         continue;
       }
+
       const attempts = ctx.client
         .exchangesFor(op.operationId)
         .filter((e) => ctx.client.relativePath(e.url) === resolved);
+
       const started = attempts.find((e) => e.status > 0 && e.status < 300);
+
       if (started === undefined) {
-        /* The action never answered with a receipt: say so rather than pass in silence. */
+        // The action never answered with a receipt: say so rather than pass in silence.
         const refused = attempts.at(-1);
+
         if (refused !== undefined) {
           ctx.findings.unresolved(
             this.id,
@@ -41,10 +47,12 @@ export const asyncReceiptIsResolvable: Check = defineCheck({
             `${op.operationId} answered ${refused.status === 0 ? "nothing" : refused.status}, so there was no receipt to read`,
           );
         }
+
         continue;
       }
 
       const node = resolveAsyncId((await ctx.client.hydrate(started)).responseBody, spec.idFrom);
+
       if (node !== undefined && node !== null) continue;
 
       ctx.findings.spec(this.id, ctx.entityName, {
@@ -55,6 +63,7 @@ export const asyncReceiptIsResolvable: Check = defineCheck({
         evidence: [started],
       });
     }
+
     return ASSERTED;
   },
 });

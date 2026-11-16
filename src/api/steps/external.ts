@@ -2,14 +2,15 @@ import type { ExternalStep } from "../config/types/steps.ts";
 import type { BuiltStep } from "./types.ts";
 
 /** An external step that still needs the scope name its answer binds to. */
-export interface ExternalDraft {
+export type ExternalDraft = {
   as(name: string): BuiltStep & { toStep(): ExternalStep };
-}
+};
 
 /** Something only a person or a browser can do, answered by `hooks.external(name, input)`. */
 export function external(name: string, input?: Record<string, unknown>): ExternalDraft {
   const step = (as: string): ExternalStep =>
     input === undefined ? { as, external: name } : { as, external: name, input };
+
   return { as: (as) => ({ toStep: () => step(as) }) };
 }
 

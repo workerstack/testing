@@ -8,24 +8,24 @@ import type { ReferenceServer } from "../../../src/api/reference/http/server.ts"
 import { EXIT } from "../../../src/api/runtime/exit.ts";
 import { latestJournal, latestReport, tester, referenceConfig, tempDirs } from "../support/cli-run.ts";
 
-/*
- * `--keep-fixtures` leaves what a run created in place, so a failing exchange can be replayed
- * against the same rows. The next run against that backend works beside them: it grades as before
- * and removes only what it made itself, never the rows the earlier run kept.
- */
+// `--keep-fixtures` leaves what a run created in place, so a failing exchange can be replayed
+// against the same rows. The next run against that backend works beside them: it grades as before
+// and removes only what it made itself, never the rows the earlier run kept.
 
 const dirs = tempDirs("testing-keep-fixtures-");
 const servers: ReferenceServer[] = [];
+
 afterAll(async () => {
   await Promise.all(servers.map((server) => server.close()));
   await dirs.removeAll();
 });
 
-/* `testing api run --only table <flags>` against `server`; `runs` is its --out. */
+// `testing api run --only table <flags>` against `server`; `runs` is its --out.
 async function runOn(server: ReferenceServer, flags: string[] = []) {
   const dir = await dirs.make();
   const config = await referenceConfig(dir, server.url);
   const runs = join(dir, "runs");
+
   const { code, out } = await tester([
     "run",
     "--config",
@@ -37,6 +37,7 @@ async function runOn(server: ReferenceServer, flags: string[] = []) {
     "--quiet",
     ...flags,
   ]);
+
   return { code, runs, text: out };
 }
 
@@ -48,11 +49,11 @@ describe("--keep-fixtures", () => {
 
     const kept = await runOn(server, ["--keep-fixtures"]);
     expect(kept.code).toBe(EXIT.clean);
-    /* Nothing was torn down, so nothing reads as cleaned up. */
+    // Nothing was torn down, so nothing reads as cleaned up.
     expect(kept.text).not.toContain("cleaned up");
     expect(kept.text).toMatch(/left \d+ created record\(s\) in place: teardown did not run/);
     expect((await latestReport(kept.runs)).teardown).toBeUndefined();
-    /* Its keys and sessions still end, as without the flag: only keepCredentials keeps those. */
+    // Its keys and sessions still end, as without the flag: only keepCredentials keeps those.
     const closing = new Set(["apiKey.revoke", "auth.logout"]);
     const tornDown = (await latestJournal(kept.runs)).filter((line) => line.phase === "teardown");
     expect(tornDown.filter((line) => !closing.has(line.operationId ?? ""))).toEqual([]);
@@ -66,7 +67,7 @@ describe("--keep-fixtures", () => {
     const report = await latestReport(next.runs);
     expect(report.teardown?.failed).toEqual([]);
     expect(report.teardown?.records.every((record) => record.removed)).toBe(true);
-    /* The kept rows are still there, and nothing of the second run's is. */
+    // The kept rows are still there, and nothing of the second run's is.
     const afterNext = await server.snapshot();
     expect(leftBehind(empty, afterNext)).toEqual(left);
     expect(leftBehind(afterKept, afterNext)).toEqual([]);

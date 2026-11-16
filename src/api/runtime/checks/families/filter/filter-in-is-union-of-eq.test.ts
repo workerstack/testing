@@ -11,7 +11,9 @@ const COHORT = [
   { id: "w-3", status: "open" },
   { id: "w-4", status: "held" },
 ];
+
 const DOC = { xQuery: { filterable: [{ field: "status", ops: ["eq", "in"] }] } };
+
 /** FILTER_IN_FIRST_ONLY: in() matches only the first listed value. */
 const FIRST_ONLY = { ops: { in: (value: unknown, arg: string) => value === members(arg)[0] } };
 
@@ -65,6 +67,7 @@ describe("filter.in-is-union-of-eq", () => {
         { amount: 2, id: "b" },
       ],
     });
+
     expect(check.plan(numeric.ctx)).toMatchObject({ value: { inTerm: { filter: "amount.in.(1,2)" } } });
     expect(OPS["in"]?.(1, "(1,2)")).toBe(true);
   });

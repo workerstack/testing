@@ -7,9 +7,7 @@ export function credentialHeaderNames(injected: Iterable<string> = []): Set<stri
 
 /** Removes every credential header, in place, before a request follows a redirect to another origin. */
 export function stripCredentials(headers: Record<string, string>, names: ReadonlySet<string>): void {
-  for (const name of Object.keys(headers)) {
-    if (names.has(name.toLowerCase())) delete headers[name];
-  }
+  for (const name of Object.keys(headers)) if (names.has(name.toLowerCase())) delete headers[name];
 }
 
 /** Removes every placed query parameter, in place, before a request follows a redirect to another origin. */

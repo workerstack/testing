@@ -1,9 +1,7 @@
-/*
- * The step engine. A chain of steps runs against a scope: each step is an operation from the
- * document, a raw request, or a value delivered outside HTTP, and what an answer carries is bound
- * by path for the steps after it. The engine returns the scope and the last answer; what the
- * caller makes of them, a credential say, is the caller's to read.
- */
+// The step engine. A chain of steps runs against a scope: each step is an operation from the
+// document, a raw request, or a value delivered outside HTTP, and what an answer carries is bound
+// by path for the steps after it. The engine returns the scope and the last answer; what the
+// caller makes of them, a credential say, is the caller's to read.
 
 import { readPath } from "../../client/read-path.ts";
 import type { AuthStep, OutOfBandStep } from "../../config/types/steps.ts";
@@ -19,27 +17,27 @@ import { type ResolvedRequest, resolveRequest, type StepContext } from "./reques
 type Scope = Record<string, string>;
 
 /** An answer as the steps read it. */
-export interface StepAnswer {
+export type StepAnswer = {
   status: number;
   body: unknown;
   headers: Record<string, string>;
   cookies: Record<string, string>;
-}
+};
 
 /** How a chain starts. */
-export interface RunStepsOptions {
+export type RunStepsOptions = {
   /** Bindings the chain starts from; copied, never written. */
   scope?: Readonly<Scope>;
   /** Every hop is meant to be refused, a spent refresh token replayed say: each exchange is labeled a probe. */
   probe?: true;
-}
+};
 
 /** One step's place in the chain and the state it reads and writes. */
-interface Turn {
+type Turn = {
   index: number;
   scope: Scope;
   probe: boolean;
-}
+};
 
 /** Runs `steps` in order, returning the bound scope and the last answer (none when nothing was sent). */
 export async function runSteps(
@@ -50,27 +48,30 @@ export async function runSteps(
   const scope: Scope = { ...options.scope };
   const sent: Exchange[] = [];
   let last: StepAnswer | undefined;
+
   for (const [index, step] of steps.entries()) {
     const turn: Turn = { index, probe: options.probe === true, scope };
     bindLiterals(step, scope);
+
     if ("outOfBand" in step) {
       scope[step.outOfBand.as] = await awaitDelivery(ctx, step, { sent, turn });
       continue;
     }
+
     const exchange = await send(ctx, step, turn);
     sent.push(exchange);
     last = answerOf(exchange);
     saveAnswer(ctx, step, { answer: last, turn });
   }
+
   return { last, scope };
 }
 
 /** A step's `bind` literals, filled from the scope before the step runs. */
 function bindLiterals(step: AuthStep, scope: Scope): void {
   const stepBind = "bind" in step ? step.bind : undefined;
-  for (const [name, literal] of Object.entries(stepBind ?? {})) {
-    scope[name] = String(interpolate(literal, scope));
-  }
+
+  for (const [name, literal] of Object.entries(stepBind ?? {})) scope[name] = String(interpolate(literal, scope));
 }
 
 /** The value an out-of-band step waits for, asked of the hook. */
@@ -82,6 +83,7 @@ async function awaitDelivery(
   const { scope } = at.turn;
   const address = String(interpolate(step.outOfBand.address, scope));
   const since = step.outOfBand.sentEarlier === true ? undefined : triggerSentAt(at.sent, address);
+
   return resolveOutOfBandValue(ctx.hooks.resolveOutOfBand, address, {
     kind: step.outOfBand.kind,
     label: `principal "${ctx.principalId}"`,
@@ -94,20 +96,23 @@ async function awaitDelivery(
 /** Sends an HTTP step and fails closed on a status it does not accept. */
 async function send(ctx: StepContext, step: AuthStep, turn: Turn): Promise<Exchange> {
   const request = await resolveRequest(ctx, step, turn.scope, turn.index);
+
   const exchange = await request.client.request(request.method, request.path, {
     ...(request.body === undefined ? {} : { body: request.body }),
     ...(request.contentType === undefined ? {} : { contentType: request.contentType }),
     headers: request.headers ?? {},
     ...(request.query === undefined ? {} : { query: request.query }),
-    /* A login or refresh hop acts as nobody, so it is never refreshed or retried: a hop that
-     * refreshed would wait on its own login. What it sends is what the step names. It is a real
-     * exchange of its operation, labeled a probe only when it is meant to be refused. */
+    // A login or refresh hop acts as nobody, so it is never refreshed or retried: a hop that
+    // refreshed would wait on its own login. What it sends is what the step names. It is a real
+    // exchange of its operation, labeled a probe only when it is meant to be refused.
     as: { anonymous: true },
     ...(turn.probe ? { probe: true } : {}),
     ...("operationId" in step ? { operationId: step.operationId } : {}),
     ...(request.redirect === undefined ? {} : { redirect: request.redirect }),
   });
+
   accept(ctx, step, { exchange, index: turn.index, request });
+
   return exchange;
 }
 
@@ -120,12 +125,11 @@ function accept(
   const { exchange, request } = sent;
   const acceptable = ("expect" in step ? step.expect : undefined) ?? [];
   const ok = acceptable.length > 0 ? acceptable.includes(exchange.status) : exchange.status < 300;
+
   if (ok) return;
   throw new Error(
     `testing api: principal "${ctx.principalId}" failed at auth step ${sent.index + 1} ` +
-      `(${request.method} ${request.path}): expected ` +
-      `${acceptable.length > 0 ? acceptable.join("/") : "2xx"}, got ${exchange.status} — ` +
-      `${JSON.stringify(exchange.responseBody).slice(0, 200)}`,
+      `(${request.method} ${request.path}): expected ${acceptable.length > 0 ? acceptable.join("/") : "2xx"}, got ${exchange.status} — ${JSON.stringify(exchange.responseBody).slice(0, 200)}`,
   );
 }
 
@@ -143,23 +147,29 @@ export function answerOf(exchange: Exchange): StepAnswer {
 function saveAnswer(ctx: StepContext, step: AuthStep, at: { answer: StepAnswer; turn: Turn }): void {
   const { answer, turn } = at;
   const saveAs = "saveAs" in step ? step.saveAs : undefined;
+
   for (const [name, template] of Object.entries(saveAs ?? {})) {
     const path = String(interpolate(template, turn.scope));
+
     const value = readSaveAs(path, {
       body: answerBody(answer),
       cookies: answer.cookies,
       headers: answer.headers,
       readJson: readPath,
     });
+
     if (value === undefined || value === null) {
       throw new Error(
         `testing api: auth step ${turn.index + 1} for "${ctx.principalId}" declares saveAs.${name} = ` +
           `"${path}", which is not present in the response (${describeAnswerType(answer.headers)})`,
       );
     }
+
     turn.scope[name] = String(value);
   }
+
   const saveClaimsFrom = "saveClaimsFrom" in step ? step.saveClaimsFrom : undefined;
+
   if (saveClaimsFrom !== undefined) saveClaims(ctx, saveClaimsFrom, { answer, turn });
 }
 
@@ -172,20 +182,24 @@ function saveClaims(
   const { index, scope } = at.turn;
   const token = claimsToken(from.token, at.answer.body, scope);
   const claims = typeof token === "string" ? jwtClaims(token) : null;
+
   if (claims === null) {
     throw new Error(
       `testing api: auth step ${index + 1} for "${ctx.principalId}" expected a JWT at ` +
         `${from.token}, but it is absent or not decodable`,
     );
   }
+
   for (const [name, claimPath] of Object.entries(from.bind)) {
     const value = readPath(claims, claimPath);
+
     if (value === undefined || value === null) {
       throw new Error(
         `testing api: auth step ${index + 1} binds ${name} to claim "${claimPath}", which the token ` +
           `does not carry. Available claims: ${Object.keys(claims).join(", ")}`,
       );
     }
+
     scope[name] = String(value);
   }
 }

@@ -20,6 +20,7 @@ describe("DEFECTS", () => {
       SECURITY_DEFECTS,
       FRESHNESS_DEFECTS,
     ];
+
     expect(Object.keys(DEFECTS)).toEqual(families.flatMap((family) => Object.keys(family)));
     expect(Object.keys(DEFECTS)).toHaveLength(139);
     expect(DEFECTS.UNSTABLE_SORT).toBe(CORE_DEFECTS.UNSTABLE_SORT);
@@ -35,6 +36,7 @@ describe("DEFECTS", () => {
       SECURITY_DEFECTS,
       FRESHNESS_DEFECTS,
     ];
+
     const total = families.reduce((sum, family) => sum + Object.keys(family).length, 0);
     expect(total).toBe(Object.keys(DEFECTS).length);
   });
@@ -46,8 +48,7 @@ describe("isDefectName", () => {
   });
 
   it("refuses anything else, an object's own inherited keys included", () => {
-    for (const name of ["", "unstable_sort", " UNSTABLE_SORT", "NOPE", "constructor", "toString", "__proto__"]) {
+    for (const name of ["", "unstable_sort", " UNSTABLE_SORT", "NOPE", "constructor", "toString", "__proto__"])
       expect(isDefectName(name)).toBe(false);
-    }
   });
 });

@@ -12,5 +12,6 @@ export async function acquireStatic(ctx: AcquireCtx, fixed: StaticRecipe, option
   assertHolds(ctx, options.holds);
   const filled = fillPrincipal(ctx.principal, fixed);
   const value = typeof filled === "string" ? filled : `${filled.username}:${filled.password}`;
+
   return { expiresAt: expiresAtOf({ body: undefined, expiresIn: options.expiresIn, now: ctx.now(), value }), value };
 }

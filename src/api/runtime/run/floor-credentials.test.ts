@@ -7,12 +7,11 @@ import { modelOf } from "../checks/__fixtures__/harness.ts";
 import type { RunContext } from "./context.ts";
 import { floorCredentials } from "./floor-credentials.ts";
 
-/*
- * The floor's credential operations are what the recipes name, and the floor sends one with a
- * dedicated credential of the principal's, never the principal's own session.
- */
+// The floor's credential operations are what the recipes name, and the floor sends one with a
+// dedicated credential of the principal's, never the principal's own session.
 
 const ok = { "200": { description: "ok" } };
+
 const post = (operationId: string, security?: unknown[]) => ({
   post: { operationId, responses: ok, ...(security === undefined ? {} : { security }) },
 });
@@ -69,7 +68,7 @@ const SECURITY: SecurityConfig = {
   key: { mint: { from: "$.key", operationId: "keys.create", revoke: "keys.revoke", with: "bearer" } },
 };
 
-/* Beta signs in through a raw step at the verify route, and a step at another origin. */
+// Beta signs in through a raw step at the verify route, and a step at another origin.
 const PRINCIPALS: PrincipalsConfig = {
   alpha: {},
   beta: {
@@ -90,11 +89,14 @@ const PRINCIPALS: PrincipalsConfig = {
 /** A floor context whose store issues a dedicated credential for each scheme `blocked` does not name; `null` configures no security. */
 function contextOf(blocked: Record<string, string> = {}, security: SecurityConfig | null = SECURITY) {
   const asked: CredentialKey[] = [];
+
   const store = {
     acquireDedicated: async (key: CredentialKey) => {
       asked.push(key);
       const reason = blocked[key.scheme];
+
       if (reason !== undefined) return { blocked: reason };
+
       return {
         credential: { value: "v" },
         owner: key.principal,
@@ -104,14 +106,18 @@ function contextOf(blocked: Record<string, string> = {}, security: SecurityConfi
     },
     principals: PRINCIPALS,
   };
+
   const options = security === null ? {} : { security };
   const ctx = { model: modelOf(DOCUMENT), options, store } as unknown as RunContext;
+
   return { asked, credentials: floorCredentials(ctx, "alpha"), model: ctx.model };
 }
 
 const op = (model: RunContext["model"], operationId: string) => {
   const found = model.byOperationId.get(operationId);
+
   if (found === undefined) throw new Error(`no ${operationId}`);
+
   return found;
 };
 

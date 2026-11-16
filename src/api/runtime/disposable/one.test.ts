@@ -19,7 +19,7 @@ async function runAs(staged: Staged, operationId: string, as?: Session): Promise
 
 const needs = (input: DisposableInput, id: string) => [...(input.grades.needs.get(id) ?? [])];
 
-/* Destructive routes with no list above them, one whose schema cannot be generated, and one under a team. */
+// Destructive routes with no list above them, one whose schema cannot be generated, and one under a team.
 const extra = {
   "/v1/orphans/{orphan_id}": {
     delete: {
@@ -87,6 +87,7 @@ describe("runOne: the call", () => {
         seed: undefined,
       },
     });
+
     await runAs(staged, "auth.logout", await session(staged, { known: {} }));
     expect(staged.seen[0]?.body).toEqual({ refresh_token: "picked" });
   });
@@ -98,6 +99,7 @@ describe("runOne: the answer", () => {
       accountsDoc(),
       accountsApi(accounts({ answers: { "POST /v1/logout": { status: 503 } } })),
     );
+
     await runAs(failing, "auth.logout");
     expect(failing.input.findings.findings[0]).toMatchObject({
       check: "auth.destructive-spares-the-caller",
@@ -106,18 +108,22 @@ describe("runOne: the answer", () => {
       summary: "the disposable call failed",
     });
     expect(failing.input.grades.ran.get("auth.logout")?.size).toBe(1);
+
     const refused = await stageOf(
       accountsDoc(),
       accountsApi(accounts({ answers: { "POST /v1/logout": { status: 403 } } })),
     );
+
     await runAs(refused, "auth.logout");
     expect(needs(refused.input, "auth.logout")).toEqual([
       "destructive call returned 403; a scenario must set the scene",
     ]);
+
     const moved = await stageOf(
       accountsDoc(),
       accountsApi(accounts({ answers: { "POST /v1/logout": { status: 302 } } })),
     );
+
     await runAs(moved, "auth.logout");
     expect(needs(moved.input, "auth.logout")).toEqual(["destructive call returned 302; a scenario must set the scene"]);
   });
@@ -126,6 +132,7 @@ describe("runOne: the answer", () => {
     const failing = accountsApi(
       accounts({ answers: { "DELETE /v1/keys/k1": { status: 500 }, "POST /v1/logout": { status: 500 } } }),
     );
+
     const owned = await stageOf(accountsDoc(), failing);
     const op = { ...(owned.input.model.byOperationId.get("auth.logout") as OperationModel), entity: "session" };
     const read = owned.input.model.byOperationId.get("profile.read") as OperationModel;

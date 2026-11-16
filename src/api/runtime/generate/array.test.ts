@@ -22,7 +22,7 @@ const ctx = (fields: Partial<Context> = {}): Context => ({
   ...fields,
 });
 
-/* The walk standing at `/a`, not bound to be distinct. */
+// The walk standing at `/a`, not bound to be distinct.
 const at = (fields: Partial<Context> = {}): At => ({ ctx: ctx(fields), distinct: false, pointer: "/a" });
 
 describe("arrayFor", () => {

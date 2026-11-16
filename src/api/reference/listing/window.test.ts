@@ -8,8 +8,10 @@ import { cursorOffset, cut, filteredWindow, invert, numberedStart } from "./wind
 
 const ROWS = ["a", "b", "c", "d", "e"].map((id) => ({ id }));
 const defects = (...names: DefectName[]) => new DefectSet(names);
-/* The table's listing context, under `names`. */
+
+// The table's listing context, under `names`.
 const under = (...names: DefectName[]) => ({ defects: defects(...names), entity: TABLE });
+
 const paging = (page: number | undefined, offset: number | undefined, servedLimit = 2): Paging => ({
   offset,
   page,

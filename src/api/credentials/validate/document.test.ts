@@ -2,16 +2,17 @@ import { describe, expect, it } from "vitest";
 
 import { documentProblems } from "./document.ts";
 
-/* What a config asks of a document beyond its recipes: no removed tag, and scenario schemes it declares. */
+// What a config asks of a document beyond its recipes: no removed tag, and scenario schemes it declares.
 
 const view = (schemes: string[], authFlows = false) => ({
   authFlows,
   schemes: new Map(schemes.map((name) => [name, {}])),
 });
+
 const PRIMARY = view(["apiKey", "jwt"]);
 const ORIGINS = { cdn: view(["cdnKey"]) };
 
-/* A config reading the version from a path under `scheme`. */
+// A config reading the version from a path under `scheme`.
 const versionRead = (scheme: unknown) => ({ targetVersion: { from: "$.v", path: "/version", scheme } });
 
 describe("documentProblems", () => {
@@ -27,6 +28,7 @@ describe("documentProblems", () => {
       { id: "s2", origin: "cdn", steps: [{ operationId: "b", scheme: "cdnKey" }] },
       { id: "s3", steps: [{ operationId: "c", origin: "cdn", scheme: "cdnKey" }] },
     ];
+
     expect(documentProblems({ scenarios }, PRIMARY, ORIGINS)).toEqual([]);
   });
 
@@ -36,6 +38,7 @@ describe("documentProblems", () => {
       { id: "s2", steps: [{ operationId: "c", origin: "cdn", scheme: "jwt" }] },
       { id: "s3", origin: "gone", steps: [{ operationId: "d", scheme: "x" }] },
     ];
+
     expect(documentProblems({ scenarios }, PRIMARY, ORIGINS)).toEqual([
       'scenarios.s1.steps[1].scheme "jtw" names no scheme in the document. Did you mean "jwt"? The document declares: apiKey, jwt',
       `scenarios.s2.steps[0].scheme "jwt" names no scheme in origin cdn's document. The document declares: cdnKey`,

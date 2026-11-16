@@ -9,6 +9,7 @@ const COHORT = [
   { id: "w-1", name: "a-b", note: null, status: "open" },
   { id: "w-2", name: "c-d", note: null, status: "shut" },
 ];
+
 const DECLARED = { xQuery: { filterable: ["status"] } };
 
 describe("filter.malformed-term-rejected: run", () => {
@@ -25,6 +26,7 @@ describe("filter.malformed-term-rejected: run", () => {
       doc: DECLARED,
       records: COHORT,
     });
+
     expect(await runCheck(check, ctx)).toMatchObject({ kind: "finding" });
     expect(filters(sent)).toEqual(["status.eq.open", "status.open", "-"]);
     expect(only(findings).detail).toBe(
@@ -35,6 +37,7 @@ describe("filter.malformed-term-rejected: run", () => {
 
   it("reports an accepted malformed term even when the rows differ from the unfiltered set", async () => {
     const correct = backend(COHORT);
+
     const { ctx, findings } = stage({
       doc: DECLARED,
       records: COHORT,
@@ -43,6 +46,7 @@ describe("filter.malformed-term-rejected: run", () => {
           ? { body: { widgets: [] }, status: 200 }
           : correct(method, path, options),
     });
+
     expect(await runCheck(check, ctx)).toMatchObject({ kind: "finding" });
     expect(only(findings).detail).toBe(
       "status.open returned 200. A term the declared grammar cannot parse must be rejected.",
@@ -52,8 +56,9 @@ describe("filter.malformed-term-rejected: run", () => {
 
 describe("filter.malformed-term-rejected: run, past the refusal", () => {
   it("is unresolved when the term without its operator selects what the well-formed term did", async () => {
-    /* Typesense: `year:1` is `year:=1`. A grammar that spells equality both ways dropped nothing. */
+    // Typesense: `year:1` is `year:=1`. A grammar that spells equality both ways dropped nothing.
     const correct = backend(COHORT);
+
     const { ctx, findings } = stage({
       doc: DECLARED,
       records: COHORT,
@@ -62,6 +67,7 @@ describe("filter.malformed-term-rejected: run, past the refusal", () => {
           ? correct(method, path, { ...options, query: { ...options.query, filter: "status.eq.open" } })
           : correct(method, path, options),
     });
+
     expect(await runCheck(check, ctx)).toEqual({
       kind: "unresolved",
       reason:
@@ -93,6 +99,7 @@ describe("filter.malformed-term-rejected: plan", () => {
       doc: { xQuery: { filterable: ["name", "status"] } },
       records: COHORT,
     });
+
     expect(check.plan(skipped.ctx)).toEqual({
       ok: true,
       value: { control: { filter: "status.eq.open" }, field: "status", malformed: { filter: "status.open" } },
@@ -106,11 +113,13 @@ describe("filter.malformed-term-rejected: plan", () => {
       check.plan(stage({ doc: { xQuery: { filterable: ["status"], grammar: undefined } }, records: COHORT }).ctx).ok,
     ).toBe(false);
     expect(check.plan(stage({ doc: { filterParam: false }, records: COHORT }).ctx).ok).toBe(false);
+
     const unwritable = stage({
       conventions: reserving("-"),
       doc: { xQuery: { filterable: ["name"] } },
       records: COHORT,
     });
+
     expect(check.plan(unwritable.ctx)).toEqual({
       needs: "a declared grammar whose terms carry a conjunction or an operator to leave out",
       ok: false,

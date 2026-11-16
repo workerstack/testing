@@ -5,7 +5,7 @@ import type { Answer } from "../checks/__fixtures__/harness.ts";
 import { EMAIL_LOGIN, connected, notesApi, notesDoc, optionsFor, withSignup } from "./__fixtures__/api.ts";
 import { type Provisioned, provision } from "./fresh.ts";
 
-/* A fresh principal: signed up by the document's x-fresh-principal operation and bound in the store. */
+// A fresh principal: signed up by the document's x-fresh-principal operation and bound in the store.
 
 const ALPHA = { alpha: { email: "alpha@x.test" } };
 
@@ -13,6 +13,7 @@ async function provisioned(signup: (body: Record<string, unknown>) => Answer, en
   const options = optionsFor(withSignup(signup), { principals: ALPHA, security: EMAIL_LOGIN });
   const ctx = await connected(options);
   const made = await provision(ctx, { entry, id: "fresh-1", label: "one" });
+
   return { ctx, made, seen: options.seen };
 }
 
@@ -22,6 +23,7 @@ describe("provision", () => {
       body: { access_token: "signed-up", id: 7, echo: Object.keys(body).length },
       status: 201,
     }));
+
     const held = (await ctx.store.acquire({ principal: "fresh-1", scheme: "bearer" })) as Credential;
     expect(held.value).toBe("signed-up");
     expect(seen.map((request) => request.path)).toEqual(["/openapi.json", "/signup"]);
@@ -30,7 +32,7 @@ describe("provision", () => {
     expect(made).toEqual({ id: "fresh-1", known: { access_token: "signed-up", ...sent } });
     const identity = ctx.store.identityOf("fresh-1");
     expect([identity["email"], identity["password"]]).toEqual([sent["email"], sent["password"]]);
-    /* A body field named like a grade never sets one. */
+    // A body field named like a grade never sets one.
     expect([typeof sent["tenant"], identity["tenant"]]).toEqual(["string", undefined]);
   });
 
@@ -79,13 +81,16 @@ describe("provision, when it cannot or need not read a credential", () => {
         },
       },
     });
+
     const respond = (method: string, path: string) =>
       path === "/signup" ? { body: { access_token: "t" }, status: 201 } : notesApi(bare)(method, path, {});
+
     const ctx = await connected(optionsFor(respond, { principals: ALPHA, security: EMAIL_LOGIN }));
     expect(await provision(ctx, { entry: {}, id: "fresh-3", label: "three" })).toEqual({
       id: "fresh-3",
       known: { access_token: "t" },
     });
+
     const hooked = optionsFor(
       withSignup(() => ({ status: 201 })),
       {
@@ -94,6 +99,7 @@ describe("provision, when it cannot or need not read a credential", () => {
         security: EMAIL_LOGIN,
       },
     );
+
     const resolved = await provision(await connected(hooked), { entry: {}, id: "fresh-4", label: "four" });
     expect((resolved as Provisioned).known["email"]).toBe("chosen@x.test");
   });
@@ -102,6 +108,7 @@ describe("provision, when it cannot or need not read a credential", () => {
 describe("provision: what a signup body cannot set", () => {
   it("never lets a signup body's readOnly mark the principal read-only", async () => {
     const body = { properties: { readOnly: { const: true, type: "boolean" } }, required: ["readOnly"], type: "object" };
+
     const doc = notesDoc({
       "/signup": {
         post: {
@@ -113,8 +120,10 @@ describe("provision: what a signup body cannot set", () => {
         },
       },
     });
+
     const respond = (method: string, path: string) =>
       path === "/signup" ? { body: { access_token: "t" }, status: 201 } : notesApi(doc)(method, path, {});
+
     const ctx = await connected(optionsFor(respond, { principals: ALPHA, security: EMAIL_LOGIN }));
     const made = (await provision(ctx, { entry: {}, id: "fresh-5", label: "five" })) as Provisioned;
     expect(made.known["readOnly"]).toBe(true);

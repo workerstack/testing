@@ -22,6 +22,7 @@ describe("spec.declared-filterable-is-filterable plan", () => {
 
   it("stands down when the claim is a guess, empty, unprobeable, or has no filter parameter", () => {
     const declared = tagQuery({ filterable: ["name"] });
+
     const contexts = [
       stage(ok, { query: { ...declared, source: "heuristic" } }).ctx,
       stage(ok, { query: null }).ctx,
@@ -29,6 +30,7 @@ describe("spec.declared-filterable-is-filterable plan", () => {
       stage(ok, { query: declared, records: [] }).ctx,
       stage(ok, { listOp: listing({}, "filter"), query: declared }).ctx,
     ];
+
     for (const ctx of contexts) expect(declaredFilterableWorks.plan(ctx).ok).toBe(false);
   });
 });
@@ -50,6 +52,7 @@ describe("spec.declared-filterable-is-filterable run", () => {
     const { ctx, findings } = stage(answering({ active: 422, price: 400 }), {
       query: tagQuery({ filterable: ["name", "price", "active"] }),
     });
+
     expect(await runCheck(declaredFilterableWorks, ctx)).toEqual({ kind: "finding", verdict: "SPEC_BUG" });
     const [finding] = findings.findings;
     expect(finding?.check).toBe("spec.declared-filterable-is-filterable");
@@ -62,9 +65,11 @@ describe("spec.declared-filterable-is-filterable run", () => {
 
   it("cites at most three refusals, and a refusal outweighs a probe turned away", async () => {
     const respond = answering({ active: 400, ghost: 400, name: 403, price: 400, rank: 400 });
+
     const { ctx, findings } = stage(respond, {
       query: tagQuery({ filterable: ["name", "price", "active", "ghost", "rank"] }),
     });
+
     expect(await runCheck(declaredFilterableWorks, ctx)).toEqual({ kind: "finding", verdict: "SPEC_BUG" });
     expect(findings.findings[0]?.detail).toContain("4 field(s)");
     expect(findings.findings[0]?.evidence).toHaveLength(3);
@@ -87,6 +92,7 @@ describe("spec.declared-filterable-is-filterable run without a probe", () => {
       capabilities: caps([{ field: "name", ops: ["gt"] }]),
       query: tagQuery({ filterable: ["name"] }),
     });
+
     expect(await runCheck(declaredFilterableWorks, ctx)).toMatchObject({ kind: "unresolved" });
     expect(findings.inconclusive[0]?.reason).toBe(
       "no declared filterable field holds a non-null value in the cohort, so none could be probed",
@@ -102,10 +108,12 @@ describe("spec.declared-filterable-is-filterable run without a probe", () => {
 
   it("sends nothing for a field the grammar cannot spell a term for", async () => {
     const spec = { ...filterSpec(listing({}).conventions), term: "{conj}{field}.{op}.{value}" };
+
     const { ctx, sent } = stage(ok, {
       listOp: listing({ filterGrammar: spec, grammar: "template" }),
       query: tagQuery({ filterable: ["name"] }),
     });
+
     expect(await runCheck(declaredFilterableWorks, ctx)).toMatchObject({ kind: "unresolved" });
     expect(sent).toEqual([]);
   });
@@ -115,6 +123,7 @@ describe("spec.declared-filterable-is-filterable run without a probe", () => {
 async function probes(filterable: string[], fields: Parameters<typeof stage>[1] = {}) {
   const { ctx, sent } = stage(ok, { query: tagQuery({ filterable }), ...fields });
   await declaredFilterableWorks.run(ctx, undefined);
+
   return queries(sent).map((query) => (query as { filter: string }).filter);
 }
 
@@ -133,6 +142,7 @@ describe("spec.declared-filterable-is-filterable array probes", () => {
       ]),
       records: [{ ...ROW, tags: [] }],
     });
+
     expect(filters).toEqual([
       "tags.contains.zzz last alphabetically 4242 test",
       "labels.contains.zzz last alphabetically 4242 test",
@@ -143,6 +153,7 @@ describe("spec.declared-filterable-is-filterable array probes", () => {
     const filters = await probes(["tags", "impossibles"], {
       capabilities: caps([{ field: "tags" }, { field: "impossibles", ops: ["contains"] }]),
     });
+
     expect(filters).toEqual([]);
   });
 });
@@ -160,6 +171,7 @@ describe("spec.declared-filterable-is-filterable scalar probes", () => {
         { ...ROW, name: "Bo" },
       ],
     });
+
     expect(filters).toEqual(["name.eq.Bo"]);
   });
 
@@ -173,6 +185,7 @@ describe("spec.declared-filterable-is-filterable scalar probes", () => {
       ]),
       records: [{ id: "w1" }],
     });
+
     const [price, active, rank, ghost] = filters;
     expect(price).toMatch(/^price\.eq\.\d+$/);
     expect(active).toBe("active.eq.true");

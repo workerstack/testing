@@ -7,10 +7,8 @@ import { inProcess, type Via } from "./harness/launch.ts";
 import { serveTasks, type TaskReply } from "./serve-tasks.ts";
 import type { ConformanceTask } from "./tasks.ts";
 
-/*
- * The pool talks to a worker over a channel that clones each message, as a forked process's IPC
- * does with advanced serialization: a real MessageChannel stands in for it here.
- */
+// The pool talks to a worker over a channel that clones each message, as a forked process's IPC
+// does with advanced serialization: a real MessageChannel stands in for it here.
 
 const open: MessagePort[] = [];
 
@@ -23,10 +21,12 @@ function channel(via: Via): { ask: (task: ConformanceTask) => Promise<TaskReply>
   const { port1, port2 } = new MessageChannel();
   open.push(port1, port2);
   serveTasks({ on: (event, listener) => port2.on(event, listener), send: (reply) => port2.postMessage(reply) }, via);
+
   return {
     ask: async (task) => {
       port1.postMessage(task);
       const [reply] = (await once(port1, "message")) as [TaskReply];
+
       return reply;
     },
   };

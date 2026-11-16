@@ -6,6 +6,7 @@ import { asText, contentTypeEnforced, declaredMediaTypeOf } from "./validation-c
 
 const schema = { properties: { name: { type: "string" } }, required: ["name"], type: "object" };
 const documented = { responses: { "201": { description: "made" }, "415": { description: "unsupported" } } };
+
 const gated = {
   "x-feature-gate": "pro",
   responses: { ...documented.responses, "403": { description: "gated" } },
@@ -14,7 +15,9 @@ const gated = {
 async function probe(answer: Answer, create: Record<string, unknown> = documented, mediaType?: string) {
   const staged = stage(itemsDocument(schema, create, mediaType), answer);
   const plan = contentTypeEnforced.plan(staged.ctx);
+
   if (!plan.ok) throw new Error("the content-type plan did not apply");
+
   return { ...staged, outcome: await contentTypeEnforced.run(staged.ctx, plan.value) };
 }
 

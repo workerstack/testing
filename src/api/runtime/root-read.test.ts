@@ -20,7 +20,7 @@ function rootRead(operationId: string, query: string[] = []) {
   };
 }
 
-/* The reads, under a root bearer requirement unless `secured` is false: then the document declares no security. */
+// The reads, under a root bearer requirement unless `secured` is false: then the document declares no security.
 function document(secured: boolean) {
   return modelOf({
     info: { title: "t", version: "1" },
@@ -50,6 +50,7 @@ async function judge(
   const { client, sent } = fakeClient(respond);
   const findings = new FindingCollector();
   const outcome = await runRootRead({ client, entity, findings, model: under, principal: "alpha", roots });
+
   return { findings, outcome, sent };
 }
 
@@ -98,6 +99,7 @@ describe("runRootRead", () => {
     const { findings, outcome } = await judge(overview, (method, path, options) =>
       honest(method, path, options)?.status === 401 ? { status: 401 } : { status: 500 },
     );
+
     expect(outcome).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     expect(findings.findings[0]?.detail).toBe("project.overview returned 500 for /projects/p1/overview.");
   });

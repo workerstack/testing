@@ -35,15 +35,18 @@ describe("engines", () => {
     const missing = Object.assign(new Error("Cannot find package 'postgres' imported from /app/x.js"), {
       code: "ERR_MODULE_NOT_FOUND",
     });
+
     expect(await postgresStatus(() => Promise.reject(missing))).toBe("no-driver");
   });
 
   it("calls Postgres ready when a server answers, and closes the session either way", async () => {
     const ended: number[] = [];
+
     const answering = {
       end: async ({ timeout }: { timeout: number }) => void ended.push(timeout),
       unsafe: async () => [],
     };
+
     expect(await postgresStatus(async () => answering)).toBe("ready");
     const refusing = { ...answering, unsafe: () => Promise.reject(new Error("refused")) };
     expect(await postgresStatus(async () => refusing)).toBe("unreachable");

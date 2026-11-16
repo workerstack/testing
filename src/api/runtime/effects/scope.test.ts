@@ -42,6 +42,7 @@ describe("bindCreatedScope / bindAfterCreateEffects", () => {
       { entity: "table", op: "create" as const },
       { entity: "row", min: 1, op: "append" as const },
     ];
+
     expect(bindAfterCreateEffects(tablesModel(), effects, { body: { table_id: "t_new" } })).toEqual({
       table_id: "t_new",
     });
@@ -53,7 +54,7 @@ describe("bindCreatedScope / bindAfterCreateEffects", () => {
   });
 });
 
-/* `bindInstanceScope` on the tables document's table. */
+// `bindInstanceScope` on the tables document's table.
 const bind = (identity: string, records: Record<string, unknown>[], scope: Record<string, string>) =>
   bindInstanceScope({ entityName: "table", identity, model: tablesModel(), records, scope });
 

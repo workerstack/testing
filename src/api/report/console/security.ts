@@ -14,23 +14,21 @@ import { placementOf } from "../../spec/security/placement.ts";
 import type { Requirement, ResolvedSecurity } from "../../spec/security/requirements.ts";
 import type { SecurityScheme } from "../../spec/security/schemes.ts";
 
-/*
- * What `doctor` and `plan` say about credentials: where each declared scheme's goes, which recipe
- * makes it, and which principal can send each operation's requirement. The principal is the first
- * in config order for which the run's own `satisfy` succeeds, over the recipes the run reads, so
- * this can never disagree with what a run sends.
- */
+// What `doctor` and `plan` say about credentials: where each declared scheme's goes, which recipe
+// makes it, and which principal can send each operation's requirement. The principal is the first
+// in config order for which the run's own `satisfy` succeeds, over the recipes the run reads, so
+// this can never disagree with what a run sends.
 
 /** The config's credentials: its recipes, and its principals in the order the run takes them. */
-export interface SecurityCredentials {
+export type SecurityCredentials = {
   security: SecurityConfig;
   principals: PrincipalsConfig;
   /** The config's `writer`, when it names one. */
   writer?: string;
-}
+};
 
 /** One declared scheme: where its credential goes, and the recipe that makes it. */
-export interface SchemeFact {
+export type SchemeFact = {
   name: string;
   kind: SecurityScheme["kind"];
   bearerFormat?: string;
@@ -44,10 +42,10 @@ export interface SchemeFact {
   format?: string;
   /** Why the API tester cannot send it. */
   why?: string;
-}
+};
 
 /** One operation's requirement, and, with a config, who satisfies it or why nobody does. */
-export interface OperationFact {
+export type OperationFact = {
   operationId: string;
   source: ResolvedSecurity["source"];
   alternatives: Requirement[][];
@@ -55,23 +53,23 @@ export interface OperationFact {
   /** The first principal's reason, when a later one satisfies the operation instead. */
   alphaUnsatisfied?: string;
   unsatisfied?: string;
-}
+};
 
 /** A scheme and how many operations it concerns. */
-export interface SchemeCount {
+export type SchemeCount = {
   name: string;
   operations: number;
-}
+};
 
 /** Operations that share a requirement and a satisfier. */
-interface RequirementGroup {
+type RequirementGroup = {
   requirement: string;
   /** Undefined without a config, or for an operation anyone may call. */
   satisfier: string | undefined;
   operations: number;
-}
+};
 
-export interface SecurityFacts {
+export type SecurityFacts = {
   /** Whether a config was read: without one, nothing is said of recipes or principals. */
   configured: boolean;
   /** The principal the run writes as: the config's `writer`, or the first in config order. */
@@ -88,13 +86,14 @@ export interface SecurityFacts {
   undeclared: SchemeCount[];
   /** Operations no principal can send: with a config, each blocks. */
   blocking: number;
-}
+};
 
 const NO_PRINCIPAL = "the config names no principal";
 
 /** One requirement alternative, written as doctor and plan print it. `[]` is `anonymous`. */
 function alternativeText(alternative: readonly Requirement[]): string {
   if (alternative.length === 0) return "anonymous";
+
   return alternative
     .map((requirement) =>
       requirement.scopes.length === 0 ? requirement.scheme : `${requirement.scheme}[${requirement.scopes.join(",")}]`,
@@ -107,10 +106,12 @@ export function requirementText(alternatives: readonly Requirement[][]): string 
   return alternatives.map(alternativeText).join(" | ");
 }
 
-/* The scheme's recipe as the config states it: its base recipe, else the first principal override. */
+// The scheme's recipe as the config states it: its base recipe, else the first principal override.
 function recipeOf(name: string, credentials: SecurityCredentials): Partial<Recipe> | undefined {
   const base = own(credentials.security, name);
+
   if (base !== undefined) return base;
+
   return Object.values(credentials.principals)
     .map((principal) => principal.security?.[name])
     .find((override) => override !== undefined);
@@ -120,6 +121,7 @@ function schemeFact(scheme: SecurityScheme, credentials: SecurityCredentials | u
   const recipe = credentials === undefined ? undefined : recipeOf(scheme.name, credentials);
   const placed = placementOf(scheme);
   const format = recipe?.format;
+
   return {
     name: scheme.name,
     kind: scheme.kind,
@@ -133,30 +135,38 @@ function schemeFact(scheme: SecurityScheme, credentials: SecurityCredentials | u
   };
 }
 
-/* Who sends the operation: the first principal `satisfy` accepts, with the first one's reason when it is not it. */
+// Who sends the operation: the first principal `satisfy` accepts, with the first one's reason when it is not it.
 function satisfaction(op: OperationModel, credentials: SecurityCredentials): Partial<OperationFact> {
   const ids = Object.keys(credentials.principals);
+
   if (ids.length === 0) {
     return op.security.alternatives.some((alternative) => alternative.length === 0)
       ? {}
       : { unsatisfied: NO_PRINCIPAL };
   }
+
   const reasons: string[] = [];
+
   for (const id of ids) {
     const overrides = (own(credentials.principals, id) as PrincipalEntry).security;
+
     const satisfied = satisfy(op.security, (scheme) =>
       effectiveRecipe(own(credentials.security, scheme), overrides?.[scheme]),
     );
+
     if ("unsatisfied" in satisfied) {
       reasons.push(satisfied.unsatisfied);
       continue;
     }
+
     const alternative = op.security.alternatives.indexOf(satisfied.alternative);
+
     return {
       satisfiedBy: { alternative, principal: id },
       ...(reasons.length === 0 ? {} : { alphaUnsatisfied: reasons[0] as string }),
     };
   }
+
   return { unsatisfied: reasons[0] as string };
 }
 
@@ -173,26 +183,30 @@ function operationFact(op: OperationModel, credentials: SecurityCredentials | un
 export function satisfierText(op: OperationFact, alpha: string | undefined): string | undefined {
   if (op.unsatisfied !== undefined) return `none — ${op.unsatisfied}`;
   const by = op.satisfiedBy;
+
   if (by === undefined || requirementText(op.alternatives) === "anonymous") return undefined;
   const chosen = op.alternatives[by.alternative] as Requirement[];
   const via = op.alternatives.length > 1 ? ` via ${alternativeText(chosen)}` : "";
   const instead = op.alphaUnsatisfied === undefined ? "" : ` (${alpha}: ${op.alphaUnsatisfied})`;
+
   return `${by.principal}${via}${instead}`;
 }
 
-/* Keyed by requirement alone: who satisfies an operation depends on nothing else, so its satisfier is the group's. */
+// Keyed by requirement alone: who satisfies an operation depends on nothing else, so its satisfier is the group's.
 function groupsOf(operations: OperationFact[], alpha: string | undefined): RequirementGroup[] {
   const groups = new Map<string, RequirementGroup>();
+
   for (const op of operations) {
     const requirement = requirementText(op.alternatives);
     const group = groups.get(requirement) ?? { operations: 0, requirement, satisfier: satisfierText(op, alpha) };
     group.operations += 1;
     groups.set(requirement, group);
   }
+
   return [...groups.values()].sort((a, b) => b.operations - a.operations || a.requirement.localeCompare(b.requirement));
 }
 
-/* Operations every alternative of which needs `scheme`: without it, nothing can send them. */
+// Operations every alternative of which needs `scheme`: without it, nothing can send them.
 function needingOnly(operations: readonly OperationModel[], scheme: string): number {
   return operations.filter((op) =>
     op.security.alternatives.every((alternative) => alternative.some((r) => r.scheme === scheme)),
@@ -201,28 +215,33 @@ function needingOnly(operations: readonly OperationModel[], scheme: string): num
 
 function named(credentials: SecurityCredentials, scheme: string): boolean {
   if (own(credentials.security, scheme) !== undefined) return true;
+
   return Object.values(credentials.principals).some((principal) => principal.security?.[scheme] !== undefined);
 }
 
-/* Why the writer writes: the config names it, or it is the first principal; nothing without one. */
+// Why the writer writes: the config names it, or it is the first principal; nothing without one.
 function writerFrom(
   alpha: string | undefined,
   credentials: SecurityCredentials | undefined,
 ): SecurityFacts["writerFrom"] {
   if (alpha === undefined) return undefined;
+
   return credentials?.writer === alpha ? "config writer" : "first principal";
 }
 
 /** Everything doctor and plan say about credentials, for `model` and, when there is one, the config's. */
 export function securityFacts(model: SpecModel, credentials?: SecurityCredentials): SecurityFacts {
   const schemes = [...model.schemes.values()];
+
   const ordered =
     credentials === undefined
       ? undefined
       : { ...credentials, principals: writerFirst(credentials.principals, credentials.writer) };
+
   const operations = model.operations.map((op) => operationFact(op, ordered));
   const alpha = ordered === undefined ? undefined : Object.keys(ordered.principals)[0];
   const undeclared = [...new Set(model.operations.flatMap((op) => op.security.undeclared))].toSorted();
+
   return {
     alpha,
     writerFrom: writerFrom(alpha, credentials),

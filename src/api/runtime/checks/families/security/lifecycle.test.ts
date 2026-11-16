@@ -7,7 +7,7 @@ import { actorOf, operationContextFor } from "./__fixtures__/operation-context.t
 import { securedDoc, undeclaredDoc } from "./__fixtures__/secured-api.ts";
 import { anchoredSchemes, isRefused, lifecyclePlan, readRoute, settle, unlessUnsatisfied } from "./lifecycle.ts";
 
-/* Where a credential-lifecycle check anchors, once per scheme, and the one route it proves a credential on. */
+// Where a credential-lifecycle check anchors, once per scheme, and the one route it proves a credential on.
 
 const model = modelOf(securedDoc());
 const alpha = actorOf("alpha", { scope: { project_id: "proj_a" }, tenant: "proj_a" });
@@ -74,6 +74,7 @@ describe("anchoredSchemes (2)", () => {
       openapi: "3.1.0",
       paths: { "/x": { get: { operationId: "x.get", responses: { "200": { description: "ok" } } } } },
     } as never);
+
     expect(anchoredSchemes(operationContextFor(bare, "x.get").ctx, { kind: "revoke" })).toEqual({
       needs: "a declared security scheme",
       ok: false,
@@ -103,7 +104,7 @@ describe("readRoute", () => {
   });
 });
 
-/* A jwt document of the given reads, each protected by the document's security; `auth.revoke` anchors. */
+// A jwt document of the given reads, each protected by the document's security; `auth.revoke` anchors.
 function readsDoc(paths: Record<string, unknown>) {
   return modelOf({
     components: { securitySchemes: { jwt: { scheme: "bearer", type: "http" } } },
@@ -113,22 +114,29 @@ function readsDoc(paths: Record<string, unknown>) {
     security: [{ jwt: [] }],
   } as never);
 }
+
 const OK = { "200": { description: "ok" } };
+
 const required = (where: string, name: string, schema: Record<string, unknown> = { type: "string" }) => ({
   in: where,
   name,
   required: true,
   schema,
 });
+
 const routeIn = (paths: Record<string, unknown>) =>
   readRoute(operationContextFor(readsDoc(paths), "auth.revoke", { principals: [alpha] }).ctx, "jwt");
+
 const read = (operationId: string, parameters: unknown[]) => ({ get: { operationId, parameters, responses: OK } });
+
 const STATS = {
   "/projects/{project_id}/stats": {
     get: { operationId: "stats.get", parameters: [required("path", "project_id")], responses: OK },
   },
 };
+
 const STATUS = { "/status": { get: { operationId: "status.get", responses: OK } } };
+
 const ME = {
   "/users/me": {
     get: { operationId: "users.me", responses: OK, "x-entity": { action: "read", identity: "self", name: "me" } },
@@ -167,10 +175,12 @@ describe("readRoute picks a read the API tester can send", () => {
     expect(
       routeIn({ "/regions/{region}": { get: { operationId: "regions.get", parameters: [region], responses: OK } } }),
     ).toMatchObject({ path: "/regions/eu" });
+
     const pings = {
       "/ping": { head: { operationId: "ping.head", responses: OK } },
       "/pong": { get: { operationId: "pong.get", responses: OK } },
     };
+
     expect(routeIn(pings)).toMatchObject({ method: "GET", operation: { operationId: "pong.get" } });
     expect(routeIn({ "/ping": { head: { operationId: "ping.head", responses: OK } } })).toMatchObject({
       method: "HEAD",
@@ -188,10 +198,12 @@ describe("lifecyclePlan", () => {
       value: [{ route: { operation: { operationId: "notes.list" } }, scheme: "jwt" }],
     });
     expect(lifecyclePlan(stage("notes.list", recipes), "revoke").ok).toBe(false);
+
     const unscoped = operationContextFor(model, "auth.revoke", {
       principals: [actorOf("alpha")],
       probe: { recipes: recipes as never },
     }).ctx;
+
     expect(lifecyclePlan(unscoped, "revoke")).toEqual({
       needs: "no read this credential protects that the API tester can send",
       ok: false,

@@ -20,17 +20,16 @@ import { dereference } from "../../../src/api/spec/load/dereference.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 import { actingClient } from "../support/acting-client.ts";
 
-/*
- * A delete that answers 2xx proves only that the backend said so. After the unwind the API tester reads each
- * list once more: a record still listed is a leftover, named with why, so nobody believes a shared
- * backend is clean when it is not. It is a fact about teardown, not a finding — the checks already
- * judge whether delete removes a record.
- */
+// A delete that answers 2xx proves only that the backend said so. After the unwind the API tester reads each
+// list once more: a record still listed is a leftover, named with why, so nobody believes a shared
+// backend is clean when it is not. It is a fact about teardown, not a finding — the checks already
+// judge whether delete removes a record.
 
 const STILL_LISTED = "delete answered 2xx but the record is still listed";
 
 async function runAgainst(defects: string[], extra: Record<string, unknown> = {}) {
   const server = await createMemoryServer({ defects });
+
   try {
     return await run({
       baseUrl: server.url,
@@ -50,6 +49,7 @@ describe("teardown verification", () => {
     const result = await runAgainst(["DELETE_KEEPS_ROW"]);
     const kept = result.teardown?.failed.filter((leftover) => leftover.reason === STILL_LISTED) ?? [];
     expect(kept.length).toBeGreaterThan(0);
+
     for (const leftover of kept) {
       expect(result.teardown?.records).toContainEqual({
         entity: leftover.entity,
@@ -67,8 +67,10 @@ describe("teardown verification", () => {
 
   it("names a row the backend hides from its own creator, which nothing else can", async () => {
     const server = await createMemoryServer({ defects: ["HIDDEN_FROM_CREATOR"] });
+
     try {
       const before = await server.snapshot();
+
       const result = await run({
         baseUrl: server.url,
         principals: PRINCIPALS,
@@ -76,6 +78,7 @@ describe("teardown verification", () => {
         seed: 42,
         spec: `${server.url}/v1/openapi/spec`,
       });
+
       const leaked = leftBehind(before, await server.snapshot());
       expect(leaked.length).toBeGreaterThan(0);
       const named = (result.teardown?.failed ?? []).filter((failure) => failure.reason === NEVER_SEEN);
@@ -91,26 +94,28 @@ describe("teardown verification", () => {
   }, 240_000);
 });
 
-/*
- * A delete that answers 2xx and a list that no longer shows the record prove nothing when the
- * creator could never see the record in the first place. Teardown reads back once any record its
- * creator never saw; one still unseen is named as a leftover, unless an ancestor was removed
- * earlier in the run. `hooks.verifyRemoved` can settle what HTTP cannot.
- */
+// A delete that answers 2xx and a list that no longer shows the record prove nothing when the
+// creator could never see the record in the first place. Teardown reads back once any record its
+// creator never saw; one still unseen is named as a leftover, unless an ancestor was removed
+// earlier in the run. `hooks.verifyRemoved` can settle what HTTP cannot.
 
 const json = (schema: unknown) => ({ content: { "application/json": { schema } } });
 const ITEM = { properties: { id: { readOnly: true, type: "string" }, text: { type: "string" } }, type: "object" };
+
 const WRITE = {
   ...json({ properties: { text: { type: "string" } }, required: ["text"], type: "object" }),
   required: true,
 };
+
 const LIST = json({ properties: { items: { items: ITEM, type: "array" } }, type: "object" });
 const param = (name: string) => ({ in: "path", name, required: true, schema: { type: "string" } });
+
 const tagged = (name: string, action: string, extra: Record<string, unknown>) => ({
   operationId: `${name}.${action}`,
   "x-entity": { action, name },
   ...extra,
 });
+
 const resource = (name: string, parents: unknown[], id: string) => ({
   collection: {
     get: tagged(name, "list", { parameters: parents, responses: { "200": { ...LIST, description: "ok" } } }),
@@ -131,8 +136,10 @@ const resource = (name: string, parents: unknown[], id: string) => ({
     }),
   },
 });
+
 const FOLDERS = resource("folder", [], "folder_id");
 const NOTES = resource("note", [param("folder_id")], "note_id");
+
 const HIDDEN_SPEC = {
   info: { title: "hidden-records", version: "1" },
   openapi: "3.1.0",
@@ -165,45 +172,49 @@ function bodyOf(req: IncomingMessage): Promise<Record<string, unknown>> {
   });
 }
 
-interface Note {
+type Note = {
   id: string;
   folder: string;
   text: string;
-}
+};
 
 const closers: Array<() => Promise<void>> = [];
+
 afterEach(async () => {
   await Promise.all(closers.splice(0).map((close) => close()));
 });
 
-interface HiddenBackend {
+type HiddenBackend = {
   folders: Map<string, { id: string; text: string }>;
   notes: Map<string, Note>;
   seq: number;
-}
+};
 
-/* A note whose text holds HIDE is never served and outlives its delete; UNLISTED is never listed. */
+// A note whose text holds HIDE is never served and outlives its delete; UNLISTED is never listed.
 const hidden = (note: Note) => note.text.includes("HIDE");
 
 async function hiddenFolders(backend: HiddenBackend, req: IncomingMessage, res: ServerResponse) {
   if ((req.method ?? "GET") === "GET") return reply(res, 200, { items: [...backend.folders.values()] });
   const folder = { id: `f${++backend.seq}`, text: String((await bodyOf(req))["text"] ?? "") };
   backend.folders.set(folder.id, folder);
+
   return reply(res, 201, folder);
 }
 
-/* One request and the response that answers it. */
-interface Exchange {
+// One request and the response that answers it.
+type Exchange = {
   req: IncomingMessage;
   res: ServerResponse;
-}
+};
 
 function hiddenFolder(backend: HiddenBackend, folder: { id: string; text: string }, { req, res }: Exchange) {
   if ((req.method ?? "GET") === "GET") return reply(res, 200, folder);
   backend.folders.delete(folder.id);
-  /* A hidden note outlives its folder too: nothing a client does reaches it. */
+
+  // A hidden note outlives its folder too: nothing a client does reaches it.
   for (const note of backend.notes.values())
     if (note.folder === folder.id && !hidden(note)) backend.notes.delete(note.id);
+
   return reply(res, 204);
 }
 
@@ -212,44 +223,62 @@ async function hiddenNotes(backend: HiddenBackend, folder: { id: string }, { req
     const shown = [...backend.notes.values()].filter(
       (note) => note.folder === folder.id && !hidden(note) && !note.text.includes("UNLISTED"),
     );
+
     return reply(res, 200, { items: shown.map(({ id, text }) => ({ id, text })) });
   }
+
   const note = { folder: folder.id, id: `n${++backend.seq}`, text: String((await bodyOf(req))["text"] ?? "") };
   backend.notes.set(note.id, note);
+
   return reply(res, 201, { id: note.id, text: note.text });
 }
 
 function hiddenNote(backend: HiddenBackend, note: Note | undefined, { req, res }: Exchange) {
   const method = req.method ?? "GET";
+
   if (note === undefined || (method === "GET" && hidden(note))) return reply(res, 404, {});
+
   if (method === "GET") return reply(res, 200, { id: note.id, text: note.text });
-  /* Answers success, and keeps a hidden note. */
+
+  // Answers success, and keeps a hidden note.
   if (!hidden(note)) backend.notes.delete(note.id);
+
   return reply(res, 200, { id: note.id });
 }
 
 async function routeHidden(backend: HiddenBackend, req: IncomingMessage, res: ServerResponse) {
   const parts = new URL(req.url ?? "/", "http://x").pathname.split("/").filter(Boolean);
+
   if (parts[0] === "openapi.json") return reply(res, 200, HIDDEN_SPEC);
+
   if (parts[0] !== "folders") return reply(res, 404, {});
+
   if (parts.length === 1) return hiddenFolders(backend, req, res);
   const folder = backend.folders.get(parts[1] ?? "");
+
   if (folder === undefined) return reply(res, 404, {});
+
   if (parts.length === 2) return hiddenFolder(backend, folder, { req, res });
+
   if (parts.length === 3) return hiddenNotes(backend, folder, { req, res });
+
   const note = [...backend.notes.values()].find(
     (candidate) => candidate.folder === folder.id && candidate.id === parts[3],
   );
+
   return hiddenNote(backend, note, { req, res });
 }
 
 async function serveHidden() {
   const backend: HiddenBackend = { folders: new Map(), notes: new Map(), seq: 0 };
+
   const server = createServer((req, res) => {
     void routeHidden(backend, req, res);
   });
+
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   closers.push(() => new Promise((resolve) => server.close(() => resolve())));
+
   return {
     folders: backend.folders,
     notes: backend.notes,
@@ -257,7 +286,7 @@ async function serveHidden() {
   };
 }
 
-/* A folder, and in it one note with `text`, made by a scenario; `drop` removes the folder too. */
+// A folder, and in it one note with `text`, made by a scenario; `drop` removes the folder too.
 function scenario(text: string, drop = false): Scenario {
   return {
     covers: ["note.create"],
@@ -272,6 +301,7 @@ function scenario(text: string, drop = false): Scenario {
 
 async function runHidden(text: string, options: { drop?: boolean; hooks?: Hooks } = {}) {
   const backend = await serveHidden();
+
   const result = await run({
     baseUrl: backend.url,
     ...(options.hooks === undefined ? {} : { hooks: options.hooks }),
@@ -280,10 +310,13 @@ async function runHidden(text: string, options: { drop?: boolean; hooks?: Hooks 
     seed: 1,
     spec: `${backend.url}/openapi.json`,
   });
+
   const made = result.client.transcript.find(
     (exchange) => exchange.check === undefined && exchange.operationId === "note.create" && exchange.status === 201,
   );
+
   const id = (made?.responseBody as { id?: string } | undefined)?.id ?? "";
+
   return { ...backend, id, result };
 }
 
@@ -297,9 +330,11 @@ describe("a record its creator never saw", () => {
 
   it("makes no claim once teardown's own read finds it", async () => {
     const { id, notes, result } = await runHidden("UNLISTED me");
+
     const readBack = result.client.transcript.filter(
       (exchange) => exchange.purpose === "teardown" && exchange.method === "GET" && exchange.url.endsWith(`/${id}`),
     );
+
     expect(readBack.map((exchange) => exchange.status)).toEqual([200]);
     expect(notes.has(id)).toBe(false);
     expect(result.teardown?.failed.filter((failure) => failure.id === id)).toEqual([]);
@@ -307,9 +342,11 @@ describe("a record its creator never saw", () => {
 
   it("is not read again when its creator saw it during the run", async () => {
     const { result } = await runHidden("plain");
+
     const before = result.client.transcript.filter(
       (exchange) => exchange.purpose !== "teardown" && exchange.status === 200,
     );
+
     const sighted = new Set([
       ...before
         .filter((exchange) => exchange.operationId === "folder.list")
@@ -320,10 +357,13 @@ describe("a record its creator never saw", () => {
         .filter((exchange) => exchange.operationId === "folder.read")
         .map((exchange) => exchange.url.split("/").at(-1)),
     ]);
+
     expect(sighted.size).toBeGreaterThan(1);
+
     const readBack = result.client.transcript
       .filter((exchange) => exchange.purpose === "teardown" && exchange.operationId === "folder.read")
       .map((exchange) => exchange.url.split("/").at(-1));
+
     expect(readBack.filter((id) => sighted.has(id))).toEqual([]);
   }, 120_000);
 
@@ -335,6 +375,7 @@ describe("a record its creator never saw", () => {
 });
 
 const foldersPresent: Hooks["verifyRemoved"] = (record) => (record.entity === "folder" ? "present" : "unknown");
+
 const unreachable: Hooks["verifyRemoved"] = () => {
   throw new Error("store unreachable");
 };
@@ -352,10 +393,13 @@ describe("hooks.verifyRemoved", () => {
 
   it("clears a record it says is absent", async () => {
     const seen: Array<{ entity: string; id: string; principal: string }> = [];
+
     const verifyRemoved: Hooks["verifyRemoved"] = async (record) => {
       seen.push(record);
+
       return "absent" as const;
     };
+
     const { id, result } = await runHidden("HIDE me", { hooks: { verifyRemoved } });
     expect(seen).toContainEqual(expect.objectContaining({ entity: "note", id, principal: "alpha" }));
     expect(result.teardown?.failed.filter((failure) => failure.id === id)).toEqual([]);
@@ -381,7 +425,7 @@ describe("hooks.verifyRemoved", () => {
   });
 });
 
-/* A per-tenant id sequence: each project's first row is `1`. Reads find nothing; deletes answer 204. */
+// A per-tenant id sequence: each project's first row is `1`. Reads find nothing; deletes answer 204.
 const TENANT_ROWS = {
   ...bearerSecurity(),
   info: { title: "tenant-rows", version: "1" },
@@ -402,29 +446,35 @@ const TENANT_ROWS = {
 
 const owner = (id: string): Owner => ({ id });
 
-/* Both tenants hold `row 1`; only `seer`'s read of it answers. */
+// Both tenants hold `row 1`; only `seer`'s read of it answers.
 async function twoRowOnes(seer: string | null, verdicts: Record<string, "present" | "absent">) {
   const server = createServer((req, res) => {
     if (req.method === "DELETE") return reply(res, 204);
+
     return req.headers.authorization === `Bearer ${seer}`
       ? reply(res, 200, { id: "1", text: "x" })
       : reply(res, 404, {});
   });
+
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   closers.push(() => new Promise((resolve) => server.close(() => resolve())));
   const model = buildModel(dereference(TENANT_ROWS).doc);
-  /* Each tenant's principal sends its own token. */
+
+  // Each tenant's principal sends its own token.
   const client = actingClient({
     baseUrl: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
     model,
     principals: { alpha: { token: "alpha" }, beta: { token: "beta" } },
     security: { bearer: { static: "{principal.token}" } },
   });
+
   const ledger = new Ledger();
   const [one] = listedIds(["1"]);
+
   if (one === undefined) throw new Error("listedIds gave nothing back");
   ledger.record({ entity: "row", id: one, scope: { project_id: "a", row_id: "1" } }, owner("alpha"));
   ledger.record({ entity: "row", id: one, scope: { project_id: "b", row_id: "1" } }, owner("beta"));
+
   return ledger.unwind(model, client, {
     fallbacks: () => [],
     options: {
@@ -445,7 +495,7 @@ describe("hooks.verifyRemoved, when two tenants hold the same id", () => {
   });
 
   it("clears only the never-seen record its own answer clears", async () => {
-    /* Beta saw its row; alpha never did. The hook finds beta's still there and alpha's gone. */
+    // Beta saw its row; alpha never did. The hook finds beta's still there and alpha's gone.
     const report = await twoRowOnes("beta", { alpha: "absent", beta: "present" });
     expect(removedBy(report)).toEqual(["alpha true", "beta false"]);
     expect(report.failed).toEqual([{ entity: "row", id: "1", principal: "beta", reason: VERIFY_HOOK_PRESENT }]);

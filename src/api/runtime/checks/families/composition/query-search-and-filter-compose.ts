@@ -48,6 +48,7 @@ export const searchAndFilterCompose: Check<Subset & { token: string }> = defineC
     const limit = pageSize(ctx);
 
     const filtered = await collectSet(ctx, limit, term);
+
     if (filtered === null) {
       return ctx.findings.unresolved(
         this.id,
@@ -55,16 +56,18 @@ export const searchAndFilterCompose: Check<Subset & { token: string }> = defineC
         "the filtered listing was rejected, so it cannot be compared with a search",
       );
     }
-    if (!filtered.complete) {
+
+    if (!filtered.complete)
       return ctx.findings.unresolved(this.id, ctx.entityName, "the filtered set is larger than the walk covers");
-    }
 
     const filterIds = new Set(ids(filtered.items, ctx.identity));
     const searched = await collectSet(ctx, limit, q(ctx, { search: token }));
+
     const both = await collectSet(ctx, limit, {
       ...term,
       ...q(ctx, { search: token }),
     });
+
     if (searched === null || both === null) {
       return ctx.findings.unresolved(
         this.id,
@@ -72,6 +75,7 @@ export const searchAndFilterCompose: Check<Subset & { token: string }> = defineC
         "combining a filter with a search was rejected, so the two cannot be compared",
       );
     }
+
     if (!searched.complete || !both.complete) {
       return ctx.findings.unresolved(
         this.id,
@@ -85,22 +89,23 @@ export const searchAndFilterCompose: Check<Subset & { token: string }> = defineC
     const got = new Set(ids(both.items, ctx.identity));
     const missing = [...expected].filter((id) => !got.has(id));
     const extraIds = [...got].filter((id) => !expected.has(id));
+
     if (missing.length === 0 && extraIds.length === 0) return ASSERTED;
     const search = q(ctx, { search: token });
     const terms = [{ query: term }, { query: search }, { query: { ...term, ...search } }];
     const moved = await unlessMoved(ctx, this.id, { reads: [filtered, searched, both], terms });
+
     if (moved !== null) return moved;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
       summary: "a filter and a search do not compose as their intersection",
       detail:
-        `filter on "${field}" matched ${filterIds.size}; q=${JSON.stringify(token)} matched ` +
-        `${searchIds.size}; both together matched ${got.size} (intersection is ` +
-        `${expected.size}). ` +
-        (missing.length > 0 ? `Missing: ${missing.slice(0, 3).join(", ")}. ` : "") +
-        (extraIds.length > 0 ? `Extra: ${extraIds.slice(0, 3).join(", ")}. ` : "") +
-        "A structured predicate and a free-text search must narrow each other. When they " +
-        "do not, one of them is being dropped the moment the other is present.",
+        `filter on "${field}" matched ${filterIds.size}; q=${JSON.stringify(token)} matched ${searchIds.size}; both together matched ${got.size} (intersection is ${expected.size}). ${
+          missing.length > 0 ? `Missing: ${missing.slice(0, 3).join(", ")}. ` : ""
+        }${
+          extraIds.length > 0 ? `Extra: ${extraIds.slice(0, 3).join(", ")}. ` : ""
+        }A structured predicate and a free-text search must narrow each other. When they ` +
+        `do not, one of them is being dropped the moment the other is present.`,
       evidence: [filtered.last.exchange, searched.last.exchange, both.last.exchange],
     });
   },

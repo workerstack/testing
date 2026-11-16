@@ -31,15 +31,17 @@ const here = dirname(fileURLToPath(import.meta.url));
 
 function flag(name) {
   const index = process.argv.indexOf(`--${name}`);
-  if (index === -1) return undefined;
+
+  if (index === -1) return;
   const next = process.argv[index + 1];
+
   return next !== undefined && !next.startsWith("--") ? next : true;
 }
 
-/* A deliberately mixed bag: one of each severity, so the report shows how findings are ranked
- * rather than a wall of one kind. None breaks a foundation other checks stand on (a stale list
- * would): the checks resting on it would stand down, and a defect injected beside it would go
- * unreported. tests/api/integration/demo-defects.test.ts holds the demo to reporting every one. */
+// A deliberately mixed bag: one of each severity, so the report shows how findings are ranked
+// rather than a wall of one kind. None breaks a foundation other checks stand on (a stale list
+// would): the checks resting on it would stand down, and a defect injected beside it would go
+// unreported. tests/api/integration/demo-defects.test.ts holds the demo to reporting every one.
 const DEFAULT_DEFECTS = [
   "IDEMPOTENCY_IGNORED",
   "PATCH_REPLACES",
@@ -59,18 +61,19 @@ for (const name of defects) {
 }
 
 const backend = flag("backend") ?? "memory";
+
 const createServer =
   backend === "memory" ? createMemoryServer : backend === "sqlite" ? createSqliteServer : createPostgresServer;
 
 const server = await createServer({ defects });
 
-/* Two principals in different tenants — the second is what makes the isolation checks possible. */
+// Two principals in different tenants — the second is what makes the isolation checks possible.
 const principals = {
   alpha: { key: "key_alpha", scope: { project_id: "proj_alpha" }, tenant: "proj_alpha" },
   beta: { key: "key_beta", scope: { project_id: "proj_beta" }, tenant: "proj_beta" },
 };
 
-/* The reference's jwt scheme: each principal trades its key at auth.token for the token. */
+// The reference's jwt scheme: each principal trades its key at auth.token for the token.
 const security = {
   jwt: {
     login: { from: "$.access_token", steps: [{ body: { key: "{principal.key}" }, operationId: "auth.token" }] },
@@ -78,12 +81,14 @@ const security = {
 };
 
 console.log(`\n  backend  ${backend}`);
+
 console.log(`  defects  ${defects.length > 0 ? defects.join(", ") : "none — correct backend"}`);
 
 const startedAt = new Date();
 const began = performance.now();
 const allocated = await allocateRunDir(resolve(here, "../../.testing/api/runs"), startedAt);
 const outDir = allocated.runDir;
+
 const result = await run({
   baseUrl: server.url,
   principals,
@@ -91,6 +96,7 @@ const result = await run({
   seed: 42,
   spec: `${server.url}/v1/openapi/spec`,
 });
+
 const durationMs = performance.now() - began;
 
 const input = {
@@ -105,16 +111,22 @@ const input = {
 };
 
 await mkdir(resolve(outDir, "repro"), { recursive: true });
+
 await writeFile(resolve(outDir, "report.md"), renderMarkdown(input));
+
 await writeFile(resolve(outDir, "report.json"), renderJson(input));
-for (const script of renderRepros(result.findings, server.url, result.client.redactor)) {
+
+for (const script of renderRepros(result.findings, server.url, result.client.redactor))
   await writeFile(resolve(outDir, "repro", script.filename), script.content, { mode: 0o755 });
-}
+
 await publishLatest(allocated);
 
 process.stdout.write(renderConsole(input));
+
 console.log(`  report   ${resolve(outDir, "report.md")}`);
+
 console.log(`  repro    ${resolve(outDir, "repro")}/`);
+
 console.log(`  latest   ${allocated.latest}\n`);
 
 await server.close();

@@ -4,31 +4,31 @@ import { errorResponses } from "./errors.ts";
 import { jsonResponse, ok } from "./operation.ts";
 import type { Json, SpecContext } from "./types.ts";
 
-/* An object of exactly these fields, every one required. */
+// An object of exactly these fields, every one required.
 function fields(properties: Json): Json {
   return { additionalProperties: false, properties, required: Object.keys(properties), type: "object" };
 }
 
 const STRING = { type: "string" };
 
-/* The one route a key is read back through, which minting and revoking it change. */
+// The one route a key is read back through, which minting and revoking it change.
 const KEY_READ = ["GET /v1/api-keys/{id}"];
 
 function jsonBody(properties: Json): Json {
   return { content: { "application/json": { schema: fields(properties) } }, required: true };
 }
 
-/* What a sign-in, or a refresh, answers. */
+// What a sign-in, or a refresh, answers.
 const session = (): Json =>
   fields({ access_token: STRING, refresh_token: STRING, expires_in: { type: "integer" }, project_id: STRING });
 
-/* The throttle's answer: when to try again. */
+// The throttle's answer: when to try again.
 const THROTTLED: Json = {
   description: "Too many failed logins",
   headers: { "Retry-After": { description: "Seconds until a login is tried again", schema: { type: "integer" } } },
 };
 
-/* A public sign-in: `body` for a JWT pair, throttled once one identity keeps failing. */
+// A public sign-in: `body` for a JWT pair, throttled once one identity keeps failing.
 function signIn(ctx: SpecContext, id: string, body: Json): Json {
   return {
     operationId: id,
@@ -68,27 +68,30 @@ function revokeOperation(ctx: SpecContext): Json {
   };
 }
 
-/* Under key-lifecycle, the key operations are the api-key entity's own, each key its tenant's by its id. */
+// Under key-lifecycle, the key operations are the api-key entity's own, each key its tenant's by its id.
 function keyTags(ctx: SpecContext, action: string, scoped: boolean): Json {
   if (ctx.shape.keyLifecycle !== true) return {};
   const entity = { "x-entity": { action, identity: "id", name: "api-key" } };
+
   return scoped ? { ...entity, "x-tenant": "id" } : entity;
 }
 
-/* The routes a key's create, rename and revoke change: its read, and its listing behind key-lifecycle. */
+// The routes a key's create, rename and revoke change: its read, and its listing behind key-lifecycle.
 function keyRoutes(ctx: SpecContext): string[] {
   return ctx.shape.keyLifecycle === true ? [...KEY_READ, "GET /v1/api-keys"] : KEY_READ;
 }
 
-/* A key as it is read back, never with its value: named behind key-lifecycle. */
+// A key as it is read back, never with its value: named behind key-lifecycle.
 function keyRecord(ctx: SpecContext): Json {
   const named = ctx.shape.keyLifecycle === true ? { name: { type: ["string", "null"] } } : {};
+
   return fields({ id: STRING, ...named, scopes: { items: STRING, type: "array" } });
 }
 
 function createKeyOperation(ctx: SpecContext): Json {
   const scopes = ctx.entities.flatMap((entity) => [`${entity.name}:read`, `${entity.name}:write`]);
   const scopeList = { items: { enum: scopes, type: "string" }, type: "array" };
+
   const body =
     ctx.shape.keyLifecycle === true
       ? {
@@ -105,6 +108,7 @@ function createKeyOperation(ctx: SpecContext): Json {
           required: true,
         }
       : jsonBody({ scopes: scopeList });
+
   return {
     operationId: "apiKey.create",
     requestBody: body,
@@ -148,7 +152,7 @@ function readKeyOperation(ctx: SpecContext): Json {
   };
 }
 
-/* Behind key-lifecycle: the caller's tenant's live keys. */
+// Behind key-lifecycle: the caller's tenant's live keys.
 function listKeysOperation(ctx: SpecContext): Json {
   return {
     operationId: "apiKey.list",
@@ -162,7 +166,7 @@ function listKeysOperation(ctx: SpecContext): Json {
   };
 }
 
-/* Behind key-lifecycle: rename a key, its creator's or, for the tenant's admin, any. */
+// Behind key-lifecycle: rename a key, its creator's or, for the tenant's admin, any.
 function renameKeyOperation(ctx: SpecContext): Json {
   return {
     operationId: "apiKey.update",

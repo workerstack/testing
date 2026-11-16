@@ -55,8 +55,10 @@ describe("shapedEntities under the string guard", () => {
       nullable: true,
       patterns: [PHONE_PATTERN, STRING_GUARD],
     });
+
     for (const entity of entities) {
       const written = entity.fields.filter((one) => one.type === "string" && one.generated !== true);
+
       for (const one of written) expect(one.patterns, `${entity.name}.${one.name}`).toContain(STRING_GUARD);
     }
   });

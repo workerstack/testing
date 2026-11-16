@@ -23,6 +23,7 @@ describe("classifyNetworkError", () => {
       [new Error("socket hang up"), "unknown"],
       ["getaddrinfo failed", "unknown"],
     ];
+
     expect(cases.map(([error]) => classifyNetworkError(error))).toEqual(cases.map(([, kind]) => kind));
   });
 

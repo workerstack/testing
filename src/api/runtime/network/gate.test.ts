@@ -15,6 +15,7 @@ const failure = new NetworkError({
 function virtualClock(): { now: () => number; sleep: (ms: number) => Promise<void>; slept: number[] } {
   let at = 1_000;
   const slept: number[] = [];
+
   return {
     now: () => at,
     sleep: async (ms) => {
@@ -45,6 +46,7 @@ describe("createNetworkGate with a budget", () => {
     const clock = virtualClock();
     const waits: NetworkWaitInfo[] = [];
     const answers = [false, true];
+
     const gate = createNetworkGate({
       now: clock.now,
       onWait: (wait) => waits.push(wait),
@@ -53,6 +55,7 @@ describe("createNetworkGate with a budget", () => {
       sleep: clock.sleep,
       waitBudgetMs: 5_000,
     });
+
     expect(gate.lastKind).toBeUndefined();
     expect(await gate.awaitRecovery(failure)).toBe(true);
     expect(clock.slept).toEqual([1_000, 1_000]);
@@ -66,6 +69,7 @@ describe("createNetworkGate with a budget", () => {
 
   it("exhausts the budget when the link never answers, never probing faster than 50ms", async () => {
     const clock = virtualClock();
+
     const gate = createNetworkGate({
       now: clock.now,
       probe: async () => false,
@@ -73,6 +77,7 @@ describe("createNetworkGate with a budget", () => {
       sleep: clock.sleep,
       waitBudgetMs: 120,
     });
+
     expect(await gate.awaitRecovery(failure)).toBe(false);
     expect(clock.slept).toEqual([50, 50, 20]);
     expect([gate.exhausted, gate.waitedMs]).toEqual([true, 120]);

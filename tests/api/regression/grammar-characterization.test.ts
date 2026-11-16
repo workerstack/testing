@@ -4,11 +4,9 @@ import { describe, expect, it } from "vitest";
 
 import { grammarTable } from "../support/grammar-table.ts";
 
-/*
- * Today's filter, sort and select writers, pinned. Template grammars replace these writers with
- * one renderer whose presets must reproduce every term below byte for byte: a preset that drifts
- * would change the requests the API tester sends to every API that never declared a grammar.
- */
+// Today's filter, sort and select writers, pinned. Template grammars replace these writers with
+// one renderer whose presets must reproduce every term below byte for byte: a preset that drifts
+// would change the requests the API tester sends to every API that never declared a grammar.
 
 const PINNED = JSON.parse(
   readFileSync(new URL("../../../src/api/spec/__fixtures__/grammar-characterization.json", import.meta.url), "utf8"),

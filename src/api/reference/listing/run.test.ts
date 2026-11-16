@@ -1,29 +1,31 @@
 import { describe, expect, it } from "vitest";
 
+import { cellText, type Row } from "../cell.ts";
 import { DefectSet } from "../defects/defect-set.ts";
 import type { DefectName } from "../defects/table.ts";
 import { ROW } from "../model/row.ts";
 import { TABLE } from "../model/table.ts";
 import { DEFAULT_CONVENTIONS } from "../query/conventions.ts";
-import type { Row } from "../store-api.ts";
 import { recording, seededStore } from "./__fixtures__/store.ts";
 import { runListing } from "./run.ts";
 import type { ListingOptions, ListingRequest } from "./types.ts";
 
 const OPTIONS: ListingOptions = { conventions: DEFAULT_CONVENTIONS, scope: { project_id: "proj_alpha" } };
 
-const embed = async (relation: string, row: Row) => ({ name: `${relation}:${String(row["id"])}` });
+const embed = async (relation: string, row: Row) => ({ name: `${relation}:${cellText(row["id"])}` });
 
-const transform = (row: Row): Row => ({ ...row, name: String(row["name"]).toUpperCase() });
+const transform = (row: Row): Row => ({ ...row, name: cellText(row["name"]).toUpperCase() });
 
 async function list(request: ListingRequest, defects: DefectName[] = [], options: Partial<ListingOptions> = {}) {
   const { plans, store } = recording(await seededStore());
+
   const result = await runListing(store, {
     defects: new DefectSet(defects),
     entity: TABLE,
     options: { ...OPTIONS, ...options },
     request,
   });
+
   return { ids: result.items.map((item) => item["id"]), plans, result };
 }
 
@@ -54,12 +56,14 @@ describe("runListing: a page", () => {
   it("transforms each served row before projecting it, and embeds through the options", async () => {
     const { result } = await list({ limit: "1", select: "name" }, [], { embed, transform });
     expect(result.items).toEqual([{ name: "ZETA" }]);
+
     const rows = await runListing(recording(await seededStore([{ id: "r1", table_id: "t1" }], ROW)).store, {
       defects: new DefectSet(),
       entity: ROW,
       options: { conventions: DEFAULT_CONVENTIONS, embed, scope: {} },
       request: { select: "id,table(name)" },
     });
+
     expect(rows.items).toEqual([{ id: "r1", table: { name: "table:r1" } }]);
   });
 });
@@ -95,11 +99,13 @@ describe("runListing: counting and the empty-result guard", () => {
 describe("runListing: defects in the window", () => {
   it("resolves the cursor under the other collation, under the defect", async () => {
     const first = await list({ limit: "2", order: "name" });
+
     const next = await list({ cursor: first.result.nextCursor ?? "", limit: "2", order: "name" }, [
       "COLLATION_INCONSISTENT",
     ]);
+
     expect(next.plans.map((plan) => plan.collation)).toEqual(["binary", "insensitive"]);
-    /* Binary order puts t4 second; the insensitive one puts it third, so the page starts one row late. */
+    // Binary order puts t4 second; the insensitive one puts it third, so the page starts one row late.
     expect(next.result.offset).toBe(3);
   });
 

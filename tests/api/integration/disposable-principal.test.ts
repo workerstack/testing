@@ -13,6 +13,7 @@ import { jsonBody } from "../support/json-body.ts";
 const DEFECT_VERDICTS = new Set(["BACKEND_BUG", "SECURITY", "SPEC_BUG"]);
 
 let open: Array<{ close: () => Promise<void> }> = [];
+
 afterEach(async () => {
   for (const server of open) await server.close();
   open = [];
@@ -126,18 +127,18 @@ function spec(): OpenApiDocument {
   } as OpenApiDocument;
 }
 
-interface Hit {
+type Hit = {
   body: Record<string, unknown>;
   method: string;
   path: string;
   token: string;
-}
+};
 
 /** A JSON answer; without a body the response is a bare status. */
-interface Reply {
+type Reply = {
   body?: unknown;
   status: number;
-}
+};
 
 type Route = (hit: Hit) => Reply | undefined;
 
@@ -147,8 +148,10 @@ function write(res: ServerResponse, reply: Reply): void {
   if (reply.body === undefined) {
     res.writeHead(reply.status);
     res.end();
+
     return;
   }
+
   res.writeHead(reply.status, { "content-type": "application/json" });
   res.end(JSON.stringify(reply.body));
 }
@@ -156,6 +159,7 @@ function write(res: ServerResponse, reply: Reply): void {
 async function readHit(req: IncomingMessage, url: URL, method: string): Promise<Hit | undefined> {
   const body = jsonBody(await text(req));
   const token = typeof req.headers.authorization === "string" ? req.headers.authorization.slice(7).trim() : "";
+
   return body === undefined ? undefined : { body, method, path: url.pathname, token };
 }
 
@@ -165,28 +169,38 @@ async function listenRoutes(document: OpenApiDocument, routes: Route[], notFound
     void (async () => {
       const url = new URL(req.url ?? "/", "http://127.0.0.1");
       const method = (req.method ?? "GET").toUpperCase();
+
       if (url.pathname === "/openapi.json" && method === "GET") return write(res, { body: document, status: 200 });
       const hit = await readHit(req, url, method);
+
       if (hit === undefined) return write(res, { body: { error: "malformed json" }, status: 400 });
+
       for (const route of routes) {
         const reply = route(hit);
+
         if (reply !== undefined) return write(res, reply);
       }
+
       write(res, notFound);
     })();
   });
+
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   open.push({ close: () => new Promise<void>((resolve) => server.close(() => resolve())) });
+
   return url;
 }
 
 /** GET and PATCH /v1/me for a token `names` knows; any other token is refused. */
 function profileRoute(names: Map<string, string>): Route {
   return ({ body, method, path, token }) => {
-    if (path !== "/v1/me" || (method !== "GET" && method !== "PATCH")) return undefined;
+    if (path !== "/v1/me" || (method !== "GET" && method !== "PATCH")) return;
+
     if (!names.has(token)) return UNAUTHORIZED;
+
     if (method === "PATCH" && typeof body["first_name"] === "string") names.set(token, body["first_name"]);
+
     return { body: { first_name: names.get(token) }, status: 200 };
   };
 }
@@ -194,9 +208,10 @@ function profileRoute(names: Map<string, string>): Route {
 /** Registers a fresh `disp-<n>` session; `refresh` also issues its refresh token. */
 function disposableRegister(names: Map<string, string>, refresh: boolean): Route {
   return ({ method, path }) => {
-    if (path !== "/v1/register" || method !== "POST") return undefined;
+    if (path !== "/v1/register" || method !== "POST") return;
     const tokenId = `disp-${names.size}`;
     names.set(tokenId, "Ada");
+
     return {
       body: refresh ? { access_token: tokenId, refresh_token: `rf-${tokenId}` } : { access_token: tokenId },
       status: 201,
@@ -208,12 +223,16 @@ const passkeys: Route = ({ path }) => (path === "/v1/passkeys/register/options" 
 
 async function serve(killCaller: boolean): Promise<string> {
   const names = new Map<string, string>([["alpha", "Ada"]]);
+
   const logout: Route = ({ method, path, token }) => {
-    if (path !== "/v1/logout" || method !== "POST") return undefined;
+    if (path !== "/v1/logout" || method !== "POST") return;
+
     if (killCaller) names.clear();
     else names.delete(token);
+
     return { body: { ok: true }, status: 200 };
   };
+
   return listenRoutes(spec(), [passkeys, disposableRegister(names, false), logout, profileRoute(names)], {
     status: 404,
   });
@@ -222,13 +241,16 @@ async function serve(killCaller: boolean): Promise<string> {
 function refreshSpec(): OpenApiDocument {
   const document = spec();
   const paths = document.paths as Record<string, Record<string, unknown>>;
+
   const register = paths["/v1/register"]?.["post"] as {
     responses: Record<
       string,
       { content: { "application/json": { schema: { properties: Record<string, unknown>; required: string[] } } } }
     >;
   };
+
   const created = register.responses["201"]?.content["application/json"].schema;
+
   if (created === undefined) throw new Error("the register operation documents no 201 body");
   created.properties["refresh_token"] = { type: "string" };
   created.required.push("refresh_token");
@@ -267,28 +289,36 @@ function refreshSpec(): OpenApiDocument {
       security: [],
     },
   };
+
   return document;
 }
 
 async function serveRefresh(refreshLives: boolean): Promise<string> {
   const names = new Map<string, string>([["alpha", "Ada"]]);
   const dead = new Set<string>();
+
   const logout: Route = ({ body, method, path }) => {
-    if (path !== "/v1/logout" || method !== "POST") return undefined;
+    if (path !== "/v1/logout" || method !== "POST") return;
+
     if (typeof body["refresh_token"] === "string") dead.add(body["refresh_token"]);
+
     return { body: { ok: true }, status: 200 };
   };
+
   const refresh: Route = ({ body, method, path }) => {
-    if (path !== "/v1/refresh" || method !== "POST") return undefined;
+    if (path !== "/v1/refresh" || method !== "POST") return;
     const token = body["refresh_token"];
     const alive = typeof token === "string" && !dead.has(token);
+
     return refreshLives || alive ? { body: { ok: true }, status: 200 } : UNAUTHORIZED;
   };
+
   const routes = [disposableRegister(names, true), logout, refresh, profileRoute(names)];
+
   return listenRoutes(refreshSpec(), routes, { status: 404 });
 }
 
-/* A second user holds the token its signup answered; the suite caller, alpha, a fixed one. */
+// A second user holds the token its signup answered; the suite caller, alpha, a fixed one.
 async function runDisposable(baseUrl: string) {
   return run({
     baseUrl,
@@ -302,6 +332,7 @@ async function runDisposable(baseUrl: string) {
 function withoutLogout(): OpenApiDocument {
   const document = spec();
   delete (document.paths as Record<string, unknown>)["/v1/logout"];
+
   return document;
 }
 
@@ -322,16 +353,20 @@ async function startServer(document: OpenApiDocument, handle: Route): Promise<st
     ["alpha", "Ada"],
     ["t1", "Ada"],
   ]);
+
   const register: Route = ({ method, path }) => {
-    if (path !== "/v1/register" || method !== "POST") return undefined;
+    if (path !== "/v1/register" || method !== "POST") return;
     names.set("t1", "Ada");
+
     return { body: { access_token: "t1", refresh_token: "r1" }, status: 201 };
   };
+
   return listenRoutes(document, [register, handle, profileRoute(names)], { body: { error: "missing" }, status: 404 });
 }
 
-/* alpha signs up and renews by the refresh token its signup saved. */
+// alpha signs up and renews by the refresh token its signup saved.
 const SAVE_REFRESH = { refresh_token: "$.refresh_token" };
+
 const REFRESHING: SecurityConfig = {
   bearer: {
     login: {
@@ -345,7 +380,7 @@ const REFRESHING: SecurityConfig = {
   },
 };
 
-/* The refresh a recipe declares — the API tester never guesses a refresh route by field name. */
+// The refresh a recipe declares — the API tester never guesses a refresh route by field name.
 async function runRefreshFlow(baseUrl: string) {
   return run({
     baseUrl,
@@ -365,9 +400,11 @@ async function logsOutSecondUser(): Promise<void> {
   const logout = result.scope.operations.find((op) => op.operationId === "auth.logout");
   expect(logout?.status).toBe("passed");
   expect(logout?.tier).toBe("verified");
+
   const logoutAt = result.client.transcript.findIndex(
     (exchange) => exchange.method === "POST" && exchange.url.endsWith("/v1/logout"),
   );
+
   expect(logoutAt).toBeGreaterThanOrEqual(0);
   expect(result.client.transcript[logoutAt]?.principal).toMatch(/^disposable-/);
   const after = result.client.transcript.slice(logoutAt + 1);
@@ -411,16 +448,20 @@ async function acceptsAccountDelete(): Promise<void> {
     },
   };
   let deleted = false;
+
   const url = await startServer(document, ({ method, path, token }) => {
-    if (path === "/v1/me" && method === "GET" && token === "t1" && deleted) {
+    if (path === "/v1/me" && method === "GET" && token === "t1" && deleted)
       return { body: { error_key: "not_found" }, status: 404 };
-    }
+
     if (path === "/v1/account/delete" && method === "POST") {
       deleted = true;
+
       return { body: { ok: true }, status: 200 };
     }
-    return undefined;
+
+    return;
   });
+
   const result = await runDisposable(url);
   const defects = result.findings.filter((finding) => DEFECT_VERDICTS.has(finding.verdict));
   expect(defects).toEqual([]);
@@ -454,17 +495,22 @@ async function provesRemovedItem(): Promise<void> {
     },
   };
   const devices = new Set(["dev_1", "dev_2"]);
+
   const url = await startServer(document, ({ method, path }) => {
-    if (path === "/v1/devices" && method === "GET") {
+    if (path === "/v1/devices" && method === "GET")
       return { body: { devices: [...devices].map((id) => ({ id })) }, status: 200 };
-    }
+
     const one = /^\/v1\/devices\/([^/]+)$/.exec(path);
+
     if (one !== null && method === "DELETE") {
       devices.delete(one[1] ?? "");
+
       return { body: { ok: true }, status: 200 };
     }
-    return undefined;
+
+    return;
   });
+
   const result = await runDisposable(url);
   const forget = result.scope.operations.find((op) => op.operationId === "device.forget");
   expect(forget?.status).toBe("passed");
@@ -482,9 +528,11 @@ async function leavesRefusedDestructiveUntested(): Promise<void> {
       "x-destructive": true,
     },
   };
+
   const url = await startServer(document, ({ path }) =>
     path === "/v1/two-factor/disable" ? { body: { error: "two_factor_not_enabled" }, status: 409 } : undefined,
   );
+
   const result = await runDisposable(url);
   const disable = result.scope.operations.find((op) => op.operationId === "auth.disable2fa");
   expect(disable?.status).toBe("untested");

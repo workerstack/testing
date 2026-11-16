@@ -41,8 +41,10 @@ export const idempotentReplay: Check<{
   plan: (ctx) => {
     const createOp = ctx.createOp;
     const header = createOp?.idempotencyHeader;
+
     if (createOp === undefined || header == null) return cannot();
     const schema = requestSchemaOf(ctx, createOp);
+
     return schema === null
       ? cannot("a create operation with a request body to replay")
       : ready({ createOp, header, schema });
@@ -55,22 +57,25 @@ export const idempotentReplay: Check<{
   subjects: subjectsOf.create,
   async run(ctx, { createOp, header, schema }): Promise<Outcome> {
     const body = validBody(ctx, schema);
-    /* The nonce keeps a second run from replaying the first run's request — and getting the
-     * first run's record back, which reads as a pass while proving nothing. */
+    // The nonce keeps a second run from replaying the first run's request — and getting the
+    // first run's record back, which reads as a pass while proving nothing.
     const key = `testing-idem-${ctx.nonce}-${ctx.entityName}`;
     const path = fillPath(createOp.path, ctx.scope);
     const headers = { [header]: key };
 
     const encoded = await encodeOpBody(ctx, createOp, body);
     const first = await ctx.client.request("POST", path, { ...encoded, as: { principal: ctx.actor.id }, headers });
+
     const firstRefused = refusal(ctx, this.id, createOp, {
       exchange: first,
       reason: (status) => `the first create returned ${status}, so there was nothing to replay`,
     });
+
     if (firstRefused !== undefined) return firstRefused;
-    /* An acknowledgment-only create names the record by the id it was sent, once a read shows it. */
+    // An acknowledgment-only create names the record by the id it was sent, once a read shows it.
     const acknowledged = identityOf(ctx, first) === undefined;
     const firstId = identityOf(ctx, first) ?? (await confirmedIdentity(ctx, ctx.client, body))?.id;
+
     if (firstId === undefined) {
       return ctx.findings.unresolved(
         this.id,
@@ -78,19 +83,23 @@ export const idempotentReplay: Check<{
         `the create response carries no "${ctx.identity}", so a replay cannot be matched to it`,
       );
     }
+
     const before = await readSet(ctx, {}, { fresh: true });
     const second = await ctx.client.request("POST", path, { ...encoded, as: { principal: ctx.actor.id }, headers });
+
     const secondRefused = refusal(ctx, this.id, createOp, {
       exchange: second,
       reason: (status) => `the replay returned ${status}; a repeated key must be answered, not refused`,
     });
+
     if (secondRefused !== undefined) return secondRefused;
+
     return judgeReplay({ acknowledged, before, check: this.id, ctx, first, firstId, header, key, second });
   },
 });
 
 /** One create and its replay under the same key, as sent and answered. */
-interface Replay {
+type Replay = {
   ctx: Listed<Client>;
   check: string;
   header: string;
@@ -101,7 +110,7 @@ interface Replay {
   second: Exchange;
   /** The collection read between the two creates. */
   before: SetRead;
-}
+};
 
 function identityOf(ctx: CheckContext, exchange: Exchange): string | undefined {
   const value = answeredIdOf({
@@ -110,6 +119,7 @@ function identityOf(ctx: CheckContext, exchange: Exchange): string | undefined {
     identity: ctx.identity,
     model: ctx.model,
   });
+
   return value === undefined ? undefined : String(value);
 }
 
@@ -121,17 +131,21 @@ function refusal(
   answered: { exchange: Exchange; reason: (status: number) => string },
 ): Outcome | undefined {
   const { exchange } = answered;
+
   if (standDownForFeatureGate(ctx, createOp, exchange, check))
     return standDown("a documented feature gate refused the request");
+
   if (exchange.status < 300) return undefined;
+
   return ctx.findings.unresolved(check, ctx.entityName, answered.reason(exchange.status));
 }
 
 function judgeReplay(replay: Replay): Promise<Outcome> | Outcome {
   const { check, ctx, first, firstId, header, key, second } = replay;
-  /* The same key and body under an acknowledgment-only create name the same record; whether the
-   * replay made a second one is then the collection's to say, below. */
+  // The same key and body under an acknowledgment-only create name the same record; whether the
+  // replay made a second one is then the collection's to say, below.
   const secondId = identityOf(ctx, second) ?? (replay.acknowledged ? firstId : undefined);
+
   if (secondId === undefined) {
     return ctx.findings.unresolved(
       check,
@@ -139,7 +153,9 @@ function judgeReplay(replay: Replay): Promise<Outcome> | Outcome {
       `the replay's response carries no "${ctx.identity}", so it cannot be matched to the original`,
     );
   }
+
   if (firstId === secondId) return judgeGrowth(replay);
+
   return ctx.findings.backend(check, ctx.entityName, {
     summary: "replaying a request with the same idempotency key created a second record",
     detail:
@@ -154,6 +170,7 @@ function judgeReplay(replay: Replay): Promise<Outcome> | Outcome {
 async function judgeGrowth(replay: Replay): Promise<Outcome> {
   const { before, check, ctx, first, firstId, header, key, second } = replay;
   const after = await readSet(ctx, {}, { fresh: true });
+
   if (before.status !== "ok" || after.status !== "ok" || !before.complete || !after.complete) {
     return ctx.findings.unresolved(
       check,
@@ -161,12 +178,15 @@ async function judgeGrowth(replay: Replay): Promise<Outcome> {
       "the collection could not be read whole around the replay, so growth was not ruled out",
     );
   }
+
   if (after.items.length <= before.items.length) return ASSERTED;
-  /* The twin the replay made is named only by the listing: it is the run's to remove. */
+  // The twin the replay made is named only by the listing: it is the run's to remove.
   const existed = new Set(ids(before.items, ctx.identity));
   const twins = ids(after.items, ctx.identity).filter((id) => !existed.has(id));
+
   for (const id of listedIds(twins))
     ctx.recordCreated?.({ entity: ctx.entityName, id, scope: { ...ctx.scope } }, second.principal);
+
   return ctx.findings.backend(check, ctx.entityName, {
     summary: "replaying a request with the same idempotency key grew the collection",
     detail:

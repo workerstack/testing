@@ -12,7 +12,9 @@ const COHORT = [
   { id: "w-2", status: "shut" },
   { id: "w-3", status: "held" },
 ];
+
 const DOC = { xQuery: { aliases: { ne: "neq" }, filterable: [{ field: "status", ops: ["eq", "neq"] }] } };
+
 /** FILTER_ALIAS_MISMAPPED: the ne alias is mapped to eq instead of neq. */
 const MISMAPPED = { ops: { ne: OPS["eq"] } };
 
@@ -46,6 +48,7 @@ describe("filter.alias-matches-canonical", () => {
 
   it("skips an alias it cannot probe and asserts without a request", async () => {
     const caps = resolvedCaps(stage({ doc: DOC, records: COHORT }).ctx);
+
     const unprobeable: Array<{ aliases: Record<string, unknown>; options?: Partial<Parameters<typeof stage>[0]> }> = [
       { aliases: { zz: "eq" } },
       { aliases: { ne: undefined } },
@@ -54,6 +57,7 @@ describe("filter.alias-matches-canonical", () => {
       { aliases: { ne: "neq" }, options: { records: [{ id: "w-1" }] } },
       { aliases: { ne: "neq" }, options: { conventions: reserving("o") } },
     ];
+
     for (const { aliases, options } of unprobeable) {
       const capabilities = { ...caps, aliases: aliases as EffectiveQueryCapabilities["aliases"] };
       const { ctx, sent } = stage({ doc: DOC, fields: { capabilities }, records: COHORT, ...options });

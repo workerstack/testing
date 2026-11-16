@@ -6,10 +6,10 @@ import { PARAMS, queryDoc, REJECT, stage } from "../composition/__fixtures__/que
 import { projecting } from "./__fixtures__/responders.ts";
 import { selectRequestedFieldsPresent } from "./select-requested-fields-present.ts";
 
-/* The projection with `field` left out of every record. */
+// The projection with `field` left out of every record.
 const dropping = (field: string): Responder => projecting(({ [field]: _dropped, ...rest }: Record_) => rest);
 
-/* An empty listing, whatever is asked. */
+// An empty listing, whatever is asked.
 const empty: Responder = () => ({ body: [], status: 200 });
 
 describe("select.requested-fields-present judges", () => {
@@ -38,6 +38,7 @@ describe("select.requested-fields-present judges", () => {
       doc: queryDoc({ selectable: ["title", "status"] }),
       respond: dropping("id"),
     });
+
     expect(await staged.run()).toEqual({
       kind: "unresolved",
       reason: "identity was omitted from select and missing from items",
@@ -73,6 +74,7 @@ describe("select.requested-fields-present plans", () => {
         PARAMS.filter((name) => name !== "select"),
       ),
     });
+
     expect(await noParam.run()).toEqual({
       kind: "stood-down",
       reason: "a select parameter and at least one selectable field",

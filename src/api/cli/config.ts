@@ -7,9 +7,9 @@ import { configProblems } from "../config/validate.ts";
 import { messageOf } from "../errors/message.ts";
 
 /** How a command reads its config: `doctor` and `plan` send nothing, so they defer unset variables. */
-export interface ReadOptions {
+export type ReadOptions = {
   deferEnv?: boolean;
-}
+};
 
 /** A config read for use, and, when deferring, the variables it names that are not set, in the order it names them. */
 export type ReadConfig = { config: ApiConfig; unsetEnv?: string[] } | { problem: string };
@@ -23,17 +23,23 @@ export async function readConfig(path: string, forRun: boolean, options: ReadOpt
   if (!existsSync(resolve(path))) return { problem: `config not found: ${path}` };
   const deferEnv = options.deferEnv === true;
   let loaded: ApiConfig;
+
   try {
     loaded = await loadConfig(path, { deferEnv });
   } catch (error) {
     return { problem: reason(error) };
   }
+
   const problems = configProblems(loaded, { forRun });
+
   if (problems.length > 0) return { problem: `${path} is not a valid config:\n  ${problems.join("\n  ")}` };
+
   if (deferEnv) {
     const unset = new Set<string>();
+
     return { config: interpolate(loaded, process.env, { unset }), unsetEnv: [...unset] };
   }
+
   try {
     return { config: interpolate(loaded) };
   } catch (error) {
@@ -41,7 +47,7 @@ export async function readConfig(path: string, forRun: boolean, options: ReadOpt
   }
 }
 
-/* Stated as the command states it: the `testing api: ` prefix is the command's own. */
+// Stated as the command states it: the `testing api: ` prefix is the command's own.
 function reason(error: unknown): string {
   return messageOf(error).replace(/^testing api: /, "");
 }

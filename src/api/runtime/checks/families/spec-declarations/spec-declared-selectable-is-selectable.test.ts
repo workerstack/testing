@@ -20,6 +20,7 @@ describe("spec.declared-selectable-is-selectable plan", () => {
       stage(ok, { query: declared, records: [] }).ctx,
       stage(ok, { listOp: listing({}, "select"), query: declared }).ctx,
     ];
+
     for (const ctx of contexts) expect(declaredSelectableWorks.plan(ctx).ok).toBe(false);
   });
 });
@@ -48,12 +49,14 @@ describe("spec.declared-selectable-is-selectable run", () => {
 
   it("cites at most three refusals, and a refusal outweighs a probe turned away", async () => {
     const respond = refusing(400, "price", "active", "tags", "meta");
+
     const { ctx, findings } = stage(
       (m, p, o) => (o.query?.["select"] === "id,name" ? { status: 401 } : respond(m, p, o)),
       {
         query: tagQuery({ selectable: ["name", "price", "active", "tags", "meta"] }),
       },
     );
+
     expect(await runCheck(declaredSelectableWorks, ctx)).toEqual({ kind: "finding", verdict: "SPEC_BUG" });
     expect(findings.findings[0]?.detail).toContain("4 field(s)");
     expect(findings.findings[0]?.evidence).toHaveLength(3);

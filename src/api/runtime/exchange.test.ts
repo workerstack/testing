@@ -71,12 +71,14 @@ describe("describeRequestBody", () => {
       file: { bytes: 3, filename: "a.txt", mediaType: "text/plain" },
       name: "x",
     });
+
     const snapshot = {
       parts: [
         { field: "name", value: "x" },
         { bytes: 3, field: "file", filename: "a.txt", mediaType: "text/plain", sha256: "ab" },
       ],
     };
+
     expect(describeRequestBody(snapshot)).toEqual({
       file: { bytes: 3, filename: "a.txt", mediaType: "text/plain" },
       name: "x",

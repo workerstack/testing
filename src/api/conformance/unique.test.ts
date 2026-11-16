@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { inProcess, type Via } from "./harness/launch.ts";
 import { runUniqueSuite } from "./unique.ts";
 
-/* A transport that reaches nothing: every run reports why, and the document cases still stand. */
+// A transport that reaches nothing: every run reports why, and the document cases still stand.
 const nowhere: Via = {
   host: () => Promise.reject(new Error("no host")),
   launch: () => Promise.reject(new Error("no reference")),

@@ -18,19 +18,19 @@ import type {
 } from "../../config/types/query.ts";
 import type { JsonSchema } from "../types.ts";
 
-export interface EffectiveFilterField {
+export type EffectiveFilterField = {
   field: string;
   type?: FieldType;
   ops?: FilterOp[];
-}
+};
 
-export interface EffectiveSortableField {
+export type EffectiveSortableField = {
   field: string;
   type?: FieldType;
   nulls?: Nulls[];
-}
+};
 
-export interface EffectiveQueryCapabilities {
+export type EffectiveQueryCapabilities = {
   filterable: EffectiveFilterField[];
   sortable: EffectiveSortableField[];
   searchable: string[];
@@ -55,9 +55,9 @@ export interface EffectiveQueryCapabilities {
   selectableFrom?: FilterableFrom;
   source: "tag" | "config" | "heuristic" | "mixed";
   hook: boolean;
-}
+};
 
-export interface MergeTag {
+export type MergeTag = {
   filterable: string[];
   sortable: string[];
   searchable: string[];
@@ -72,11 +72,11 @@ export interface MergeTag {
   catalog?: QueryCapabilities;
   defaultOrder?: string;
   stableTiebreak?: string;
-}
+};
 
-export interface MergeInput {
+export type MergeInput = {
   tag: MergeTag | null;
   global?: QueryCapabilities;
   entity?: QueryCapabilities;
   itemSchema?: JsonSchema | null;
-}
+};

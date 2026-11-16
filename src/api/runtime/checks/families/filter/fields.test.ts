@@ -38,6 +38,7 @@ describe("pickFieldForOp", () => {
       { id: "w-2", name: "a", note: null },
       { id: "w-3", name: "a", note: "y" },
     ];
+
     const { ctx } = stage({ doc: DOC, records });
     expect(pickFieldForOp(ctx, "in")).toEqual({
       field: { field: "note", ops: ["eq", "in"], type: "string" },
@@ -60,11 +61,13 @@ describe("pickOrderedField", () => {
         ],
       },
     };
+
     const records = [
       { amount: 1, id: "w-1", score: 1, status: "a" },
       { amount: 2, id: "w-2", score: 2, status: "b" },
       { amount: 3, id: "w-3", score: 3, status: "c" },
     ];
+
     const { ctx } = stage({ doc, records });
     const picked = pickOrderedField(ctx);
     expect(picked).toMatchObject({ field: { field: "amount" }, values: [1, 2, 3] });
@@ -73,6 +76,7 @@ describe("pickOrderedField", () => {
 
   it("is null without three numbers on such a field", () => {
     const doc = { xQuery: { filterable: [{ field: "amount", ops: ["eq", "gt", "lt"], type: "number" }] } };
+
     const { ctx } = stage({
       doc,
       records: [
@@ -80,6 +84,7 @@ describe("pickOrderedField", () => {
         { amount: 2, id: "w-2" },
       ],
     });
+
     expect(pickOrderedField(ctx)).toBeNull();
   });
 
@@ -88,6 +93,7 @@ describe("pickOrderedField", () => {
       doc: { xQuery: { filterable: [{ field: "rank", ops: ["eq", "gt", "lt"] }] } },
       records: [1, 2, 3].map((rank) => ({ id: `w-${rank}`, rank })),
     });
+
     expect(pickOrderedField(ctx)).toMatchObject({ field: { field: "rank" }, values: [1, 2, 3] });
   });
 });

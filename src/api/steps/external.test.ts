@@ -20,9 +20,10 @@ describe("external", () => {
 });
 
 describe("defineExternals", () => {
-  interface Ctx {
+  type Ctx = {
     offset: number;
-  }
+  };
+
   const registry = defineExternals<Ctx, { kind: "computed" | "device" }>()({
     totp: { kind: "computed", resolve: (input: { secret: string }, ctx) => `${input.secret}${ctx.offset}` },
     consent: { kind: "device", resolve: async () => "granted" },
@@ -46,6 +47,7 @@ describe("externalKinds", () => {
       pay: { kind: "headless", resolve: () => "paid" },
       totp: { resolve: () => "123456" },
     });
+
     expect(externalKinds(entries)).toStrictEqual({ consent: "device", pay: "headless" });
   });
 });

@@ -1,11 +1,9 @@
 import { onTestFinished } from "vitest";
 
-/*
- * Browser APIs replaced with typed stand-ins, for a test that needs one to hold still: a
- * ResizeObserver that never reports, media queries that answer what the test says, an animation
- * that is over as soon as it starts. Each stub replaces the API even where it exists, and is undone
- * after the test that installed it, so no stub leaks into the next one.
- */
+// Browser APIs replaced with typed stand-ins, for a test that needs one to hold still: a
+// ResizeObserver that never reports, media queries that answer what the test says, an animation
+// that is over as soon as it starts. Each stub replaces the API even where it exists, and is undone
+// after the test that installed it, so no stub leaks into the next one.
 
 /** Undoes a stub. A second call does nothing. */
 export type Restore = () => void;
@@ -14,6 +12,7 @@ export type Restore = () => void;
 function replace(owner: object, key: string, value: unknown): Restore {
   const before = Object.getOwnPropertyDescriptor(owner, key);
   Object.defineProperty(owner, key, { configurable: true, value, writable: true });
+
   return () => {
     if (before === undefined) Reflect.deleteProperty(owner, key);
     else Object.defineProperty(owner, key, before);
@@ -23,10 +22,12 @@ function replace(owner: object, key: string, value: unknown): Restore {
 /** Registers the undo with the running test first, so a stub outside a test installs nothing. */
 function install(name: string, put: () => Restore[]): Restore {
   let undo: Restore[] = [];
+
   const restore = (): void => {
     for (const step of undo.toReversed()) step();
     undo = [];
   };
+
   try {
     onTestFinished(restore);
   } catch (error) {
@@ -34,7 +35,9 @@ function install(name: string, put: () => Restore[]): Restore {
       cause: error,
     });
   }
+
   undo = put();
+
   return restore;
 }
 
@@ -57,7 +60,7 @@ class StubMediaQueryList extends EventTarget implements MediaQueryList {
   removeListener(): void {}
 }
 
-/* Built on first use: MouseEvent exists only where a DOM does. */
+// Built on first use: MouseEvent exists only where a DOM does.
 function stubPointerEvent(): typeof PointerEvent {
   return class extends MouseEvent implements PointerEvent {
     readonly altitudeAngle: number;
@@ -106,7 +109,7 @@ class EmptyRectList implements DOMRectList {
   *[Symbol.iterator](): ArrayIterator<DOMRect> {}
 }
 
-/* An animation that is over as soon as it starts: the test sees the end state. */
+// An animation that is over as soon as it starts: the test sees the end state.
 class FinishedAnimation extends EventTarget implements Animation {
   currentTime: CSSNumberish | null = null;
   effect: AnimationEffect | null = null;

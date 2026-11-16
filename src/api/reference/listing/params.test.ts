@@ -22,9 +22,9 @@ describe("integerParam", () => {
   });
 
   it("refuses blank, fractional and out-of-range text, naming the range", () => {
-    for (const raw of ["", " ", "2.5", "x", "0"]) {
+    for (const raw of ["", " ", "2.5", "x", "0"])
       expect(() => integerParam(raw, "page", { min: 1 })).toThrow('query parameter "page" must be an integer >= 1');
-    }
+
     expect(() => integerParam("6", "limit", { max: 5, min: 1 })).toThrow(
       'query parameter "limit" must be an integer between 1 and 5',
     );
@@ -38,7 +38,7 @@ describe("nearestLimit", () => {
     expect(nearestLimit("-4", 5)).toBe(1);
     expect(nearestLimit("50", 5)).toBe(5);
     expect(nearestLimit("50", undefined)).toBe(50);
-    /* A lifted ceiling (LIMIT_EXCEEDS_MAX) leaves the floor where it is. */
+    // A lifted ceiling (LIMIT_EXCEEDS_MAX) leaves the floor where it is.
     expect(nearestLimit("0", undefined)).toBe(1);
     expect(nearestLimit("-4", undefined)).toBe(1);
     expect(() => nearestLimit("x", 5)).toThrow('query parameter "limit" must be an integer');

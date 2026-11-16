@@ -8,21 +8,24 @@ import type { Check, OperationCheck, RegisteredCheck } from "./check.ts";
  */
 export function validateRegistry(checks: readonly RegisteredCheck[]): void {
   const position = new Map<string, number>();
+
   for (const [index, check] of checks.entries()) {
     if (position.has(check.id)) throw new Error(`check "${check.id}" is registered twice`);
     position.set(check.id, index);
   }
-  for (const id of CHECK_IDS) {
+
+  for (const id of CHECK_IDS)
     if (!position.has(id)) throw new Error(`check "${id}" is named in CHECK_IDS but never registered`);
-  }
-  /* Only an entity check has dependencies: an operation check stands alone on its operation. */
+
+  // Only an entity check has dependencies: an operation check stands alone on its operation.
   for (const check of entityChecks(checks)) {
     for (const dependency of check.dependsOn ?? []) {
       const at = position.get(dependency);
+
       if (at === undefined) throw new Error(`check "${check.id}" depends on "${dependency}", which is not registered`);
-      if (at >= (position.get(check.id) as number)) {
+
+      if (at >= (position.get(check.id) as number))
         throw new Error(`check "${check.id}" depends on "${dependency}", which is registered after it`);
-      }
     }
   }
 }

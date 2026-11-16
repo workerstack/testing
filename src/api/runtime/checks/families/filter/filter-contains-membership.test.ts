@@ -14,6 +14,7 @@ const COHORT = [
   { id: "w-5" },
   { tags: ["red"] },
 ];
+
 const DOC = { xQuery: { filterable: [{ field: "tags", ops: ["contains"] }] } };
 
 /** CONTAINS_MATCHES_SUBSTRING: any element containing the value matches. */
@@ -27,7 +28,7 @@ describe("filter.contains-membership", () => {
   it("asserts when contains selects the records holding the element itself", async () => {
     const { ctx, findings, sent } = stage({ doc: DOC, records: COHORT });
     expect(await runCheck(check, ctx)).toEqual({ kind: "asserted" });
-    /* "red" occurs inside "redwood", so it is the element that tells membership from substring. */
+    // "red" occurs inside "redwood", so it is the element that tells membership from substring.
     expect(filters(sent)).toEqual(["tags.contains.red"]);
     expect(findings.findings).toEqual([]);
   });
@@ -56,17 +57,21 @@ describe("filter.contains-membership", () => {
   it("finds the array field by its schema, or by the operators it allows", () => {
     const base = stage({ doc: DOC, records: COHORT });
     const caps = resolvedCaps(base.ctx);
+
     const bySchema = stage({
       doc: DOC,
       fields: { capabilities: { ...caps, filterable: [{ field: "tags", ops: ["eq"] }] } },
       records: COHORT,
     });
+
     expect(check.plan(bySchema.ctx).ok).toBe(true);
+
     const byOps = stage({
       doc: DOC,
       fields: { capabilities: { ...caps, filterable: [{ field: "labels", ops: ["contains"], type: "string" }] } },
       records: [{ id: "w-1", labels: ["x"] }],
     });
+
     expect(check.plan(byOps.ctx)).toMatchObject({ value: { element: "x" } });
   });
 

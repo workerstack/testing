@@ -13,6 +13,7 @@ const SCHEMA = {
   },
   type: "object",
 };
+
 const FIELDS = { empty: null, name: "n", tags: ["a", "b"] };
 
 /** A hook that answers every part with `answer`, and remembers what it was asked. */
@@ -21,10 +22,12 @@ function hook(answer: UploadResolution): {
   resolveUpload: (r: UploadRequest) => Promise<UploadResolution>;
 } {
   const asked: UploadRequest[] = [];
+
   return {
     asked,
     resolveUpload: async (request) => {
       asked.push(request);
+
       return answer;
     },
   };
@@ -43,11 +46,13 @@ describe("encodeMultipart, file properties", () => {
 
   it("sends the file the caller names itself, without asking the hook", async () => {
     const asking = hook(null);
+
     const options = optionsOf({
       fields: { doc: PDF },
       schema: SCHEMA,
       uploads: { resolveUpload: asking.resolveUpload, seed: 1 },
     });
+
     expect(partsOf(await encodeMultipart(options))).toEqual([["doc", { name: "given.pdf", type: "application/pdf" }]]);
     expect(asking.asked).toEqual([]);
   });
@@ -75,11 +80,13 @@ describe("encodeMultipart, file properties", () => {
 describe("encodeMultipart, field overrides", () => {
   it("sends exactly the hook's fields when they carry the file", async () => {
     const asking = hook({ fields: { doc: PDF, extra: "x" } });
+
     const options = optionsOf({
       fields: FIELDS,
       schema: SCHEMA,
       uploads: { resolveUpload: asking.resolveUpload, seed: 1 },
     });
+
     expect(partsOf(await encodeMultipart(options))).toEqual([
       ["doc", { name: "given.pdf", type: "application/pdf" }],
       ["extra", "x"],
@@ -88,11 +95,13 @@ describe("encodeMultipart, field overrides", () => {
 
   it("adds the hook's fields last when they do not, generating the file without asking again", async () => {
     const asking = hook({ fields: { extra: "x" } });
+
     const options = optionsOf({
       fields: { name: "n" },
       schema: SCHEMA,
       uploads: { resolveUpload: asking.resolveUpload, seed: 1 },
     });
+
     expect(partsOf(await encodeMultipart(options))).toEqual([
       ["doc", { name: "doc-baseline-0.bin", type: "application/octet-stream" }],
       ["name", "n"],
@@ -111,11 +120,13 @@ describe("encodeMultipart, additionalProperties", () => {
 
   it("sends the hook's file for that part, asking once", async () => {
     const asking = hook(PDF);
+
     const options = optionsOf({
       fields: { name: "n" },
       schema: additional,
       uploads: { resolveUpload: asking.resolveUpload, seed: 1 },
     });
+
     const parts = partsOf(await encodeMultipart(options));
     expect(parts.map(([name]) => name)).toEqual(["name", "upload"]);
     expect(parts[1]?.[1]).toMatchObject({ name: PDF.filename });
@@ -124,11 +135,13 @@ describe("encodeMultipart, additionalProperties", () => {
 
   it("sends the file under the required field no property names", async () => {
     const asking = hook(null);
+
     const options = optionsOf({
       fields: { name: "n" },
       schema: additional,
       uploads: { resolveUpload: asking.resolveUpload, seed: 1 },
     });
+
     expect(partsOf(await encodeMultipart(options))).toEqual([
       ["name", "n"],
       ["upload", { name: "upload-baseline-0.bin", type: "application/octet-stream" }],

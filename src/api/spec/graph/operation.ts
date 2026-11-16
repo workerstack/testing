@@ -54,7 +54,7 @@ import { readStatuses } from "./statuses.ts";
 import type { OperationModel } from "./types.ts";
 
 /** What the facts are read from: the endpoint, and what was derived from it first. */
-interface Reading {
+type Reading = {
   endpoint: Endpoint;
   gaps: GapCollector;
   queryParams: QueryParamNames | undefined;
@@ -67,9 +67,9 @@ interface Reading {
   identity: Pick<OperationModel, "identity" | "identitySource">;
   security: OperationModel["security"];
   statuses: OperationModel["statuses"];
-}
+};
 
-/* The model's fields, split where they are read; gaps are recorded in field order. */
+// The model's fields, split where they are read; gaps are recorded in field order.
 type ContractFacts =
   | "action"
   | "async"
@@ -87,17 +87,18 @@ type ContractFacts =
   | "statuses";
 
 /** What an operation is read against: its document, the gaps it records, and config's parameter and envelope names. */
-export interface ModelContext {
+export type ModelContext = {
   doc: OpenApiDocument;
   gaps: GapCollector;
   /** Config `query.params`, outranking `x-query.params`. */
   queryParams?: QueryParamNames | undefined;
   /** Config `query.envelope`, outranking `x-query.envelope`. */
   queryEnvelope?: QueryEnvelopeNames | undefined;
-}
+};
 
 export function modelOperation(endpoint: Endpoint, context: ModelContext): OperationModel {
   const reading = readOperation(endpoint, context);
+
   return { ...contractFacts(reading), ...behaviorFacts(reading), ...requestFacts(reading) };
 }
 
@@ -112,6 +113,7 @@ function readOperation(endpoint: Endpoint, { doc, gaps, queryParams, queryEnvelo
   const entity = readEntity(endpoint, gaps);
   const pathParams = pathParameterNames(path);
   const itemSchema = collection?.itemSchema ?? responseSchema;
+
   return {
     bodySchema,
     collection,
@@ -128,9 +130,10 @@ function readOperation(endpoint: Endpoint, { doc, gaps, queryParams, queryEnvelo
   };
 }
 
-/* The operation's requirement, with a gap for each scheme whose scopes are not a list. */
+// The operation's requirement, with a gap for each scheme whose scopes are not a list.
 function readSecurity({ op, operationId }: Endpoint, doc: OpenApiDocument, gaps: GapCollector): Reading["security"] {
   const security = resolveSecurity(op, doc);
+
   for (const scheme of security.malformedScopes) {
     gaps.record(
       operationId,
@@ -138,20 +141,23 @@ function readSecurity({ op, operationId }: Endpoint, doc: OpenApiDocument, gaps:
       `security requirement "${scheme}" gives its scopes as something other than a list; the API tester reads it as no scopes`,
     );
   }
+
   return security;
 }
 
-/* The success response's body: its schema, and where `x-entity.recordPath` says the rows are. */
-interface SuccessBody {
+// The success response's body: its schema, and where `x-entity.recordPath` says the rows are.
+type SuccessBody = {
   schema: JsonSchema | null;
   recordPath: string | null;
-}
+};
 
-/* A declared `x-entity.action` says whether the operation lists; without one, a GET off an item path does. */
+// A declared `x-entity.action` says whether the operation lists; without one, a GET off an item path does.
 function isListing(endpoint: Endpoint): boolean {
   const declared = extObject<EntityTag>(endpoint.op, "x-entity")?.action;
+
   if (isEntityAction(declared)) return declared === "list";
   const lastSegment = segmentsOf(endpoint.path).at(-1) ?? "";
+
   return endpoint.method.toUpperCase() === "GET" && !isParamSegment(lastSegment);
 }
 
@@ -159,6 +165,7 @@ function isListing(endpoint: Endpoint): boolean {
 function reportAmbiguousRows(endpoint: Endpoint, { recordPath, schema }: SuccessBody, gaps: GapCollector): void {
   const listing = isListing(endpoint);
   const ambiguous = recordPath === null && listing ? ambiguousRows(schema) : [];
+
   if (ambiguous.length === 0) return;
   gaps.record(
     endpoint.operationId,
@@ -172,6 +179,7 @@ function reportAmbiguousRows(endpoint: Endpoint, { recordPath, schema }: Success
 function contractFacts(reading: Reading): Pick<OperationModel, ContractFacts> {
   const { endpoint, gaps } = reading;
   const { op } = endpoint;
+
   return {
     action: reading.entity?.action ?? null,
     async: readAsync(op),
@@ -195,6 +203,7 @@ function behaviorFacts(reading: Reading) {
   const { op, operationId, path } = endpoint;
   const effects = ext(op, "x-effects");
   const method = endpoint.method.toUpperCase();
+
   return {
     consistency: readConsistency(op),
     effects: readEffects(op, operationId, gaps),
@@ -219,16 +228,18 @@ function behaviorFacts(reading: Reading) {
   };
 }
 
-/* The request body properties marked x-privileged, and those of them the body requires. */
+// The request body properties marked x-privileged, and those of them the body requires.
 function privilegedFacts(reading: Reading): { privileged: string[]; privilegedRequired: string[] } {
   const { bodySchema: body, endpoint, gaps } = reading;
   const privileged = readPrivileged(endpoint.op, { body, gaps, operationId: endpoint.operationId });
+
   return { privileged, privilegedRequired: requiredPrivileged(body, privileged) };
 }
 
 /** Whether a success response, by its code or the `2XX` range, declares an `ETag` header. */
 function declaresEtag(op: Endpoint["op"]): boolean {
   const responses = (op.responses ?? {}) as Record<string, { headers?: Record<string, unknown> }>;
+
   return Object.entries(responses).some(
     ([status, response]) =>
       /^2(\d\d|XX)$/i.test(status) &&
@@ -243,10 +254,11 @@ function requestFacts(reading: Reading) {
   const declared = extObject<QueryTag>(op, "x-query");
   const queryParamNames = parameters.filter((p) => p.in === "query").map((p) => p.name);
   const record = (message: string) => gaps.record(operationId, "x-query", message);
+
   return {
     query:
       collection === null ? null : readQueryCapability(endpoint, collection.itemSchema, { gaps, params: queryParams }),
-    /* A config name the operation does not declare is dropped before this, so an unmatched one is the tag's. */
+    // A config name the operation does not declare is dropped before this, so an unmatched one is the tag's.
     conventions: deriveQueryConventions(parameters, collection, {
       declared,
       envelope: mergeEnvelopeNames({

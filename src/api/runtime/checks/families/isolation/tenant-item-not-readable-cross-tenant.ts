@@ -21,30 +21,35 @@ export const crossTenantItemRead: Check<{
   plan: (ctx) => {
     const { peer, readOp } = ctx;
     const target = ctx.records[0];
-    if (peer === undefined || readOp === undefined || target === undefined || !tenantBoundary(readOp)) {
-      return cannot();
-    }
+
+    if (peer === undefined || readOp === undefined || target === undefined || !tenantBoundary(readOp)) return cannot();
+
     const id = idOf(target, ctx.identity);
+
     return id === undefined ? cannot(NO_IDENTITY) : ready({ id, peer, readOp });
   },
   id: "tenant.item-not-readable-cross-tenant",
   needs: "a second principal in a different tenant, and a tenant tagged or inferred from the path",
   subjects: subjectsOf.read,
   async run(ctx, { id, peer, readOp }): Promise<Outcome> {
-    /* The actor's record, asked for by the peer under the peer's own scope. */
+    // The actor's record, asked for by the peer under the peer's own scope.
     const params = { ...(ctx.peerScope ?? ctx.scope), ...itemParamFor(ctx, id) };
+
     const exchange = await ctx.client.get(fillPath(readOp.path, params), {
       as: { principal: peer.id },
       operationId: readOp.operationId,
     });
+
     if (exchange.status === 403 || exchange.status === 404) return ASSERTED;
+
     if (exchange.status >= 400)
       return ctx.findings.unresolved(this.id, ctx.entityName, "the cross-tenant read failed for another reason");
 
-    /* Only assert a breach when the document says the route is tenant-scoped. Where the API tester merely
-     * guessed scoping from a path parameter, a shared catalog and a data leak are the same
-     * observation, and claiming the worse one erodes trust in every other finding. */
+    // Only assert a breach when the document says the route is tenant-scoped. Where the API tester merely
+    // guessed scoping from a path parameter, a shared catalog and a data leak are the same
+    // observation, and claiming the worse one erodes trust in every other finding.
     const tenantDeclared = readOp.tenantSource === "tag";
+
     const detail =
       `${ctx.entityName} ${id} was created by one principal and read successfully ` +
       `(${exchange.status}) by a principal in a different tenant.`;
@@ -71,6 +76,7 @@ export const crossTenantItemRead: Check<{
       summary: "a record crosses an inferred tenant boundary; the document does not say whether that is intended",
       verdict: "AMBIGUITY",
     });
+
     return ASSERTED;
   },
 });

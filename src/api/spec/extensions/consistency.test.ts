@@ -30,6 +30,7 @@ describe("x-consistency", () => {
       bypass: null,
       stalenessMs: 30_000,
     });
+
     for (const staleness of ["30", "1.5s", "-1s", "30ms", 30]) {
       expect(readConsistency(op({ "x-consistency": { bypass: "x-fresh: 1", staleness } }))).toEqual({
         bypass: { name: "x-fresh", value: "1" },

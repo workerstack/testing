@@ -8,11 +8,12 @@ import { readBack } from "../../../../tests/api/support/json-body.ts";
 import type { Exchange } from "../exchange.ts";
 import { AccountLedger, names } from "./ledger.ts";
 
-/* Every account the run asked for, on disk before the request goes, by its names and never its password. */
+// Every account the run asked for, on disk before the request goes, by its names and never its password.
 
 const answer = (status: number) => ({ responseBody: {}, status }) as Exchange;
 
 let folder: string | undefined;
+
 afterEach(() => {
   if (folder !== undefined) rmSync(folder, { force: true, recursive: true });
   folder = undefined;

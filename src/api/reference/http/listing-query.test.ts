@@ -9,6 +9,7 @@ import { TABLE } from "../model/table.ts";
 import { equalityFilter, paginated, selectParam, staleWindow, toCanonicalOrder } from "./listing-query.ts";
 
 const url = (search: string): URL => new URL(`http://reference.test/v1/projects/p/tables${search}`);
+
 const result = (more: Partial<ListingResult> = {}): ListingResult => ({
   count: 3,
   hasMore: true,
@@ -111,9 +112,9 @@ describe("staleWindow", () => {
   });
 
   it("answers null for a paging value that is not a valid one", () => {
-    for (const search of ["?limit=0", "?limit=", "?page=1.5", "?page=x"]) {
+    for (const search of ["?limit=0", "?limit=", "?page=1.5", "?page=x"])
       expect(staleWindow(url(search), POSTGREST, TABLE)).toBeNull();
-    }
+
     expect(staleWindow(url("?offset=-1"), LINKED, TABLE)).toBeNull();
   });
 });

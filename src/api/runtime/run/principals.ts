@@ -12,13 +12,11 @@ import { provision } from "./fresh.ts";
 import { boundOf } from "./identity.ts";
 import { peerOf } from "./peer.ts";
 
-/*
- * The principals stage, at run start. A fresh principal is signed up first (D7). Then every login a
- * principal's recipes name is run, before anything is planned, so a tenant or `scope.<param>` its
- * claims bind is what isolation and the parents are planned from; a mint or an OAuth 2 grant waits
- * until a request needs it. A principal whose signup or login fails is BLOCKED: reported once with
- * the reason, and the run goes on without it.
- */
+// The principals stage, at run start. A fresh principal is signed up first (D7). Then every login a
+// principal's recipes name is run, before anything is planned, so a tenant or `scope.<param>` its
+// claims bind is what isolation and the parents are planned from; a mint or an OAuth 2 grant waits
+// until a request needs it. A principal whose signup or login fails is BLOCKED: reported once with
+// the reason, and the run goes on without it.
 
 type Blocked = RunPrincipals["blocked"][number];
 
@@ -30,35 +28,44 @@ export async function resolvePrincipals(planned: Planned): Promise<RunPrincipals
   const { findings, network, options, progress } = planned;
   const all: RunPrincipal[] = [];
   const blocked: Blocked[] = [];
+
   for (const [id, entry] of Object.entries(options.principals)) {
     let reason: string | undefined;
+
     try {
       reason = await signIn(planned, id, entry);
     } catch (error) {
       if (!isNetworkError(error)) throw error;
       await network.note(error, "auth");
     }
+
     if (network.outcome !== undefined) return null;
+
     if (reason === undefined) {
       all.push(runPrincipal(planned.store, id));
       continue;
     }
+
     blocked.push({ id, reason });
     findings.blocked("auth.blocked" satisfies RunFindingId, id, {
       summary: `principal "${id}" is BLOCKED`,
       cause: reason,
     });
   }
+
   progress.tick({ message: `${all.length} principal(s)`, phase: "auth", requests: progress.requests });
+
   return all.length === 0 ? null : runPrincipals(planned, { all, blocked });
 }
 
-/* Signs the principal up when it is fresh, then runs each login it has; the first failure's reason. */
+// Signs the principal up when it is fresh, then runs each login it has; the first failure's reason.
 async function signIn(planned: Planned, id: string, entry: PrincipalEntry): Promise<string | undefined> {
   if (entry.fresh === true) {
     const made = await provision(planned, { entry, id, label: id });
+
     if ("blocked" in made) return made.blocked;
   }
+
   return logIn(planned, id, entry);
 }
 
@@ -66,12 +73,16 @@ async function signIn(planned: Planned, id: string, entry: PrincipalEntry): Prom
 export async function logIn(planned: Planned, id: string, entry: PrincipalEntry): Promise<string | undefined> {
   const { options, store } = planned;
   const security = options.security ?? {};
+
   for (const scheme of new Set([...Object.keys(security), ...Object.keys(entry.security ?? {})])) {
     const recipe = effectiveRecipe(security[scheme], entry.security?.[scheme]);
+
     if (recipe === undefined || recipeKind(recipe) !== "login") continue;
     const held = await store.acquire({ principal: id, scheme });
+
     if ("blocked" in held) return held.blocked;
   }
+
   return undefined;
 }
 
@@ -82,11 +93,14 @@ export async function logIn(planned: Planned, id: string, entry: PrincipalEntry)
  */
 export function createdByRun(planned: Pick<Planned, "model" | "options" | "store">, id: string): boolean {
   const entry = planned.store.principals[id] as PrincipalEntry;
+
   if (entry.fresh === true || entry.created === true) return true;
   const makers = accountMakersOf(planned.model);
   const security = planned.options.security ?? {};
+
   return [...new Set([...Object.keys(security), ...Object.keys(entry.security ?? {})])].some((scheme) => {
     const recipe = effectiveRecipe(security[scheme], entry.security?.[scheme]);
+
     return recipe !== undefined && signsUp(recipe, makers);
   });
 }
@@ -95,6 +109,7 @@ export function createdByRun(planned: Pick<Planned, "model" | "options" | "store
 export function runPrincipal(store: CredentialStore, id: string): RunPrincipal {
   const entry = store.principals[id] as PrincipalEntry;
   const { identity, scope, tenant } = boundOf(store.identityOf(id));
+
   return {
     fresh: entry.fresh === true,
     id,
@@ -112,6 +127,7 @@ function runPrincipals(planned: Planned, signed: { all: RunPrincipal[]; blocked:
   const { all, blocked } = signed;
   const alpha = all[0] as RunPrincipal;
   const byId = new Map(all.map((principal) => [principal.id, principal]));
+
   return {
     all,
     alpha,
@@ -119,7 +135,9 @@ function runPrincipals(planned: Planned, signed: { all: RunPrincipal[]; blocked:
     byId,
     fallbackDeleters: (owner) => {
       const creator = byId.get(owner.id);
+
       if (creator === undefined) return [];
+
       return all
         .filter((principal) => principal.id !== creator.id && sameTenant(principal, creator))
         .sort((a, b) => b.rank - a.rank)

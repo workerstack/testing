@@ -15,6 +15,7 @@ afterEach(async () => {
 async function scratch(): Promise<string> {
   const dir = await mkdtemp(join(tmpdir(), "testing-runs-"));
   temps.push(dir);
+
   return dir;
 }
 
@@ -112,11 +113,13 @@ describe("publishLatest", () => {
     const allocated = await allocateRunDir(root, new Date("2026-08-18T12:00:00.000Z"));
     const platform = Object.getOwnPropertyDescriptor(process, "platform") as PropertyDescriptor;
     Object.defineProperty(process, "platform", { value: "win32" });
+
     try {
       await publishLatest(allocated);
     } finally {
       Object.defineProperty(process, "platform", platform);
     }
+
     expect(await readlink(allocated.latest)).toBe(allocated.stamp);
   });
 });

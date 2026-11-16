@@ -16,6 +16,7 @@ describe("testing/no-console", () => {
         'process["stdout"].write("x")',
       ].join("\n"),
     };
+
     expect(reportsOf(rule, fixture).map(({ line }) => line)).toEqual([1, 2, 3, 4, 5]);
     expect(reportsOf(rule, fixture)[0]?.message).toBe(MESSAGE);
   });
@@ -29,6 +30,7 @@ describe("testing/no-console", () => {
       "src/api/runtime/b.ts":
         "export const n = process.env\nexport const c = logger.console\nexport const s = proc.stdout\n",
     };
+
     expect(reportsOf(rule, fixture)).toEqual([]);
   });
 

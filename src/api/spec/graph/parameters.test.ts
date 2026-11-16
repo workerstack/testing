@@ -30,6 +30,7 @@ describe("readRequiredQuery", () => {
       query("optional", { example: "x" }),
       { example: "x", in: "header", name: "H", required: true },
     ];
+
     expect(readRequiredQuery(parameters)).toEqual({
       a: "param",
       b: 7,
@@ -46,6 +47,7 @@ describe("readRequiredQuery", () => {
       required("range", { type: "object" }, { example: { max: 5, min: 1 }, style: "deepObject" }),
       required("ids", { items: { type: "string" }, type: "array" }, { example: ["a", "b"] }),
     ];
+
     expect(readRequiredQuery(parameters)).toEqual({ ids: ["a", "b"], range: { max: 5, min: 1 } });
   });
 });
@@ -72,6 +74,7 @@ describe("readRequiredHeaders and readRequiredCookies", () => {
         declared("cookie", "lang", "en"),
       ],
     };
+
     expect(readRequiredHeaders(op)).toEqual({ "X-Api-Version": "2", "X-Tags": ["a", "b"] });
     expect(readRequiredCookies(op.parameters ?? [])).toEqual({ lang: "en" });
     expect(readRequiredHeaders({})).toEqual({});
@@ -91,6 +94,7 @@ describe("readParamStyles", () => {
       { explode: true, in: "header", name: "X-Pairs" },
       { in: "cookie", name: "c", style: 3 },
     ];
+
     expect(readParamStyles(parameters)).toEqual({
       header: { "X-Pairs": { explode: true } },
       path: { id: { style: "label" } },
@@ -109,9 +113,9 @@ const header = (name: string): ParameterObject => ({ in: "header", name });
 
 describe("idempotencyHeader", () => {
   it("finds the header the operation accepts as an idempotency key, however it is spelled", () => {
-    for (const name of ["Idempotency-Key", "x-idempotency-key", "Idempotence Key", "idempotency_key", "Idempotency"]) {
+    for (const name of ["Idempotency-Key", "x-idempotency-key", "Idempotence Key", "idempotency_key", "Idempotency"])
       expect(idempotencyHeader({ parameters: [query("q"), header(name)] })).toBe(name);
-    }
+
     expect(idempotencyHeader({ parameters: [query("Idempotency-Key"), header("Key")] })).toBeNull();
     expect(idempotencyHeader({})).toBeNull();
   });
@@ -129,6 +133,7 @@ describe("successResponseHeaders", () => {
         "400": { headers: { "X-Error": {} } },
       },
     } as unknown as OperationObject;
+
     expect(successResponseHeaders(op)).toEqual(["Link", "X-Total"]);
     expect(successResponseHeaders({})).toEqual([]);
   });
@@ -151,6 +156,7 @@ describe("unfilledRequired", () => {
       ],
       responses: {},
     };
+
     expect(unfilledRequired(op)).toEqual(["albumId", "X-Tenant", "hint"]);
     expect(unfilledRequired({ responses: {} })).toEqual([]);
   });

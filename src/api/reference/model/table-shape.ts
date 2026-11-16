@@ -8,8 +8,9 @@ import type { EntityDef, EntityShape, FieldDef } from "./types.ts";
 export function shapeTable(entity: EntityDef, fields: FieldDef[], shape: EntityShape): string[][] | undefined {
   let unique = entity.unique;
   const clientIds = shape.clientIds;
+
   if (clientIds !== undefined) {
-    /* The client names the table: its id is a bounded, required, unique create field. */
+    // The client names the table: its id is a bounded, required, unique create field.
     const at = fields.findIndex((field) => field.name === entity.identity);
     fields[at] = {
       ...(fields[at] as FieldDef),
@@ -21,15 +22,18 @@ export function shapeTable(entity: EntityDef, fields: FieldDef[], shape: EntityS
     };
     unique = [...(entity.unique as string[][]), [entity.identity]];
   }
+
   if (shape.tableKey === "slug") {
-    /* The server derives it from the name; it is as long as a name may be. */
+    // The server derives it from the name; it is as long as a name may be.
     const at = fields.findIndex((field) => field.name === "slug");
     fields[at] = { ...(fields[at] as FieldDef), generated: true, maxLength: 128, required: true };
-    /* Names may repeat across projects and the document declares nothing unique: the
-     * server refuses only a slug its project already holds. */
+    // Names may repeat across projects and the document declares nothing unique: the
+    // server refuses only a slug its project already holds.
     unique = [];
   }
+
   fields.push(...extraFields(shape));
+
   return unique;
 }
 
@@ -59,7 +63,7 @@ function extraFields(shape: EntityShape): FieldDef[] {
   ];
 }
 
-/* Required date-time, a bounded number, a `const`, and one component schema used twice. */
+// Required date-time, a bounded number, a `const`, and one component schema used twice.
 function richFields(): FieldDef[] {
   return [
     { format: "date-time", name: "due_at", required: true, type: "string" },

@@ -13,18 +13,18 @@ import type { Collation, FilterNode, LikeSegment, OrderTerm, Scalar, SearchMode,
 export type SqlParam = string | number | boolean | null;
 
 /** A pattern to match: its segments, and whether case is ignored. */
-interface LikePattern {
+type LikePattern = {
   segments: LikeSegment[];
   insensitive: boolean;
-}
+};
 
 /** Text to look for, and whether case must match. */
-interface Needle {
+type Needle = {
   text: string;
   caseSensitive: boolean;
-}
+};
 
-export interface SqlFlavor {
+export type SqlFlavor = {
   /** The expression reading a field — a quoted column, or a deliberately wrong one under a defect. */
   column(entity: EntityDef, field: string): string;
   /** Appends a bound argument and returns its placeholder. */
@@ -41,7 +41,7 @@ export interface SqlFlavor {
   /** Whether a JSON array column holds `element` as one of its elements. */
   hasElement(expr: string, element: string, args: SqlParam[]): string;
   random: string;
-}
+};
 
 function isText(entity: EntityDef, field: string): boolean {
   return entity.fields.find((f) => f.name === field)?.type === "string";
@@ -49,68 +49,90 @@ function isText(entity: EntityDef, field: string): boolean {
 
 function value(flavor: SqlFlavor, scalar: Scalar, asText: boolean): SqlParam {
   if (asText) return String(scalar);
+
   if (typeof scalar === "boolean") return flavor.bool(scalar);
+
   return scalar;
 }
 
 /** What every clause of one compilation shares: the entity read, the engine's spelling, the bound arguments. */
-export interface Compilation {
+export type Compilation = {
   entity: EntityDef;
   flavor: SqlFlavor;
   args: SqlParam[];
-}
+};
 
 type Node<K extends FilterNode["kind"]> = FilterNode & { kind: K };
 
 export function compileWhere(node: FilterNode, compilation: Compilation): string {
   const { args, entity, flavor } = compilation;
+
   switch (node.kind) {
-    case "const":
+    case "const": {
       return node.value ? "1 = 1" : "1 = 0";
+    }
+
     case "and":
-    case "or":
+    case "or": {
       return `(${node.children.map((child) => compileWhere(child, compilation)).join(node.kind === "and" ? " AND " : " OR ")})`;
-    case "isnull":
+    }
+
+    case "isnull": {
       return `${flavor.column(entity, node.field)} IS ${node.negate ? "NOT " : ""}NULL`;
-    case "cmp":
+    }
+
+    case "cmp": {
       return compileCmp(node, compilation);
-    case "in":
+    }
+
+    case "in": {
       return compileIn(node, compilation);
-    case "like":
+    }
+
+    case "like": {
       return flavor.like(
         flavor.column(entity, node.field),
         { insensitive: node.insensitive, segments: node.pattern },
         args,
       );
-    case "contains":
+    }
+
+    case "contains": {
       return compileContains(node, compilation);
-    case "search":
+    }
+
+    case "search": {
       return `(${node.fields
         .map((field) => searchClause(flavor.toText(flavor.column(entity, field)), node, compilation))
         .join(" OR ")})`;
+    }
   }
 }
 
 function compileCmp(node: Node<"cmp">, { args, entity, flavor }: Compilation): string {
   const column = flavor.column(entity, node.field);
-  /* Text compares binary, whatever the database default collation is. */
+  // Text compares binary, whatever the database default collation is.
   const ref = node.asText ? flavor.toText(column) : isText(entity, node.field) ? flavor.binary(column) : column;
   const op = { eq: "=", gt: ">", gte: ">=", lt: "<", lte: "<=", neq: "<>" }[node.op];
   const sql = `${ref} ${op} ${flavor.bind(args, value(flavor, node.value, node.asText))}`;
+
   return node.nullsMatch ? `(${sql} OR ${column} IS NULL)` : sql;
 }
 
 function compileIn(node: Node<"in">, { args, entity, flavor }: Compilation): string {
   const column = flavor.column(entity, node.field);
+
   if (node.values.length === 0) return node.negate ? "1 = 1" : "1 = 0";
   const ref = node.asText ? flavor.toText(column) : column;
   const holes = node.values.map((member) => flavor.bind(args, value(flavor, member, node.asText))).join(", ");
+
   return node.negate ? `(${ref} NOT IN (${holes}) OR ${column} IS NULL)` : `${ref} IN (${holes})`;
 }
 
 function compileContains(node: Node<"contains">, { args, entity, flavor }: Compilation): string {
   const column = flavor.column(entity, node.field);
-  /* The defect matches the serialized array as text, so "red" also matches "redwood". */
+
+  // The defect matches the serialized array as text, so "red" also matches "redwood".
   return node.substring
     ? `${flavor.position(column, { caseSensitive: true, text: node.value }, args)} > 0`
     : flavor.hasElement(column, node.value, args);
@@ -122,6 +144,7 @@ function searchClause(
   { args, flavor }: Compilation,
 ): string {
   const at = flavor.position(expr, { caseSensitive: node.caseSensitive, text: node.token }, args);
+
   return node.mode === "prefix" ? `${at} = 1` : `${at} > 0`;
 }
 
@@ -133,26 +156,31 @@ export function compileOrder(
 ): string {
   const terms: string[] = [];
   const ordering = { collation: plan.collation, entity, flavor };
+
   for (const term of plan.order) {
     const column = flavor.column(entity, term.field);
-    /* Null placement is written out rather than left to the engine, because the engines
-     * disagree: SQLite sorts nulls first ascending, Postgres last. */
+    // Null placement is written out rather than left to the engine, because the engines
+    // disagree: SQLite sorts nulls first ascending, Postgres last.
     terms.push(`${column} IS NULL ${term.nullsFirst ? "DESC" : "ASC"}`);
     terms.push(`${orderRef(term, column, ordering)} ${term.descending ? "DESC" : "ASC"}`);
   }
+
   if (plan.shuffleTies) terms.push(flavor.random);
+
   return terms.length === 0 ? "" : ` ORDER BY ${terms.join(", ")}`;
 }
 
-/* What an ORDER BY is written for: the entity, the engine's spelling, and the plan's collation. */
-interface Ordering extends Omit<Compilation, "args"> {
+// What an ORDER BY is written for: the entity, the engine's spelling, and the plan's collation.
+type Ordering = Omit<Compilation, "args"> & {
   collation: Collation;
-}
+};
 
-/* What one order term sorts by: its text form, its text under the collation, or the bare column. */
+// What one order term sorts by: its text form, its text under the collation, or the bare column.
 function orderRef(term: OrderTerm, column: string, { collation, entity, flavor }: Ordering): string {
   if (term.asText) return flavor.toText(column);
+
   if (!isText(entity, term.field)) return column;
+
   return collation === "insensitive" ? `LOWER(${column})` : flavor.binary(column);
 }
 
@@ -160,7 +188,11 @@ function orderRef(term: OrderTerm, column: string, { collation, entity, flavor }
 export function likeText(segments: LikeSegment[]): string {
   return segments
     .map((segment) =>
-      segment.kind === "any" ? "%" : segment.kind === "one" ? "_" : segment.text.replace(/[\\%_]/g, (ch) => `\\${ch}`),
+      segment.kind === "any"
+        ? "%"
+        : segment.kind === "one"
+          ? "_"
+          : segment.text.replaceAll(/[\\%_]/g, (ch) => `\\${ch}`),
     )
     .join("");
 }
@@ -169,7 +201,11 @@ export function likeText(segments: LikeSegment[]): string {
 export function globText(segments: LikeSegment[]): string {
   return segments
     .map((segment) =>
-      segment.kind === "any" ? "*" : segment.kind === "one" ? "?" : segment.text.replace(/[*?[]/g, (ch) => `[${ch}]`),
+      segment.kind === "any"
+        ? "*"
+        : segment.kind === "one"
+          ? "?"
+          : segment.text.replaceAll(/[*?[]/g, (ch) => `[${ch}]`),
     )
     .join("");
 }

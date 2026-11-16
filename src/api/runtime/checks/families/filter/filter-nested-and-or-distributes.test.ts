@@ -10,7 +10,9 @@ const COHORT = [
   { id: "w-2", name: "beta", status: "open" },
   { id: "w-3", name: "alpha", status: "shut" },
 ];
+
 const DOC = { xQuery: { filterable: ["id", "status", "name"] } };
+
 /** FILTER_NESTED_COMBINATOR_LEAKS: the nested or() replaces the enclosing and(). */
 const LEAKS = { leak: true };
 

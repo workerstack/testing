@@ -30,36 +30,42 @@ const SORTABLE_ROW: Fields = { field: text, nulls: texts, type: text };
 function filterGrammar(value: unknown): string | null {
   if (!isObject(value)) return oneOf(value, ["postgrest", "colon", "equality"]);
   const parsed = parseFilterGrammar(value);
+
   return parsed.ok ? null : `is a template the API tester cannot read: ${parsed.error}`;
 }
 
 function sortGrammar(value: unknown): string | null {
   if (!isObject(value)) return oneOf(value, ["dotted", "prefixed", "colon", "spaced"]);
   const parsed = parseSortGrammar(value);
+
   return parsed.ok ? null : `is a template the API tester cannot read: ${parsed.error}`;
 }
 
 /** A parameter name per role: `{ filter: "filter_by" }`. */
 function params(value: unknown): string | null {
   if (!isObject(value)) return "must be an object of role names";
+
   for (const [role, name] of Object.entries(value)) {
-    if (!isQueryParamRole(role)) {
+    if (!isQueryParamRole(role))
       return `names an unknown role "${role}"; the roles are ${QUERY_PARAM_ROLES.join(", ")}`;
-    }
+
     if (text(name) !== null) return `"${role}" must be a parameter name`;
   }
+
   return null;
 }
 
 /** A response field name per paging fact: `{ nextCursor: "next_before" }`. */
 function envelope(value: unknown): string | null {
   if (!isObject(value)) return "must be an object of role names";
+
   for (const [role, name] of Object.entries(value)) {
-    if (!isQueryEnvelopeRole(role)) {
+    if (!isQueryEnvelopeRole(role))
       return `names an unknown role "${role}"; the roles are ${QUERY_ENVELOPE_ROLES.join(", ")}`;
-    }
+
     if (text(name) !== null) return `"${role}" must be a field name`;
   }
+
   return null;
 }
 
@@ -76,10 +82,13 @@ const RELATION: Fields = { fields: texts, name: text };
 
 function relations(value: unknown): string | null {
   if (!Array.isArray(value)) return "must be an array of { name, fields } rows";
+
   for (const row of value) {
     const problem = checkShape(row, RELATION, ["name", "fields"]);
+
     if (problem !== null) return `has a row that ${problem}`;
   }
+
   return null;
 }
 

@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Box } from "./dom/gesture.ts";
 import { createPointer } from "./pointer.ts";
 
-/* The page's frame is node's next tick here: `evaluate` runs the function it is given, as the page would. */
+// The page's frame is node's next tick here: `evaluate` runs the function it is given, as the page would.
 beforeEach(() => {
   vi.stubGlobal("requestAnimationFrame", (done: () => void) => setTimeout(done, 0));
 });
@@ -13,9 +13,10 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-/* A page whose mouse and frames write to one log, in the order the pointer drives them. */
+// A page whose mouse and frames write to one log, in the order the pointer drives them.
 function fakePage(): { page: Page; log: string[] } {
   const log: string[] = [];
+
   const page = {
     evaluate: async (inPage: () => Promise<void>) => {
       await inPage();
@@ -33,6 +34,7 @@ function fakePage(): { page: Page; log: string[] } {
       },
     },
   };
+
   return { log, page: page as unknown as Page };
 }
 
@@ -44,6 +46,7 @@ function locator(name: string, box: Box | null, log: string[] = []): Locator {
     },
     toString: () => `locator('${name}')`,
   };
+
   return fake as unknown as Locator;
 }
 

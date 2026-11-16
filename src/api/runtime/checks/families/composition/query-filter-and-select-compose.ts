@@ -25,6 +25,7 @@ export const filterAndSelectCompose: Check<Subset & { extra: string; projection:
   defineCheck<Subset & { extra: string; projection: Record<string, string> }>({
     plan: (ctx) => {
       if (!filterable(ctx) || conv(ctx).select === undefined || ctx.records.length <= 2) return cannot();
+
       return andThen(subsetPlan(ctx), (subset) =>
         andThen(projectionPlan(ctx), (projected) => ready({ ...subset, ...projected })),
       );
@@ -34,9 +35,9 @@ export const filterAndSelectCompose: Check<Subset & { extra: string; projection:
       "list.read-after-write",
       "create.persists-submitted-fields",
       "filter.equality-selects-exactly-one",
-      /* If select is accepted and ignored, both sides still carry every column and the
-       * membership comparison remains well-defined — but a backend that has stopped honoring
-       * select at all may also have stopped taking the code path this check is probing. */
+      // If select is accepted and ignored, both sides still carry every column and the
+      // membership comparison remains well-defined — but a backend that has stopped honoring
+      // select at all may also have stopped taking the code path this check is probing.
       "select.projection-honored",
       "pagination.page-walk-covers-set",
     ],
@@ -49,6 +50,7 @@ export const filterAndSelectCompose: Check<Subset & { extra: string; projection:
 
       const filtered = await collectSet(ctx, limit, term);
       const both = await collectSet(ctx, limit, { ...term, ...projection });
+
       if (filtered === null || both === null) {
         return ctx.findings.unresolved(
           this.id,
@@ -56,6 +58,7 @@ export const filterAndSelectCompose: Check<Subset & { extra: string; projection:
           "combining a filter with a select was rejected, so the two cannot be compared",
         );
       }
+
       if (!filtered.complete || !both.complete) {
         return ctx.findings.unresolved(
           this.id,
@@ -66,8 +69,9 @@ export const filterAndSelectCompose: Check<Subset & { extra: string; projection:
 
       const alone = new Set(ids(filtered.items, ctx.identity));
       const combined = new Set(ids(both.items, ctx.identity));
-      /* A projection that omitted the identity makes membership unobservable — that is a
-       * missing column, not a changed set, and select.projection-honored already owns it. */
+
+      // A projection that omitted the identity makes membership unobservable — that is a
+      // missing column, not a changed set, and select.projection-honored already owns it.
       if (both.items.some((item) => item[ctx.identity] === undefined)) {
         return ctx.findings.unresolved(
           this.id,
@@ -75,25 +79,30 @@ export const filterAndSelectCompose: Check<Subset & { extra: string; projection:
           "the projected page omitted the identity field, so the two sets cannot be compared",
         );
       }
+
       const missing = [...alone].filter((id) => !combined.has(id));
       const extraIds = [...combined].filter((id) => !alone.has(id));
+
       if (missing.length === 0 && extraIds.length === 0) return ASSERTED;
+
       const moved = await unlessMoved(ctx, this.id, {
         reads: [filtered, both],
         terms: [{ query: term }, { query: { ...term, ...projection } }],
       });
+
       if (moved !== null) return moved;
 
       return ctx.findings.backend(this.id, ctx.entityName, {
         summary: "adding a select changes which records a filter returns",
         detail:
           `filter on "${field}" alone matched ${alone.size} record(s); the same filter with ` +
-          `select=${[ctx.identity, extra].join(",")} matched ${combined.size}. ` +
-          (missing.length > 0 ? `Dropped: ${missing.slice(0, 3).join(", ")}. ` : "") +
-          (extraIds.length > 0 ? `Appeared: ${extraIds.slice(0, 3).join(", ")}. ` : "") +
-          "A projection must change which columns come back, never which rows — a filter " +
-          "that only holds while every column is selected is one a query plan is dropping " +
-          "once it has to name the columns.",
+          `select=${[ctx.identity, extra].join(",")} matched ${combined.size}. ${
+            missing.length > 0 ? `Dropped: ${missing.slice(0, 3).join(", ")}. ` : ""
+          }${
+            extraIds.length > 0 ? `Appeared: ${extraIds.slice(0, 3).join(", ")}. ` : ""
+          }A projection must change which columns come back, never which rows — a filter ` +
+          `that only holds while every column is selected is one a query plan is dropping ` +
+          `once it has to name the columns.`,
         evidence: [filtered.last.exchange, both.last.exchange],
       });
     },

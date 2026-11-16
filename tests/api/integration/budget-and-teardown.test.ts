@@ -17,50 +17,60 @@ import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 import { actingClient } from "../support/acting-client.ts";
 import { JWT_LOGIN } from "../support/reference-auth.ts";
 
-/* Ids as the backend gave them back; the ledger takes nothing else. */
+// Ids as the backend gave them back; the ledger takes nothing else.
 function proven(id: ProvenId | undefined): ProvenId {
   if (id === undefined) throw new Error("the create answered without an id");
+
   return id;
 }
+
 function listed(id: string): ProvenId {
   return proven(listedIds([id])[0]);
 }
 
 async function referenceModel(url: string) {
   const spec = (await (await fetch(`${url}/v1/openapi/spec`)).json()) as OpenApiDocument;
+
   return buildModel(dereference(spec).doc);
 }
 
 describe("teardown", () => {
   it("removes children before the parent they live under", async () => {
     const server = await createMemoryServer();
+
     try {
       const model = await referenceModel(server.url);
       const owner = { id: "alpha" };
+
       const client = actingClient({
         baseUrl: server.url,
         model,
         principals: PRINCIPALS,
         security: JWT_LOGIN,
       });
+
       const table = await client.request("POST", "/v1/projects/proj_alpha/tables", {
         as: { principal: "alpha" },
         body: { name: "t" },
       });
+
       const tableId = proven(answeredId(table, ["id"]));
       const ledger = new Ledger();
       ledger.record({ entity: "table", id: tableId, scope: { project_id: "proj_alpha", table_id: tableId } }, owner);
+
       for (const label of ["a", "b"]) {
         const row = await client.request("POST", `/v1/projects/proj_alpha/tables/${tableId}/rows`, {
           as: { principal: "alpha" },
           body: { label },
         });
+
         const rowId = proven(answeredId(row, ["id"]));
         ledger.record(
           { entity: "row", id: rowId, scope: { project_id: "proj_alpha", row_id: rowId, table_id: tableId } },
           owner,
         );
       }
+
       const result = await ledger.unwind(model, client, { fallbacks: () => [] });
       expect(result.removed).toBe(3);
       const deletes = client.transcript.filter((exchange) => exchange.method === "DELETE").map((e) => e.url);
@@ -72,7 +82,7 @@ describe("teardown", () => {
   });
 });
 
-/* A tenant the caller left answers 403 to everything, its own delete included. */
+// A tenant the caller left answers 403 to everything, its own delete included.
 const orgsSpec = {
   info: { title: "orgs", version: "1" },
   openapi: "3.1.0",
@@ -116,7 +126,7 @@ const orgsSpec = {
   },
 } as unknown as OpenApiDocument;
 
-/* A client for the orgs document, which declares no security: every actor sends nothing. */
+// A client for the orgs document, which declares no security: every actor sends nothing.
 function openClient(baseUrl: string): Client {
   return new Client({
     baseUrl,
@@ -127,17 +137,23 @@ function openClient(baseUrl: string): Client {
 
 async function serveOrgs(): Promise<{ close: () => Promise<void>; url: string }> {
   const live = new Set(["org_1"]);
+
   const server = createServer((req, res) => {
     const id = /^\/v1\/orgs\/([^/]+)$/.exec(req.url ?? "")?.[1];
+
     if (req.method === "DELETE" && id !== undefined) {
       res.writeHead(live.delete(id) ? 204 : 403);
       res.end();
+
       return;
     }
+
     res.writeHead(404);
     res.end();
   });
+
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+
   return {
     close: () => new Promise<void>((resolve) => server.close(() => resolve())),
     url: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
@@ -147,6 +163,7 @@ async function serveOrgs(): Promise<{ close: () => Promise<void>; url: string }>
 describe("teardown of a record the run already deleted", () => {
   it("counts it removed when the earlier delete succeeded", async () => {
     const server = await serveOrgs();
+
     try {
       const model = buildModel(dereference(orgsSpec).doc);
       const owner = { id: "alpha" };
@@ -164,6 +181,7 @@ describe("teardown of a record the run already deleted", () => {
 
   it("still fails a refused delete nothing removed before", async () => {
     const server = await serveOrgs();
+
     try {
       const model = buildModel(dereference(orgsSpec).doc);
       const owner = { id: "alpha" };
@@ -182,6 +200,7 @@ describe("teardown of a record the run already deleted", () => {
 describe("the budget", () => {
   it("testing api plan estimates requests per entity and in total", async () => {
     const server = await createMemoryServer();
+
     try {
       const text = report.plan(await referenceModel(server.url), false);
       expect(text).toMatch(/~req/);
@@ -194,10 +213,11 @@ describe("the budget", () => {
 
 const payloadRequests = async (payloads: "full" | "per-write-path") => {
   const server = await createMemoryServer();
+
   try {
     const result = await run({
       baseUrl: server.url,
-      /* Both write a plain string over JSON: one write path, so the second gets a subset. */
+      // Both write a plain string over JSON: one write path, so the second gets a subset.
       only: ["table", "row"],
       payloads,
       principals: PRINCIPALS,
@@ -205,6 +225,7 @@ const payloadRequests = async (payloads: "full" | "per-write-path") => {
       seed: 42,
       spec: `${server.url}/v1/openapi/spec`,
     });
+
     return {
       findings: result.findings.filter((f) => f.check === "payload.string-survives"),
       notes: result.checkNotes.filter((n) => n.check === "payload.string-survives"),

@@ -32,21 +32,21 @@ type FilterDefect = Extract<
 export const FILTER_EXPECTED: Record<FilterDefect, FindingId | FindingId[]> = {
   FILTER_GROUP_COMBINATOR_SWAPPED: [
     "filter.and-composes-as-intersection",
-    /* Only fires where an or() combinator exists to swap at all — the postgrest-shaped
-     * dialects. On the others the swap still corrupts and(), which is the primary. */
+    // Only fires where an or() combinator exists to swap at all — the postgrest-shaped
+    // dialects. On the others the swap still corrupts and(), which is the primary.
     "filter.or-composes-as-union",
   ],
   ERROR_500_ON_BAD_FILTER: [
     "error.malformed-filter-not-5xx",
-    /* A crash on an unknown field is this check's own failure: it is not rejected. */
+    // A crash on an unknown field is this check's own failure: it is not rejected.
     "filter.unknown-field-rejected",
-    /* 500 is not in the document. The status-vs-document check is a real second symptom,
-     * not a misdiagnosis: the handler crashed and invented a code the spec never named. */
+    // 500 is not in the document. The status-vs-document check is a real second symptom,
+    // not a misdiagnosis: the handler crashed and invented a code the spec never named.
     "response.status-is-documented",
-    /* Every crash a filter probe draws that no filter check cited is failed on its own. */
+    // Every crash a filter probe draws that no filter check cited is failed on its own.
     "response.no-server-error",
-    /* The defect turns every refused filter into a 500, the over-limit in() and the condition cap
-     * among them: when the primary is masked, these two report the same crash on their own. */
+    // The defect turns every refused filter into a 500, the over-limit in() and the condition cap
+    // among them: when the primary is masked, these two report the same crash on their own.
     "filter.in-over-limit-rejected",
     "filter.condition-cap-rejected",
   ],
@@ -63,13 +63,13 @@ export const FILTER_EXPECTED: Record<FilterDefect, FindingId | FindingId[]> = {
     "filter.zero-match-returns-none",
     "filter.unknown-field-rejected",
     "filter.like-metacharacters-escaped",
-    /* Falling back to the unfiltered set breaks every narrowing predicate, not just the
-     * filter that triggered it — search and the tenant-scoped filter included. */
+    // Falling back to the unfiltered set breaks every narrowing predicate, not just the
+    // filter that triggered it — search and the tenant-scoped filter included.
     "search.q-narrows-result",
     "tenant.filter-does-not-bypass-scope",
     "filter.negation-partitions-the-set",
-    /* A page walk narrows too: the final page's query legitimately matches nothing, and a
-     * backend that answers "nothing" with "everything" makes records reappear mid-walk. */
+    // A page walk narrows too: the final page's query legitimately matches nothing, and a
+    // backend that answers "nothing" with "everything" makes records reappear mid-walk.
     "pagination.page-walk-covers-set",
     "count.matches-filtered-set",
     "filter.empty-in",
@@ -91,8 +91,8 @@ export const FILTER_EXPECTED: Record<FilterDefect, FindingId | FindingId[]> = {
   IGNORES_MALFORMED_FILTER: "filter.malformed-term-rejected",
   FILTER_ALIAS_MISMAPPED: [
     "filter.alias-matches-canonical",
-    /* `ne` read as `eq` is legal on a field that allows eq and not neq — so an operator the
-     * document closes off is accepted. The same mismapping, seen from the allowlist. */
+    // `ne` read as `eq` is legal on a field that allows eq and not neq — so an operator the
+    // document closes off is accepted. The same mismapping, seen from the allowlist.
     "filter.illegal-op-rejected",
   ],
   FILTER_CONDITION_CAP_IGNORED: "filter.condition-cap-rejected",

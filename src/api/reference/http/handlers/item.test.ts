@@ -1,21 +1,24 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { cellText } from "../../cell.ts";
 import { ALPHA, api, BETA, JOBS, MEMBER, rowsOf, TABLES, VIEWER } from "../__fixtures__/api.ts";
 
-/* A world with one of alpha's tables in it, and that table's path. */
+// A world with one of alpha's tables in it, and that table's path.
 async function withTable(options = {}) {
   const world = await api(options);
   const made = await world.table("t");
-  await world.call("PATCH", `${TABLES}/${String(made["id"])}`, { body: { description: "d", position: 2 } });
-  return { ...world, item: `${TABLES}/${String(made["id"])}`, made };
+  await world.call("PATCH", `${TABLES}/${cellText(made["id"])}`, { body: { description: "d", position: 2 } });
+
+  return { ...world, item: `${TABLES}/${cellText(made["id"])}`, made };
 }
 
 describe("reading a record", () => {
   it("answers the record to each of its tenant's roles, and 404 to another tenant", async () => {
     const { call, item } = await withTable();
-    for (const token of [ALPHA, MEMBER, VIEWER]) {
+
+    for (const token of [ALPHA, MEMBER, VIEWER])
       expect((await call("GET", item, { token })).body).toMatchObject({ description: "d", name: "t" });
-    }
+
     expect((await call("GET", item, { token: BETA })).status).toBe(404);
     expect((await call("GET", `${TABLES}/missing`)).status).toBe(404);
   });
@@ -30,7 +33,7 @@ describe("reading a record", () => {
     const { call, item } = await withTable({ defects: ["READ_DROPS_FIELD"] });
     expect((await call("GET", item)).body).not.toHaveProperty("description");
     const job = (await call("POST", JOBS, { body: { name: "j", note: "n" } })).body;
-    expect((await call("GET", `${JOBS}/${String(job["id"])}`)).body).toMatchObject({ note: "n" });
+    expect((await call("GET", `${JOBS}/${cellText(job["id"])}`)).body).toMatchObject({ note: "n" });
   });
 
   it("answers a table's item read with an undeclared member under READ_BODY_DIVERGES, its listing as documented", async () => {
@@ -38,17 +41,17 @@ describe("reading a record", () => {
     expect((await call("GET", item)).body).toMatchObject({ cache_status: "hit" });
     expect(JSON.stringify((await call("GET", TABLES)).body)).not.toContain("cache_status");
     const job = (await call("POST", JOBS, { body: { name: "j", note: "n" } })).body;
-    expect((await call("GET", `${JOBS}/${String(job["id"])}`)).body).not.toHaveProperty("cache_status");
+    expect((await call("GET", `${JOBS}/${cellText(job["id"])}`)).body).not.toHaveProperty("cache_status");
   });
 
   it("answers the write-only fields a row holds on its item read under WRITE_ONLY_LEAKED, never in its listing", async () => {
     const { call } = await api({ defects: ["WRITE_ONLY_LEAKED"], shape: "write-only-field" });
     const made = (await call("POST", TABLES, { body: { name: "a", secret: "s3cret" } })).body;
-    expect((await call("GET", `${TABLES}/${String(made["id"])}`)).body).toMatchObject({ secret: "s3cret" });
+    expect((await call("GET", `${TABLES}/${cellText(made["id"])}`)).body).toMatchObject({ secret: "s3cret" });
     expect(JSON.stringify((await call("GET", TABLES)).body)).not.toContain("s3cret");
     const plain = await api({ defects: ["WRITE_ONLY_LEAKED"] });
     const row = (await plain.call("POST", TABLES, { body: { name: "b" } })).body;
-    expect((await plain.call("GET", `${TABLES}/${String(row["id"])}`)).body).not.toHaveProperty("secret");
+    expect((await plain.call("GET", `${TABLES}/${cellText(row["id"])}`)).body).not.toHaveProperty("secret");
   });
 
   it("wraps the record beside its fields under recordEnvelope", async () => {
@@ -121,7 +124,7 @@ describe("updating a record it refuses", () => {
   it("writes another tenant's record under CROSS_TENANT_WRITE", async () => {
     const { call, table } = await api({ defects: ["CROSS_TENANT_WRITE"] });
     const theirs = await table("theirs", BETA);
-    const path = `${TABLES}/${String(theirs["id"])}`;
+    const path = `${TABLES}/${cellText(theirs["id"])}`;
     expect((await call("PATCH", path, { body: { name: "mine" } })).body).toMatchObject({ name: "mine" });
   });
 });
@@ -133,10 +136,10 @@ describe("an update under WRITE_BODY_NOT_VALIDATED", () => {
     expect(table).toMatchObject({ body: { description: "kept", name: "t" }, status: 200 });
     const rows = rowsOf(made["id"]);
     const row = (await call("POST", rows, { body: { amount: 3, label: "r" } })).body;
-    const patched = await call("PATCH", `${rows}/${String(row["id"])}`, { body: { amount: "many", label: "s" } });
+    const patched = await call("PATCH", `${rows}/${cellText(row["id"])}`, { body: { amount: "many", label: "s" } });
     expect(patched).toMatchObject({ body: { amount: 3, label: "s" }, status: 200 });
     const job = (await call("POST", JOBS, { body: { name: "j" } })).body;
-    expect((await call("PATCH", `${JOBS}/${String(job["id"])}`, { body: { name: 7 } })).status).toBe(400);
+    expect((await call("PATCH", `${JOBS}/${cellText(job["id"])}`, { body: { name: 7 } })).status).toBe(400);
   });
 
   it("still refuses a field no writer may send, and validates nothing it was not asked to skip", async () => {
@@ -155,10 +158,12 @@ describe("an update under WRITE_BODY_NOT_VALIDATED", () => {
 describe("an update without a lock", () => {
   it("writes back the whole record it read under CONCURRENT_WRITE_LOST", async () => {
     const { call, item } = await withTable({ defects: ["CONCURRENT_WRITE_LOST"] });
+
     const [first, second] = await Promise.all([
       call("PATCH", item, { body: { name: "first" } }),
       call("PATCH", item, { body: { position: 9 } }),
     ]);
+
     expect([first.status, second.status]).toEqual([200, 200]);
     expect((await call("GET", item)).body).toMatchObject({ name: "t", position: 9 });
   });
@@ -221,20 +226,23 @@ describe("the slug of a table", () => {
     expect(updated.body).toMatchObject({ name: "Second", slug: "first-name" });
     const row = await call("POST", rowsOf("first-name"), { body: { label: "r" } });
     expect(row.body["table_id"]).toBe(made["id"]);
-    expect((await call("PATCH", `${rowsOf("first-name")}/${String(row.body["id"])}`, { body: {} })).status).toBe(200);
+    expect((await call("PATCH", `${rowsOf("first-name")}/${cellText(row.body["id"])}`, { body: {} })).status).toBe(200);
   });
 });
 
-/* Two of one entity's updates, the second made first, maybe with another entity's write between. */
+// Two of one entity's updates, the second made first, maybe with another entity's write between.
 async function updatedOrder(between: boolean): Promise<unknown[]> {
   const { call, table } = await api();
   const [first, second] = [await table("first"), await table("second")];
-  await call("PATCH", `${TABLES}/${String(second["id"])}`, { body: { description: "x" } });
+  await call("PATCH", `${TABLES}/${cellText(second["id"])}`, { body: { description: "x" } });
+
   if (between) await call("POST", JOBS, { body: { name: "j" } });
-  await call("PATCH", `${TABLES}/${String(first["id"])}`, { body: { description: "y" } });
+  await call("PATCH", `${TABLES}/${cellText(first["id"])}`, { body: { description: "y" } });
+
   const listed = (await call("GET", `${TABLES}?order=updated_at.asc&limit=100`)).body["tables"] as Array<{
     name: string;
   }>;
+
   return listed.map((record) => record.name).filter((name) => name === "first" || name === "second");
 }
 
@@ -251,19 +259,19 @@ describe("deleting a record", () => {
     const written = (await call("GET", item)).body["updated_at"];
     const { status, body } = await call("DELETE", item);
     expect(status).toBe(200);
-    /* A delete is a write of its own: stamped after the last one. */
+    // A delete is a write of its own: stamped after the last one.
     expect(body["deleted_at"]).toBeGreaterThan(Number(written));
     expect(body["updated_at"]).toBe(body["deleted_at"]);
     expect((await call("GET", item)).status).toBe(404);
-    expect(await state.store.byId(state.table, String(made["id"]))).not.toBeNull();
+    expect(await state.store.byId(state.table, cellText(made["id"]))).not.toBeNull();
   });
 
   it("removes a row outright and refreshes its table's count", async () => {
     const { call, item } = await withTable();
     const rows = `${item}/rows`;
     const row = (await call("POST", rows, { body: { label: "r" } })).body;
-    expect((await call("DELETE", `${rows}/${String(row["id"])}`)).body).toMatchObject({ label: "r" });
-    expect((await call("GET", `${rows}/${String(row["id"])}`)).status).toBe(404);
+    expect((await call("DELETE", `${rows}/${cellText(row["id"])}`)).body).toMatchObject({ label: "r" });
+    expect((await call("GET", `${rows}/${cellText(row["id"])}`)).status).toBe(404);
     expect((await call("GET", item)).body["row_count"]).toBe(0);
   });
 
@@ -273,7 +281,7 @@ describe("deleting a record", () => {
     expect((await call("DELETE", item, { token: MEMBER })).status).toBe(403);
     expect((await call("DELETE", item, { token: VIEWER })).status).toBe(403);
     expect((await call("DELETE", `${TABLES}/missing`)).body["message"]).toBe("table missing does not exist");
-    expect((await call("DELETE", `${TABLES}/${String(theirs["id"])}`)).status).toBe(404);
+    expect((await call("DELETE", `${TABLES}/${cellText(theirs["id"])}`)).status).toBe(404);
   });
 
   it("answers 200 for a missing record under DELETE_MISSING_OK, and keeps the row under DELETE_KEEPS_ROW", async () => {
@@ -288,8 +296,8 @@ describe("deleting a record", () => {
     const { call, item, state } = await withTable({ defects: ["HIDDEN_FROM_CREATOR"] });
     const rows = `${item}/rows`;
     const probe = (await call("POST", rows, { body: { label: "testing-payload-probe" } })).body;
-    expect((await call("DELETE", `${rows}/${String(probe["id"])}`)).status).toBe(200);
-    expect(await state.store.byId(state.entities[1] as never, String(probe["id"]))).not.toBeNull();
+    expect((await call("DELETE", `${rows}/${cellText(probe["id"])}`)).status).toBe(200);
+    expect(await state.store.byId(state.entities[1] as never, cellText(probe["id"]))).not.toBeNull();
   });
 
   it("answers what it found when the tombstone lands on nothing, and wraps the answer under recordEnvelope", async () => {

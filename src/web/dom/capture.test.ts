@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { hold } from "./capture.ts";
 
-/* Node has no Element: each test gets a bare one whose native capture calls are recorded. */
+// Node has no Element: each test gets a bare one whose native capture calls are recorded.
 let native: string[];
 
 beforeEach(() => {
@@ -15,6 +15,7 @@ beforeEach(() => {
       }
       hasPointerCapture(id: number): boolean {
         native.push(`has ${id}`);
+
         return false;
       }
       releasePointerCapture(id: number): void {
@@ -22,6 +23,7 @@ beforeEach(() => {
       }
     },
   );
+
   return () => vi.unstubAllGlobals();
 });
 

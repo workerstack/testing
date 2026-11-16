@@ -12,16 +12,17 @@ import type { Json } from "./types.ts";
 
 const CTX = { entities: ENTITIES, shape: {} };
 
-interface Operation {
+type Operation = {
   parameters: Json[];
   requestBody: { content: Record<string, unknown> };
   responses: Record<string, Json>;
   [key: string]: unknown;
-}
+};
 
 function operations(shape: ReferenceShape, name = "table"): { get: Operation; post: Operation } {
   const entities = shapedEntities(shape);
   const entity = entities.find((candidate) => candidate.name === name);
+
   return collectionPathItem({ entities, shape }, entity as never, POSTGREST) as never;
 }
 

@@ -4,10 +4,8 @@ import { FencedError } from "../fence.ts";
 import { loaded, notesApi, optionsFor, outage, unreachable } from "./__fixtures__/api.ts";
 import { createRunNetwork, requestTimeoutOpt, transportOpt } from "./network.ts";
 
-/*
- * One gate every client waits on, and the outage, noted once: a timeout on a host that still
- * answers is that operation failing, not the network going away.
- */
+// One gate every client waits on, and the outage, noted once: a timeout on a host that still
+// answers is that operation failing, not the network going away.
 
 describe("transportOpt and requestTimeoutOpt", () => {
   it("pass a transport and a timeout only when there is one", async () => {
@@ -25,7 +23,7 @@ describe("createRunNetwork", () => {
     const network = createRunNetwork(await loaded(options));
     expect(network.client).toMatchObject({ fetchImpl: options.network?.fetch, requestTimeoutMs: 1_000, retries: 3 });
     expect(network.outcome).toBeUndefined();
-    /* No wait budget: a request that lost the network gives up at once, and the gate is spent. */
+    // No wait budget: a request that lost the network gives up at once, and the gate is spent.
     await expect(network.client.awaitRecovery?.(outage("dns"))).resolves.toBe(false);
     expect(network.gate.exhausted).toBe(true);
     const run = await loaded(options);
@@ -52,10 +50,12 @@ describe("createRunNetwork", () => {
 
   it("takes a timeout on a host that no longer answers for an outage", async () => {
     const run = await loaded(optionsFor(notesApi()));
+
     const down = createRunNetwork({
       ...run,
       options: { ...run.options, network: { fetch: unreachable } },
     });
+
     await down.note(outage("timeout"), "note");
     expect(down.outcome?.kind).toBe("timeout");
   });

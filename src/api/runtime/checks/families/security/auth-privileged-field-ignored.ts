@@ -16,7 +16,7 @@ import { currentOf, readOf, recordAt, writableBody } from "./writable.ts";
 type Fields = Record<string, unknown>;
 
 /** The record written to, how it is re-read, who writes, who outranks it, and the body it sends. */
-interface RecordProbe {
+type RecordProbe = {
   kind: "record";
   target: WriteTarget;
   read: OperationModel;
@@ -26,7 +26,7 @@ interface RecordProbe {
   writers: Actor[];
   top: Actor;
   changes: ReadonlyArray<[path: string, value: unknown]>;
-}
+};
 
 /** A write to a record the run created, or a sign-up of an account of its own. */
 type PrivilegedProbe = RecordProbe | SignUpProbe;
@@ -50,21 +50,28 @@ export const privilegedFieldIgnored: OperationCheck<PrivilegedProbe> = defineChe
   plan: (ctx) => {
     if (ctx.operation.privileged.length > 0 && isSignUp(ctx)) return signUpPlan(ctx);
     const undeclared = noSecurityReason(ctx.operation);
+
     if (undeclared !== undefined) return cannot(undeclared);
+
     if (ctx.operation.privileged.length === 0) {
       const marked = ctx.model.operations.some((op) => op.privileged.length > 0);
+
       return cannot(
         marked
           ? `a request body property marked x-privileged; ${ctx.operation.operationId} marks none`
           : "no property is marked x-privileged",
       );
     }
+
     return andThen(targetPlan(ctx), (target) => {
       const read = readOf(ctx);
+
       if (read === undefined) return cannot("a GET on the write's path, to re-read the record");
       const record = currentOf(target);
+
       if (record === undefined) return cannot("the target record's current state, for a harmless body");
       const body = writableBody(ctx, record);
+
       return andThen(changesOf(ctx, { body, record }), (changes) =>
         andThen(writersOf(ctx, target), (pair) => ready({ ...pair, body, changes, kind: "record", read, target })),
       );
@@ -74,13 +81,17 @@ export const privilegedFieldIgnored: OperationCheck<PrivilegedProbe> = defineChe
   async run(ctx, probe) {
     if (probe.kind === "signup") return signUpAndJudge(ctx, probe);
     const reasons: string[] = [];
+
     for (const set of ctx.operation.security.alternatives) {
       const scheme = set.length === 1 ? set[0] : undefined;
+
       if (scheme === undefined) continue;
       const outcome = await acrossWriters(ctx, { probe, scheme });
+
       if (!("untested" in outcome)) return outcome;
       reasons.push(outcome.untested);
     }
+
     return standDown(reasons.join("; "));
   },
 });
@@ -102,28 +113,34 @@ async function acrossWriters(
 ): Promise<SchemeOutcome> {
   const refused: string[] = [];
   const untested: string[] = [];
+
   for (const writer of probe.writers) {
-    /* The write spends nothing of the credential, so one of the writer's serves every such probe. */
+    // The write spends nothing of the credential, so one of the writer's serves every such probe.
     const dedicated = await ctx.probe.dedicated({
       principal: writer.id,
       reusable: true,
       scheme: scheme.scheme,
       scopes: scheme.scopes,
     });
+
     if (isUntested(dedicated)) {
       untested.push(`${scheme.scheme}: ${dedicated.untested}`);
       continue;
     }
+
     const as = { principal: dedicated.actor.principal, scheme: scheme.scheme };
     const outcome = await unlessUnsatisfied(scheme.scheme, () => writeAndJudge(ctx, { as, probe, writer }));
+
     if ("untested" in outcome) untested.push(outcome.untested);
     else if ("refused" in outcome) refused.push(outcome.refused);
     else return outcome;
   }
-  /* One reason per scheme, however many writers it stopped. */
+
+  // One reason per scheme, however many writers it stopped.
   if (refused.length === 0) return { untested: [...new Set(untested)].join("; ") };
   const names = probe.changes.map(([path]) => path).join(", ");
   const reason = `no rank below ${probe.top.id} can update the record (${refused.join(", ")}), so whether one may set ${names} is untested`;
+
   return ctx.findings.unresolved(CHECK, ctx.subject, reason);
 }
 
@@ -135,8 +152,10 @@ async function writeAndJudge(
   const { method, operationId, requiredQuery: query } = ctx.operation;
   const names = changes.map(([path]) => path).join(", ");
   const body = structuredClone(probe.body);
+
   for (const [path, value] of changes) setAt(body, path, value);
   const wrote = await ctx.client.request(method, target.path, { as, body, operationId, probe: true, query });
+
   if (wrote.status >= 500) {
     return ctx.findings.unresolved(
       CHECK,
@@ -144,18 +163,25 @@ async function writeAndJudge(
       `${writer.id}'s write of ${names} drew ${wrote.status}, a server error`,
     );
   }
+
   const reread = await ctx.client.get(target.path, {
     as: { principal: target.owner },
     operationId: read.operationId,
     query: read.requiredQuery,
   });
+
   const state = reread.status < 300 ? recordAt(ctx, reread.responseBody) : undefined;
+
   if (state === undefined) {
     const reason = `the record could not be re-read after the write (${reread.status}), so whether ${names} changed is unknown`;
+
     return ctx.findings.unresolved(CHECK, ctx.subject, reason);
   }
+
   const applied = changes.filter(([path, value]) => Object.is(valueAt(state, path), value)).map(([path]) => path);
+
   if (applied.length === 0) return wrote.status < 400 ? ASSERTED : controlled(ctx, { as, probe, writer });
+
   return ctx.findings.security(CHECK, ctx.subject, {
     detail:
       `${writer.id} (rank ${writer.rank}) wrote ${applied.join(", ")}, marked x-privileged, on a record ` +
@@ -166,16 +192,15 @@ async function writeAndJudge(
   });
 }
 
-/*
- * A refused probe, told apart: the same writer sends the harmless body alone. Accepted, the refusal
- * was the marked properties' (a pass); refused too, this writer cannot update the record at all. A
- * server error is unresolved, as on the probe.
- */
+// A refused probe, told apart: the same writer sends the harmless body alone. Accepted, the refusal
+// was the marked properties' (a pass); refused too, this writer cannot update the record at all. A
+// server error is unresolved, as on the probe.
 async function controlled(
   ctx: OperationWriteContext,
   { as, probe, writer }: { as: { principal: string; scheme: string }; probe: RecordProbe; writer: Actor },
 ): Promise<Outcome | { refused: string }> {
   const { method, operationId, requiredQuery: query } = ctx.operation;
+
   const control = await ctx.client.request(method, probe.target.path, {
     as,
     body: structuredClone(probe.body),
@@ -183,6 +208,7 @@ async function controlled(
     probe: true,
     query,
   });
+
   if (control.status >= 500) {
     return ctx.findings.unresolved(
       CHECK,
@@ -190,50 +216,57 @@ async function controlled(
       `${writer.id}'s harmless write drew ${control.status}, a server error`,
     );
   }
+
   return control.status < 300 ? ASSERTED : { refused: `${writer.id} ${control.status}` };
 }
 
-/* The writers: every principal of the target owner's tenant ranked below its highest, highest first. */
+// The writers: every principal of the target owner's tenant ranked below its highest, highest first.
 function writersOf(ctx: OperationContext, target: WriteTarget): Plan<{ writers: Actor[]; top: Actor }> {
   const owner = ctx.principals.find((actor) => actor.id === target.owner) ?? ctx.actor;
   const home = ctx.principals.filter((actor) => actor.tenant === owner.tenant).toSorted((a, b) => b.rank - a.rank);
   const top = home[0] as Actor;
   const writers = home.filter((actor) => actor.rank < top.rank);
+
   return writers.length === 0
     ? cannot("a principal ranked below the highest of the target owner's tenant")
     : ready({ top, writers });
 }
 
-/*
- * Each marked property with the value the probe sets it to, changed from the record's own; any one the API tester
- * cannot change, or whose parent the body (which never carries a marked property) lacks, stands it down.
- */
+// Each marked property with the value the probe sets it to, changed from the record's own; any one the API tester
+// cannot change, or whose parent the body (which never carries a marked property) lacks, stands it down.
 function changesOf(
   ctx: OperationContext,
   { body, record }: { body: Fields; record: Fields },
 ): Plan<Array<[string, unknown]>> {
   const changes: Array<[string, unknown]> = [];
+
   for (const path of ctx.operation.privileged) {
     const value = changed(valueAt(record, path), typeOf(ctx, path));
+
     if (value === undefined || !isFields(parentOf(body, path)))
       return cannot(`a value of ${path} the API tester can change`);
     changes.push([path, value]);
   }
+
   return ready(changes);
 }
 
-/* A different value of the same type: a boolean flipped (a missing boolean set), a number one up, a string suffixed. */
+// A different value of the same type: a boolean flipped (a missing boolean set), a number one up, a string suffixed.
 function changed(current: unknown, type: unknown): unknown {
   if (typeof current === "boolean") return !current;
+
   if (typeof current === "number") return current + 1;
+
   if (typeof current === "string") return `${current}-testing`;
+
   return current === undefined && type === "boolean" ? true : undefined;
 }
 
-/* The declared type of the request body property at the dotted `path`. */
+// The declared type of the request body property at the dotted `path`.
 function typeOf(ctx: OperationContext, path: string): unknown {
-  /* The model holds every operation it lists; a marked property implies a request body. */
+  // The model holds every operation it lists; a marked property implies a request body.
   const raw = ctx.model.rawOperations.get(ctx.operation.operationId) as OperationObject;
+
   return valueAt(requestContent(raw), `schema.properties.${path.split(".").join(".properties.")}.type`);
 }
 
@@ -245,9 +278,10 @@ function valueAt(value: unknown, path: string): unknown {
   return path.split(".").reduce<unknown>((at, key) => (isFields(at) ? at[key] : undefined), value);
 }
 
-/* The object holding the last segment of `path`. */
+// The object holding the last segment of `path`.
 function parentOf(value: unknown, path: string): unknown {
   const keys = path.split(".");
+
   return keys.length === 1 ? value : valueAt(value, keys.slice(0, -1).join("."));
 }
 

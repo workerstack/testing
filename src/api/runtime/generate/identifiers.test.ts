@@ -23,7 +23,7 @@ describe("absentIdentifier", () => {
       ok: true,
       value: Math.floor(2000.5 - offset),
     });
-    /* Not an object: any token will do. */
+    // Not an object: any token will do.
     expect(absentIdentifier("not a schema", "n")).toMatchObject({
       ok: true,
       value: expect.stringMatching(/^testing-absent-/),

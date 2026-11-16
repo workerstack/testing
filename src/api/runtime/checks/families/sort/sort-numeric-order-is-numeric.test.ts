@@ -4,7 +4,7 @@ import type { Responder } from "../../__fixtures__/harness.ts";
 import { NOTES, PARAMS, queryDoc, REJECT, stage } from "../composition/__fixtures__/query-api.ts";
 import { sortNumericOrderIsNumeric } from "./sort-numeric-order-is-numeric.ts";
 
-/* Orders rank by its text: 10 before 2. */
+// Orders rank by its text: 10 before 2.
 const byText: Responder = () => ({
   body: NOTES.toSorted((a, b) => String(a["rank"]).localeCompare(String(b["rank"]))),
   status: 200,
@@ -49,6 +49,7 @@ describe("sort.numeric-order-is-numeric plans", () => {
       {},
       PARAMS.filter((name) => name !== "order"),
     );
+
     expect(stage(sortNumericOrderIsNumeric, { doc }).plan().ok).toBe(false);
   });
 });

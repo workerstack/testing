@@ -15,19 +15,19 @@ export type FilterTermValue = string | number | boolean | null | readonly (strin
 export type FilterQuery = Record<string, string | readonly string[]>;
 
 /** One predicate, before it is spelled. */
-export interface FilterPredicate {
+export type FilterPredicate = {
   field: string;
   op: FilterOp;
   value: FilterTermValue;
-}
+};
 
 /** A template that joins terms: `{terms}` is where they go, separated by `join`. */
-export interface TermGroup {
+export type TermGroup = {
   group: string;
   join: string;
-}
+};
 
-export interface FilterGrammarSpec {
+export type FilterGrammarSpec = {
   /** Where a term goes: the endpoint's filter parameter, or a parameter named after the field. */
   param: "filter" | "field";
   /** One term, with `{conj}`, `{field}`, `{op}` and `{value}` placeholders. */
@@ -60,6 +60,6 @@ export interface FilterGrammarSpec {
    * pattern grammar means `%`.
    */
   likeWildcard: string | null;
-}
+};
 
 export type ParsedGrammar = { ok: true; spec: FilterGrammarSpec } | { ok: false; error: string };

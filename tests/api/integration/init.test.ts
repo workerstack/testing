@@ -9,14 +9,13 @@ import { bufferWriter } from "../../../src/api/cli/writer.ts";
 import { createMemoryServer } from "../../../src/api/reference/http/engines.ts";
 import { referenceToken } from "../support/reference-auth.ts";
 
-/*
- * `testing api init` as a user meets it: a starter config from the reference's document, `testing api doctor` on
- * that config before and after its env vars are set, then `testing api run` with the reference's credentials
- * in those vars. The config imports the package as an installed one would, from a stand-in that
- * re-exports this checkout's entry point.
- */
+// `testing api init` as a user meets it: a starter config from the reference's document, `testing api doctor` on
+// that config before and after its env vars are set, then `testing api run` with the reference's credentials
+// in those vars. The config imports the package as an installed one would, from a stand-in that
+// re-exports this checkout's entry point.
 
 const ENTRY = join(import.meta.dirname, "../../../src/api/index.ts");
+
 const SECURITY_LINES = [
   /^ {4}apiKey +apiKey +header Authorization: \{credential\} +static$/m,
   /^ {4}jwt +bearer \(JWT\) +header Authorization: Bearer \{credential\} +static$/m,
@@ -51,18 +50,22 @@ afterAll(async () => {
 async function tester(...argv: string[]): Promise<{ code: number; out: string }> {
   const writer = bufferWriter();
   const code = await main(argv, { writer });
+
   return { code, out: writer.text() };
 }
 
-/* The reference's credentials for its first tenant's owner: a jwt, and an apiKey minted with it, as the env vars carry them. */
+// The reference's credentials for its first tenant's owner: a jwt, and an apiKey minted with it, as the env vars carry them.
 async function referenceCredentials(): Promise<{ apiKey: string; jwt: string }> {
   const jwt = await referenceToken(server.url, "key_alpha");
+
   const minted = await fetch(`${server.url}/v1/api-keys`, {
     body: JSON.stringify({ scopes: ["job:read", "job:write", "row:read", "row:write", "table:read", "table:write"] }),
     headers: { authorization: `Bearer ${jwt}`, "content-type": "application/json" },
     method: "POST",
   });
+
   if (minted.status !== 201) throw new Error(`the reference minted no apiKey: ${minted.status}`);
+
   return { apiKey: `ApiKey ${((await minted.json()) as { key: string }).key}`, jwt };
 }
 
@@ -79,7 +82,7 @@ describe("testing api init, then doctor and run on what it wrote", () => {
     expect(text).toContain('baseUrl: env("TESTING_API_BASE_URL"),');
     expect(text).toContain('apiKey: { static: env("TESTING_API_API_KEY_KEY") },');
     expect(text).toContain('jwt: { static: env("TESTING_API_JWT_TOKEN") },');
-    /* The project has no create, so init stubs it as the principal's scope, commented until filled. */
+    // The project has no create, so init stubs it as the principal's scope, commented until filled.
     expect(text).toContain('\t\t\t// scope: { project_id: "" },\n');
     expect(text).toMatch(/\t\t\t\/\/ project_id unlocks table\.list, .+ and \d+ more\n/);
     expect((await tester("init", "--spec", spec, "--out", config)).code).toBe(2);
@@ -90,6 +93,7 @@ describe("testing api init, then doctor and run on what it wrote", () => {
     expect(unset.out).toContain(
       "  env        TESTING_API_BASE_URL, TESTING_API_API_KEY_KEY, TESTING_API_JWT_TOKEN not set — a run stops until they are\n",
     );
+
     for (const line of SECURITY_LINES) expect(unset.out).toMatch(line);
     const { apiKey, jwt } = await referenceCredentials();
     vi.stubEnv("TESTING_API_BASE_URL", server.url);
@@ -97,13 +101,14 @@ describe("testing api init, then doctor and run on what it wrote", () => {
     vi.stubEnv("TESTING_API_JWT_TOKEN", jwt);
     const set = await tester("doctor", "--config", config);
     expect(set.out).toContain("  security — 2 schemes\n");
+
     for (const line of SECURITY_LINES) expect(set.out).toMatch(line);
     expect(set.out).not.toContain("not set — a run stops");
-    /* Until the stub is filled the project is a root the run lacks; ids a flow yields never block. */
+    // Until the stub is filled the project is a root the run lacks; ids a flow yields never block.
     expect(set.out).toContain("  roots required in config (no create operation in this document)\n    project_id\n");
     expect(set.out).toMatch(/ {2}ids no operation creates .+\n(?: {4}\w+\n)* {4}token\n/);
     expect([unset.code, set.code]).toEqual([1, 1]);
-    /* A new file: this process already imported the config at its own path, and keeps that module. */
+    // A new file: this process already imported the config at its own path, and keeps that module.
     const text = await readFile(config, "utf8");
     await writeFile(scoped, text.replace('// scope: { project_id: "" },', 'scope: { project_id: "proj_alpha" },'));
     const filled = await tester("doctor", "--config", scoped);
@@ -113,19 +118,21 @@ describe("testing api init, then doctor and run on what it wrote", () => {
   });
 });
 
-/* After the describe above: the config it wrote and filled, with the vars it set. */
+// After the describe above: the config it wrote and filled, with the vars it set.
 describe("testing api run on the config init wrote and the stub filled", () => {
   it("runs against the reference with the vars set, and blames it for nothing on a correct backend", async () => {
     const ran = await tester("run", "--config", scoped, "--out", join(dir, "runs"), "--quiet");
     const reportPath = /^ {2}report: (.+)report\.md$/m.exec(ran.out)?.[1];
     expect(reportPath).toBeDefined();
+
     const report = JSON.parse(await readFile(`${reportPath}report.json`, "utf8")) as {
       findings: Array<{ check: string; detail: string; verdict: string }>;
       scope: { operations: Array<{ operationId: string; status: string }> };
     };
+
     const status = new Map(report.scope.operations.map((op) => [op.operationId, op.status]));
     expect(["table.list", "row.create", "job.get"].map((id) => status.get(id))).toEqual(["passed", "passed", "passed"]);
-    /* With the stub filled, seeding reaches below the project. */
+    // With the stub filled, seeding reaches below the project.
     expect(report.findings.filter((finding) => finding.detail.includes("{project_id}"))).toEqual([]);
     expect(
       report.findings.filter((finding) => finding.verdict === "BACKEND_BUG" || finding.verdict === "SECURITY"),

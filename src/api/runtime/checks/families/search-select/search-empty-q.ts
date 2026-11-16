@@ -15,6 +15,7 @@ export const searchEmptyQ: Check<{
 }>({
   plan: (ctx) => {
     const policy = resolvedCaps(ctx).searchEmpty;
+
     return conv(ctx).search === undefined || policy === undefined ? cannot() : ready({ policy });
   },
   dependsOn: ["pagination.page-walk-covers-set", "search.q-narrows-result"],
@@ -26,25 +27,30 @@ export const searchEmptyQ: Check<{
     const limit = pageSize(ctx);
     const baseline = await listAll(ctx, q(ctx, { limit }));
     const empty = await listAll(ctx, q(ctx, { limit, search: "" }));
+
     if (policy === "reject") {
       const refused = judgeRefusal(ctx, this.id, ["validation"], empty.exchange);
+
       if (refused !== null) return refused;
+
       return ctx.findings.backend(this.id, ctx.entityName, {
         summary: "empty q was not rejected",
         detail: `searchEmpty=reject but q= returned ${empty.exchange.status}.`,
         evidence: [empty.exchange],
       });
     }
-    if (empty.exchange.status >= 400) {
-      return ctx.findings.unresolved(this.id, ctx.entityName, "empty q was rejected");
-    }
-    if (!baseline.complete || !empty.complete) {
+
+    if (empty.exchange.status >= 400) return ctx.findings.unresolved(this.id, ctx.entityName, "empty q was rejected");
+
+    if (!baseline.complete || !empty.complete)
       return ctx.findings.unresolved(this.id, ctx.entityName, "the sets are larger than a read covers");
-    }
+
     if (sameSet(setOf(empty.items, ctx.identity), setOf(baseline.items, ctx.identity))) return ASSERTED;
     const terms = [{ query: q(ctx, {}) }, { query: q(ctx, { search: "" }) }];
     const moved = await unlessMoved(ctx, this.id, { reads: [baseline, empty], terms });
+
     if (moved !== null) return moved;
+
     return ctx.findings.backend(this.id, ctx.entityName, {
       summary: "empty q did not match the unfiltered set",
       detail: `searchEmpty=${policy} but q= returned ${empty.items.length} of ${baseline.items.length} records.`,

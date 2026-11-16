@@ -17,60 +17,75 @@ const is = (request: ReferenceRequest, method: string, pathname: string): boolea
   request.method === method && request.url.pathname === pathname;
 
 export const document: Route = async (state, request) => {
-  if (request.url.pathname !== "/v1/openapi/spec") return undefined;
+  if (request.url.pathname !== "/v1/openapi/spec") return;
   const context = { entities: state.entities, shape: state.shape };
+
   return respond(200, state.untagged ? buildUntaggedSpec(state.dialect, context) : buildSpec(state.dialect, context));
 };
 
 export const health: Route = async (state, request) => {
-  if (!is(request, "GET", "/health")) return undefined;
+  if (!is(request, "GET", "/health")) return;
+
   if (state.defects.has("PUBLIC_GET_NOT_SUCCESS")) return respond(500, { error_key: "internal_server_error" });
+
   return respond(200, { ok: true });
 };
 
 export const notices: Route = async (state, request) => {
   if (is(request, "GET", "/v1/notices")) {
-    /* The one secured route that forgets to ask, under AUTH_IGNORED_ON_ROUTE. */
+    // The one secured route that forgets to ask, under AUTH_IGNORED_ON_ROUTE.
     if (!state.defects.has("AUTH_IGNORED_ON_ROUTE")) authenticate(state, request);
+
     return respond(200, { notices: [{ id: "note_1", title: "Hello" }] });
   }
+
   const notice = /^\/v1\/notices\/([^/]+)$/.exec(request.url.pathname);
-  if (notice === null || request.method !== "GET") return undefined;
+
+  if (notice === null || request.method !== "GET") return;
   authenticate(state, request);
+
   if (notice[1] !== "note_1") throw new HttpError(404, "not_found", "notice note_1 does not exist");
+
   return respond(200, { id: "note_1", title: state.defects.has("LISTED_GET_DIFFERS") ? "Other" : "Hello" });
 };
 
 export const overview: Route = async (state, request) => {
   const match = /^\/v1\/projects\/([^/]+)\/overview$/.exec(request.url.pathname);
-  if (match === null || request.method !== "GET") return undefined;
+
+  if (match === null || request.method !== "GET") return;
+
   if (!state.defects.has("ROOT_READ_OPEN")) authenticate(state, request);
+
   return respond(200, { extractions: 0, project_id: match[1] as string });
 };
 
-/* A profile update's body as the caller's profile, or why it is refused. Under the string guard
- * the name must pass the guard, and a phone number, when one is sent, its own pattern and the guard. */
+// A profile update's body as the caller's profile, or why it is refused. Under the string guard
+// the name must pass the guard, and a phone number, when one is sent, its own pattern and the guard.
 function profileFrom(body: unknown, guarded: boolean): Profile {
   const fields = body !== null && typeof body === "object" ? (body as Record<string, unknown>) : {};
   const name = fields["first_name"];
-  if (typeof name !== "string" || name.length === 0 || name.length > 64 || (guarded && !admits(name, [STRING_GUARD]))) {
+
+  if (typeof name !== "string" || name.length === 0 || name.length > 64 || (guarded && !admits(name, [STRING_GUARD])))
     throw new HttpError(400, "invalid_input", 'field "first_name" must be a string');
-  }
+
   const phone = guarded ? phoneFrom(fields["phone_number"]) : undefined;
+
   return phone === undefined ? { first_name: name } : { first_name: name, phone_number: phone };
 }
 
-/* A phone number sent, `null` or left out as none: 7 to 15 long, its own pattern and the guard met. */
+// A phone number sent, `null` or left out as none: 7 to 15 long, its own pattern and the guard met.
 function phoneFrom(phone: unknown): string | undefined {
   if (phone === undefined || phone === null) return undefined;
-  if (typeof phone !== "string" || !isPhone(phone)) {
+
+  if (typeof phone !== "string" || !isPhone(phone))
     throw new HttpError(400, "invalid_input", 'field "phone_number" must be a phone number');
-  }
+
   return phone;
 }
 
 function isPhone(phone: string): boolean {
   const length = [...phone].length;
+
   return length >= 7 && length <= 15 && admits(phone, [PHONE_PATTERN, STRING_GUARD]);
 }
 
@@ -79,18 +94,21 @@ function admits(value: string, patterns: readonly string[]): boolean {
 }
 
 export const me: Route = async (state, request) => {
-  if (request.url.pathname !== "/v1/me" || (request.method !== "GET" && request.method !== "PATCH")) return undefined;
+  if (request.url.pathname !== "/v1/me" || (request.method !== "GET" && request.method !== "PATCH")) return;
   const principal = authenticate(state, request);
   const current = state.profiles.get(principal.key) ?? { first_name: "Ada" };
+
   if (request.method === "GET") return respond(200, current);
   requireJson(request, state.defects);
   const next = profileFrom(await readJson(request), state.shape.stringGuard === true);
+
   if (state.defects.has("CALLER_UPDATE_DROPPED")) return respond(200, current);
   state.profiles.set(principal.key, next);
+
   return respond(200, next);
 };
 
-/* What `account.update` may set: each a string, the email an address and the password 8 or more long. */
+// What `account.update` may set: each a string, the email an address and the password 8 or more long.
 const ACCOUNT_FIELDS: Readonly<Record<string, (value: string) => boolean>> = {
   display_name: (value) => value.length <= 64,
   email: (value) => /^[^@\s]+@[^@\s]+$/.test(value),
@@ -99,30 +117,37 @@ const ACCOUNT_FIELDS: Readonly<Record<string, (value: string) => boolean>> = {
 
 /** `account.update`: the caller's own sign-in email and password, and its display name; the next login reads them. */
 export const account: Route = async (state, request) => {
-  if (!is(request, "PUT", "/v1/me/account")) return undefined;
+  if (!is(request, "PUT", "/v1/me/account")) return;
   const principal = authenticate(state, request);
   requireJson(request, state.defects);
   const body = await readJson(request);
-  if (body === null || typeof body !== "object" || Array.isArray(body)) {
+
+  if (body === null || typeof body !== "object" || Array.isArray(body))
     throw new HttpError(400, "invalid_input", "request body must be an object");
-  }
+
   for (const [name, value] of Object.entries(body)) {
     const valid = ACCOUNT_FIELDS[name];
+
     if (valid === undefined) throw new HttpError(400, "invalid_input", `field "${name}" is not allowed`);
+
     if (typeof value !== "string" || !valid(value))
       throw new HttpError(400, "invalid_input", `field "${name}" is invalid`);
   }
+
   const { display_name: displayName, email, password } = body as Record<string, string | undefined>;
-  /* An authenticated caller is an account. The accounts are shared constants: replace, never mutate. */
+  // An authenticated caller is an account. The accounts are shared constants: replace, never mutate.
   const current = state.auth.accounts.get(principal.key) as Account;
+
   const next: Account = {
     ...current,
     ...(displayName === undefined ? {} : { displayName }),
     ...(email === undefined ? {} : { email }),
     ...(password === undefined ? {} : { password }),
   };
+
   state.auth.accounts.set(principal.key, next);
-  /* A field the account has no value for is left out of the JSON. */
+
+  // A field the account has no value for is left out of the JSON.
   return respond(200, { display_name: next.displayName, email: next.email });
 };
 
@@ -130,5 +155,6 @@ export const account: Route = async (state, request) => {
 export function ownProject(state: ReferenceState, request: ReferenceRequest, projectId: string): Principal {
   const principal = authenticate(state, request);
   assertTenant(principal, projectId);
+
   return principal;
 }

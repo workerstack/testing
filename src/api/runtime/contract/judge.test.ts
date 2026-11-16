@@ -9,12 +9,12 @@ const thing = { properties: { id: { type: "string" } }, required: ["id"], type: 
 
 /** A stage over one `GET /things` documented with `responses`, and its operation. */
 function things(responses: Record<string, unknown>) {
-  const { input, model } = stage(
-    doc({ "/things": { get: { operationId: "things.get", responses } } }),
-    () => undefined,
-  );
+  const { input, model } = stage(doc({ "/things": { get: { operationId: "things.get", responses } } }), () => {});
+
   const op = model.byOperationId.get("things.get");
+
   if (op === undefined) throw new Error("no things.get");
+
   return { input, op, raw: model.rawOperations.get("things.get") as OperationObject };
 }
 

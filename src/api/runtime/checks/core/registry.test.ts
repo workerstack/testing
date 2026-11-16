@@ -21,7 +21,7 @@ const operationStub = (id: string): OperationCheck =>
     subject: "operation",
   }) as unknown as OperationCheck;
 
-/* One stub per id the registry must hold, in id order. */
+// One stub per id the registry must hold, in id order.
 const ALL: readonly Check[] = CHECK_IDS.map((id: CheckId) => stub(id));
 
 describe("validateRegistry", () => {

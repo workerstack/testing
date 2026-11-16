@@ -1,6 +1,6 @@
 import { expect, test } from "@workerstack/testing/web";
 
-/* Each test may land on either worker; every one reaches the server the main process started. */
+// Each test may land on either worker; every one reaches the server the main process started.
 
 test("baseURL is the server on the port the main process kept", ({ baseURL }) => {
   expect(baseURL).toBe(`http://localhost:${process.env["WORKERSTACK_WEB_PORT_APP"]}`);

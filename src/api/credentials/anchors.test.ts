@@ -4,9 +4,9 @@ import type { Recipe } from "../config/types/security.ts";
 import type { AuthStep } from "../config/types/steps.ts";
 import { recipeAnchors, revokeOperationId } from "./anchors.ts";
 
-/* The operations a recipe issues, refreshes and revokes its credential through. */
+// The operations a recipe issues, refreshes and revokes its credential through.
 
-/* Each step's operation: its operationId, or for a raw step the documented one at its path. */
+// Each step's operation: its operationId, or for a raw step the documented one at its path.
 const operationOf = (step: AuthStep): string | undefined =>
   "operationId" in step
     ? step.operationId
@@ -26,6 +26,7 @@ describe("recipeAnchors: login", () => {
       },
       refresh: { from: "$.access_token", steps: [{ operationId: "auth.refresh" }] },
     };
+
     expect(anchors(recipe)).toEqual({
       issue: "auth.login",
       kind: "login",
@@ -39,6 +40,7 @@ describe("recipeAnchors: login", () => {
       { operationId: "auth.login", saveAs: { session: "$.sid" } },
       { operationId: "auth.profile" },
     ];
+
     const revoke = { body: { token: "{credential}" }, operationId: "auth.revoke" };
     expect(anchors({ login: { from: "session", revoke, steps } })).toEqual({
       issue: "auth.login",
@@ -88,6 +90,7 @@ describe("recipeAnchors: what it exposes", () => {
       },
       refresh: { from: "$.token", steps: [{ body: { refresh_token: "{credential}" }, operationId: "auth.refresh" }] },
     };
+
     const found: object = anchors(recipe) ?? {};
     expect(Object.keys(found).sort()).toEqual(["issue", "kind", "refresh", "revoke"]);
     expect(Object.values(found).every((value) => typeof value === "string")).toBe(true);

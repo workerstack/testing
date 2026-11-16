@@ -17,12 +17,12 @@ import { storedAs } from "../../payloads/stored-as.ts";
 import { itemParamFor, subjectsOf } from "../../planning/subjects.ts";
 import { readSet } from "../../sets/read.ts";
 
-interface Plan {
+type Plan = {
   createOp: OperationModel;
   properties: Record<string, JsonSchema>;
   /** The fields the record's schema declares; unset when it is unknown, and every field is judged. */
   declared?: readonly string[];
-}
+};
 
 /**
  * A create must persist what it was sent. The record read back through the item read, by the id the
@@ -35,12 +35,14 @@ interface Plan {
 export const createPersistsFields: Check<Plan> = defineCheck<Plan>({
   plan: (ctx) => {
     const createOp = ctx.createOp;
+
     if (createOp === undefined || ctx.records.length === 0) return cannot();
     const schema = requestSchemaOf(ctx, createOp);
     const properties = (schema?.properties ?? {}) as Record<string, JsonSchema>;
     const record = itemSchemaOf({ listOp: ctx.listOp, model: ctx.model, readOp: ctx.readOp });
     const fields = record?.properties as Record<string, JsonSchema> | undefined;
     const declared = fields === undefined ? undefined : Object.keys(fields);
+
     return ready({ createOp, properties, ...(declared === undefined ? {} : { declared }) });
   },
   dependsOn: ["list.read-after-write"],
@@ -50,45 +52,48 @@ export const createPersistsFields: Check<Plan> = defineCheck<Plan>({
   subjects: subjectsOf.create,
   async run(ctx, { createOp, properties, declared }): Promise<Outcome> {
     const sent = await createExchange(ctx);
+
     if (sent === undefined || sent.requestBody === undefined)
       return ctx.findings.unresolved(this.id, ctx.entityName, "no create request body was observed");
     const request = submittedFields(sent.requestBody, headerValue(sent.requestHeaders, "content-type"), properties);
+
     if (Object.keys(request).length === 0) return standDown("the create body was empty");
     const echoed = createdRecordOf(sent.responseBody ?? {}, ctx.identity, request);
     const back = await readBack(ctx, createOp, sent, request);
+
     const judged = Object.entries(request).filter(
-      /*
-       * A writeOnly field is accepted and never returned — a password, a secret. Nor can a read show a
-       * field its record's schema never declares, a product_id the record answers as product say.
-       */
+      // A writeOnly field is accepted and never returned — a password, a secret. Nor can a read show a
+      // field its record's schema never declares, a product_id the record answers as product say.
       ([key, value]) =>
         value !== null &&
         value !== undefined &&
         properties[key]?.writeOnly !== true &&
         (declared === undefined || declared.includes(key)),
     );
-    /* The create echoed a record when the answer holds a submitted field beyond the identity. */
+
+    // The create echoed a record when the answer holds a submitted field beyond the identity.
     const echoes = judged.some(([key]) => key !== ctx.identity && Object.hasOwn(echoed, key));
+
     if (back.record === undefined && !echoes)
       return standDown(`${createOp.operationId} answered an acknowledgment, not the record, and ${back.why}`);
 
     const dropped = await droppedFields(ctx, judged, { back, echoed });
+
     if (dropped.length === 0) return ASSERTED;
 
-    /* A dropped field is missing from the echo too, so an echoing create is reported by its echo. */
+    // A dropped field is missing from the echo too, so an echoing create is reported by its echo.
     const read = echoes || back.record === undefined ? undefined : back;
     const shown = read?.record ?? echoed;
+
     const where =
       read === undefined ? "the create response does not carry back" : `the record ${read.via} does not hold`;
+
     return ctx.findings.backend(this.id, ctx.entityName, {
       summary: "create silently discards submitted fields",
-      detail:
-        `${where} ${dropped.length} submitted field(s): ` +
-        dropped
-          .slice(0, 4)
-          .map(([key, value]) => `${key} sent ${JSON.stringify(value)}, got ${JSON.stringify(shown[key])}`)
-          .join("; ") +
-        ". A write that reports success and drops data is worse than one that fails.",
+      detail: `${where} ${dropped.length} submitted field(s): ${dropped
+        .slice(0, 4)
+        .map(([key, value]) => `${key} sent ${JSON.stringify(value)}, got ${JSON.stringify(shown[key])}`)
+        .join("; ")}. A write that reports success and drops data is worse than one that fails.`,
       evidence: back.exchange === undefined ? [sent] : [sent, back.exchange],
     });
   },
@@ -115,8 +120,10 @@ async function droppedFields(
   { back, echoed }: { back: ReadBack; echoed: Record_ },
 ): Promise<Array<[string, unknown]>> {
   const unseen = judged.filter((field) => !holds(echoed, field) && !(back.record && holds(back.record, field)));
+
   if (unseen.length === 0 || back.id === undefined) return unseen;
   const listed = await listedRow(ctx, back.id);
+
   return listed === undefined ? unseen : unseen.filter((field) => !holds(listed, field));
 }
 
@@ -124,6 +131,7 @@ async function droppedFields(
 async function listedRow(ctx: CheckContext, id: string): Promise<Record_ | undefined> {
   if (!isListed(ctx)) return undefined;
   const listing = await readSet(ctx);
+
   return listing.items.find((row) => idOf(row, ctx.identity) === id);
 }
 
@@ -135,56 +143,69 @@ async function readBack(
   request: Record_,
 ): Promise<ReadBack> {
   const readOp = ctx.readOp;
+
   if (readOp === undefined) return { why: "the entity has no item read to read it back by" };
   const chosen = request[ctx.identity];
+
   const id =
     createdIdOf({ createOp, exchange: sent, model: ctx.model, sent: request })?.value ??
     (typeof chosen === "string" || typeof chosen === "number" ? chosen : undefined);
+
   if (id === undefined) return { why: "named no id to read it back by" };
+
   const exchange = await ctx.client.get(fillPath(readOp.path, { ...ctx.scope, ...itemParamFor(ctx, String(id)) }), {
     as: { principal: ctx.actor.id },
     operationId: readOp.operationId,
   });
+
   const record = exchange.status >= 200 && exchange.status < 300 ? readRecord(readOp, exchange) : undefined;
-  if (record === undefined)
+
+  if (record === undefined) {
     return {
       exchange,
       id: String(id),
       why: `${readOp.operationId} answered ${exchange.status} for it under ${String(id)}`,
     };
+  }
+
   return { exchange, id: String(id), record, via: `${readOp.operationId} reads back under ${String(id)}` };
 }
 
 type FormEntry = [string, string];
 
-/* A JSON object body — and the transcript's shape for a urlencoded one. */
+// A JSON object body — and the transcript's shape for a urlencoded one.
 function isPlainBody(body: unknown): body is Record<string, unknown> {
   return body !== null && typeof body === "object" && !Array.isArray(body);
 }
 
-/* The transcript keeps a urlencoded body as its fields, repeated keys as arrays. */
+// The transcript keeps a urlencoded body as its fields, repeated keys as arrays.
 function urlencodedEntries(body: Record<string, unknown>): FormEntry[] {
   const entries: FormEntry[] = [];
-  for (const [name, value] of Object.entries(body)) {
+
+  for (const [name, value] of Object.entries(body))
     for (const item of [value].flat()) if (typeof item === "string") entries.push([name, item]);
-  }
+
   return entries;
 }
 
 function formDataEntries(body: FormData): FormEntry[] {
   const entries: FormEntry[] = [];
+
   for (const [name, value] of body.entries()) if (typeof value === "string") entries.push([name, value]);
+
   return entries;
 }
 
-/* A multipart body as the API tester encodes it: the text parts, each a field and a value. */
+// A multipart body as the API tester encodes it: the text parts, each a field and a value.
 function multipartEntries(body: unknown): FormEntry[] | null {
   if (body === null || typeof body !== "object" || !Array.isArray((body as { parts?: unknown }).parts)) return null;
   const entries: FormEntry[] = [];
+
   for (const part of (body as { parts: Array<Record<string, unknown>> }).parts) {
     if (typeof part["field"] === "string" && typeof part["value"] === "string")
       entries.push([part["field"], part["value"]]);
   }
+
   return entries;
 }
 
@@ -192,23 +213,31 @@ function multipartEntries(body: unknown): FormEntry[] | null {
 function formValues(body: unknown, contentType?: string): Map<string, string[]> | null {
   const urlencoded = contentType?.toLowerCase().includes("application/x-www-form-urlencoded") === true;
   let entries: FormEntry[] | null;
+
   if (urlencoded && isPlainBody(body) && !(body instanceof URLSearchParams)) entries = urlencodedEntries(body);
   else if (typeof FormData !== "undefined" && body instanceof FormData) entries = formDataEntries(body);
   else if (typeof URLSearchParams !== "undefined" && body instanceof URLSearchParams) entries = [...body.entries()];
   else entries = multipartEntries(body);
+
   if (entries === null) return null;
   const out = new Map<string, string[]>();
+
   for (const [name, value] of entries) out.set(name, [...(out.get(name) ?? []), value]);
+
   return out;
 }
 
 function coerceFormScalar(value: string, of: JsonSchema | undefined): unknown {
   const kinds = [of?.type].flat();
+
   if (kinds.includes("integer") || kinds.includes("number")) {
     const number = Number(value);
+
     return value.trim() !== "" && Number.isFinite(number) ? number : value;
   }
+
   if (kinds.includes("boolean") && (value === "true" || value === "false")) return value === "true";
+
   return value;
 }
 
@@ -219,11 +248,14 @@ function coerceFormScalar(value: string, of: JsonSchema | undefined): unknown {
  */
 function coerceFormValue(values: string[], schema: JsonSchema | undefined): unknown {
   const types = [schema?.type].flat();
+
   if (types.includes("array")) {
     const items = schema?.items as JsonSchema | undefined;
+
     return values.map((value) => coerceFormScalar(value, items));
   }
-  /* `formValues` never makes a field without a value. */
+
+  // `formValues` never makes a field without a value.
   return coerceFormScalar(values.at(-1) as string, schema);
 }
 
@@ -234,6 +266,8 @@ function submittedFields(
   properties: Record<string, JsonSchema>,
 ): Record_ {
   const form = formValues(body, contentType);
+
   if (form === null) return isPlainBody(body) ? body : {};
+
   return Object.fromEntries([...form].map(([key, values]) => [key, coerceFormValue(values, properties[key])]));
 }

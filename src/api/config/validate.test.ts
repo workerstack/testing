@@ -8,7 +8,7 @@ const valid = {
   spec: "openapi.json",
 };
 
-/* The valid config reading the version from a path under `scheme`. */
+// The valid config reading the version from a path under `scheme`.
 const versionRead = (scheme: unknown) => ({ ...valid, targetVersion: { from: "$.v", path: "/version", scheme } });
 
 describe("config validation", () => {
@@ -90,6 +90,7 @@ describe("config validation by kind of key", () => {
       principals: { a: { rank: Number.NaN } },
       seed: 1.5,
     };
+
     expect(configProblems({ ...valid, ...wrong })).toEqual([
       "config.baseUrl must be a string",
       "config.allow must be an array",
@@ -142,6 +143,7 @@ describe("the 0.25.0 credentials config", () => {
         jwt: { expiresIn: 900, login: { from: "$.token", steps: [{ operationId: "auth.login" }] } },
       },
     };
+
     expect(configProblems(config, { forRun: true })).toEqual([]);
   });
 

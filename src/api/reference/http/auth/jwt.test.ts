@@ -47,6 +47,7 @@ describe("decodeJwt", () => {
 
   it("refuses what is not a JWT at all", () => {
     const claims = segment({ sub: "x" });
+
     for (const token of [
       "",
       "tok_alpha",
@@ -56,8 +57,7 @@ describe("decodeJwt", () => {
       `${segment({ alg: "HS256" })}.${segment([1])}.sig`,
       `${segment({ alg: "HS256" })}.${segment(null)}.sig`,
       `${segment("HS256")}.${claims}.sig`,
-    ]) {
+    ])
       expect(decodeJwt(SECRET, token)).toBeNull();
-    }
   });
 });

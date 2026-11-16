@@ -25,6 +25,7 @@ describe("catalog layers", () => {
         sort: { nulls: ["first"] },
       },
     );
+
     expect(out).toEqual({
       aliases: { gt: "gte", ne: "neq" },
       emptyIn: "match-none",

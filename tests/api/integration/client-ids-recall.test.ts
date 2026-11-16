@@ -3,11 +3,9 @@ import { describe, expect, it } from "vitest";
 import { listening } from "../../../src/api/conformance/harness/launch.ts";
 import { judgeDefect } from "../../../src/api/conformance/matrix/cases.ts";
 
-/*
- * Behind the client-ids shape the create answers only `{ success: true }`. A record the API tester could not
- * confirm is not a record: treating that acknowledgment as one put a phantom with no fields into
- * the cohort, and checks that reason about the cohort (nulls, sort) reported a correct backend.
- */
+// Behind the client-ids shape the create answers only `{ success: true }`. A record the API tester could not
+// confirm is not a record: treating that acknowledgment as one put a phantom with no fields into
+// the cohort, and checks that reason about the cohort (nulls, sort) reported a correct backend.
 
 describe("recall behind the client-ids shape", () => {
   it("detects mangled payloads without reporting anything else", async () => {
@@ -17,6 +15,7 @@ describe("recall behind the client-ids shape", () => {
       shape: "client-ids",
       via: listening,
     });
+
     expect(result.error).toBeUndefined();
     expect(result.detected).toBe(true);
     expect(result.spurious.map((finding) => `${finding.check}: ${finding.summary}`)).toEqual([]);
@@ -29,6 +28,7 @@ describe("recall behind the client-ids shape", () => {
       shape: "client-ids",
       via: listening,
     });
+
     expect(result.error).toBeUndefined();
     expect(result.detected).toBe(true);
     expect(result.spurious.map((finding) => `${finding.check}: ${finding.summary}`)).toEqual([]);

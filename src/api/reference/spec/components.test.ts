@@ -13,6 +13,7 @@ describe("components", () => {
       schemas: Record<string, unknown>;
       securitySchemes: unknown;
     };
+
     expect(Object.keys(declared.schemas).slice(-6)).toEqual(["Error", "Problem", "Point", "TreeNode", "Card", "Bank"]);
     expect(declared.schemas["Card"]).toEqual(paymentSchemas().Card);
     expect(declared.schemas["TreeNode"]).toHaveProperty("properties.children.items", {

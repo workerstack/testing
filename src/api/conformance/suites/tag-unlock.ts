@@ -6,6 +6,7 @@ import { PRINCIPALS, SECURITY } from "../matrix/principals.ts";
 /** The checks a clean run against the reference runs, with its tags or without them. */
 async function checksRun(untagged: boolean, via: Via): Promise<Set<string>> {
   const server = await launch({ backend: "memory", dialect: "postgrest", via }, { untagged });
+
   try {
     const result = await run({
       baseUrl: server.url,
@@ -15,6 +16,7 @@ async function checksRun(untagged: boolean, via: Via): Promise<Set<string>> {
       spec: `${server.url}/v1/openapi/spec`,
       ...reach(server),
     });
+
     return new Set(result.checksRun);
   } finally {
     await server.close();

@@ -44,12 +44,15 @@ export function passAnswer(
 } {
   const rendered = renderSuite(results, { backend, dialect });
   const primaryOps: Record<string, string[]> = {};
-  /* Every operation the primary check judged, not the first finding's alone: a defect seen on two
-   * entities is reported twice in no fixed order, and a targeted run must cover the one it shows on. */
+
+  // Every operation the primary check judged, not the first finding's alone: a defect seen on two
+  // entities is reported twice in no fixed order, and a targeted run must cover the one it shows on.
   for (const result of results) {
     const operations = judgedOperations(result.findings, result.expected);
+
     if (result.defect !== null && operations.length > 0) primaryOps[result.defect] = operations;
   }
+
   return {
     baselines: { tagged: results[0]?.checksRun ?? [], untagged: results[1]?.checksRun ?? [] },
     failures: rendered.failures,
@@ -60,7 +63,7 @@ export function passAnswer(
 }
 
 /** What the run found wrong with one case, beyond the verdict itself. */
-interface Judged {
+type Judged = {
   ok: boolean;
   isBaseline: boolean;
   /** A tagged baseline that ran fewer checks than its shape's floor. */
@@ -73,7 +76,7 @@ interface Judged {
   strayLedger: string[];
   missingValues: string[];
   unreported: string[];
-}
+};
 
 type Measured = Omit<Judged, "ok">;
 
@@ -81,25 +84,24 @@ type Measured = Omit<Judged, "ok">;
 type Allowance = Readonly<Record<string, readonly string[]>>;
 
 /** One leg of the suite: the dialect and backend it ran on, and the inconclusive verdicts it may return. */
-export interface SuiteLeg {
+export type SuiteLeg = {
   dialect: string;
   backend: Backend;
   inconclusive: Allowance;
-}
+};
 
 /** Judges one case of a leg on `backend` under `dialect`. */
 function judge(result: CaseResult, leg: SuiteLeg): Judged {
   const { backend, dialect } = leg;
-  /*
-   * A baseline that reports nothing because it ran nothing is not evidence of precision — and a
-   * baseline that runs *fewer checks than this shape is known to support* is a coverage
-   * regression wearing a clean result's clothes.
-   */
+  // A baseline that reports nothing because it ran nothing is not evidence of precision — and a
+  // baseline that runs *fewer checks than this shape is known to support* is a coverage
+  // regression wearing a clean result's clothes.
   const floor = COVERAGE_FLOOR[dialect] ?? 10;
-  /* A clean baseline that could not decide a check has not shown that check passes. Only a
-   * verdict declared expected for this backend and shape may stand. */
+  // A clean baseline that could not decide a check has not shown that check passes. Only a
+  // verdict declared expected for this backend and shape may stand.
   const variant = result.label === "baseline (untagged spec)" ? ":untagged" : "";
   const allowed = leg.inconclusive[`${backend}:${dialect}${variant}`] ?? [];
+
   const measured: Measured = {
     bystanders: result.bystanders ?? [],
     floor,
@@ -109,12 +111,14 @@ function judge(result: CaseResult, leg: SuiteLeg): Judged {
     strayLedger: result.strayLedger ?? [],
     undecided: (result.inconclusive ?? []).filter((entry) => !allowed.some((prefix) => entry.startsWith(`${prefix}:`))),
     unreported: result.unreported ?? [],
-    /* Only the *tagged* baseline is held to the floor. The untagged case deliberately strips
-     * every x-* tag to prove the API tester degrades gracefully without them, so running fewer checks
-     * there is the result being measured, not a regression. */
+    // Only the *tagged* baseline is held to the floor. The untagged case deliberately strips
+    // every x-* tag to prove the API tester degrades gracefully without them, so running fewer checks
+    // there is the result being measured, not a regression.
     vacuous: result.label === "baseline (correct backend)" && result.checksRun.length < floor,
   };
+
   const holds = measured.isBaseline ? baselineHolds(result, measured) : defectHolds(result);
+
   return { ...measured, ok: tidy(measured) && holds };
 }
 
@@ -134,7 +138,7 @@ function baselineHolds(result: CaseResult, measured: Measured): boolean {
     !measured.vacuous &&
     measured.leaked === 0 &&
     measured.undecided.length === 0 &&
-    /* An untagged run that finds nothing *and* runs almost nothing proves nothing. */
+    // An untagged run that finds nothing *and* runs almost nothing proves nothing.
     result.checksRun.length >= 10
   );
 }
@@ -146,7 +150,9 @@ function defectHolds(result: CaseResult): boolean {
 /** The detected column: how a baseline read, or whether the defect was caught. */
 function detectedLabel(result: CaseResult, judged: Judged): string {
   if (!judged.isBaseline) return result.detected ? "yes" : "NO";
+
   if (judged.vacuous) return "VACUOUS";
+
   return result.spurious.length === 0 ? "clean" : "noisy";
 }
 
@@ -155,6 +161,7 @@ function caseRow(result: CaseResult, judged: Judged): string {
   const mark = judged.ok ? "✓" : "✗";
   const detected = detectedLabel(result, judged);
   const coverage = judged.isBaseline ? `${result.checksRun.length} checks` : (result.expected ?? "—");
+
   return `  ${mark} ${result.label.padEnd(26)} ${detected.padEnd(8)} ${String(result.spurious.length).padEnd(9)} ${coverage}`;
 }
 
@@ -162,51 +169,66 @@ function caseRow(result: CaseResult, judged: Judged): string {
 function litterNotes(judged: Judged): string[] {
   const { bystanders, leaked, missingValues, strayLedger, unreported } = judged;
   const notes: string[] = [];
+
   if (bystanders.length > 0)
     notes.push(`      touched ${bystanders.length} record(s) it did not create: ${bystanders.slice(0, 4).join("; ")}`);
-  if (strayLedger.length > 0)
+
+  if (strayLedger.length > 0) {
     notes.push(
       `      ledgered ${strayLedger.length} id(s) the server never created: ${strayLedger.slice(0, 4).join("; ")}`,
     );
+  }
+
   if (missingValues.length > 0)
     notes.push(`      would have sent a value it did not have: ${missingValues.slice(0, 4).join("; ")}`);
-  if (unreported.length > 0)
+
+  if (unreported.length > 0) {
     notes.push(
       `      left ${unreported.length} record(s) behind without reporting them: ${unreported.slice(0, 4).join("; ")}`,
     );
+  }
+
   if (leaked > 0)
     notes.push(`      left ${leaked} record(s) behind after teardown — a run must not litter the system under test`);
+
   return notes;
 }
 
 /** Why a baseline ran too little to count, and which checks it left out. */
 function vacuousNotes(result: CaseResult, judged: Judged): string[] {
   if (!judged.vacuous) return [];
+
   const notes = [
     `      only ${result.checksRun.length} check(s) ran, below the ${judged.floor} this shape ` +
       "supports — a check that stopped applying reads exactly like a clean result",
   ];
-  /* Every floor is below the registry's size, so a vacuous baseline always left some out. */
+
+  // Every floor is below the registry's size, so a vacuous baseline always left some out.
   const missing = allCheckIds().filter((id) => !result.checksRun.includes(id));
   notes.push(`      did not run: ${missing.join(", ")}`);
+
   return notes;
 }
 
 /** The lines under a case's row: everything that made it fail, in a fixed order. */
 function caseNotes(result: CaseResult, judged: Judged): string[] {
   const notes = litterNotes(judged);
-  for (const entry of judged.isBaseline ? judged.undecided : []) {
+
+  for (const entry of judged.isBaseline ? judged.undecided : [])
     notes.push(`      inconclusive on a correct backend: ${entry}`);
-  }
+
   notes.push(...vacuousNotes(result, judged));
+
   if (result.error !== undefined) notes.push(`      error: ${result.error}`);
-  for (const finding of result.spurious.slice(0, 4)) {
+
+  for (const finding of result.spurious.slice(0, 4))
     notes.push(`      spurious: [${finding.check}] ${finding.summary}`);
-  }
+
   if (!judged.isBaseline && !result.detected && result.error === undefined) {
     const others = result.findings.filter((f) => f.verdict !== "COVERAGE_GAP");
     notes.push(`      missed — reported instead: ${others.map((f) => f.check).join(", ") || "nothing"}`);
   }
+
   return notes;
 }
 
@@ -215,6 +237,7 @@ function summaryLines(results: CaseResult[], failures: number): string[] {
   const detectionCases = results.filter((r) => r.defect !== null);
   const detected = detectionCases.filter((r) => r.detected).length;
   const baseline = results.find((r) => r.defect === null);
+
   return [
     "",
     `  recall     ${detected}/${detectionCases.length} injected defects detected`,
@@ -224,9 +247,9 @@ function summaryLines(results: CaseResult[], failures: number): string[] {
   ];
 }
 
-/* A check is proven by having fired against a defect built for it — not by appearing on a
- * list of checks a defect may trip. Whether every registered check is proven is decided over
- * the whole run, since some defects only exist in some shapes. */
+// A check is proven by having fired against a defect built for it — not by appearing on a
+// list of checks a defect may trip. Whether every registered check is proven is decided over
+// the whole run, since some defects only exist in some shapes.
 function provenChecks(results: CaseResult[]): Set<string> {
   return new Set(
     results
@@ -244,13 +267,18 @@ export function renderSuite(
     "  defect                     detected  spurious  expected check",
     "  ─────────────────────────────────────────────────────────────────────────",
   ];
+
   let failures = 0;
+
   for (const result of results) {
     const judged = judge(result, { backend, dialect, inconclusive });
+
     if (!judged.ok) failures++;
     lines.push(caseRow(result, judged), ...caseNotes(result, judged));
   }
+
   lines.push(...summaryLines(results, failures));
+
   return { failures, proven: provenChecks(results), text: lines.join("\n") };
 }
 
@@ -258,15 +286,19 @@ export function renderSuite(
 export function renderUnproven(proven: ReadonlySet<string>): { text: string; failures: number } {
   const ids = allCheckIds();
   const unproven = ids.filter((id) => !proven.has(id));
+
   if (unproven.length === 0) {
     return {
       failures: 0,
       text: `\n  every one of ${ids.length} registered checks fired on a defect built for it\n`,
     };
   }
+
   const lines = ["", `  ✗ ${unproven.length} registered check(s) never fired on an injected defect:`];
+
   for (const id of unproven) lines.push(`      ${id}`);
   lines.push("    a check never shown to detect anything proves nothing by passing — give it a defect or delete it");
   lines.push("");
+
   return { failures: unproven.length, text: lines.join("\n") };
 }

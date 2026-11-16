@@ -38,10 +38,12 @@ describe("uploadRequest", () => {
       operationId: "docs.create",
       variant: "edge",
     });
+
     const options = optionsOf({
       encoding: { doc: { contentType: "image/png" } },
       uploads: { fixture: FIXTURE, seed: 1 },
     });
+
     expect(uploadRequest("doc", { filename: "x.png" }, options)).toEqual({
       contentMediaType: "image/png",
       field: "doc",

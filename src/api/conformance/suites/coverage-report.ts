@@ -26,6 +26,7 @@ export function runCoverageReportSuite(): ParserResult[] {
 
   const coverage = coverageByCheck(input);
   const text = renderConsole(input);
+
   const cases: Array<[string, string, boolean]> = [
     [
       "invalidate is partial, not never",
@@ -41,9 +42,10 @@ export function runCoverageReportSuite(): ParserResult[] {
       "console does not put a ran check under DID NOT APPLY",
       "the invalidate line lives in APPLIED ONLY ON SOME ENTITIES",
       text.includes("APPLIED ONLY ON SOME ENTITIES") &&
-        text.slice(0, text.indexOf("APPLIED ONLY ON SOME ENTITIES")).includes("invalidation") === false,
+        !text.slice(0, text.indexOf("APPLIED ONLY ON SOME ENTITIES")).includes("invalidation"),
     ],
   ];
+
   return cases.map(([name, why, ok]) => ({
     detail: String(ok),
     name,

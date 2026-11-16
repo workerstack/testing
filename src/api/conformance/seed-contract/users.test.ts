@@ -8,6 +8,7 @@ import { userBackend, userSpec } from "./users.ts";
 
 function ask(method: string, path: string, options: { body?: string; headers?: Record<string, string> } = {}) {
   const { body = "", headers = {} } = options;
+
   return referenceRequest(method, new URL(path, "http://users.test"), { headers, read: async () => body });
 }
 

@@ -3,11 +3,9 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-/*
- * docs/api/releasing.md is how a release is cut, and release.yml is what actually runs: the doc names
- * every job the workflow runs and the exact Trusted Publisher connection it checks, so a change to
- * one that the other does not follow fails here.
- */
+// docs/api/releasing.md is how a release is cut, and release.yml is what actually runs: the doc names
+// every job the workflow runs and the exact Trusted Publisher connection it checks, so a change to
+// one that the other does not follow fails here.
 
 const ROOT = join(import.meta.dirname, "..", "..");
 const read = (...path: string[]): string => readFileSync(join(ROOT, ...path), "utf8");

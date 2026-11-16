@@ -31,6 +31,7 @@ describe("bearerSecurity", () => {
       paths: { "/things": { get: { operationId: "thing.list", responses: { "200": { description: "ok" } } } } },
       ...bearerSecurity(),
     } as OpenApiDocument;
+
     const security = buildModel(dereference(doc).doc).byOperationId.get("thing.list")?.security;
     expect(security).toEqual({
       alternatives: [[{ scheme: "bearer", scopes: [] }]],

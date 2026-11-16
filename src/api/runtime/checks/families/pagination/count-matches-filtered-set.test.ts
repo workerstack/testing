@@ -10,6 +10,7 @@ const spec: ListDoc = {
   params: ["limit", "filter"],
   "x-query": { filterable: ["id"], grammar: "postgrest" },
 };
+
 const doc = listDoc(spec);
 const rows = widgets(3);
 
@@ -18,6 +19,7 @@ function filtering(count: (matched: number) => number | undefined) {
   return pagedBackend(rows, (body, query) => {
     const id = typeof query["filter"] === "string" ? query["filter"].replace("id.eq.", "") : undefined;
     const items = id === undefined ? body.items : body.items.filter((row) => row["id"] === id);
+
     return { body: { items, total: count(items.length) }, status: 200 };
   });
 }
@@ -56,6 +58,7 @@ describe("count.matches-filtered-set: judging the filtered total", () => {
       filtering((n) => n),
       rows,
     );
+
     expect(await runCheck(countMatchesWalk, ctx)).toEqual({ kind: "asserted" });
     expect(sent.map((s) => queryOf(s.options))).toEqual([{ filter: "id.eq.w01", limit: 100 }]);
     expect(findings.findings).toEqual([]);
@@ -67,6 +70,7 @@ describe("count.matches-filtered-set: judging the filtered total", () => {
       filtering(() => rows.length),
       rows,
     );
+
     expect(await runCheck(countMatchesWalk, ctx)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     expect(findings.findings[0]?.summary).toBe("reported count disagrees with the filtered result");
     expect(findings.findings[0]?.detail).toMatch(/^filter selected 1 record\(s\) but count reported 3\. /);
@@ -75,9 +79,10 @@ describe("count.matches-filtered-set: judging the filtered total", () => {
   it("stands down when the listing reports no total", async () => {
     const { ctx } = stage(
       doc,
-      filtering(() => undefined),
+      filtering(() => {}),
       rows,
     );
+
     expect(await runCheck(countMatchesWalk, ctx)).toEqual({
       kind: "stood-down",
       reason: "the listing reports no total",

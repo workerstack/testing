@@ -7,6 +7,7 @@ import type { ScopePlan, TargetScope } from "./types.ts";
 /** The checks in scope that grade each operation. */
 function checksFor(model: SpecModel, scope: TargetScope): Map<string, Set<string>> {
   const checks = new Map<string, Set<string>>();
+
   for (const entity of scope.entities) {
     for (const check of entityChecks(CHECKS)) {
       for (const id of check.subjects(entity, model)) {
@@ -17,34 +18,41 @@ function checksFor(model: SpecModel, scope: TargetScope): Map<string, Set<string
       }
     }
   }
+
   return checks;
 }
 
 /** The creates of every parent `op`'s path names, up the chain, into `support`. */
 function addParents(model: SpecModel, op: OperationModel | undefined, support: Set<string>): void {
   const seen = new Set<string>();
+
   const climb = (from: OperationModel | undefined): void => {
     if (from === undefined || seen.has(from.operationId)) return;
     seen.add(from.operationId);
+
     for (const param of from.pathParams) {
       const owner = owningEntityOf(model.operations, from.path, param);
-      /* An owner named only by the path (`/projects/{project_id}`) is no entity of the model. */
+      // An owner named only by the path (`/projects/{project_id}`) is no entity of the model.
       const create = owner === null ? undefined : model.byOperationId.get(model.entities.get(owner)?.create ?? "");
+
       if (create === undefined || create.operationId === from.operationId) continue;
       support.add(create.operationId);
       climb(create);
     }
   };
+
   climb(op);
 }
 
 /** Lifecycle routes of the queued entities and the parents their creates need. */
 function supportOf(model: SpecModel, scope: TargetScope): Set<string> {
   const support = new Set<string>();
+
   for (const entity of scope.entities) {
     for (const id of [entity.create, entity.list, entity.read, entity.delete]) if (id !== undefined) support.add(id);
     addParents(model, model.byOperationId.get(entity.create ?? ""), support);
   }
+
   return support;
 }
 
@@ -53,6 +61,7 @@ export function planScope(model: SpecModel, scope: TargetScope): ScopePlan {
   const checks = checksFor(model, scope);
   const support = supportOf(model, scope);
   const ids = scope.mode === "targeted" ? [...scope.targets].sort() : [...checks.keys()].sort();
+
   return {
     entities: scope.entities.map((entity) => entity.name),
     excluded: scope.excluded,
@@ -63,9 +72,9 @@ export function planScope(model: SpecModel, scope: TargetScope): ScopePlan {
     targets: ids
       .filter((id) => !scope.untestable.has(id))
       .map((operationId) => ({
-        /* A target no check in scope grades is untestable, so every one left has checks. */
+        // A target no check in scope grades is untestable, so every one left has checks.
         checks: [...(checks.get(operationId) as Set<string>)].sort(),
-        /* A target or a check's subject is an operationId of the model. */
+        // A target or a check's subject is an operationId of the model.
         entity: (model.byOperationId.get(operationId) as OperationModel).entity,
         operationId,
       })),

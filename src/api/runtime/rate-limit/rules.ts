@@ -13,7 +13,7 @@ import type { RateLimitSpec } from "../../config/types/config.ts";
 import type { OperationModel, SpecModel } from "../../spec/graph/types.ts";
 import { compileMatch, operationTest, type RequestTest } from "./match.ts";
 
-export interface CompiledRateLimitRule {
+export type CompiledRateLimitRule = {
   /** `operationId` is the operation the client stamped on the request, when it resolved one. */
   test: RequestTest;
   category: string;
@@ -23,17 +23,18 @@ export interface CompiledRateLimitRule {
    * `"implicit"` is the reactive untagged-write bucket: it exists only after a 429, never as a
    * documented claim. */
   source: "tag" | "config" | "implicit";
-}
+};
 
 function configRules(model: SpecModel, configured: readonly RateLimitSpec[]): CompiledRateLimitRule[] {
   const rules: CompiledRateLimitRule[] = [];
+
   for (const spec of configured) {
     for (const compiled of compileMatch(spec.match, model)) {
-      /* `compiled.category` is already the right default per match kind — the category name
-       * for `category:x` (so an override merges into the tag's own bucket), the operationId
-       * or raw pattern otherwise. `spec.category` only needs to override that when a plain
-       * path/operationId rule should join an *existing* tag-declared bucket instead of
-       * getting its own. */
+      // `compiled.category` is already the right default per match kind — the category name
+      // for `category:x` (so an override merges into the tag's own bucket), the operationId
+      // or raw pattern otherwise. `spec.category` only needs to override that when a plain
+      // path/operationId rule should join an *existing* tag-declared bucket instead of
+      // getting its own.
       rules.push({
         category: spec.category ?? compiled.category,
         rps: spec.rps,
@@ -42,6 +43,7 @@ function configRules(model: SpecModel, configured: readonly RateLimitSpec[]): Co
       });
     }
   }
+
   return rules;
 }
 
@@ -51,15 +53,19 @@ function tagCategories(
   rules: readonly CompiledRateLimitRule[],
 ): Map<string, { rps: number | null; ops: OperationModel[] }> {
   const byCategory = new Map<string, { rps: number | null; ops: OperationModel[] }>();
+
   for (const op of model.operations) {
     if (op.rateLimit === null) continue;
+
     if (rules.some((rule) => rule.test(op.method.toUpperCase(), op.path, op.operationId))) continue;
     const entry = byCategory.get(op.rateLimit.category) ?? { ops: [], rps: null };
     entry.ops.push(op);
+
     if (op.rateLimit.rps !== null)
       entry.rps = entry.rps === null ? op.rateLimit.rps : Math.min(entry.rps, op.rateLimit.rps);
     byCategory.set(op.rateLimit.category, entry);
   }
+
   return byCategory;
 }
 
@@ -77,9 +83,12 @@ export function buildRateLimitRules(
   configured: readonly RateLimitSpec[] | undefined,
 ): CompiledRateLimitRule[] {
   const rules = configRules(model, configured ?? []);
+
   for (const [category, entry] of tagCategories(model, rules)) {
     if (entry.rps === null) continue;
+
     for (const op of entry.ops) rules.push({ category, rps: entry.rps, source: "tag", test: operationTest(op) });
   }
+
   return rules;
 }

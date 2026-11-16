@@ -7,6 +7,7 @@ import { demoteNonEntities } from "./demote.ts";
 const demoted = (paths: Record<string, unknown>) => {
   const { gaps, operations } = operationsOf(paths);
   const views = demoteNonEntities(operations, gaps);
+
   return {
     entities: Object.fromEntries(operations.map((op) => [op.operationId, [op.entity, op.action]])),
     gaps,
@@ -22,6 +23,7 @@ describe("demoteNonEntities", () => {
       "/tables/{id}/duplicate": { post: { operationId: "tables.duplicate", responses: ok(member) } },
       "/tables/{id}/findByName": { get: { operationId: "tables.find", responses: ok(list(member)) } },
     });
+
     expect(entities).toEqual({
       "tables.duplicate": ["table", "action"],
       "tables.find": ["table", "action"],
@@ -39,6 +41,7 @@ describe("demoteNonEntities", () => {
       },
       "/reports": { post: { operationId: "reports.create", responses: ok(member) } },
     });
+
     expect(views).toEqual(["notes.list"]);
     expect(entities["notes.create"]).toEqual(["note", "create"]);
     expect(entities["reports.create"]).toEqual([null, null]);
@@ -52,6 +55,7 @@ describe("demoteNonEntities", () => {
       "/pet/{id}": { get: { operationId: "pet.get", responses: ok(member) } },
       "/pet/findByStatus": { get: { operationId: "pet.find", responses: ok(list(member)) } },
     });
+
     expect(entities["pet.find"]).toEqual(["pet", "action"]);
     expect(views).toEqual([]);
   });
@@ -63,6 +67,7 @@ describe("demoteNonEntities", () => {
         get: { operationId: "feed", responses: ok(list(member)), "x-entity": { action: "list", name: "post" } },
       },
     });
+
     expect(entities).toEqual({ feed: ["post", "list"], root: [null, null] });
     expect(views).toEqual([]);
   });

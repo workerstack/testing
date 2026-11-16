@@ -5,7 +5,7 @@ import { documentedPage } from "../../../spec/graph/paging.ts";
 import type { EffectiveFilterField, EffectiveQueryCapabilities } from "../../../spec/query/effective.ts";
 import { fieldAllows } from "../../../spec/query/field-ops.ts";
 import { mergeQueryCapabilities } from "../../../spec/query/merge.ts";
-import { FILTER_OPS } from "../../../spec/query/ops.ts";
+import type { FILTER_OPS } from "../../../spec/query/ops.ts";
 import type { SortValue } from "../../../spec/render/sort.ts";
 import type { JsonSchema } from "../../../spec/types.ts";
 import type { CheckContext, Listed } from "../core/context.ts";
@@ -29,22 +29,26 @@ export type Query = NonNullable<RequestOptions["query"]>;
 export function q(ctx: Listed, roles: QueryRoles): Query {
   const c = conv(ctx);
   const out: QueryOut = {};
-  /* Never above the documented maximum: a backend is right to refuse a request that breaks the
-   * contract, and reading that refusal as anything about the backend would be the API tester's own fault.
-   * The one check that probes past the cap on purpose sets the parameter itself. */
+  // Never above the documented maximum: a backend is right to refuse a request that breaks the
+  // contract, and reading that refusal as anything about the backend would be the API tester's own fault.
+  // The one check that probes past the cap on purpose sets the parameter itself.
   const size = roles.limit === undefined ? undefined : Math.min(roles.limit, pageSize(ctx));
+
   if (size !== undefined && c.limit !== undefined) out[c.limit] = size;
   placePage(out, c, { page: roles.page, size });
+
   for (const role of NAMED_ROLES) {
     const name = c[role];
     const value = roles[role];
+
     if (value !== undefined && name !== undefined) out[name] = value;
   }
+
   return out;
 }
 
 /** The roles a check asks for, by what they mean rather than what this endpoint calls them. */
-export interface QueryRoles {
+export type QueryRoles = {
   limit?: number | undefined;
   page?: number | undefined;
   cursor?: string | undefined;
@@ -52,37 +56,37 @@ export interface QueryRoles {
   search?: string | undefined;
   searchMode?: string | undefined;
   filter?: string | undefined;
-}
+};
 
 type QueryOut = Record<string, string | number | readonly (string | number)[] | undefined>;
 
-/* The roles written as given under the endpoint's own name for each, in this order. */
+// The roles written as given under the endpoint's own name for each, in this order.
 const NAMED_ROLES = ["cursor", "order", "search", "searchMode", "filter"] as const;
 
 /** The page a check asks for, and the page size it is counted in. */
-interface PageAsked {
+type PageAsked = {
   page: number | undefined;
   size: number | undefined;
-}
+};
 
 /** Writes the page number, or the offset it stands for where the endpoint skips rows instead. */
 function placePage(out: QueryOut, c: QueryConventions, { page, size }: PageAsked): void {
   if (page === undefined) return;
-  if (c.page !== undefined) out[c.page] = page;
-  else if (c.offset !== undefined) {
-    /*
-     * Offset paging expressed from a page number.
-     *
-     * Some APIs count pages, some count rows skipped; the *property* every paging check is
-     * asserting — that walking forward covers the set without gaps or repeats — is identical
-     * either way. Translating here means a check says "page 3" once and works against both.
-     * Without it a page-numbered request against an offset API silently omits the parameter
-     * and every page comes back as the first one, which reads as a backend that ignores
-     * pagination rather than a tool that cannot express it.
-     */
-    /* A page size must be assumed when the caller did not state one; 20 is the common default
-     * and any consistent value keeps the walk's arithmetic self-consistent, which is what the
-     * property depends on. */
+
+  if (c.page !== undefined) {
+    out[c.page] = page;
+  } else if (c.offset !== undefined) {
+    // Offset paging expressed from a page number.
+    //
+    // Some APIs count pages, some count rows skipped; the *property* every paging check is
+    // asserting — that walking forward covers the set without gaps or repeats — is identical
+    // either way. Translating here means a check says "page 3" once and works against both.
+    // Without it a page-numbered request against an offset API silently omits the parameter
+    // and every page comes back as the first one, which reads as a backend that ignores
+    // pagination rather than a tool that cannot express it.
+    // A page size must be assumed when the caller did not state one; 20 is the common default
+    // and any consistent value keeps the walk's arithmetic self-consistent, which is what the
+    // property depends on.
     out[c.offset] = Math.max(page - 1, 0) * (size ?? 20);
   }
 }
@@ -106,14 +110,17 @@ export function pageSize(ctx: Listed): number {
  */
 export function filterable(ctx: Listed): boolean {
   const c = conv(ctx);
+
   if (c.filter !== undefined) return true;
-  /* Equality-per-field needs a field to attach the predicate to, and the document has to say
-   * which fields are filterable — otherwise the API tester would be guessing at parameter names. */
+
+  // Equality-per-field needs a field to attach the predicate to, and the document has to say
+  // which fields are filterable — otherwise the API tester would be guessing at parameter names.
   return filterSpec(c).param === "field" && (ctx.query?.filterable.length ?? 0) > 0;
 }
 
 export function resolvedCaps(ctx: Listed): EffectiveQueryCapabilities {
   if (ctx.capabilities !== undefined) return ctx.capabilities;
+
   return mergeQueryCapabilities({
     itemSchema: ctx.listOp.collection?.itemSchema ?? null,
     tag:
@@ -149,6 +156,7 @@ export function filterIdentity(ctx: Listed): string {
 
 export function identityIsFilterable(ctx: Listed): boolean {
   const names = filterableNames(ctx);
+
   return names.includes(filterIdentity(ctx)) || names.includes(ctx.identity);
 }
 
@@ -166,6 +174,7 @@ export function canUseOp(ctx: Listed, field: EffectiveFilterField, op: (typeof F
  */
 export function pageable(ctx: Listed): boolean {
   const c = conv(ctx);
+
   return c.page !== undefined || c.offset !== undefined;
 }
 
@@ -195,15 +204,21 @@ export const FOUNDATIONS = [
 export function schemaType(ctx: CheckContext, field: string): string | undefined {
   const properties = (itemSchemaOf(ctx)?.properties ?? {}) as Record<string, JsonSchema>;
   const propertySchema = properties[field];
+
   if (propertySchema === undefined) return undefined;
   const branches = [propertySchema, ...((propertySchema.oneOf ?? propertySchema.anyOf ?? []) as Array<JsonSchema>)];
+
   for (const branch of branches) {
     const type = branch.type;
+
     if (typeof type === "string" && type !== "null") return type;
+
     if (Array.isArray(type)) {
       const named = type.find((item) => item !== "null");
+
       if (typeof named === "string") return named;
     }
   }
+
   return undefined;
 }

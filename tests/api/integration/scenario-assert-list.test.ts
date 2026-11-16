@@ -7,10 +7,8 @@ import type { Scenario, ScenarioAssert } from "../../../src/api/config/define/ty
 import { run } from "../../../src/api/runtime/run/index.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 
-/*
- * One response often has to show several things at once (a file with its format, its owner and
- * no secrets); a step that can be read only a few times must check them all on one exchange.
- */
+// One response often has to show several things at once (a file with its format, its owner and
+// no secrets); a step that can be read only a few times must check them all on one exchange.
 
 const closers: Array<() => Promise<void>> = [];
 
@@ -19,6 +17,7 @@ afterEach(async () => {
 });
 
 const ok = { "200": { content: { "application/json": { schema: { type: "object" } } }, description: "ok" } };
+
 const spec = {
   info: { title: "file", version: "1" },
   openapi: "3.1.0",
@@ -36,18 +35,22 @@ async function serve(): Promise<string> {
     });
     res.end(JSON.stringify(req.url === "/openapi.json" ? spec : { format: "export.v1", owner: "a@x.test" }));
   });
+
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   closers.push(() => new Promise((resolve) => server.close(() => resolve())));
+
   return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 }
 
 async function runWith(assert: ScenarioAssert[]) {
   const url = await serve();
+
   const scenario: Scenario = {
     covers: ["file.request", "file.download"],
     id: "file",
     steps: [{ operationId: "file.request" }, { assert, operationId: "file.download" }],
   };
+
   const result = await run({
     baseUrl: url,
     ops: ["file.request", "file.download"],
@@ -56,6 +59,7 @@ async function runWith(assert: ScenarioAssert[]) {
     seed: 1,
     spec: `${url}/openapi.json`,
   });
+
   return (id: string) => result.scope.operations.find((op) => op.operationId === id);
 }
 
@@ -66,6 +70,7 @@ describe("a list of asserts on one step", () => {
       { equals: "export.v1", from: "$.format", observes: ["file.request"] },
       { from: "$", omits: '"token":' },
     ]);
+
     expect(row("file.download")?.status).toBe("passed");
     expect(row("file.request")?.tier).toBe("verified");
   });
@@ -75,6 +80,7 @@ describe("a list of asserts on one step", () => {
       { equals: "export.v1", from: "$.format" },
       { equals: "b@x.test", from: "$.owner" },
     ]);
+
     expect(row("file.download")?.status).toBe("failed");
   });
 });

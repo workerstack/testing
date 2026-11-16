@@ -51,6 +51,7 @@ describe("xQuery", () => {
       "sortCollation",
       "sortDefaultNulls",
     ] as const;
+
     for (const field of fields) expect(xQuery({ [field]: "nope" })).toMatch(new RegExp(`^"${field}" must be one of`));
   });
 });
@@ -64,6 +65,7 @@ describe("xQuery's sort, select and searchCase", () => {
       maxKeys: 3,
       nulls: ["first"],
     };
+
     const select = { nested: false, relations: [{ fields: ["id", "name"], name: "owner" }], unknown: "ignore" };
     expect(xQuery({ searchCase: "insensitive", select, sort })).toBeNull();
   });

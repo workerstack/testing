@@ -13,38 +13,50 @@ type FilterCatalog = NonNullable<EntityDef["filterCatalog"]>;
 
 function queryFieldType(field: FieldDef | undefined): "string" | "number" | "boolean" | "enum" | undefined {
   if (field === undefined) return undefined;
+
   if (field.enum !== undefined) return "enum";
+
   if (field.type === "integer" || field.type === "number") return "number";
+
   if (field.type === "boolean") return "boolean";
+
   if (field.type === "string") return "string";
+
   return undefined;
 }
 
 function filterable(entity: EntityDef, catalog: FilterCatalog | undefined): unknown[] {
   if (catalog?.opsByField === undefined) return fieldsWhere(entity, "filterable");
+
   return Object.entries(catalog.opsByField).map(([field, ops]) => {
     const def = entity.fields.find((item) => item.name === field);
     const row: Json = { field, ops: [...ops] };
     const type = queryFieldType(def);
+
     if (type !== undefined) row["type"] = type;
+
     return row;
   });
 }
 
 function sortable(entity: EntityDef, catalog: FilterCatalog | undefined): unknown[] {
   if (catalog === undefined) return fieldsWhere(entity, "sortable");
+
   return fieldsWhere(entity, "sortable").map((field) => {
     const def = entity.fields.find((item) => item.name === field);
     const row: Json = { field };
     const type = queryFieldType(def);
+
     if (type !== undefined) row["type"] = type;
     row["nulls"] = ["first", "last"];
+
     return row;
   });
 }
 
 function nestedSelect(entity: EntityDef): Json {
   if (entity.relations === undefined) return {};
+
   return {
     select: {
       nested: true,
@@ -58,6 +70,7 @@ function nestedSelect(entity: EntityDef): Json {
 
 function catalogLimits(catalog: FilterCatalog | undefined): Json {
   if (catalog === undefined) return {};
+
   return {
     aliases: catalog.aliases ?? {},
     emptyIn: catalog.emptyIn,
@@ -69,36 +82,38 @@ function catalogLimits(catalog: FilterCatalog | undefined): Json {
   };
 }
 
-/*
- * The names a dialect no alias reads must declare: its parameters by public role (`order` is `sort`
- * on the tag), and the envelope fields a walk reads.
- */
+// The names a dialect no alias reads must declare: its parameters by public role (`order` is `sort`
+// on the tag), and the envelope fields a walk reads.
 function declaredNames(dialect: Dialect): Json {
   if (dialect.declaresNames !== true) return {};
   const params = Object.entries(dialect.params).map(([role, name]) => [publicRole(role as Role), name]);
+
   const fields = QUERY_ENVELOPE_ROLES.flatMap((role) => {
     const name = dialect.envelope?.[role];
+
     return name === undefined ? [] : [[role, name]];
   });
+
   return { envelope: Object.fromEntries(fields), params: Object.fromEntries(params) };
 }
 
 export function queryDeclaration(ctx: SpecContext, entity: EntityDef, dialect: Dialect): Json {
   const catalog = entity.filterCatalog;
+
   return {
-    /* Declared rather than inferred: the grammar decides what the API tester can even express. */
+    // Declared rather than inferred: the grammar decides what the API tester can even express.
     grammar: dialect.filterTemplate ?? dialect.grammar,
     ...(dialect.sortTemplate === undefined ? {} : { sortGrammar: dialect.sortTemplate }),
     filterable: filterable(entity, catalog),
-    /* Refused, as the listing does — unless the shape clamps silently, which it then says. */
+    // Refused, as the listing does — unless the shape clamps silently, which it then says.
     limitOutOfRange: ctx.shape.clampLimit === undefined ? "reject" : "clamp",
     maxLimit: entity.maxLimit,
     searchable: fieldsWhere(entity, "searchable"),
     selectable: entity.fields.map((f) => f.name),
     sortable: sortable(entity, catalog),
     stableTiebreak: entity.identity,
-    /* Search semantics stated rather than left to inference: case-insensitive, and a blank
-     * term matches everything. */
+    // Search semantics stated rather than left to inference: case-insensitive, and a blank
+    // term matches everything.
     searchCase: "insensitive",
     searchEmpty: "match-all",
     sort: { defaultOrder: renderOrder(dialect, entity.defaultOrder) },

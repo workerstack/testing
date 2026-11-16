@@ -21,7 +21,7 @@ import type { Scope, SeededCohort, Seeding } from "./types.ts";
 import { uploadContext } from "./upload-context.ts";
 
 /** What a cohort is generated against: the body schema, the identity, and the unique sets to keep apart. */
-interface CohortPlan {
+type CohortPlan = {
   schema: JsonSchema;
   identity: string;
   ownIdentity: string | null;
@@ -29,24 +29,27 @@ interface CohortPlan {
   identityInBody: boolean;
   /** Unique sets no generated body may share with an existing record. */
   avoid: string[][];
-}
+};
 
 function cohortPlan(createOp: OperationModel, model: SpecModel): CohortPlan {
   const schema = requestSchemaOf(createOp, model);
-  if (schema === null) {
-    throw new SeedError(createOp.operationId, `${createOp.operationId} declares no request body`);
-  }
+
+  if (schema === null) throw new SeedError(createOp.operationId, `${createOp.operationId} declares no request body`);
+
   const entity = createOp.entity === null ? undefined : model.entities.get(createOp.entity);
-  /* A client-chosen identity names one record by definition: never generate one an existing record
-   * holds. Generation only — the identity does not join the unique sets checks grade. */
+  // A client-chosen identity names one record by definition: never generate one an existing record
+  // holds. Generation only — the identity does not join the unique sets checks grade.
   const ownIdentity = entity?.identity ?? null;
   const bodyProperties = (schema.properties ?? {}) as Record<string, unknown>;
+
   const identityInBody =
     ownIdentity !== null &&
     Object.hasOwn(bodyProperties, ownIdentity) &&
     !(createOp.unique ?? []).some((set) => set.length === 1 && set[0] === ownIdentity);
+
   const avoid: string[][] =
     identityInBody && ownIdentity !== null ? [...(createOp.unique ?? []), [ownIdentity]] : (createOp.unique ?? []);
+
   return { avoid, identity: entity?.identity ?? "id", identityInBody, ownIdentity, schema };
 }
 
@@ -56,12 +59,14 @@ function plannedMembers(
   plan: CohortPlan,
 ): { members: CohortMember[]; gap: string | null } {
   const { model, options } = seeding;
+
   const generated = buildCohort(plan.schema, options.seed, {
     defs: model.defs,
     distinct: new Set(plan.avoid.flat()),
     ...(options.nonce === undefined ? {} : { nonce: options.nonce }),
     operationId: createOp.operationId,
   }).slice(0, options.cohortSize ?? 7);
+
   return ensureDistinctUniqueValues(generated, createOp.unique ?? [], {
     schema: plan.schema,
     defs: model.defs,
@@ -78,16 +83,20 @@ function avoidExisting(
 ): CohortMember[] {
   const { createOp, plan } = input;
   const { avoid, ownIdentity } = plan;
+
   let kept = members.map((member, index) => {
     let body = member.body;
-    for (let token = 0; token < 8 && uniqueTupleCollides(body, avoid, existing); token++) {
+
+    for (let token = 0; token < 8 && uniqueTupleCollides(body, avoid, existing); token++)
       body = uniquifyProbeBody(body, avoid, { schema: plan.schema, token: `ex${index}${token}-${input.nonce ?? ""}` });
-    }
+
     return { ...member, body };
   });
-  /* A body still naming an existing record's identity would overwrite or adopt it: never send it. */
+
+  // A body still naming an existing record's identity would overwrite or adopt it: never send it.
   if (plan.identityInBody && ownIdentity !== null) {
     kept = kept.filter((member) => !uniqueTupleCollides(member.body, [[ownIdentity]], existing));
+
     if (kept.length === 0) {
       throw new SeedError(
         createOp.operationId,
@@ -95,25 +104,32 @@ function avoidExisting(
       );
     }
   }
+
   return kept;
 }
 
 /** One create per fixture slot, from the baseline member. */
 async function seedSlot(run: CohortRun, members: CohortMember[], nextUploads: UploadContext): Promise<null> {
   const [baseline] = members;
+
   const { exchange, sent: member } = await postFresh(
     run,
     baseline ?? { body: {}, variant: "baseline" as const },
     nextUploads,
   );
+
   if (exchange.status >= 300) {
     run.lastFail = { exchange, member };
+
     return null;
   }
+
   const record = await recordCreated(run, exchange, member.body);
+
   if (record === null) return null;
   run.seededMembers.push(member);
   run.records.push(record);
+
   return null;
 }
 
@@ -125,22 +141,27 @@ async function seedPlanned(
 ): Promise<SeededCohort | null> {
   for (const planned of members) {
     const { exchange, exhausted, sent: member } = await postFresh(run, planned, nextUploads);
+
     if (exchange.status >= 300) {
-      /* The first create decides whether there is a cohort at all; a later one failing
-       * is a variant lost, reported rather than ending the cohort in silence. Identities
-       * refused every time adopt nothing: the seed fails, saying so. */
+      // The first create decides whether there is a cohort at all; a later one failing
+      // is a variant lost, reported rather than ending the cohort in silence. Identities
+      // refused every time adopt nothing: the seed fails, saying so.
       if (run.records.length === 0 && exhausted !== undefined)
         throw identitiesRefused(run.createOp.operationId, exchange, exhausted);
+
       if (run.records.length === 0) return failOrAdopt(run, member, exchange);
       run.failedVariants.push({ exchange, variant: member.variant });
       continue;
     }
+
     const record = await recordCreated(run, exchange, member.body);
-    /* Acknowledged but never confirmed: no record to stand for, so no member either. */
+
+    // Acknowledged but never confirmed: no record to stand for, so no member either.
     if (record === null) continue;
     run.seededMembers.push(member);
     run.records.push(record);
   }
+
   return null;
 }
 
@@ -154,6 +175,7 @@ function cohortRun(start: {
   uniqueGap: string | undefined;
 }): CohortRun {
   const { createOp, plan, scope } = start;
+
   return {
     acknowledged: false,
     createOp,
@@ -179,14 +201,14 @@ function cohortRun(start: {
  */
 export async function seedCohort(createOp: OperationModel, seeding: Seeding, scope: Scope): Promise<SeededCohort> {
   const withheld = seeding.options.withheld?.(createOp);
+
   if (withheld !== undefined) throw new SeedError(createOp.operationId, withheld);
+
   return seedSent(createOp, seeding, scope);
 }
 
-/*
- * The records the collection already holds, as this principal lists them: each identity is taken from
- * now on, so a member drawn again after a collision never lands on one, and members are kept off them.
- */
+// The records the collection already holds, as this principal lists them: each identity is taken from
+// now on, so a member drawn again after a collision never lands on one, and members are kept off them.
 async function besideExisting(
   createOp: OperationModel,
   { scope, seeding }: { scope: Scope; seeding: Seeding },
@@ -195,11 +217,14 @@ async function besideExisting(
   const { model, client, options } = seeding;
   const entity = createOp.entity === null ? undefined : model.entities.get(createOp.entity);
   const listOp = entity?.list === undefined ? undefined : model.byOperationId.get(entity.list);
+
   const existing =
     listOp === undefined
       ? []
       : await listExisting({ listOp, model, values: { ...options.roots, ...scope.values } }, client, options.principal);
+
   const { ownIdentity } = plan;
+
   const existingIds =
     ownIdentity === null
       ? []
@@ -207,24 +232,30 @@ async function besideExisting(
           .map((row) => row[ownIdentity])
           .filter(isScalarId)
           .map(String);
+
   const taken = takenFor(options, createOp);
+
   for (const id of existingIds) taken.add(id);
+
   const kept =
     existing.length > 0 && plan.avoid.length > 0
       ? avoidExisting({ createOp, nonce: options.nonce, plan }, members, existing)
       : members;
+
   return { existingIds, members: kept };
 }
 
-/* The cohort, created. */
+// The cohort, created.
 async function seedSent(createOp: OperationModel, seeding: Seeding, scope: Scope): Promise<SeededCohort> {
   const { model, options } = seeding;
   const plan = cohortPlan(createOp, model);
   let members: CohortMember[];
   let uniqueGap: string | undefined;
   let existingIds: string[];
+
   try {
     const distinct = plannedMembers(createOp, seeding, plan);
+
     if (distinct.gap !== null) uniqueGap = distinct.gap;
     ({ existingIds, members } = await besideExisting(
       createOp,
@@ -235,20 +266,27 @@ async function seedSent(createOp: OperationModel, seeding: Seeding, scope: Scope
     if (isOverflowError(error)) throw overflowFrom(error, createOp.operationId);
     throw error;
   }
+
   const run = cohortRun({ createOp, existingIds, plan, scope, seeding, uniqueGap });
+
   const outcomes = await forEachInvocation<SeededCohort | null>(
     createOp.operationId,
     uploadContext(options),
     (nextUploads, slot) =>
       slot === undefined ? seedPlanned(run, members, nextUploads) : seedSlot(run, members, nextUploads),
   );
+
   const early = outcomes.find((outcome) => outcome !== null);
+
   if (early !== undefined) return early;
+
   if (run.records.length === 0 && run.lastFail !== undefined) {
-    /* A refusal always answers with a cohort or a seed error. */
+    // A refusal always answers with a cohort or a seed error.
     const failed = await failOrAdopt(run, run.lastFail.member, run.lastFail.exchange);
+
     return failed;
   }
+
   return withGap(run, {
     featureGate: null,
     members: run.seededMembers.length > 0 ? run.seededMembers : members,

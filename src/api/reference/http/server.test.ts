@@ -11,31 +11,37 @@ const JSON_TYPE = { "content-type": "application/json" };
 describe("createReferenceServer", () => {
   it("serves the reference on a local port, under the shape's base path", async () => {
     const servers: FakeServer[] = [];
+
     const reference = await createReferenceServer(
       { defects: ["STALE_LIST"], shape: "path-prefix" },
       memoryStore,
       fakeCreate(servers, 6000),
     );
+
     expect(reference.url).toBe("http://127.0.0.1:6000/api");
     expect(reference.principals).toBe(PRINCIPALS);
     expect(reference.defects.list()).toEqual(["STALE_LIST"]);
     const listener = (servers[0] as FakeServer).listener;
+
     const signedIn = await serve(listener, {
       chunks: [JSON.stringify({ key: "key_alpha" })],
       headers: JSON_TYPE,
       method: "POST",
       url: "/api/v1/auth/token",
     });
+
     const owner = {
       ...JSON_TYPE,
       authorization: `Bearer ${(JSON.parse(signedIn.body) as { access_token: string }).access_token}`,
     };
+
     const created = await serve(listener, {
       chunks: [JSON.stringify({ name: "t" })],
       headers: owner,
       method: "POST",
       url: "/api/v1/projects/proj_alpha/tables",
     });
+
     expect(created.status).toBe(201);
     const { id } = JSON.parse(created.body) as { id: string };
     expect(reference.createdIds()).toEqual({ table: [id] });

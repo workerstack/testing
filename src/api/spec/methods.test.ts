@@ -26,6 +26,7 @@ describe("the method list", () => {
 
   it("calls every method that is not safe mutating, so QUERY and TRACE never are", () => {
     expect([...MUTATING]).toEqual(["PUT", "POST", "DELETE", "PATCH"]);
+
     for (const method of SAFE) expect(MUTATING.has(method)).toBe(false);
   });
 

@@ -12,18 +12,23 @@ export function forOperation<C extends ReadClient>(ctx: CheckContext<C>, op: Ope
 export function bodyForOp(ctx: CheckContext, op: OperationModel): Record<string, unknown> {
   const body = validBody(ctx, requestSchemaOf(ctx, op) ?? {});
   const spec = op.invite ?? ctx.invite;
+
   if (spec === null || spec === undefined) return body;
   const owner = ctx.actors[0];
+
   const delegate =
     ctx.actors.find(
       (actor) =>
         actor !== owner && actor.inviteAs !== undefined && owner !== undefined && actor.tenant !== owner.tenant,
     ) ?? ctx.actors.find((actor) => actor !== owner && actor.inviteAs !== undefined);
+
   if (delegate?.inviteAs !== undefined) body[spec.granteeField] = delegate.inviteAs;
+
   return body;
 }
 
 export function subject(entity: string, operationId: string, fixture?: string): string {
   if (fixture === undefined) return entity;
+
   return `${operationId} · ${fixture}`;
 }

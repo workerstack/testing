@@ -1,8 +1,6 @@
-/*
- * The store's internals, shared by store.ts and dedicated.ts: the state one store holds, how a key is
- * planned against the config, and how an issued credential is recorded. Nothing here is exported
- * beyond the credentials library.
- */
+// The store's internals, shared by store.ts and dedicated.ts: the state one store holds, how a key is
+// planned against the config, and how an issued credential is recorded. Nothing here is exported
+// beyond the credentials library.
 
 import type { PrincipalsConfig, Recipe } from "../config/types/security.ts";
 import { messageOf } from "../errors/message.ts";
@@ -17,7 +15,7 @@ import { createRenewals, DEFAULT_REFRESH_BUFFER_MS } from "./refresh.ts";
 import type { Blocked, Credential, CredentialKey, DedicatedHeld, HeldCredential, StoreOptions } from "./store-types.ts";
 
 /** A credential the store holds, as issued, and the revoke it registered. */
-export interface Entry {
+export type Entry = {
   key: HeldCredential;
   credential: Credential;
   issued: Issued;
@@ -27,17 +25,18 @@ export interface Entry {
   revokeKey?: string;
   /** The value a renewal replaced: refused again, it is not renewed twice, even when the server reissued it. */
   renewedFrom?: string;
-}
+};
+
 export type Settled = Entry | Blocked;
 
 /** A revoke teardown runs: whose credential it ends, by the principal a report names, and which scheme. */
-export interface Revoking {
+export type Revoking = {
   principal: string;
   scheme: string;
   revoke: () => Promise<void>;
   /** The record the revoke removes, for a minted credential. */
   record?: CredentialRecord;
-}
+};
 
 /**
  * The store's entries by plan id: each one's issue as it was last set, and what that issue settled
@@ -47,7 +46,7 @@ export interface Revoking {
 export class Entries {
   private readonly pending = new Map<string, Promise<Settled>>();
   private readonly done = new Map<string, Settled>();
-  /* By id, the latest issue that settled to a credential: a renewal that blocked after it leaves it here. */
+  // By id, the latest issue that settled to a credential: a renewal that blocked after it leaves it here.
   private readonly held = new Map<string, Entry>();
 
   get(id: string): Promise<Settled> | undefined {
@@ -61,9 +60,10 @@ export class Entries {
       (settled) => {
         if (this.pending.get(id) !== issue) return;
         this.done.set(id, settled);
+
         if (!("blocked" in settled)) this.held.set(id, settled);
       },
-      () => undefined,
+      () => {},
     );
   }
 
@@ -74,8 +74,10 @@ export class Entries {
   /** Each entry's latest credential, in the order first issued, once every pending issue has settled. */
   async lastHeld(): Promise<Entry[]> {
     await Promise.all(this.pending.values());
+
     return [...this.pending.keys()].flatMap((id) => {
       const entry = this.held.get(id);
+
       return entry === undefined ? [] : [entry];
     });
   }
@@ -86,7 +88,7 @@ export class Entries {
   }
 }
 
-export interface StoreCtx {
+export type StoreCtx = {
   options: StoreOptions;
   /** The config's principals and the ones the run enrolled. */
   principals: PrincipalsConfig;
@@ -108,9 +110,9 @@ export interface StoreCtx {
   /** The dedicated credentials probes that never spend one share, by principal, scheme and scope set. */
   shared: Map<string, Promise<DedicatedHeld | Blocked>>;
   renew: (held: Entry, start: () => Promise<Settled>) => Promise<Settled>;
-}
+};
 
-export interface Plan {
+export type Plan = {
   principal: string;
   scheme: string;
   spec: SecurityScheme;
@@ -118,7 +120,7 @@ export interface Plan {
   scopes: readonly string[];
   pair: string;
   id: string;
-}
+};
 
 /** A store's state, empty: the config's principals copied, so enrolling never edits the config. */
 export function storeCtx(options: StoreOptions): StoreCtx {
@@ -139,7 +141,7 @@ export function storeCtx(options: StoreOptions): StoreCtx {
   };
 }
 
-/* Config keys that grade a principal rather than identify it. */
+// Config keys that grade a principal rather than identify it.
 const GRADING: ReadonlySet<string> = /* @__PURE__ */ new Set([
   "created",
   "fresh",
@@ -162,19 +164,23 @@ export function blockedBy(step: string, plan: Plan, error: unknown): string {
 export function record(ctx: StoreCtx, plan: Plan, issued: Issued): Entry {
   const { secrets, sends } = sendsFor(plan.spec, plan.recipe, issued.value);
   const credential: Credential = { expiresAt: issued.expiresAt, secrets, sends, value: issued.value };
+
   if (issued.scopes !== undefined) credential.scopes = issued.scopes;
-  if (issued.identity !== undefined) {
+
+  if (issued.identity !== undefined)
     ctx.bound.set(plan.principal, { ...ctx.bound.get(plan.principal), ...issued.identity });
-  }
+
   const key = { principal: plan.principal, scheme: plan.scheme, scopes: plan.scopes };
   const entry: Entry = { credential, issued, issuedAt: ctx.now(), key: { ...key, credential } };
   const login = recipeKind(plan.recipe) === "login";
+
   if (issued.revoke !== undefined && (!login || ctx.dedicated.has(plan.principal))) {
-    /* A session is one credential however often it rotates; each mint is a key of its own. */
+    // A session is one credential however often it rotates; each mint is a key of its own.
     entry.revokeKey = login ? plan.id : `${plan.id}\u0000${ctx.registered}`;
     const removes = issued.record === undefined ? {} : { record: issued.record };
     registerRevoke(ctx, plan, { key: entry.revokeKey, revoke: issued.revoke, ...removes });
   }
+
   return entry;
 }
 
@@ -193,21 +199,26 @@ export function pairOf(key: Pick<CredentialKey, "principal" | "scheme">): string
   return `${key.principal}\u0000${key.scheme}`;
 }
 
-/* Adopting replaces a credential, so a pair a failed refresh blocked can still take one in. */
+// Adopting replaces a credential, so a pair a failed refresh blocked can still take one in.
 export function planOf(ctx: StoreCtx, key: CredentialKey, how: { adopting?: boolean } = {}): Plan | Blocked {
   const { schemes, security } = ctx.options;
   const entry = own(ctx.principals, key.principal);
+
   if (entry === undefined) return { blocked: `no principal "${key.principal}" in the config` };
   const spec = schemes.get(key.scheme);
+
   if (spec === undefined) return { blocked: `the document declares no "${key.scheme}" scheme` };
   const recipe = effectiveRecipe(own(security, key.scheme), entry.security?.[key.scheme]);
-  if (recipe === undefined) {
+
+  if (recipe === undefined)
     return { blocked: `principal "${key.principal}" has no recipe for the "${key.scheme}" scheme` };
-  }
+
   const pair = pairOf(key);
   const blocked = ctx.blocked.get(pair);
+
   if (blocked !== undefined && how.adopting !== true) return blocked;
   const scopes = recipeKind(recipe) === "login" ? [] : [...(key.scopes ?? [])].sort();
+
   return {
     id: `${pair}\u0000${scopes.join(" ")}`,
     pair,
@@ -231,5 +242,6 @@ export function acquireCtx(ctx: StoreCtx, plan: Plan): AcquireCtx {
 
 export function identityOf(ctx: StoreCtx, principal: string): Readonly<Record<string, unknown>> {
   const data = Object.entries(own(ctx.principals, principal) ?? {}).filter(([key]) => !GRADING.has(key));
+
   return { ...Object.fromEntries(data), ...ctx.bound.get(principal) };
 }

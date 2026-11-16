@@ -40,6 +40,7 @@ describe("dummyFile", () => {
       seed: 1,
       variant: "baseline",
     });
+
     expect([pdf.filename, pdf.mediaType]).toEqual(["file-baseline-0.pdf", "application/pdf"]);
     expect(Buffer.from(pdf.bytes.subarray(0, 5)).toString("ascii")).toBe("%PDF-");
     expect(Buffer.from(pdf.bytes).toString("ascii")).toContain("%%EOF");

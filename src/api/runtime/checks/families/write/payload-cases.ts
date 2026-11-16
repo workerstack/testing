@@ -8,15 +8,16 @@ import { propertySchemaOf, requestSchemaOf, withheldProperties } from "../../pay
 
 export const ASCII_PAYLOAD_PROBE = "testing-payload-probe";
 
-export interface PayloadField {
+export type PayloadField = {
   name: string;
   maxLength: number | undefined;
   minLength: number | undefined;
-}
+};
 
 /** The first branch of a `oneOf`/`anyOf` union whose type is `type`. */
 function unionBranchOf(union: unknown, type: string): JsonSchema | undefined {
   if (!Array.isArray(union)) return undefined;
+
   return union.find(
     (candidate) =>
       candidate !== null && typeof candidate === "object" && (candidate as { type?: unknown }).type === type,
@@ -31,13 +32,18 @@ function unionBranchOf(union: unknown, type: string): JsonSchema | undefined {
 function isUnconstrainedString(schema: JsonSchema): boolean {
   const type = schema.type;
   const isString = type === "string" || (Array.isArray(type) && type.includes("string"));
+
   if (!isString && type !== undefined) return false;
   const constraints = stringConstraints(schema);
+
   if (constraints.enum !== undefined || constraints.format !== undefined) return false;
+
   if (constraints.patterns.length === 0) return true;
+
   const fitting = STRING_PAYLOADS.filter((payload) =>
     payloadFits(payload.value, constraints.maxLength, constraints.minLength),
   );
+
   return [ASCII_PAYLOAD_PROBE, ...fitting.map((payload) => payload.value)].every((value) => admits(constraints, value));
 }
 
@@ -54,15 +60,18 @@ function isNullable(propertySchema: JsonSchema, union: unknown): boolean {
  * be one. A readOnly property never reaches here: `untouchableFields` withholds it.
  */
 function payloadCandidate(name: string, propertySchema: JsonSchema): (PayloadField & { score: number }) | null {
-  /* A server takes a writeOnly field and never returns it: no read could show a payload survived. */
+  // A server takes a writeOnly field and never returns it: no read could show a payload survived.
   if (propertySchema.writeOnly === true) return null;
   const union = propertySchema.oneOf ?? propertySchema.anyOf;
   const stringSchema = unionBranchOf(union, "string") ?? propertySchema;
+
   if (!isUnconstrainedString(stringSchema)) return null;
   const maxLength = typeof stringSchema.maxLength === "number" ? stringSchema.maxLength : undefined;
   const minLength = typeof stringSchema.minLength === "number" ? stringSchema.minLength : undefined;
+
   if (maxLength !== undefined && maxLength < 8) return null;
   const score = (isNullable(propertySchema, union) ? 1000 : 0) + (maxLength ?? 1024);
+
   return { maxLength, minLength, name, score };
 }
 
@@ -88,12 +97,16 @@ export function pickPayloadField(ctx: PayloadSubject, op: OperationModel): Paylo
   const properties = (schema?.properties ?? {}) as Record<string, JsonSchema>;
   const immutable = untouchableFields(ctx, op);
   let best: (PayloadField & { score: number }) | null = null;
+
   for (const [name, propertySchema] of Object.entries(properties)) {
     if (immutable.has(name) || /_at$|_id$/.test(name)) continue;
+
     if (propertySchema === null || typeof propertySchema !== "object") continue;
     const candidate = payloadCandidate(name, propertySchema);
+
     if (candidate !== null && (best === null || candidate.score > best.score)) best = candidate;
   }
+
   return best;
 }
 
@@ -114,10 +127,13 @@ export async function payloadCases(
 ): Promise<{ cases: StringPayload[]; narrowed: string | null }> {
   const fitting = STRING_PAYLOADS.filter((payload) => payloadFits(payload.value, field.maxLength, field.minLength));
   const policy = ctx.payloads;
+
   if (policy === undefined || policy.policy === "full") return { cases: fitting, narrowed: null };
   const ranOn = await policy.claims.claim(ctx.entityName, writePathOf(ctx, writeOp, field.name));
+
   if (ranOn === null) return { cases: fitting, narrowed: null };
   const representative = new Set<string>(REQUIRED_IDS);
+
   return { cases: fitting.filter((payload) => representative.has(payload.id)), narrowed: ranOn };
 }
 
@@ -129,6 +145,7 @@ export function writePathOf(subject: PayloadSubject, writeOp: OperationModel, fi
   const raw = subject.model.rawOperations.get(writeOp.operationId);
   const mediaType = raw === undefined ? "" : (requestContent(raw)?.mediaType ?? "");
   const schema = propertySchemaOf(subject, field, writeOp) ?? {};
+
   return `${mediaType}|${JSON.stringify([schema.type ?? "string", schema.format ?? null])}`;
 }
 
@@ -142,10 +159,13 @@ export function plannedWritePath(model: SpecModel, entity: EntityModel): string 
   const createOp = route(entity.create);
   const updateOp = route(entity.update);
   const readOp = route(entity.read);
+
   if (createOp === undefined || readOp === undefined) return null;
   const writeOp = updateOp ?? createOp;
+
   if (updateOp === undefined && route(entity.delete) === undefined) return null;
   const subject = { createOp, identity: entity.identity ?? "id", listOp: route(entity.list), model, readOp, updateOp };
   const field = pickPayloadField(subject, writeOp);
+
   return field === null ? null : writePathOf(subject, writeOp, field.name);
 }

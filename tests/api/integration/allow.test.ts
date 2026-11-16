@@ -11,27 +11,25 @@ import { dereference } from "../../../src/api/spec/load/dereference.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 import { JWT_LOGIN } from "../support/reference-auth.ts";
 
-/*
- * Against a shared backend, some operations must never be called — not by the matrix, the
- * contract floor, a scenario or teardown. `allow` names the only ones the API tester may touch: every other
- * operation leaves the document before the API tester reads it, so nothing downstream can reach it. A config
- * that still needs a removed operation says so before anything is sent.
- */
+// Against a shared backend, some operations must never be called — not by the matrix, the
+// contract floor, a scenario or teardown. `allow` names the only ones the API tester may touch: every other
+// operation leaves the document before the API tester reads it, so nothing downstream can reach it. A config
+// that still needs a removed operation says so before anything is sent.
 
-/*
- * `auth.token` is how every reference principal logs in; it must stay callable. The runs sign in
- * by it alone (`JWT_LOGIN`): no refresh and no apiKey mint, so the config calls nothing outside allow.
- */
+// `auth.token` is how every reference principal logs in; it must stay callable. The runs sign in
+// by it alone (`JWT_LOGIN`): no refresh and no apiKey mint, so the config calls nothing outside allow.
 const ALLOW = ["auth.token", "table.list", "table.get", "table.create", "table.delete"];
 
 async function fullModel(url: string) {
   const doc = (await (await fetch(`${url}/v1/openapi/spec`)).json()) as OpenApiDocument;
+
   return buildModel(dereference(doc).doc);
 }
 
 describe("pruneToAllow", () => {
   it("keeps only the named operations and says which it removed", async () => {
     const server = await createMemoryServer({});
+
     try {
       const doc = (await (await fetch(`${server.url}/v1/openapi/spec`)).json()) as OpenApiDocument;
       const { doc: pruned, removed } = pruneToAllow(doc, ALLOW);
@@ -51,23 +49,27 @@ describe("pruneToAllow", () => {
   });
 });
 
-/* Every operation the run sent a request to on the server, or the method and path it could not name. */
+// Every operation the run sent a request to on the server, or the method and path it could not name.
 async function calledOperations(result: Awaited<ReturnType<typeof run>>, serverUrl: string): Promise<Set<string>> {
   const resolve = operationResolver(await fullModel(serverUrl));
   const base = new URL(serverUrl);
   const called = new Set<string>();
+
   for (const exchange of result.client.transcript) {
     const url = new URL(exchange.url);
+
     if (url.origin !== base.origin) continue;
     const op = resolve(exchange.method, url.pathname);
     called.add(op === null ? `${exchange.method} ${url.pathname}` : op.operationId);
   }
+
   return called;
 }
 
 describe("a run under allow", () => {
   it("sends no request to an operation outside it", async () => {
     const server = await createMemoryServer({});
+
     try {
       const result = await run({
         allow: ALLOW,
@@ -77,6 +79,7 @@ describe("a run under allow", () => {
         seed: 42,
         spec: `${server.url}/v1/openapi/spec`,
       });
+
       const called = await calledOperations(result, server.url);
       expect([...called].filter((id) => !ALLOW.includes(id))).toEqual([]);
       expect(called.has("table.create")).toBe(true);
@@ -87,6 +90,7 @@ describe("a run under allow", () => {
 
   it("is a usage error when a scenario or an auth step needs a removed operation", async () => {
     const server = await createMemoryServer({});
+
     const base = {
       allow: ALLOW,
       baseUrl: server.url,
@@ -95,6 +99,7 @@ describe("a run under allow", () => {
       seed: 42,
       spec: `${server.url}/v1/openapi/spec`,
     };
+
     try {
       await expect(
         run({
@@ -102,7 +107,7 @@ describe("a run under allow", () => {
           scenarios: [{ covers: ["table.update"], id: "rename", steps: [{ operationId: "table.update" }] }],
         }),
       ).rejects.toThrow(/table\.update/);
-      /* One principal signs in its own way, through an operation allow removed. */
+      // One principal signs in its own way, through an operation allow removed.
       const login = { from: "$.token", steps: [{ operationId: "table.invite" }] as [{ operationId: string }] };
       await expect(
         run({

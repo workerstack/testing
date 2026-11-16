@@ -18,6 +18,7 @@ function refusal(run: () => unknown): { status: number; message: string } {
   } catch (error) {
     if (error instanceof HttpError) return { message: error.message, status: error.status };
   }
+
   throw new Error("no refusal");
 }
 

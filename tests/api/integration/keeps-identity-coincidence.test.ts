@@ -12,11 +12,9 @@ import { buildModel } from "../../../src/api/spec/graph/build.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 import { checkContext } from "../support/check-context.ts";
 
-/*
- * A backend that ignores the client's id and issues its own from a counter can, by chance, issue
- * the very number the client chose. One create cannot tell that apart from a kept id, so the check
- * judges several creates with distinct ids: it takes every one of them coinciding to hide the loss.
- */
+// A backend that ignores the client's id and issues its own from a counter can, by chance, issue
+// the very number the client chose. One create cannot tell that apart from a kept id, so the check
+// judges several creates with distinct ids: it takes every one of them coinciding to hide the loss.
 
 const NOTE = {
   properties: { id: { maximum: 999, minimum: 1, type: "integer" }, title: { type: "string" } },
@@ -54,12 +52,14 @@ const DOC = {
   },
 } as unknown as OpenApiDocument;
 
-/* Issues ids 7, 8, … whatever the client sent: the first create's chosen 7 happens to be issued. */
+// Issues ids 7, 8, … whatever the client sent: the first create's chosen 7 happens to be issued.
 let url = "";
 let close: () => Promise<void> = async () => {};
+
 beforeAll(async () => {
   let next = 7;
-  const stored = new Map<string, unknown>();
+  const stored = new Map<string>();
+
   const server = createServer((req, res) => {
     const chunks: Buffer[] = [];
     req.on("data", (chunk: Buffer) => chunks.push(chunk));
@@ -70,18 +70,22 @@ beforeAll(async () => {
         stored.set(String(id), { ...body, id });
         res.writeHead(201, { "content-type": "application/json" });
         res.end(JSON.stringify({ success: true }));
+
         return;
       }
+
       const id = (req.url ?? "").split("/").pop() ?? "";
       const record = stored.get(id);
       res.writeHead(record === undefined ? 404 : 200, { "content-type": "application/json" });
       res.end(JSON.stringify(record ?? { error: "not found" }));
     });
   });
+
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   close = () => new Promise((resolve) => server.close(() => resolve()));
 });
+
 afterAll(() => close());
 
 describe("create.keeps-submitted-identity", () => {
@@ -89,14 +93,17 @@ describe("create.keeps-submitted-identity", () => {
     const model = buildModel(DOC);
     const createOp = model.byOperationId.get("note.create");
     const readOp = model.byOperationId.get("note.get");
+
     if (createOp === undefined || readOp === undefined) throw new Error("fixture incomplete");
-    /* The document declares no security, so every actor sends nothing. */
+
+    // The document declares no security, so every actor sends nothing.
     const client = new Client({
       baseUrl: url,
       credentials: { resolve: async () => ({ kind: "anonymous" }) },
       redactor: new Redactor(),
     });
-    /* The seed's creates, as a run would have sent them before the check. */
+
+    // The seed's creates, as a run would have sent them before the check.
     await client.request("POST", "/notes", {
       as: { anonymous: true },
       body: { id: 7, title: "first" },
@@ -108,6 +115,7 @@ describe("create.keeps-submitted-identity", () => {
       operationId: "note.create",
     });
     const findings = new FindingCollector();
+
     const ctx = checkContext({
       client,
       createOp,
@@ -117,10 +125,13 @@ describe("create.keeps-submitted-identity", () => {
       model,
       readOp,
     });
+
     const check = entityChecks(CHECKS).find((candidate) => candidate.id === "create.keeps-submitted-identity");
+
     if (check === undefined) throw new Error("no check");
     const planned = check.plan(ctx);
     expect(planned.ok).toBe(true);
+
     if (planned.ok) await check.run(ctx, planned.value);
     expect(findings.findings.map((finding) => `${finding.verdict} ${finding.check}`)).toEqual([
       "BACKEND_BUG create.keeps-submitted-identity",

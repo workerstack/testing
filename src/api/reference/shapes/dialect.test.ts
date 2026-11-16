@@ -4,7 +4,7 @@ import { CLASSIC, LINKED, POSTGREST } from "../dialect/presets.ts";
 import type { Dialect } from "../dialect/types.ts";
 import { shapedDialect } from "./dialect.ts";
 
-/* A dialect publishing no page facts at all: what each model must add of its own. */
+// A dialect publishing no page facts at all: what each model must add of its own.
 const BARE: Dialect = {
   envelope: { collection: null },
   grammar: "postgrest",

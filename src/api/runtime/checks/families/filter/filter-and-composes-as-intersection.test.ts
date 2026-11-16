@@ -10,6 +10,7 @@ const COHORT = [
   { id: "w-2", name: "beta", status: "open" },
   { id: "w-3", name: "alpha", status: "shut" },
 ];
+
 const DOC = { xQuery: { filterable: ["id", "status", "name"] } };
 const AND = "and(status.eq.open,name.eq.alpha)";
 
@@ -33,12 +34,14 @@ describe("filter.and-composes-as-intersection", () => {
 
   it("reports and() that misses a record both terms match", async () => {
     const correct = backend(COHORT);
+
     const { ctx, findings } = stage({
       doc: DOC,
       records: COHORT,
       respond: (method, path, options) =>
         options.query?.["filter"] === AND ? { body: { widgets: [] }, status: 200 } : correct(method, path, options),
     });
+
     await runCheck(check, ctx);
     expect(only(findings).detail).toContain(
       "whose intersection is 1. Missing from the combined result: w-1. A conjunction",

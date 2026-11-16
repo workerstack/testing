@@ -11,6 +11,7 @@ describe("readCacheSignals", () => {
 
   it("reads Age as whole seconds (RFC 9111) and drops one that is not", () => {
     expect(signals({ age: "42" }).ageS).toBe(42);
+
     for (const age of ["-1", "1.5", "soon", ""]) expect(signals({ age }).ageS).toBeNull();
   });
 

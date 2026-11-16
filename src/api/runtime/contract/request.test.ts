@@ -9,10 +9,12 @@ import { bodyOf, pathValues, queryValues } from "./request.ts";
 
 /** The stage over `paths`, and its operation `operationId` with its raw form and parameters. */
 function staged(paths: Record<string, unknown>, operationId: string, fields: Parameters<typeof stage>[2] = {}) {
-  const { input, model } = stage(doc(paths), () => undefined, fields);
+  const { input, model } = stage(doc(paths), () => {}, fields);
   const op = model.byOperationId.get(operationId);
+
   if (op === undefined) throw new Error(`no ${operationId}`);
   const raw = model.rawOperations.get(operationId) as OperationObject;
+
   return { input, op, params: parametersOf(raw), raw };
 }
 
@@ -35,15 +37,18 @@ const paths = {
 describe("pathValues", () => {
   it("takes roots, then a declared enum, then the hook, then an earlier success", async () => {
     const asked: unknown[] = [];
+
     const { input, op, params } = staged(paths, "deep.get", {
       hooks: {
         resolvePathValue: async (request) => {
           asked.push(request);
+
           return request.param === "thing_id" ? "t-hook" : null;
         },
       },
       roots: { org_id: "o1" },
     });
+
     input.client.transcript.push(exchange("GET", "/x", { body: { seen_id: "s1" }, status: 200 }));
     expect(await pathValues(input, { op, params })).toEqual({
       kind: "red",
@@ -59,7 +64,7 @@ describe("pathValues", () => {
   });
 });
 
-/* Keys under a bare `{id}`, a usage read beneath one, and jobs: another resource whose records carry `id` too. */
+// Keys under a bare `{id}`, a usage read beneath one, and jobs: another resource whose records carry `id` too.
 const keyed = {
   "/keys": {
     get: { operationId: "keys.list", responses: ok() },
@@ -80,11 +85,11 @@ const keyed = {
   },
 };
 
-/* `operationId`'s DELETE of `path`, answered `status`. */
+// `operationId`'s DELETE of `path`, answered `status`.
 const deleted = (operationId: string, path: string, status = 200) =>
   exchangeOf({ method: "DELETE", options: { as: { anonymous: true }, operationId }, path }, { status });
 
-/* A success of `operationId` at `path` whose body holds `id`. */
+// A success of `operationId` at `path` whose body holds `id`.
 const answered = (operationId: string | undefined, path: string, id: string) =>
   exchangeOf(
     {
@@ -122,7 +127,7 @@ describe("pathValues: a bare record key", () => {
   });
 });
 
-/* A job create in project p1 whose body names `job` under `job_id`. */
+// A job create in project p1 whose body names `job` under `job_id`.
 const made = (job: string) =>
   exchangeOf(
     { method: "POST", options: { as: { anonymous: true }, operationId: "jobs.create" }, path: "/projects/p1/jobs" },
@@ -156,20 +161,23 @@ describe("pathValues: a live record over a deleted one", () => {
   });
 });
 
-/* A list of keys the API already held: records this run did not make. */
+// A list of keys the API already held: records this run did not make.
 const listed = (...ids: string[]) =>
   exchangeOf(
     { method: "GET", options: { as: { anonymous: true }, operationId: "keys.list" }, path: "/keys" },
     { body: ids.map((id) => ({ id })), status: 200 },
   );
 
-/* Whether the run made a record: here, exactly `ids`, of the entity each question names. */
+// Whether the run made a record: here, exactly `ids`, of the entity each question names.
 function madeOnly(...ids: string[]) {
   const asked = new Set<string>();
+
   const madeByRun = (entity: string, id: string) => {
     asked.add(entity);
+
     return ids.includes(id);
   };
+
   return { asked, madeByRun };
 }
 
@@ -231,10 +239,12 @@ describe("pathValues: a write goes only to a record this run made", () => {
 describe("pathValues: a safe method reads", () => {
   it("draws a QUERY's parameter like a read's, from any record an answer showed", async () => {
     const item = keyed["/keys/{id}"];
+
     const searchable = {
       ...keyed,
       "/keys/{id}": { ...item, query: { operationId: "keys.query", parameters: [pathParam("id")], responses: ok() } },
     };
+
     const { input, op, params } = staged(searchable, "keys.query", { madeByRun: madeOnly().madeByRun });
     input.client.transcript.push(listed("foreign_1"));
     expect(await pathValues(input, { op, params })).toEqual({ id: "foreign_1" });
@@ -250,6 +260,7 @@ describe("queryValues: declared objects", () => {
       ]),
       "q.get",
     );
+
     expect(queryValues(input.grades, { bind: null, op, params })).toEqual({
       ids: ["a", "b"],
       range: { max: 5, min: 1 },
@@ -262,6 +273,7 @@ describe("pathValues: never a credential", () => {
     const invite = {
       "/invites/{token}": { get: { operationId: "invite.get", parameters: [pathParam("token")], responses: ok() } },
     };
+
     const { input, op, params } = staged(invite, "invite.get");
     input.client.redactor.registerSecret("acc-9f8e7d6c5b");
     input.client.transcript.push(
@@ -281,6 +293,7 @@ describe("pathValues: what the hook is told", () => {
   it("tells the hook who acts and what it would send on the operation, never raw headers", async () => {
     const asked: unknown[] = [];
     const sends = { cookies: {}, headers: { Authorization: "Bearer jwt-1" }, query: {} };
+
     const { input, op, params } = staged(paths, "deep.get", {
       acting: {
         identity: { email: "a@x.test" },
@@ -289,11 +302,13 @@ describe("pathValues: what the hook is told", () => {
       hooks: {
         resolvePathValue: async (request) => {
           asked.push(request);
+
           return "v";
         },
       },
       roots: { org_id: "o1" },
     });
+
     await pathValues(input, { op, params });
     expect(asked[0]).toEqual({
       credential: "jwt-1",
@@ -313,6 +328,7 @@ describe("pathValues: what the hook is told", () => {
     const { input, op, params } = staged(paths, "deep.get", {
       hooks: { resolvePathValue: async () => null },
     });
+
     expect(await pathValues(input, { op, params })).toBeNull();
     expect([...(input.grades.needs.get("deep.get") ?? [])]).toEqual([
       "unresolved param org_id: set it in the principal's scope, or answer it from hooks.resolvePathValue",
@@ -342,6 +358,7 @@ describe("queryValues", () => {
       ]),
       "q.get",
     );
+
     const bind = readActionBind({ query: { bound: "lit", other: "$.ptr" } });
     expect(queryValues(input.grades, { bind, op, params })).toEqual({ bound: "lit", typed: "1" });
     expect(queryValues(input.grades, { bind: null, op: { ...op, requiredQuery: { typed: "9" } }, params })).toEqual({
@@ -381,6 +398,7 @@ describe("bodyOf", () => {
       required: ["name", "mode"],
       type: "object",
     };
+
     const { input, op, raw } = staged(post(json(schema)), "p.post");
     const built = bodyOf(input, { bind: readActionBind({ body: { mode: "fast" } }), op, raw });
     expect(built?.body).toMatchObject({ mode: "fast" });
@@ -413,16 +431,20 @@ describe("bodyOf: a sign-in's identity fields", () => {
       required: ["gone", "name", "profile", "tags"],
       type: "object",
     };
+
     const fields = [
       ["profile", "handle"],
       ["tags", "login"],
       ["gone", "login"],
       ["account", "email"],
     ];
-    const credentials = { ...stage(doc({}), () => undefined).input.credentials };
+
+    const credentials = { ...stage(doc({}), () => {}).input.credentials };
+
     const { input, op, raw } = staged(post(json(schema)), "p.post", {
       credentials: { ...credentials, identityFields: new Map([["p.post", fields]]) },
     });
+
     const body = bodyOf(input, { bind: null, op, raw })?.body as Record<string, Record<string, unknown>>;
     expect(body).toMatchObject({
       account: { email: "testing-nonexistent-n0@example.invalid" },

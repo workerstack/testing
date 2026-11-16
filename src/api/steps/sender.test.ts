@@ -4,9 +4,11 @@ import { ANON, SELF, Sender, principalIdentity, sessionIdentity } from "./sender
 import type { OpMap, StepTypes } from "./types.ts";
 
 type Loose = Sender<OpMap, StepTypes>;
+
 const self: Loose = new Sender(SELF);
 const anon: Loose = new Sender(ANON);
-/* The config says how a session is sent; this one is a bearer token, as Anyrow's tester sends it. */
+
+// The config says how a session is sent; this one is a bearer token, as Anyrow's tester sends it.
 const user: Loose = new Sender(sessionIdentity({ authorization: "Bearer {credential}" }));
 const beta: Loose = new Sender(principalIdentity("beta"));
 
@@ -51,9 +53,11 @@ describe("Sender calls", () => {
 
   it("copies every init part it is given and none it is not", () => {
     const bytes = Uint8Array.of(1, 2);
+
     const step = self
       .call("cdn.upload", { bind: { wildcard: "u/{userId}/a.webp" }, body: bytes, mediaType: "image/webp" })
       .toStep();
+
     expect(step).toStrictEqual({
       bind: { wildcard: "u/{userId}/a.webp" },
       body: bytes,
@@ -85,6 +89,7 @@ describe("Sender refusals and raw requests", () => {
         status: 403,
       })
       .toStep();
+
     expect(step).toStrictEqual({
       anonymous: true,
       assert: { equals: "account_reauth_required", from: "$.error_key" },

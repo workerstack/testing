@@ -1,7 +1,7 @@
 import type { Scenario, ScenarioAssert, ScenarioStep } from "../config/types/steps.ts";
 
 /** One scenario's steps, read the way a config's own unit tests ask about them. */
-export interface ScenarioView {
+export type ScenarioView = {
   readonly scenario: Scenario;
   readonly steps: readonly ScenarioStep[];
   /** The first step calling `operationId` whose fields include `where`, deep; -1 when none does. */
@@ -12,9 +12,9 @@ export interface ScenarioView {
   asserts(): ScenarioAssert[];
   /** Whether the scenario covers `operationId`, calls it, and a later assert names it in `observes`. */
   observes(operationId: string): boolean;
-}
+};
 
-/* `actual` holds every field `expected` has, deep; arrays match item by item, at the same length. */
+// `actual` holds every field `expected` has, deep; arrays match item by item, at the same length.
 function includes(actual: unknown, expected: unknown): boolean {
   if (Array.isArray(expected)) {
     return (
@@ -23,8 +23,11 @@ function includes(actual: unknown, expected: unknown): boolean {
       expected.every((item, i) => includes(actual[i], item))
     );
   }
+
   if (expected === null || typeof expected !== "object") return Object.is(actual, expected);
+
   if (actual === null || typeof actual !== "object") return false;
+
   return Object.entries(expected).every(([key, value]) => includes((actual as Record<string, unknown>)[key], value));
 }
 
@@ -36,12 +39,15 @@ const assertsOf = (step: ScenarioStep): ScenarioAssert[] =>
 /** The scenario `id` among `scenarios`, as a view its unit tests query. */
 export function stepsOf(scenarios: readonly Scenario[], id: string): ScenarioView {
   const scenario = scenarios.find((candidate) => candidate.id === id);
-  if (scenario === undefined) {
+
+  if (scenario === undefined)
     throw new Error(`no scenario "${id}" among: ${scenarios.map((candidate) => candidate.id).join(", ")}`);
-  }
+
   const { steps } = scenario;
+
   const calls = (operationId: string): Array<{ index: number; step: ScenarioStep }> =>
     steps.flatMap((step, index) => (operationOf(step) === operationId ? [{ index, step }] : []));
+
   return {
     asserts: () => steps.flatMap(assertsOf),
     calls,
@@ -49,7 +55,9 @@ export function stepsOf(scenarios: readonly Scenario[], id: string): ScenarioVie
       steps.findIndex((step) => operationOf(step) === operationId && includes(step, where)),
     observes: (operationId) => {
       const first = calls(operationId)[0]?.index;
+
       if (first === undefined || !scenario.covers.includes(operationId)) return false;
+
       return steps
         .slice(first + 1)
         .flatMap(assertsOf)

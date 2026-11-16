@@ -30,6 +30,7 @@ describe("capabilities hook", () => {
       selectable: ["dyn"],
       sortable: [{ field: "plain" }, { field: "dyn", nulls: ["first"], type: "string" }],
     });
+
     expect(replaced.filterable).toEqual([{ field: "dyn", ops: ["in"] }]);
     expect(replaced.sortable).toEqual([{ field: "plain" }, { field: "dyn", nulls: ["first"], type: "string" }]);
     expect(replaced.searchable).toEqual([]);

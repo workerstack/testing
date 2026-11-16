@@ -11,11 +11,12 @@ test("goto waits for the marker, so the first click lands", async ({ page, ready
 });
 
 test("settle returns once finite animations end, past an infinite and a canceled one", async ({ page, ready }) => {
-  /* The canceled animation would run 10 s: settling well inside this proves it was not waited on. */
+  // The canceled animation would run 10 s: settling well inside this proves it was not waited on.
   test.setTimeout(5000);
   await ready.goto("/animated.html", { marker: "html[data-started]" });
   const main = page.locator("main");
-  /* One read, no retry: what runs, and how wide the growing box is, at this moment. */
+
+  // One read, no retry: what runs, and how wide the growing box is, at this moment.
   const now = (): Promise<{ running: string[]; width: string }> =>
     main.evaluate((element) => ({
       running: element
@@ -25,6 +26,7 @@ test("settle returns once finite animations end, past an infinite and a canceled
         .toSorted(),
       width: getComputedStyle(element.querySelector("#grow") as Element).width,
     }));
+
   expect((await now()).running).toEqual(["Animation", "CSSAnimation", "CSSTransition"]);
   await ready.settle(main);
   expect(await now()).toEqual({ running: ["CSSAnimation"], width: "300px" });

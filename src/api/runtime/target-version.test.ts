@@ -20,12 +20,15 @@ const model = modelOf({
 
 const answers: Responder = (_method, path) => {
   if (path === "/projects/p%201/version") return { body: { build: { id: 42 } }, status: 200 };
+
   if (path === "/version") return { body: { build: "b-7" }, headers: { "X-Build": "h-9" }, status: 200 };
+
   return { status: 503 };
 };
 
 function read(spec: TargetVersionSpec, respond: Responder = answers) {
   const { client, sent } = fakeClient(respond);
+
   const result = readTargetVersion({
     client,
     principal: "alpha",
@@ -33,6 +36,7 @@ function read(spec: TargetVersionSpec, respond: Responder = answers) {
     roots: { projectId: "p 1" },
     spec,
   });
+
   return { result, sent };
 }
 
@@ -82,7 +86,9 @@ describe("readTargetVersion", () => {
       roots: {},
       spec: { from: "$.build", operationId: "meta.version" },
     });
+
     expect(bare).toEqual({ error: "no value for path parameter {projectId}" });
+
     const refused = await readTargetVersion({
       client: { get: () => Promise.reject(new Error("blocked by the fence")) },
       principal: "alpha",
@@ -90,6 +96,7 @@ describe("readTargetVersion", () => {
       roots: {},
       spec: { from: "$.build", path: "/version" },
     });
+
     expect(refused).toEqual({ error: "blocked by the fence" });
   });
 });

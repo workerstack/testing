@@ -16,11 +16,9 @@ import type {
 import { FILTER_OPS } from "../../../src/api/spec/query/ops.ts";
 import type { FilterTermValue } from "../../../src/api/spec/render/filter-types.ts";
 
-/*
- * Every filter, sort and select term the API tester can write, rendered by today's writers. The
- * characterization test compares this table with a committed copy, so a renderer change that
- * alters a single byte of a request fails it.
- */
+// Every filter, sort and select term the API tester can write, rendered by today's writers. The
+// characterization test compares this table with a committed copy, so a renderer change that
+// alters a single byte of a request fails it.
 
 const FILTER_GRAMMARS: readonly FilterGrammar[] = ["postgrest", "colon", "equality"];
 const SORT_GRAMMARS: readonly SortGrammar[] = ["dotted", "prefixed", "colon", "spaced"];
@@ -52,6 +50,7 @@ type Rendering = {
 
 function conventions(grammar: FilterGrammar, filter: string | undefined, rendering: Rendering = {}): QueryConventions {
   const { sortGrammar = "dotted", selectGrammar = "csv", select } = rendering;
+
   return {
     envelope: {},
     grammar,
@@ -64,29 +63,36 @@ function conventions(grammar: FilterGrammar, filter: string | undefined, renderi
 
 export function grammarTable(): Record<string, unknown> {
   const table: Record<string, unknown> = {};
+
   for (const grammar of FILTER_GRAMMARS) {
     for (const filter of ["filter", undefined]) {
       const at = conventions(grammar, filter);
       const scope = `${grammar}|${filter ?? "no-filter-param"}`;
+
       for (const op of FILTER_OPS) {
         table[`canWrite|${scope}|${op}`] = canWriteFilterOp(at, op);
-        for (const [label, value] of VALUES) {
+
+        for (const [label, value] of VALUES)
           table[`filterTerm|${scope}|${op}|${label}`] = filterTerm(at, { field: "qty", op, value });
-        }
       }
+
       for (const [label, value] of VALUES) {
         if (typeof value === "object" && value !== null) continue;
         table[`filterFragment|${scope}|${label}`] = filterFragment(at, "qty", String(value));
       }
+
       table[`andTerm|${scope}`] = andTerm(at, { field: "qty", value: "2" }, { field: "name", value: "x" });
       table[`andTerm|${scope}|same-field`] = andTerm(at, { field: "qty", value: "2" }, { field: "qty", value: "3" });
       table[`orTerm|${scope}`] = orTerm(at, { field: "qty", value: "2" }, { field: "name", value: "x" });
     }
   }
+
   for (const grammar of SORT_GRAMMARS) {
     const at = conventions("postgrest", "filter", { sortGrammar: grammar });
+
     for (const direction of ["asc", "desc"] as const) {
       table[`sortTerm|${grammar}|${direction}`] = sortTerm(at, { direction, field: "qty" });
+
       for (const nulls of ["first", "last"] as const) {
         table[`sortTerm|${grammar}|${direction}|${nulls}`] = sortTerm(at, { direction, field: "qty", nulls });
         table[`sortTermWithNulls|${grammar}|${direction}|${nulls}`] = sortTermWithNulls(at, {
@@ -97,11 +103,13 @@ export function grammarTable(): Record<string, unknown> {
       }
     }
   }
+
   for (const grammar of SELECT_GRAMMARS) {
     for (const select of ["select", "fields", "fields[articles]", undefined]) {
       const at = conventions("postgrest", "filter", { selectGrammar: grammar, select });
       table[`selectTerm|${grammar}|${select ?? "no-select-param"}`] = selectTerm(at, ["id", "name"], "articles");
     }
   }
+
   return table;
 }

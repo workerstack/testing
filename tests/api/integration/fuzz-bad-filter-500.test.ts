@@ -7,13 +7,11 @@ import type { DefectName } from "../../../src/api/reference/defects/table.ts";
 import { createMemoryServer } from "../../../src/api/reference/http/engines.ts";
 import { run } from "../../../src/api/runtime/run/index.ts";
 
-/*
- * Combination fuzzing, seed 3619860453, combination 130110. IGNORES_MALFORMED_FILTER drops unparsable
- * syntax with a 200, so error.malformed-filter-not-5xx's garbage probe never reached a refusal and
- * passed; ERROR_500_ON_BAD_FILTER was missed, while the over-limit in() and the condition cap, which
- * the defect turns into 500s too, reported that crash on their own. A well-formed filter on a field
- * the entity lacks still has to be refused, and draws the defect's 500.
- */
+// Combination fuzzing, seed 3619860453, combination 130110. IGNORES_MALFORMED_FILTER drops unparsable
+// syntax with a 200, so error.malformed-filter-not-5xx's garbage probe never reached a refusal and
+// passed; ERROR_500_ON_BAD_FILTER was missed, while the over-limit in() and the condition cap, which
+// the defect turns into 500s too, reported that crash on their own. A well-formed filter on a field
+// the entity lacks still has to be refused, and draws the defect's 500.
 const COMBINATION_130110: DefectName[] = [
   "SEARCH_EMPTY_MATCHES_NONE",
   "IGNORES_MALFORMED_FILTER",
@@ -25,6 +23,7 @@ describe("a fuzz case whose backend drops garbage filters and crashes on refused
   it("finds the crash and reports nothing unjustified (seed 3619860453, case 130110)", async () => {
     const optIn = optInFor(COMBINATION_130110);
     const server = await createMemoryServer({ defects: COMBINATION_130110, ...optIn.reference });
+
     try {
       const result = await run({
         ...optIn.run,
@@ -34,6 +33,7 @@ describe("a fuzz case whose backend drops garbage filters and crashes on refused
         seed: 42,
         spec: `${server.url}/v1/openapi/spec`,
       });
+
       const diagnosis = diagnose(COMBINATION_130110, result);
       expect(diagnosis.spurious).toEqual([]);
       expect(diagnosis.missed).toEqual([]);

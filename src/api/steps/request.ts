@@ -71,14 +71,18 @@ export class RequestBuilder<Observed extends string> implements BuiltStep {
   /** Earlier operations the assert just before this proves; none writes an empty list. */
   observes(...operationIds: Observed[]): RequestBuilder<Observed> {
     const last = this.#asserts.at(-1);
+
     if (last === undefined) throw new Error(OBSERVES_FIRST);
     const observes = [...(last.observes ?? []), ...operationIds];
+
     return new RequestBuilder(this.#step, [...this.#asserts.slice(0, -1), { ...last, observes }]);
   }
 
   toStep(): ScenarioRequestStep {
     const [only, ...more] = this.#asserts;
+
     if (only === undefined) return this.#step;
+
     return { ...this.#step, assert: more.length === 0 ? only : [...this.#asserts] };
   }
 

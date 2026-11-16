@@ -5,6 +5,7 @@
  */
 export function storedAs(stored: unknown, sent: unknown): boolean {
   if (typeof stored === "string" && typeof sent === "string") return folded(stored) === folded(sent);
+
   return JSON.stringify(stored) === JSON.stringify(sent);
 }
 

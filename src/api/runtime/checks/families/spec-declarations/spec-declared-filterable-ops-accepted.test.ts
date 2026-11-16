@@ -19,6 +19,7 @@ const declared = tagQuery({ filterable: ["name"] });
 async function probes(filterable: EffectiveFilterField[], fields: Parameters<typeof stage>[1] = {}) {
   const { ctx, sent } = stage(ok, { capabilities: caps(filterable), query: declared, ...fields });
   await declaredFilterableOpsAccepted.run(ctx, undefined);
+
   return queries(sent).map((query) => Object.values(query as Record<string, unknown>).find((v) => v !== 5));
 }
 
@@ -30,11 +31,13 @@ describe("spec.declared-filterable-ops-accepted plan", () => {
 
   it("stands down for a guessed declaration, or when every operator list is open", () => {
     const closed = caps([{ field: "name", ops: ["eq"] }]);
+
     const contexts = [
       stage(ok, { capabilities: closed, query: { ...declared, source: "heuristic" } }).ctx,
       stage(ok, { capabilities: closed, query: null }).ctx,
       stage(ok, { capabilities: caps([{ field: "name" }]), query: declared }).ctx,
     ];
+
     for (const ctx of contexts) expect(declaredFilterableOpsAccepted.plan(ctx).ok).toBe(false);
   });
 });
@@ -49,6 +52,7 @@ describe("spec.declared-filterable-ops-accepted run", () => {
       ]),
       query: declared,
     });
+
     expect(await runCheck(declaredFilterableOpsAccepted, ctx)).toEqual({ kind: "asserted" });
     expect(queries(sent)).toEqual([
       { filter: "name.eq.Ann", limit: 5 },
@@ -66,6 +70,7 @@ describe("spec.declared-filterable-ops-accepted run", () => {
       capabilities: caps([{ field: "name", ops: ["eq", "in"] }]),
       query: declared,
     });
+
     expect(await runCheck(declaredFilterableOpsAccepted, ctx)).toEqual({ kind: "finding", verdict: "SPEC_BUG" });
     const [finding] = findings.findings;
     expect(finding?.check).toBe("spec.declared-filterable-ops-accepted");
@@ -79,6 +84,7 @@ describe("spec.declared-filterable-ops-accepted verdicts over many probes", () =
   it("names at most eight refusals and cites three, and a refusal outweighs a probe turned away", async () => {
     const ops = ["eq", "neq", "gt", "gte", "lt", "lte", "like", "ilike", "in"] as const;
     const respond = refusing(400, "name.");
+
     const { ctx, findings } = stage(
       (m, p, o) => (String(o.query?.["filter"]).startsWith("tags") ? { status: 500 } : respond(m, p, o)),
       {
@@ -89,6 +95,7 @@ describe("spec.declared-filterable-ops-accepted verdicts over many probes", () =
         query: declared,
       },
     );
+
     expect(await runCheck(declaredFilterableOpsAccepted, ctx)).toEqual({ kind: "finding", verdict: "SPEC_BUG" });
     const [finding] = findings.findings;
     expect(finding?.detail).toBe(
@@ -106,6 +113,7 @@ describe("spec.declared-filterable-ops-accepted verdicts over many probes", () =
       capabilities: caps([{ field: "name", ops: ["eq", "gt"] }]),
       query: declared,
     });
+
     expect(await runCheck(declaredFilterableOpsAccepted, ctx)).toEqual({
       kind: "unresolved",
       reason: "probes were turned away without a verdict: name.eq (403)",
@@ -140,6 +148,7 @@ describe("spec.declared-filterable-ops-accepted probes", () => {
       ],
       { records: [{ id: "w1" }] },
     );
+
     const [price, rank, ghost] = filters;
     expect(price).toMatch(/^price\.gt\.\d+$/);
     expect(rank).toMatch(/^rank\.eq\.\d+$/);
@@ -155,6 +164,7 @@ describe("spec.declared-filterable-ops-accepted probes", () => {
       ],
       { records: [{ id: "w1" }] },
     );
+
     expect(filters).toHaveLength(1);
     expect(filters[0]).toMatch(/^name\.eq\./);
   });
@@ -165,6 +175,7 @@ describe("spec.declared-filterable-ops-accepted probes", () => {
       query: declared,
       records: [{ id: "w1" }],
     });
+
     expect(await declaredFilterableOpsAccepted.run(ctx, undefined)).toEqual({
       kind: "unresolved",
       reason: "no declared operator has a value of its field's type to probe with",

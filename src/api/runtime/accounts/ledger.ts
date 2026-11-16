@@ -19,13 +19,13 @@ import { accountIdentity } from "./identity.ts";
 type AccountStatus = "sending" | "created" | "refused" | "removed" | "left" | "kept";
 
 /** Teardown's verdict on an account. */
-export interface AccountVerdict {
+export type AccountVerdict = {
   status: "removed" | "left" | "kept";
   note: string;
   principal?: string;
-}
+};
 
-export interface AccountEntry {
+export type AccountEntry = {
   /** In the order the run sent them, from 1. */
   n: number;
   operationId: string;
@@ -40,19 +40,19 @@ export interface AccountEntry {
   note?: string;
   /** The scenario that keeps it for a later run: teardown leaves it in place. */
   kept?: string;
-}
+};
 
 /** What a sign-up sent and answered, kept in memory only: teardown may need to sign in as it. */
-export interface SignUp {
+export type SignUp = {
   body: unknown;
   answer?: Exchange;
-}
+};
 
 export class AccountLedger {
   private readonly list: AccountEntry[] = [];
-  /* By entry: what each sign-up sent, then answered. */
+  // By entry: what each sign-up sent, then answered.
   private readonly sent = new WeakMap<AccountEntry, SignUp>();
-  /* By answer: the entry whose sign-up it answered. */
+  // By answer: the entry whose sign-up it answered.
   private readonly answers = new WeakMap<Exchange, AccountEntry>();
 
   /** `file`, when given, is rewritten with every change. */
@@ -69,9 +69,11 @@ export class AccountLedger {
       operationId,
       status: "sending",
     };
+
     this.list.push(entry);
     this.sent.set(entry, { body });
     this.persist();
+
     return entry;
   }
 
@@ -87,8 +89,10 @@ export class AccountLedger {
       principal,
       status: "created",
     };
+
     this.list.push(entry);
     this.persist();
+
     return entry;
   }
 
@@ -96,8 +100,9 @@ export class AccountLedger {
   answered(entry: AccountEntry, exchange: Exchange, id?: string): void {
     const ok = exchange.status >= 200 && exchange.status < 300;
     entry.status = ok ? "created" : "refused";
+
     if (ok && id !== undefined && id !== "") entry.id = id;
-    /* Only a sign-up the ledger saw sent is answered. */
+    // Only a sign-up the ledger saw sent is answered.
     (this.sent.get(entry) as SignUp).answer = exchange;
     this.answers.set(exchange, entry);
     this.persist();
@@ -118,6 +123,7 @@ export class AccountLedger {
   settle(entry: AccountEntry, verdict: AccountVerdict): void {
     entry.status = verdict.status;
     entry.note = verdict.note;
+
     if (verdict.principal !== undefined) entry.principal = verdict.principal;
     this.persist();
   }
@@ -146,5 +152,6 @@ export class AccountLedger {
 /** Whether every name `entry` was sent under is one `identity` holds: the same account. */
 export function names(entry: AccountEntry, identity: Readonly<Record<string, unknown>>): boolean {
   const sent = Object.entries(entry.identity);
+
   return sent.length > 0 && sent.every(([key, value]) => identity[key] === value);
 }

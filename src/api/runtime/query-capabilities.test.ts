@@ -11,10 +11,11 @@ import { emptyCapabilities } from "../spec/query/merge.ts";
 import { parseQueryCatalog } from "../spec/query/parse-catalog.ts";
 import { capabilitiesFromTag, resolveEntityCapabilities } from "./query-capabilities.ts";
 
-/* The conventions with one parameter role absent, as a document without that parameter derives them. */
+// The conventions with one parameter role absent, as a document without that parameter derives them.
 function without(conventions: QueryConventions, role: "filter" | "select"): QueryConventions {
   const copy = { ...conventions };
   delete copy[role];
+
   return copy;
 }
 
@@ -89,11 +90,13 @@ describe("postgrest writers", () => {
 function modelWith(ops: Array<{ id: string; method: string; path: string }>): SpecModel {
   const byOperationId = new Map<string, OperationModel>();
   const byRoute = new Map<string, OperationModel>();
+
   for (const op of ops) {
     const row = { method: op.method, operationId: op.id, path: op.path } as OperationModel;
     byOperationId.set(op.id, row);
     byRoute.set(`${op.method} ${op.path}`, row);
   }
+
   return { byOperationId, byRoute } as SpecModel;
 }
 
@@ -102,6 +105,7 @@ function clientWith(body: unknown, sent: RequestOptions[] = []): Client {
   return {
     request: async (_method: string, _path: string, options: RequestOptions) => {
       sent.push(options);
+
       return { responseBody: body };
     },
   } as unknown as Client;
@@ -129,6 +133,7 @@ describe("live harvest and hook", () => {
         source: "tag",
       },
     });
+
     expect(caps.filterable.map((field) => field.field)).toEqual(["id"]);
     expect(caps.hook).toBe(true);
     expect(caps.filterableFrom).toBeUndefined();
@@ -143,6 +148,7 @@ describe("live harvest and hook", () => {
       sortable: [],
       source: "tag",
     });
+
     expect(caps.source).toBe("tag");
     expect(caps.filterable.map((field) => field.field)).toEqual(["id"]);
   });
@@ -151,6 +157,7 @@ describe("live harvest and hook", () => {
 describe("live harvest of type paths", () => {
   it("maps a typePath that mixes strings and junk, harvested as the principal", async () => {
     const sent: RequestOptions[] = [];
+
     const caps = await resolveEntityCapabilities({
       principal: "alpha",
       client: clientWith({ names: ["id", "n"], types: ["text", 1] }, sent),
@@ -174,6 +181,7 @@ describe("live harvest of type paths", () => {
         source: "tag",
       },
     });
+
     expect(caps.filterable).toEqual([{ field: "id", type: "string" }, { field: "n" }]);
     expect(sent).toEqual([{ as: { principal: "alpha" }, operationId: "table.get" }]);
   });
@@ -187,6 +195,7 @@ describe("live harvest across every axis", () => {
         { name: "title", searchable: true, type: "text" },
       ],
     };
+
     const caps = await resolveEntityCapabilities({
       principal: "alpha",
       client: clientWith(body),
@@ -206,6 +215,7 @@ describe("live harvest across every axis", () => {
       hook: async ({ get }) => {
         const harvested = await get("table.get");
         expect(harvested).toEqual(body);
+
         return { searchable: ["title"] };
       },
       itemSchema: { properties: { id: { type: "string" } }, type: "object" },
@@ -223,6 +233,7 @@ describe("live harvest across every axis", () => {
         source: "tag",
       },
     });
+
     expect(caps.filterable.map((field) => field.field)).toEqual(["id", "title"]);
     expect(caps.filterable.find((field) => field.field === "title")?.type).toBe("string");
     expect(caps.sortable.map((field) => field.field)).toEqual(["id", "title"]);
@@ -254,6 +265,7 @@ describe("live harvest by route", () => {
         source: "tag",
       },
     });
+
     expect(caps.filterable).toEqual([]);
     expect(caps.sortable.map((field) => field.field)).toEqual(["n"]);
   });
@@ -316,6 +328,7 @@ describe("live harvest failures and route ids", () => {
         source: "tag",
       },
     });
+
     expect(caps.filterable.map((field) => field.field)).toEqual(["a"]);
   });
 });

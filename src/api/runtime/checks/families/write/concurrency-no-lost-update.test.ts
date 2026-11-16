@@ -10,6 +10,7 @@ import { noLostUpdate } from "./concurrency-no-lost-update.ts";
 function stage(respond: Responder, options: WidgetDocOptions = {}, update: Partial<OperationModel> = {}) {
   const model = modelOf(widgetDoc(options));
   const updateOp = model.byOperationId.get("updateWidget");
+
   return contextFor(model, "listWidgets", {
     respond,
     fields: {
@@ -32,9 +33,11 @@ function patching(field: string, answer: { status: number; body?: unknown }): Re
 /** Answers the item read with `answer` from the `nth` read on (1-based). */
 function readingFrom(nth: number, answer: { status: number; body?: unknown }): Responder {
   let readsSeen = 0;
+
   return overriding(widgetApi(), (method, path) => {
-    if (method !== "GET" || path === "/widgets") return undefined;
+    if (method !== "GET" || path === "/widgets") return;
     readsSeen += 1;
+
     return readsSeen >= nth ? answer : undefined;
   });
 }
@@ -49,22 +52,29 @@ describe("concurrency.no-lost-update verdicts", () => {
   });
 
   it("reports a patch that writes back the row it read, reverting the other write", async () => {
-    /* Read-modify-write: each PATCH applies its field to the row as created, not as it is now. */
+    // Read-modify-write: each PATCH applies its field to the row as created, not as it is now.
     const rows: Rows = new Map();
     const created = new Map<string, Record<string, unknown>>();
     const api = widgetApi(rows);
+
     const { ctx, findings } = stage((method, path, options) => {
       const id = path.slice("/widgets/".length);
+
       if (method === "PATCH") {
         const stale = { ...created.get(id), ...(options.body as object) };
         rows.set(id, stale);
+
         return { body: stale, status: 200 };
       }
+
       const answer = api(method, path, options);
       const body = answer?.body as { id: string } | undefined;
+
       if (method === "POST" && body !== undefined) created.set(body.id, { ...body });
+
       return answer;
     });
+
     expect(await runCheck(noLostUpdate, ctx)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     const [finding] = findings.findings;
     expect(finding?.summary).toBe("a concurrent write to a different field was silently lost");
@@ -122,8 +132,9 @@ describe("concurrency.no-lost-update when no race can be judged", () => {
       [2, { status: 404 }, "reading the record back after the race returned 404"],
       [2, { body: "gone", status: 200 }, "the answer holds no record where x-entity.recordPath says it is"],
     ];
+
     for (const [nth, answer, reason] of cases) {
-      /* The create answers with its id, so the first item read is the baseline and the second the after. */
+      // The create answers with its id, so the first item read is the baseline and the second the after.
       const { ctx } = stage(readingFrom(nth, answer));
       expect(await runCheck(noLostUpdate, ctx)).toEqual({ kind: "unresolved", reason });
     }
@@ -153,6 +164,7 @@ describe("concurrency.no-lost-update fields and plan", () => {
       },
       type: "object",
     };
+
     const record = {
       code: "AB",
       count: 3,
@@ -166,6 +178,7 @@ describe("concurrency.no-lost-update fields and plan", () => {
       short: "s",
       status: "open",
     };
+
     const respond = readingFrom(1, { body: record, status: 200 });
     const { ctx } = stage(respond, { item }, { immutable: ["fixed"] });
     expect(await runCheck(noLostUpdate, ctx)).toEqual({
@@ -174,9 +187,10 @@ describe("concurrency.no-lost-update fields and plan", () => {
         "only 1 writable string field(s) are present on the record; two are needed so the concurrent writes " +
         "cannot legitimately clobber each other",
     });
-    /* With no update body to enumerate, any free string on the record is a candidate. */
+    // With no update body to enumerate, any free string on the record is a candidate.
     const { ctx: unknownBody } = stage(respond, { item });
     const plan = noLostUpdate.plan(unknownBody);
+
     if (!plan.ok) throw new Error("expected the check to apply");
     expect(await noLostUpdate.run({ ...unknownBody, updateOp: undefined }, plan.value)).toEqual({
       kind: "finding",
@@ -196,7 +210,7 @@ describe("concurrency.no-lost-update fields and plan", () => {
   });
 });
 
-/* The check's plan over an update body of these properties; `undefined`, a body that lists none. */
+// The check's plan over an update body of these properties; `undefined`, a body that lists none.
 const planned = (properties?: Record<string, unknown>) =>
   noLostUpdate.plan(
     stage(widgetApi(), { item: { ...(properties === undefined ? {} : { properties }), type: "object" } }).ctx,

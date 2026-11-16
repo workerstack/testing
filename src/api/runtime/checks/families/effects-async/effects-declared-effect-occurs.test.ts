@@ -16,18 +16,24 @@ import {
 import { declaredEffectsOccur as check } from "./effects-declared-effect-occurs.ts";
 
 const clones = [{ entity: "widget", op: "create" }];
+
 const doc = withOperation(baseDocument(), "post /widgets/{id}/clone", {
   operationId: "cloneWidget",
   requestBody: withBody,
   "x-effects": clones,
 });
+
 withOperation(doc, "post /widgets/{id}/copy", { operationId: "copyWidget", "x-effects": clones });
+
 withOperation(doc, "post /widgets/{id}/quiet", { operationId: "quietWidget", "x-effects": [] });
+
 withOperation(doc, "post /widgets/{id}/parts/{part_id}/act", {
   operationId: "actOnPart",
   "x-effects": [{ entity: "widget", op: "update" }],
 });
+
 withOperation(doc, "post /gated/{id}", { operationId: "gatedClone", "x-effects": clones, "x-feature-gate": "pro" });
+
 const tagged = (operationId: string, before: string) =>
   withOperation(doc, `post /widgets/{id}/${operationId}`, {
     operationId,
@@ -35,11 +41,17 @@ const tagged = (operationId: string, before: string) =>
     "x-bind": { query: { board: "before:$.id" } },
     "x-effects": [{ entity: "widget", op: "update" }],
   });
+
 tagged("tagWidget", "createBoard");
+
 tagged("pinWidget", "nowhere");
+
 tagged("cardWidget", "getCard");
+
 tagged("noteWidget", "createCard");
+
 tagged("readWidget", "getInbox");
+
 withOperation(doc, "post /widgets/{id}/audit", {
   operationId: "auditWidget",
   "x-effects": [
@@ -48,15 +60,19 @@ withOperation(doc, "post /widgets/{id}/audit", {
     { entity: "widget", op: "update" },
   ],
 });
+
 const model = modelOf(doc);
 
 /** A widget collection holding w1, whose actions add a widget when `adds` says they do. */
 function widgets(action: Answer = { body: {}, status: 200 }, adds = true, more: Record<string, Handler> = {}) {
   const held = ["w1"];
+
   const act = () => {
     if (adds && action.status < 400) held.push(`w${held.length + 1}`);
+
     return action;
   };
+
   return routes({
     "GET /widgets": () => ({ body: held.map((id) => ({ id, name: id })), status: 200 }),
     "POST /widgets/w1/clone": act,
@@ -69,6 +85,7 @@ async function occurred(respond: Responder, ids: string[], fields: Partial<Liste
   const recordCreated = vi.fn<NonNullable<CheckContext["recordCreated"]>>();
   const recordUnidentified = vi.fn<NonNullable<CheckContext["recordUnidentified"]>>();
   const effectOps = ids.map((id): OperationModel => op(model, id));
+
   const stage = contextFor(model, "listWidgets", {
     respond,
     fields: {
@@ -79,15 +96,18 @@ async function occurred(respond: Responder, ids: string[], fields: Partial<Liste
       ...fields,
     },
   });
+
   const outcome = await check.run(stage.ctx, undefined);
   const calls = stage.sent.map((s) => `${s.method} ${s.path}`);
+
   return { ...stage, calls, outcome, recordCreated, recordUnidentified };
 }
 
 describe("plan", () => {
   it("applies when some operation declares x-effects", () => {
     const plan = (effectOps: OperationModel[]) =>
-      check.plan(contextFor(model, "listWidgets", { respond: () => undefined, fields: { effectOps } }).ctx).ok;
+      check.plan(contextFor(model, "listWidgets", { respond: () => {}, fields: { effectOps } }).ctx).ok;
+
     expect(plan([])).toBe(false);
     expect(plan([op(model, "cloneWidget")])).toBe(true);
   });
@@ -120,6 +140,7 @@ describe("an action that succeeds", () => {
     const respond = widgets({ body: {}, status: 200 }, true, {
       "GET /widgets/w1": () => ({ body: { id: "w1", name: "now" }, status: 200 }),
     });
+
     const run = await occurred(respond, ["copyWidget"], { readOp: op(model, "getWidget") });
     expect(run.calls).toEqual(["GET /widgets/w1", "GET /widgets", "POST /widgets/w1/copy", "GET /widgets"]);
     expect(run.sent[2]?.options).not.toHaveProperty("body");
@@ -215,9 +236,11 @@ describe("an x-before prelude", () => {
         "POST /boards/b1/cards": () => ({ body: { id: "c1" }, status: 201 }),
       },
     );
+
     const run = await occurred(respond, ["tagWidget", "readWidget", "noteWidget"], {
       records: [{ board_id: "b1", id: "w1", name: "w1" }],
     });
+
     expect(run.calls).toContain("GET /inbox");
     expect(run.calls).toContain("POST /boards/b1/cards");
     expect(run.recordCreated).not.toHaveBeenCalled();
@@ -230,6 +253,7 @@ describe("baselines", () => {
     const run = await occurred(widgets(undefined, false, { "POST /widgets/w1/audit": () => ({ status: 200 }) }), [
       "auditWidget",
     ]);
+
     expect(run.calls).toEqual(["GET /widgets", "POST /widgets/w1/audit", "GET /widgets", "GET /widgets"]);
     expect(run.findings.findings.map((f) => f.summary)).toEqual([
       'auditWidget declares an effect on "job", which has no list route',
@@ -241,6 +265,7 @@ describe("baselines", () => {
 function variant(change: { entity?: null; identity?: null }): SpecModel {
   const createBoard = op(model, "createBoard");
   const board = { ...model.entities.get("board"), ...change } as EntityModel;
+
   return {
     ...model,
     byOperationId: new Map(model.byOperationId).set("createBoard", { ...createBoard, ...change }),
@@ -253,6 +278,7 @@ describe("a prelude create the model describes partly", () => {
     const run = await occurred(tag({ body: { id: "b1" }, status: 201 }), ["tagWidget"], {
       model: variant({ entity: null }),
     });
+
     expect(run.recordCreated).not.toHaveBeenCalled();
     expect(run.recordUnidentified).not.toHaveBeenCalled();
   });
@@ -261,6 +287,7 @@ describe("a prelude create the model describes partly", () => {
     const run = await occurred(tag({ body: { id: "b1" }, status: 201 }), ["tagWidget"], {
       model: variant({ identity: null }),
     });
+
     expect(run.recordCreated).toHaveBeenCalledWith({ entity: "board", id: "b1", scope: { id: "w1" } }, "alpha");
   });
 });

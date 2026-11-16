@@ -19,15 +19,17 @@ import {
 const DEFECT_VERDICTS = new Set(["BACKEND_BUG", "SECURITY", "SPEC_BUG"]);
 
 let open: Array<{ close: () => Promise<void> }> = [];
+
 afterEach(async () => {
   for (const server of open) await server.close();
   open = [];
 });
 
-/* Registers a started server for teardown and returns its base url. */
+// Registers a started server for teardown and returns its base url.
 async function track(started: Served | Promise<Served>): Promise<string> {
   const served = await started;
   open.push(served);
+
   return served.url;
 }
 
@@ -108,9 +110,9 @@ async function flipsBooleanBesideEnum() {
 async function createsCallerBeforeRead() {
   const result = await runProfile(await track(serveCreateFirst()));
   expect(defectsOf(result)).toEqual([]);
-  for (const id of ["profile.create", "profile.read", "profile.update"]) {
-    expect(statusOf(result, id)).toBe("passed");
-  }
+
+  for (const id of ["profile.create", "profile.read", "profile.update"]) expect(statusOf(result, id)).toBe("passed");
+
   const post = result.client.transcript.find((exchange) => exchange.method === "POST" && exchange.status === 201);
   const sent = (post?.requestBody as { display_name?: unknown } | undefined)?.display_name;
   const firstRead = result.client.transcript.find((exchange) => exchange.method === "GET" && exchange.status === 200);
@@ -142,14 +144,17 @@ async function asksWithCreatedHandle() {
 async function gradesBothReads() {
   const result = await runProfile(await track(serveTwoReads()));
   expect(defectsOf(result)).toEqual([]);
+
   for (const id of ["profile.read", "profile.flags"]) {
     const op = result.scope.operations.find((item) => item.operationId === id);
     expect(op?.status).toBe("passed");
     expect(op?.checks.passed).toContain("auth.self-is-the-caller");
   }
+
   const paths = result.client.transcript
     .filter((exchange) => exchange.method === "GET" && exchange.status === 200)
     .map((exchange) => new URL(exchange.url).pathname);
+
   expect(paths).toContain("/v1/me");
   expect(paths).toContain("/v1/me/flags");
 }
@@ -160,6 +165,7 @@ async function referenceCaughtOnlyWhenDropped() {
     dialect: "postgrest",
     via: listening,
   });
+
   expect(dropped.error).toBeUndefined();
   expect(dropped.detected).toBe(true);
   expect(dropped.spurious).toEqual([]);
@@ -168,6 +174,7 @@ async function referenceCaughtOnlyWhenDropped() {
 async function untaggedReferenceBlamesNoCaller() {
   const server = await createMemoryServer({ untagged: true });
   open.push(server);
+
   const result = await run({
     baseUrl: server.url,
     principals: PRINCIPALS,
@@ -175,11 +182,13 @@ async function untaggedReferenceBlamesNoCaller() {
     seed: 42,
     spec: `${server.url}/v1/openapi/spec`,
   });
+
   const blamed = result.findings.filter(
     (finding) =>
       DEFECT_VERDICTS.has(finding.verdict) &&
       (finding.entity === "profile" || finding.entity === "me" || finding.check === "auth.self-is-the-caller"),
   );
+
   expect(blamed).toEqual([]);
 }
 

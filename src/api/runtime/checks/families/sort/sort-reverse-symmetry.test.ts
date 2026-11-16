@@ -6,25 +6,28 @@ import { applyOrder, NOTES, PARAMS, queryDoc, queryOf, stage } from "../composit
 import { growing, ignoring, LATECOMER, refusingAfter, refusingOrder } from "./__fixtures__/sort-api.ts";
 import { sortReverseSymmetry } from "./sort-reverse-symmetry.ts";
 
-/* Every record scored, so the nullable field gives way to the title. */
+// Every record scored, so the nullable field gives way to the title.
 const scored = NOTES.map((row, index) => ({ ...row, score: index }));
 
-/* The correct order for each direction, then `bend` applied to the descending one. */
+// The correct order for each direction, then `bend` applied to the descending one.
 const bending =
   (bend: (rows: Record_[]) => Record_[], asc: (rows: Record_[]) => Record_[] = (rows) => rows): Responder =>
   (_method, _path, options) => {
     const order = queryOf(options)["order"] ?? "";
     const rows = applyOrder(NOTES, order) ?? [];
+
     return { body: order.endsWith(".desc") ? bend(rows) : asc(rows), status: 200 };
   };
 
 const shorter = bending((rows) => rows.slice(1));
 const swapped = bending((rows) => [...rows.slice(1), LATECOMER]);
 const doubledDesc = bending((rows) => [...rows.slice(1), rows[1] as Record_]);
+
 const doubledAsc = bending(
   (rows) => rows,
   (rows) => [...rows.slice(1), rows[1] as Record_],
 );
+
 const sameBothWays: Responder = (_method, _path, options) => ({
   body: applyOrder(NOTES, (queryOf(options)["order"] ?? "").replace(".desc", ".asc")),
   status: 200,

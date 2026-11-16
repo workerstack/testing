@@ -29,20 +29,25 @@ export const declaredSortableNullsAccepted: Check = defineCheck({
     const rejected: string[] = [];
     const refusedBy: Exchange[] = [];
     const unknown: string[] = [];
+
     for (const field of resolvedCaps(ctx).sortable) {
       for (const token of ["first", "last"] as const) {
         if (!fieldAllowsNulls(field, resolvedCaps(ctx), token)) continue;
         const clause = sortTermWithNulls(conv(ctx), { direction: "asc", field: field.field, nulls: token });
+
         if (clause === null) continue;
         const result = await list(ctx, q(ctx, { limit: 5, order: clause }));
         const answer = declarationAnswer(result.exchange.status);
+
         if (answer === "refused") {
           refusedBy.push(result.exchange);
           rejected.push(`${clause} (${result.exchange.status})`);
         }
+
         if (answer === "unknown") unknown.push(`${clause} (${result.exchange.status})`);
       }
     }
+
     if (rejected.length === 0 && unknown.length > 0) {
       return ctx.findings.unresolved(
         this.id,
@@ -50,7 +55,9 @@ export const declaredSortableNullsAccepted: Check = defineCheck({
         `probes were turned away without a verdict: ${unknown.join(", ")}`,
       );
     }
+
     if (rejected.length === 0) return ASSERTED;
+
     return ctx.findings.spec(this.id, ctx.entityName, {
       summary: "the document declares a nulls sort token the backend rejects",
       detail: `rejected: ${rejected.join(", ")}.`,

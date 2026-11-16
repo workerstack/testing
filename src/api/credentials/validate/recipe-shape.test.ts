@@ -6,12 +6,14 @@ import type { OpenApiDocument } from "../../spec/types.ts";
 import { kindProblems } from "./recipe-shape.ts";
 import { securityProblems, type SpecView } from "./security.ts";
 
-/* Each recipe kind's own shape. A .json or .mjs config skips TypeScript, so this is the only check. */
+// Each recipe kind's own shape. A .json or .mjs config skips TypeScript, so this is the only check.
 
 const view = (doc: OpenApiDocument): SpecView => {
   const model = buildModel(doc);
+
   return { authFlows: false, operations: model.operations, schemes: model.schemes };
 };
+
 const ANYROW = view(anyrow);
 const steps = [{ operationId: "auth.login" }];
 const principals = { alpha: { tenant: "t1" } };
@@ -36,7 +38,7 @@ describe("login and refresh", () => {
   });
 });
 
-/* A refresh whose one step sends `{name}`. */
+// A refresh whose one step sends `{name}`.
 const renew = (name: string) => ({
   from: "$.t",
   steps: [{ body: { token: `{${name}}` }, operationId: "auth.login" }],
@@ -199,8 +201,10 @@ describe("options and the kinds they fit", () => {
 
   it("catch the same mistake made through a principal's override", () => {
     const base = { jwt: { expiresIn: { from: "$.expires_in" }, login, refresh: login } };
+
     const override = (security: Record<string, unknown>) =>
       securityProblems({ principals: { alpha: { security, tenant: "t" } }, security: base }, ANYROW);
+
     expect(override({ jwt: { static: "t" } })).toEqual([]);
     expect(override({ jwt: { expiresIn: { from: "$.x" }, static: "t" } })).toEqual([
       "principals.alpha.security.jwt.expiresIn.from reads the answer that issued the credential; a static recipe has none",

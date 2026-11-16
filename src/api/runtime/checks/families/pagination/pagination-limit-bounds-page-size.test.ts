@@ -22,11 +22,13 @@ describe("pagination.limit-bounds-page-size", () => {
 
   it("reports a backend that ignores the page size", async () => {
     const rows = widgets(5);
+
     const { ctx, findings } = stage(
       doc,
       pagedBackend(rows, (body) => ({ body: { ...body, items: rows }, status: 200 })),
       rows,
     );
+
     expect(await runCheck(limitBoundsPageSize, ctx)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     expect(findings.findings[0]?.summary).toBe("limit does not bound the number of records returned");
     expect(findings.findings[0]?.detail).toMatch(/limit=2 returned 5 records/);

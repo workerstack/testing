@@ -11,6 +11,7 @@ describe("probeCreateFixtures", () => {
       required: ["n"],
       type: "object",
     };
+
     const model = modelOf(notes({ body: impossible }));
     probeCreateFixtures(model);
     expect(model.gaps.gaps.map((gap) => `${gap.operationId} ${gap.tag}`)).toContain("note.create fixture");

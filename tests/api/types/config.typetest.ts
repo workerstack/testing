@@ -1,16 +1,14 @@
-/*
- * Compile-time test, checked by `tsc -p tsconfig.test.json` (part of `bun check`).
- *
- * The config a user writes: a recipe is exactly one kind, a principal's known keys are typed while
- * its identity data stays open, and `defineConfig` checks a literal against `ApiConfig` in place.
- * Each `@ts-expect-error` line must fail to compile; if one stops failing, the check fails.
- */
+// Compile-time test, checked by `tsc -p tsconfig.json` (part of `bun check`).
+//
+// The config a user writes: a recipe is exactly one kind, a principal's known keys are typed while
+// its identity data stays open, and `defineConfig` checks a literal against `ApiConfig` in place.
+// Each `@ts-expect-error` line must fail to compile; if one stops failing, the check fails.
 import { expectTypeOf } from "vitest";
 
 import { defineConfig, env } from "../../../src/api/index.ts";
 import type { ApiConfig, PrincipalEntry, Recipe } from "../../../src/api/index.ts";
 
-/* Each recipe kind alone, with the options every kind takes. */
+// Each recipe kind alone, with the options every kind takes.
 const recipes: Recipe[] = [
   { static: "token" },
   { static: { password: "p", username: "u" }, holds: ["read"] },
@@ -20,6 +18,7 @@ const recipes: Recipe[] = [
   { oauth2: { clientId: "id", clientSecret: "s", flow: "clientCredentials" } },
   { static: "t", placements: [{ in: "query", name: "api_key" }] },
 ];
+
 expectTypeOf(recipes).toEqualTypeOf<Recipe[]>();
 
 // @ts-expect-error a recipe names exactly one kind, never two
@@ -37,7 +36,7 @@ const noSteps: Recipe = { login: { from: "$.t", steps: [] } };
 // @ts-expect-error the API tester performs only the clientCredentials and password grants
 const deviceGrant: Recipe = { oauth2: { clientId: "id", flow: "deviceCode" } };
 
-/* A principal: open identity data, typed grading keys. */
+// A principal: open identity data, typed grading keys.
 const principal: PrincipalEntry = {
   email: "a@example.test",
   rank: 2,
@@ -46,7 +45,9 @@ const principal: PrincipalEntry = {
   security: { jwt: { expiresIn: 60 } },
   tenant: "t1",
 };
+
 expectTypeOf(principal["email"]).toBeUnknown();
+
 expectTypeOf(principal.tenant).toEqualTypeOf<string | undefined>();
 
 // @ts-expect-error a tenant is a string
@@ -61,13 +62,14 @@ const numericScope: PrincipalEntry = { scope: { project_id: 1 } };
 // @ts-expect-error readOnly is set or absent, never false
 const writable: PrincipalEntry = { readOnly: false };
 
-/* defineConfig returns the config as ApiConfig, typing a literal and its callbacks in place. */
+// defineConfig returns the config as ApiConfig, typing a literal and its callbacks in place.
 const config = defineConfig({
   baseUrl: env("TESTING_API_BASE_URL"),
   hooks: {
     resolveCredential: async (scheme, caller) => {
       expectTypeOf(scheme).toBeString();
       expectTypeOf(caller.identity).toEqualTypeOf<Readonly<Record<string, unknown>>>();
+
       return { expiresIn: 60, value: `${scheme}:${caller.id}` };
     },
   },
@@ -75,7 +77,9 @@ const config = defineConfig({
   security: { bearer: { hook: true } },
   spec: "openapi.json",
 });
+
 expectTypeOf(config).toEqualTypeOf<ApiConfig>();
+
 expectTypeOf(env).returns.toBeString();
 
 defineConfig({
@@ -104,4 +108,5 @@ defineConfig({
 });
 
 export type Unused = [typeof twoKinds, typeof noKind, typeof hookOff, typeof noSteps, typeof deviceGrant];
+
 export type UnusedPrincipals = [typeof numericTenant, typeof textRank, typeof numericScope, typeof writable];

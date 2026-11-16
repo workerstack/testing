@@ -29,11 +29,11 @@ const ALL = Object.keys(DEFECTS) as DefectName[];
 const none = (names: DefectName[], set: ReadonlySet<DefectName>): DefectName[] => names.filter((n) => set.has(n));
 
 /** What a store or shape cannot show: where each rule applies, and which defects it leaves out. */
-interface Exclusion {
+type Exclusion = {
   why: string;
   applies: (backend: Backend, dialect: string) => boolean;
   excludes: (name: DefectName) => boolean;
-}
+};
 
 const among =
   (set: ReadonlySet<DefectName>) =>
@@ -107,11 +107,13 @@ describe("defectsFor", () => {
     const leaks = BACKENDS.flatMap((backend) =>
       [...Object.keys(DIALECTS), "unknown"].flatMap((dialect) => {
         const names = defectsFor(backend, dialect);
+
         return EXCLUSIONS.filter((rule) => rule.applies(backend, dialect)).flatMap((rule) =>
           names.filter(rule.excludes).map((name) => `${backend}/${dialect} ${rule.why}: ${name}`),
         );
       }),
     );
+
     expect(leaks).toEqual([]);
   });
 
@@ -121,6 +123,7 @@ describe("defectsFor", () => {
         .filter((dialect) => defectsFor(backend, dialect).includes("DISCRIMINATOR_BRANCH_WRONG"))
         .map((dialect) => `${backend}/${dialect}`),
     );
+
     expect(where).toEqual(["memory/postgrest"]);
   });
 
@@ -128,6 +131,7 @@ describe("defectsFor", () => {
     const everywhere = new Set(
       BACKENDS.flatMap((backend) => Object.keys(DIALECTS).flatMap((dialect) => defectsFor(backend, dialect))),
     );
+
     expect(ALL.filter((name) => !everywhere.has(name)).toSorted()).toEqual(
       [...CLIENT_ID_ONLY, ...WRITE_ONLY_FIELD_ONLY, ...KEY_LIFECYCLE_ONLY, ...CACHED_READS_ONLY].toSorted(),
     );

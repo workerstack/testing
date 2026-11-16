@@ -3,7 +3,7 @@ import type { StepAnswer } from "../ports.ts";
 import { readAnswer } from "../read.ts";
 import type { AcquireCtx } from "./types.ts";
 
-/* What every recipe asks of an answer and of the scopes it is acquiring for. */
+// What every recipe asks of an answer and of the scopes it is acquiring for.
 
 /** A call answered with a status other than 2xx, which it keeps. */
 export class RefusedAnswer extends Error {
@@ -22,8 +22,10 @@ export function answered(answer: StepAnswer, what: string): void {
 /** The credential at `from` in an answer, or a reason naming where it was looked for and the answer's type. */
 export function valueAt(answer: StepAnswer, from: string, what: string): string {
   const value = readAnswer(answer, from);
+
   if (value === undefined)
     throw new Error(`${what} answered no credential at ${from} (${describeAnswerType(answer.headers)})`);
+
   return value;
 }
 
@@ -31,7 +33,6 @@ export function valueAt(answer: StepAnswer, from: string, what: string): string 
 export function assertHolds(ctx: AcquireCtx, holds: readonly string[] | undefined): void {
   const held = new Set(holds);
   const missing = ctx.scopes.filter((scope) => !held.has(scope));
-  if (missing.length > 0) {
-    throw new Error(`the "${ctx.scheme.name}" credential does not hold ${missing.join(", ")}`);
-  }
+
+  if (missing.length > 0) throw new Error(`the "${ctx.scheme.name}" credential does not hold ${missing.join(", ")}`);
 }

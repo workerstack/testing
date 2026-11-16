@@ -16,9 +16,11 @@ describe("JOB", () => {
 
   it("has a repeated client-set dimension and two independent writable texts", () => {
     expect(JOB.fields.find((field) => field.name === "kind")).toMatchObject({ enum: ["export", "import", "sync"] });
+
     const writable = JOB.fields.filter(
       (field) => field.type === "string" && field.generated !== true && field.enum === undefined,
     );
+
     expect(writable.map((field) => field.name)).toEqual(["name", "note"]);
   });
 });

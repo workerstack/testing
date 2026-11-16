@@ -14,8 +14,10 @@ function send(res: ServerResponse, status: number, body?: unknown): void {
   if (body === undefined) {
     res.writeHead(status);
     res.end();
+
     return;
   }
+
   const text = JSON.stringify(body);
   res.writeHead(status, { "content-length": String(Buffer.byteLength(text)), "content-type": "application/json" });
   res.end(text);
@@ -29,10 +31,13 @@ function readJson(req: IncomingMessage): Promise<unknown> {
     });
     req.on("end", () => {
       const text = Buffer.concat(chunks).toString("utf8");
+
       if (text === "") {
         resolve(undefined);
+
         return;
       }
+
       try {
         resolve(JSON.parse(text) as unknown);
       } catch (error) {
@@ -61,6 +66,7 @@ function entityPaths(name: string, plural: string): NonNullable<OpenApiDocument[
     properties: { items: { items: itemSchema(), type: "array" } },
     required: ["items"],
   };
+
   return {
     [`/v1/${plural}`]: {
       get: {
@@ -118,17 +124,18 @@ const SPEC = {
   },
 } as OpenApiDocument;
 
-interface Hit {
+type Hit = {
   at: number;
   entity: string;
   method: string;
   path: string;
-}
+};
 
 type Fruit = { id: string; name: string; note: string };
+
 type FruitName = "apple" | "banana";
 
-/* Records every hit and whether two entities were ever in flight at once. */
+// Records every hit and whether two entities were ever in flight at once.
 type World = {
   hits: Hit[];
   inflight: Set<string>;
@@ -155,6 +162,7 @@ async function createFruit(world: World, { entity, req, res, store }: Exchange):
 
 async function patchFruit(id: string, { req, res, store }: Exchange): Promise<void> {
   const row = store.get(id);
+
   if (row === undefined) return send(res, 404, { error: "missing" });
   const body = ((await readJson(req)) ?? {}) as { name?: string; note?: string };
   const next = { ...row, ...body };
@@ -164,11 +172,15 @@ async function patchFruit(id: string, { req, res, store }: Exchange): Promise<vo
 
 async function fruitItem(id: string, exchange: Exchange): Promise<void> {
   const { method, res, store } = exchange;
+
   if (method === "GET") {
     const row = store.get(id);
+
     return row === undefined ? send(res, 404, { error: "missing" }) : send(res, 200, row);
   }
+
   if (method === "PATCH") return patchFruit(id, exchange);
+
   if (method !== "DELETE") return send(res, 405);
   store.delete(id);
   send(res, 204);
@@ -176,8 +188,11 @@ async function fruitItem(id: string, exchange: Exchange): Promise<void> {
 
 async function answer(world: World, id: string | undefined, exchange: Exchange): Promise<void> {
   const { method, res, store } = exchange;
+
   if (id !== undefined) return fruitItem(id, exchange);
+
   if (method === "GET") return send(res, 200, { items: [...store.values()] });
+
   if (method === "POST") return createFruit(world, exchange);
   send(res, 405);
 }
@@ -185,16 +200,18 @@ async function answer(world: World, id: string | undefined, exchange: Exchange):
 async function route(world: World, req: IncomingMessage, res: ServerResponse): Promise<void> {
   const url = new URL(req.url ?? "/", "http://127.0.0.1");
   const method = (req.method ?? "GET").toUpperCase();
+
   if (url.pathname === "/v1/openapi/spec" && method === "GET") return send(res, 200, SPEC);
 
   const match = /^\/v1\/(apples|bananas)(?:\/([^/]+))?$/.exec(url.pathname);
+
   if (match === null) return send(res, 404, { error: "missing" });
   const entity: FruitName = match[1] === "apples" ? "apple" : "banana";
 
   world.inflight.add(entity);
-  for (const other of world.inflight) {
-    if (other !== entity) world.overlap = true;
-  }
+
+  for (const other of world.inflight) if (other !== entity) world.overlap = true;
+
   world.hits.push({ at: Date.now(), entity, method, path: url.pathname });
 
   try {
@@ -217,6 +234,7 @@ async function startWorld(): Promise<{
     seq: 0,
     stores: { apple: new Map(), banana: new Map() },
   };
+
   const server = createServer((req, res) => {
     void route(world, req, res);
   });
@@ -225,6 +243,7 @@ async function startWorld(): Promise<{
     server.listen(0, "127.0.0.1", resolve);
   });
   const addr = server.address() as AddressInfo;
+
   return {
     close: () =>
       new Promise((resolve, reject) => {
@@ -270,6 +289,7 @@ describe("entity lanes", () => {
 
   it("keeps a parent and its child in one lane, and puts the rest in their own", async () => {
     const server = await createMemoryServer();
+
     try {
       const spec = (await (await fetch(`${server.url}/v1/openapi/spec`)).json()) as OpenApiDocument;
       const model = buildModel(dereference(spec).doc);

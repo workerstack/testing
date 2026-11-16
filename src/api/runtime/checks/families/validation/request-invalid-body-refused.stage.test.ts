@@ -8,20 +8,21 @@ import type { Record_ } from "../../../world/records.ts";
 import type { Responder } from "../../__fixtures__/harness.ts";
 import { invalidBodyRefused } from "./request-invalid-body-refused.ts";
 
-/*
- * The check as the security stage runs it, over the socket-free notes API: where its one invalid
- * body goes, where it never goes, and what becomes of an open write the backend applied.
- */
+// The check as the security stage runs it, over the socket-free notes API: where its one invalid
+// body goes, where it never goes, and what becomes of an open write the backend applied.
 
 const json = (schema: unknown) => ({ content: { "application/json": { schema } } });
 const created = { "201": { description: "made", ...json({ type: "object" }) } };
+
 const account = {
   properties: { email: { format: "email", type: "string" }, name: { type: "string" } },
   required: ["email", "name"],
   type: "object",
 };
-/* A declared signup: the one open POST the check sends to. */
+
+// A declared signup: the one open POST the check sends to.
 const signup = { security: [], "x-fresh-principal": true };
+
 const doc = notesDoc({
   "/login": {
     post: { operationId: "auth.login", requestBody: json(account), responses: created, security: [] },
@@ -35,8 +36,9 @@ const doc = notesDoc({
 });
 
 /** The notes API over `rows` behind `doc`, with `extra` answering first wherever it answers. */
-function api(rows: Record_[], extra: Responder = () => undefined): Responder {
+function api(rows: Record_[], extra: Responder = () => {}): Responder {
   const notes = notesApi(doc, rows);
+
   return (method, path, request) => extra(method, path, request) ?? notes(method, path, request);
 }
 
@@ -49,7 +51,7 @@ describe("request.invalid-body-refused in the security stage", () => {
     ledgerNotes(ctx, ["run-1"]);
     const since = options.seen.length;
     await runWriteSecurity(ctx, [invalidBodyRefused]);
-    /* Besides its PATCH, the stage's own throwaway for notes.delete, and the open POST, both of the run's making. */
+    // Besides its PATCH, the stage's own throwaway for notes.delete, and the open POST, both of the run's making.
     const writes = options.seen.slice(since).filter((seen) => seen.method !== "GET");
     expect(writes.filter((seen) => seen.method === "PATCH").map((seen) => seen.path)).toEqual(["/notes/run-1"]);
     expect(writes.filter((seen) => seen.path.includes("pre"))).toEqual([]);
@@ -60,10 +62,12 @@ describe("request.invalid-body-refused in the security stage", () => {
     const byPath: SecurityConfig = {
       bearer: { login: { from: "$.token", steps: [{ method: "POST", path: "/login" }] } },
     };
+
     const options = optionsFor(
       api([], (_method, path) => (path === "/login" ? { body: { token: "t" }, status: 200 } : undefined)),
       { security: byPath },
     );
+
     const ctx = await contextOf(options);
     const since = options.seen.length;
     await runWriteSecurity(ctx, [invalidBodyRefused]);
@@ -84,6 +88,7 @@ describe("request.invalid-body-refused in the security stage", () => {
       api([], (_method, path) => (path === "/login" ? { body: { token: "t" }, status: 200 } : undefined)),
       { security: LOGIN },
     );
+
     const ctx = await contextOf(options);
     const since = options.seen.length;
     await runWriteSecurity(ctx, [invalidBodyRefused]);
@@ -101,6 +106,7 @@ describe("request.invalid-body-refused in the security stage, on an open POST th
     const ctx = await contextOf(
       optionsFor(api([], (_method, path) => (path === "/register" ? { body: {}, status: 201 } : undefined))),
     );
+
     trackCreates(ctx);
     await runWriteSecurity(ctx, [invalidBodyRefused]);
     expect(ctx.ledger.unidentifiedCreates).toMatchObject([
@@ -115,11 +121,14 @@ describe("request.invalid-body-refused in the security stage, on an open POST th
 
   it("ledgers what a declared signup made when its answer names a record that reads back", async () => {
     const rows: Record_[] = [];
+
     const registering: Responder = (_method, path) => {
-      if (path !== "/notes/register") return undefined;
+      if (path !== "/notes/register") return;
       rows.push({ id: "n9", title: "made by the probe" });
+
       return { body: { note_id: "n9" }, status: 201 };
     };
+
     const ctx = await contextOf(optionsFor(api(rows, registering)));
     trackCreates(ctx);
     await runWriteSecurity(ctx, [invalidBodyRefused]);

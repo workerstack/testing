@@ -3,15 +3,18 @@ import { describe, expect, it } from "vitest";
 import { accountsApi, accountsDoc, accountsState } from "../run/__fixtures__/accounts.ts";
 import { contextOf, EMAIL_LOGIN, optionsFor } from "../run/__fixtures__/api.ts";
 
-/* The run's client ledgers each account-making request as it goes, and an account that deleted itself. */
+// The run's client ledgers each account-making request as it goes, and an account that deleted itself.
 
 async function run(doc = accountsDoc({ adminDelete: true })) {
   const state = accountsState();
+
   const ctx = await contextOf(
     optionsFor(accountsApi(state, doc), { principals: { alpha: { email: "alpha@x.test" } }, security: EMAIL_LOGIN }),
   );
+
   const signUp = (body: unknown) =>
     ctx.client.request("POST", "/signup", { as: { anonymous: true }, body, operationId: "auth.signup" });
+
   return { ctx, signUp };
 }
 
@@ -26,6 +29,7 @@ describe("watchAccounts", () => {
 
   it("takes the id as sent when the answer has none, and none when neither does or the body is no object", async () => {
     const { ctx } = await run();
+
     const quiet = (body: unknown) =>
       ctx.client.request("POST", "/signup", {
         as: { anonymous: true },
@@ -33,6 +37,7 @@ describe("watchAccounts", () => {
         headers: { "x-quiet": "1" },
         operationId: "auth.signup",
       });
+
     await quiet({ email: "b@x.test", member_id: "m-sent" });
     await quiet({ email: "c@x.test" });
     await quiet("not an object");
@@ -68,8 +73,10 @@ describe("watchAccounts", () => {
 
 async function selfCreate(security: "open" | "either" | "auth") {
   const { ctx } = await run(accountsDoc({ selfCreate: security }));
+
   const send = (as: { anonymous: true } | { principal: string }) =>
     ctx.client.request("POST", "/me", { as, body: { handle: "h" }, operationId: "me.create" });
+
   return { ctx, send };
 }
 

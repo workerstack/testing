@@ -18,12 +18,14 @@ describe("testing/no-header-branching", () => {
         'export const y = name.toLowerCase() === "x-api-key"',
       ].join("\n"),
     };
+
     expect(reportsOf(rule, fixture).map(({ line }) => line)).toEqual([1, 2, 3, 4, 5, 6]);
     expect(reportsOf(rule, fixture)[0]?.message).toBe(MESSAGE);
   });
 
   it("allows the security, spec security and credentials modules, the reference server and tests", () => {
     const source = 'export const h = "authorization"\nexport const v = `Bearer ${t}`\n';
+
     const fixture = {
       "src/api/security/credential-names.ts": source,
       "src/api/spec/security/placement.ts": source,
@@ -33,6 +35,7 @@ describe("testing/no-header-branching", () => {
       "src/api/runtime/auth.test.ts": source,
       "tests/api/integration/auth.test.ts": source,
     };
+
     expect(reportsOf(rule, fixture)).toEqual([]);
   });
 
@@ -46,6 +49,7 @@ describe("testing/no-header-branching", () => {
   it("leaves unrelated strings alone", () => {
     const source =
       'export const a = "content-type"\nexport const b = `Bearer`\nexport const c = "authorized"\nexport const d = tag`\\unicode`\n';
+
     expect(reportsOf(rule, { "src/api/runtime/a.ts": source })).toEqual([]);
   });
 

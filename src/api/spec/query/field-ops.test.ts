@@ -38,6 +38,7 @@ describe("ops and nulls helpers", () => {
       aliases: { ne: "neq" },
       filterable: [{ field: "id", ops: ["eq", "ne"] }],
     };
+
     expect(fieldAllows({ field: "id", ops: ["eq", "ne"] }, "eq", caps)).toBe(true);
     expect(fieldAllows({ field: "id", ops: ["eq", "ne"] }, "neq", caps)).toBe(true);
     expect(fieldAllows({ field: "id", ops: ["eq", "ne"] }, "in", caps)).toBe(false);

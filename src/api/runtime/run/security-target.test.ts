@@ -7,13 +7,14 @@ import { contextOf, ledgerNotes, notesApi, notesDoc, operationAt, optionsFor, ov
 import type { RunContext } from "./context.ts";
 import { recordTarget, targetReads } from "./security-target.ts";
 
-/* The run-created record a write or item-read probe may target, read back as its creator, or none. */
+// The run-created record a write or item-read probe may target, read back as its creator, or none.
 
 const op = (ctx: RunContext, id: string): OperationModel => ctx.model.byOperationId.get(id) as OperationModel;
 
 async function running(rows: Record_[], ids: string[]): Promise<RunContext> {
   const ctx = await contextOf(optionsFor(notesApi(notesDoc(), rows), {}));
   ledgerNotes(ctx, ids);
+
   return ctx;
 }
 
@@ -52,11 +53,13 @@ describe("recordTarget: a creator whose credential is BLOCKED", () => {
   it("is untested, citing the block, when the record cannot be read back as its creator", async () => {
     const ctx = await running([{ id: "n1", title: "a" }], ["n1"]);
     ctx.store.block({ principal: "alpha", scheme: "bearer" }, "the new credential is refused");
+
     const untested = {
       blocked: expect.objectContaining({ kind: "blocked", reason: "the new credential is refused" }),
       untested:
         "notes.update's target could not be read back: alpha's credential is BLOCKED (the new credential is refused)",
     };
+
     expect(await recordTarget(ctx, op(ctx, "notes.update"))).toEqual(untested);
     expect(await recordTarget(ctx, op(ctx, "notes.update"), targetReads())).toEqual(untested);
   });
@@ -87,8 +90,10 @@ describe("recordTarget: records it passes over", () => {
   it("leaves the current state undefined when the read fails on the way", async () => {
     const failing = overriding(notesApi(notesDoc(), [{ id: "n1", title: "a" }]), (method, path) => {
       if (method === "GET" && path === "/notes/n1") throw new Error("connect ECONNRESET");
-      return undefined;
+
+      return;
     });
+
     const ctx = await contextOf(optionsFor(failing, {}));
     ledgerNotes(ctx, ["n1"]);
     expect(await recordTarget(ctx, op(ctx, "notes.update"))).toMatchObject({ current: undefined, id: "n1" });
@@ -133,6 +138,7 @@ describe("recordTarget: a create under the record", () => {
         "x-entity": { action: "create", name: "comment" },
       },
     };
+
     const listed = {
       ...comments,
       get: {
@@ -142,6 +148,7 @@ describe("recordTarget: a create under the record", () => {
         "x-entity": { action: "list", name: "comment" },
       },
     };
+
     const ctx = await contextOf(optionsFor(notesApi(notesDoc({ "/notes/{note_id}/comments": listed }), []), {}));
     ledgerNotes(ctx, ["n1"]);
     expect(await recordTarget(ctx, op(ctx, "comments.create"))).toBeUndefined();
@@ -154,11 +161,13 @@ describe("recordTarget on an enveloped read", () => {
     const doc = notesDoc();
     operationAt(doc, "/notes/{note_id}", "get")["x-entity"] = { action: "read", name: "note", recordPath: "$.data" };
     const rows = [{ id: "n1", title: "here" }];
+
     const enveloped = overriding(notesApi(doc, rows), (method, path) =>
       method === "GET" && path === "/notes/n1"
         ? { body: { data: rows[0], meta: { version: 3 } }, status: 200 }
         : undefined,
     );
+
     const ctx = await contextOf(optionsFor(enveloped, {}));
     ledgerNotes(ctx, ["n1"]);
     expect(await recordTarget(ctx, op(ctx, "notes.update"))).toMatchObject({ current: { id: "n1", title: "here" } });
@@ -166,6 +175,7 @@ describe("recordTarget on an enveloped read", () => {
 
   it("reads a record back through its entity's read where the probe's own path documents none", async () => {
     const item = { in: "path", name: "note_id", required: true, schema: { type: "string" } };
+
     const archive = {
       post: {
         operationId: "notes.archive",
@@ -174,9 +184,11 @@ describe("recordTarget on an enveloped read", () => {
         "x-entity": { action: "action", name: "note" },
       },
     };
+
     const ctx = await contextOf(
       optionsFor(notesApi(notesDoc({ "/notes/{note_id}/archive": archive }), [{ id: "n1", title: "a" }]), {}),
     );
+
     ledgerNotes(ctx, ["n1"]);
     expect(await recordTarget(ctx, op(ctx, "notes.archive"))).toMatchObject({
       current: { id: "n1", title: "a" },
@@ -186,6 +198,7 @@ describe("recordTarget on an enveloped read", () => {
 
   it("targets a record whose entity documents no read, with no current state and no read sent", async () => {
     const tag = { in: "path", name: "tag_id", required: true, schema: { type: "string" } };
+
     const remove = {
       delete: {
         operationId: "tags.delete",
@@ -194,6 +207,7 @@ describe("recordTarget on an enveloped read", () => {
         "x-entity": { action: "delete", name: "tag" },
       },
     };
+
     const options = optionsFor(notesApi(notesDoc({ "/tags/{tag_id}": remove }), []), {});
     const ctx = await contextOf(options);
     const [id] = listedIds(["t1"]);
@@ -204,9 +218,10 @@ describe("recordTarget on an enveloped read", () => {
   });
 });
 
-/* The read-backs sent so far: the probe GETs. */
+// The read-backs sent so far: the probe GETs.
 const readsOf = (ctx: RunContext): number =>
   ctx.client.transcript.filter((exchange) => exchange.purpose === "probe" && exchange.method === "GET").length;
+
 const patch = (ctx: RunContext, path: string, body: unknown) =>
   ctx.client.request("PATCH", path, { as: { principal: "alpha" }, body });
 
@@ -242,10 +257,13 @@ describe("recordTarget: one stage's shared reads", () => {
 
   it("reads it afresh after a server error on a write to it, and after a write that names its scope", async () => {
     const rows = [{ id: "n1", title: "a" }];
+
     const api = overriding(notesApi(notesDoc(), rows), (method, path) => {
       if (method === "PATCH" && path === "/notes/n1") return { status: 503 };
+
       return method === "POST" && path === "/folders/f9/archive" ? { status: 200 } : undefined;
     });
+
     const ctx = await contextOf(optionsFor(api, {}));
     const [note] = listedIds(["n1"]);
     ctx.ledger.record(

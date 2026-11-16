@@ -11,8 +11,10 @@ function send(res: ServerResponse, status: number, body?: unknown): void {
   if (body === undefined) {
     res.writeHead(status);
     res.end();
+
     return;
   }
+
   const text = JSON.stringify(body);
   res.writeHead(status, { "content-length": String(Buffer.byteLength(text)), "content-type": "application/json" });
   res.end(text);
@@ -26,10 +28,13 @@ function readJson(req: IncomingMessage): Promise<unknown> {
     });
     req.on("end", () => {
       const text = Buffer.concat(chunks).toString("utf8");
+
       if (text === "") {
         resolve(undefined);
+
         return;
       }
+
       try {
         resolve(JSON.parse(text) as unknown);
       } catch (error) {
@@ -158,9 +163,10 @@ function spec(): OpenApiDocument {
 }
 
 type Table = { id: string; name: string };
+
 type Row = { id: string; name: string; table_id: string };
 
-/* The in-memory world behind the server: tables refuse every create with a plan-limit 402. */
+// The in-memory world behind the server: tables refuse every create with a plan-limit 402.
 type World = {
   document: OpenApiDocument;
   rows: Map<string, Row>;
@@ -169,11 +175,11 @@ type World = {
   rowSeq: number;
 };
 
-/* One request and the response that answers it. */
-interface Exchange {
+// One request and the response that answers it.
+type Exchange = {
   req: IncomingMessage;
   res: ServerResponse;
-}
+};
 
 type Route = {
   method: string;
@@ -255,13 +261,17 @@ const ROUTES: readonly Route[] = [
 async function dispatch(world: World, req: IncomingMessage, res: ServerResponse): Promise<void> {
   const url = new URL(req.url ?? "/", "http://127.0.0.1");
   const method = (req.method ?? "GET").toUpperCase();
+
   for (const route of ROUTES) {
     const match = route.method === method ? route.path.exec(url.pathname) : null;
+
     if (match !== null) {
       await route.handle(world, match, { req, res });
+
       return;
     }
   }
+
   send(res, 404);
 }
 
@@ -271,16 +281,20 @@ async function serve(seedTable: boolean): Promise<{
   url: string;
 }> {
   const world: World = { document: spec(), rowSeq: 0, rows: new Map(), tableCreates: 0, tables: new Map() };
+
   if (seedTable) world.tables.set("tbl_extract", { id: "tbl_extract", name: "from-extract" });
+
   const server = createServer((req, res) => {
     dispatch(world, req, res).catch(() => {
       if (!res.headersSent) send(res, 500);
     });
   });
+
   await new Promise<void>((resolve) => {
     server.listen(0, "127.0.0.1", resolve);
   });
   const addr = server.address() as AddressInfo;
+
   return {
     close: () =>
       new Promise((resolve, reject) => {
@@ -308,6 +322,7 @@ describe("plan-limit adopt", () => {
   it("seeds row from an effect-created table when table.create 402s", async () => {
     const world = await serve(true);
     worlds.push(world);
+
     const result = await run({
       baseUrl: world.url,
       keepFixtures: true,
@@ -316,12 +331,15 @@ describe("plan-limit adopt", () => {
       seed: 1,
       spec: `${world.url}/v1/openapi/spec`,
     });
+
     const rowBlocked = result.findings.filter(
       (f) => f.verdict === "BLOCKED" && f.entity === "row" && /could not seed/.test(f.summary),
     );
+
     const invented = result.client.transcript.some(
       (e) => e.method === "POST" && new URL(e.url).pathname === "/v1/tables" && e.status < 300,
     );
+
     expect(rowBlocked).toEqual([]);
     expect(result.entitiesTested).toContain("row");
     expect(invented).toBe(false);
@@ -332,6 +350,7 @@ describe("plan-limit adopt", () => {
   it("does not invent a table when the list is empty", async () => {
     const world = await serve(false);
     worlds.push(world);
+
     const result = await run({
       baseUrl: world.url,
       keepFixtures: true,
@@ -340,10 +359,13 @@ describe("plan-limit adopt", () => {
       seed: 1,
       spec: `${world.url}/v1/openapi/spec`,
     });
+
     const rowBlocked = result.findings.some((f) => f.verdict === "BLOCKED" && f.entity === "row");
+
     const invented = result.client.transcript.some(
       (e) => e.method === "POST" && new URL(e.url).pathname.endsWith("/tables") && e.status < 300,
     );
+
     expect(rowBlocked).toBe(true);
     expect(invented).toBe(false);
   });

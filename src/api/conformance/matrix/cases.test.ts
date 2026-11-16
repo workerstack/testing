@@ -5,7 +5,8 @@ import { inProcess, type Target, type Via } from "../harness/launch.ts";
 import { judgeDefect, missingValuesOf, portableResult, runBaselines, runSuite } from "./cases.ts";
 
 const MEMORY: Target = { backend: "memory", dialect: "postgrest", via: inProcess };
-/* D1 without credentials: the reference cannot even start, so every case reports why. */
+
+// D1 without credentials: the reference cannot even start, so every case reports why.
 const UNREACHABLE: Target = { backend: "d1", dialect: "postgrest", via: inProcess };
 const D1 = ["CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_D1_DATABASE_ID", "CLOUDFLARE_API_TOKEN"] as const;
 const saved = { ...process.env };
@@ -17,28 +18,32 @@ function rewriting(transport: (request: Request, inner: typeof fetch) => Promise
     launch: async (backend, options) => {
       const launched = await inProcess.launch(backend, options);
       const inner = launched.fetch as typeof fetch;
+
       return { ...launched, fetch: (input, init) => transport(new Request(input, init), inner) };
     },
   };
+
   return { ...MEMORY, via };
 }
 
-/* Every create answers 201 without the new record's id. */
+// Every create answers 201 without the new record's id.
 const ANONYMOUS = rewriting(async (request, inner) => {
   const answer = await inner(request);
+
   if (answer.status !== 201) return answer;
   const { id: _, ...rest } = (await answer.json()) as Record<string, unknown>;
+
   return Response.json(rest, { status: 201 });
 });
 
-/* Every create is refused: nothing is made, so there is nothing to tear down. */
+// Every create is refused: nothing is made, so there is nothing to tear down.
 const READ_ONLY = rewriting(async (request, inner) =>
   request.method === "POST" && !request.url.includes("/auth/")
     ? Response.json({ error: "read only" }, { status: 403 })
     : inner(request),
 );
 
-/* A reproducer checker that finds every generated script broken. */
+// A reproducer checker that finds every generated script broken.
 async function unrunnable(): Promise<string[]> {
   return ["stale.sh: syntax error near unexpected token"];
 }
@@ -58,7 +63,7 @@ describe("runSuite", () => {
     const [tagged, untagged, defect] = results;
     expect(tagged).toMatchObject({ bystanders: [], leaked: 0, strayLedger: [], unreported: [] });
     expect(untagged?.leaked).toBeUndefined();
-    /* Its register is untagged: the account the API tester made there is a leftover it names, never one it keeps quiet. */
+    // Its register is untagged: the account the API tester made there is a leftover it names, never one it keeps quiet.
     expect(untagged).toMatchObject({
       reported: expect.arrayContaining([expect.stringMatching(/^account testing-\S+@example\.test$/)]),
       unreported: [],
@@ -89,15 +94,19 @@ describe("judgeDefect", () => {
 });
 
 describe("judgeDefect under a refusal probe's DELETE that goes through", () => {
-  /* A DELETE probe goes to a throwaway: the shared table_000001 is removed by teardown alone, after its rows. */
+  // A DELETE probe goes to a throwaway: the shared table_000001 is removed by teardown alone, after its rows.
   for (const defect of ["TOKEN_NOT_VERIFIED", "SCOPE_NOT_CHECKED", "ROLE_NOT_CHECKED"] as const) {
     it(`keeps the shared table and its rows whole, judged clean and detected: ${defect}`, async () => {
       const removed: string[] = [];
+
       const recording = rewriting(async (request, inner) => {
         const answer = await inner(request);
+
         if (request.method === "DELETE" && answer.ok) removed.push(new URL(request.url).pathname);
+
         return answer;
       });
+
       const result = await judgeDefect(defect, recording, { checkRepros: async () => [] });
       expect(result).toMatchObject({ bystanders: [], detected: true, spurious: [], strayLedger: [], unreported: [] });
       const table = removed.indexOf("/v1/projects/proj_alpha/tables/table_000001");
@@ -139,6 +148,7 @@ describe("judgeDefect's judging", () => {
       excused: new Set<DefectName>(["STALE_LIST"]),
       label: "stale",
     });
+
     expect(result).toMatchObject({ bystanders: [], detected: true });
   }, 120_000);
 });
@@ -146,8 +156,10 @@ describe("judgeDefect's judging", () => {
 describe("runBaselines", () => {
   it("names each check a create without an id left undecided", async () => {
     const [tagged, untagged] = await runBaselines(ANONYMOUS);
+
     const reason =
       "a record for this check could not be made: the create answered 201 without an id the API tester could read";
+
     expect(tagged?.inconclusive).toContain(`patch.minimality@table: ${reason}`);
     expect(untagged?.inconclusive).toContain(`patch.minimality@table: ${reason}`);
   }, 180_000);
@@ -162,6 +174,7 @@ describe("runBaselines", () => {
       if (new URL(request.url).pathname.endsWith("/openapi/spec")) return inner(request);
       throw new TypeError("fetch failed");
     });
+
     const [tagged] = await runBaselines(cut);
     expect(tagged).toMatchObject({ leaked: 0, strayLedger: [], unreported: [] });
   }, 180_000);
@@ -182,6 +195,7 @@ describe("missingValuesOf", () => {
       { check: "patch.minimality", entity: "table", reason: "the API tester had no value for PATCH /table/undefined" },
       { check: "sort.order-is-applied", entity: "table", reason: "the listing has one row" },
     ];
+
     expect(missingValuesOf(inconclusive)).toEqual(["patch.minimality@table"]);
   });
 });
@@ -196,6 +210,7 @@ describe("portableResult", () => {
       summary: "s",
       verdict: "BACKEND_BUG",
     };
+
     const result = {
       checksRun: ["c"],
       defect: null,
@@ -206,6 +221,7 @@ describe("portableResult", () => {
       label: "l",
       spurious: [finding],
     } as never;
+
     const portable = portableResult(result);
     expect(portable.findings[0]?.evidence).toEqual([]);
     expect(portable.spurious[0]?.evidence).toEqual([]);

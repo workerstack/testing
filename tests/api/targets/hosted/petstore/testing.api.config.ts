@@ -1,11 +1,9 @@
-/*
- * Swagger Petstore v3, the public demo: a manual target, run by hand and never by `test:targets`.
- * Written with `testing api init`, then filled in. The demo accepts any key and any token, so the values
- * only need to be set; it is shared by everyone, so the API tester goes gently.
- *
- *   TESTING_API_PETSTORE_AUTH_TOKEN=demo TESTING_API_PETSTORE_API_KEY=special-key \
- *     testing api run --config tests/api/targets/hosted/petstore/testing.api.config.ts
- */
+// Swagger Petstore v3, the public demo: a manual target, run by hand and never by `test:targets`.
+// Written with `testing api init`, then filled in. The demo accepts any key and any token, so the values
+// only need to be set; it is shared by everyone, so the API tester goes gently.
+//
+//   TESTING_API_PETSTORE_AUTH_TOKEN=demo TESTING_API_PETSTORE_API_KEY=special-key \
+//     testing api run --config tests/api/targets/hosted/petstore/testing.api.config.ts
 import { defineConfig, env } from "../../../../../src/api/index.ts";
 
 export default defineConfig({

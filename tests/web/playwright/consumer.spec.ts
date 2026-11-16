@@ -2,14 +2,13 @@ import { expect, test } from "@playwright/test";
 
 import { CHILD_TIMEOUT_MS, childEnv, runChild } from "../support/child-run.ts";
 
-/*
- * The package as a consumer meets it: a Playwright project under tests/web/consumer imports
- * `@workerstack/testing/web` by name (the build `test:web` makes first) and runs against the
- * fixture pages. Each spec there either passes, or fails with the line a user would read.
- */
+// The package as a consumer meets it: a Playwright project under tests/web/consumer imports
+// `@workerstack/testing/web` by name (the build `test:web` makes first) and runs against the
+// fixture pages. Each spec there either passes, or fails with the line a user would read.
 
 test("a child run gets none of this run's worker or kept-port variables", () => {
   process.env["WORKERSTACK_WEB_PORT_APP"] = "40001";
+
   try {
     const env = childEnv({ EXTRA: "1" });
     expect(env["WORKERSTACK_WEB_PORT_APP"]).toBeUndefined();

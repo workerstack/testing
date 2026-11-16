@@ -4,7 +4,7 @@ import { page, userEvent } from "vitest/browser";
 
 import { Greeting, Mismatch } from "./greeting.fixture.tsx";
 
-/* The built `./web/solid` in Chromium: server HTML from node, hydrated by the same fixtures. */
+// The built `./web/solid` in Chromium: server HTML from node, hydrated by the same fixtures.
 const hydrate = hydrator(new URL("./greeting.fixture.tsx", import.meta.url), { Greeting, Mismatch });
 
 describe("hydrator", () => {

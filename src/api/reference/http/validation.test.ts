@@ -13,7 +13,8 @@ const CLEAN = new DefectSet();
 const defects = (...names: string[]): DefectSet => new DefectSet(names);
 const field = (more: Partial<FieldDef>): FieldDef => ({ name: "f", type: "string", ...more });
 const UUID = "123e4567-e89b-42d3-a456-426614174000";
-/* A create of a table, with no defect: what each case below departs from. */
+
+// A create of a table, with no defect: what each case below departs from.
 const CREATE: BodyRules = { defects: CLEAN, entity: TABLE, mode: "create" };
 
 describe("validateBody", () => {
@@ -26,9 +27,8 @@ describe("validateBody", () => {
   });
 
   it("refuses a body that is not a JSON object", () => {
-    for (const body of [null, "text", [1]]) {
+    for (const body of [null, "text", [1]])
       expect(() => validateBody(body, CREATE)).toThrow("request body must be a JSON object");
-    }
   });
 
   it("refuses an unknown field, and a generated or immutable one unless IMMUTABLE_WRITABLE", () => {
@@ -53,9 +53,11 @@ describe("validateBody", () => {
     const body: Record<string, unknown> = {
       get name() {
         body["smuggled"] = true;
+
         return "a";
       },
     };
+
     expect(validateBody(body, CREATE)).toEqual({ name: "a" });
   });
 
@@ -100,6 +102,7 @@ describe("coerceField", () => {
     expect(() => coerceField(weight, "2", CLEAN)).toThrow("must be a number");
     expect(() => coerceField(weight, Number.POSITIVE_INFINITY, CLEAN)).toThrow("must be a number");
     expect(() => coerceField(field({ type: "integer" }), 1.5, CLEAN)).toThrow("must be an integer");
+
     for (const value of [0, 11, 2.25]) expect(() => coerceField(weight, value, CLEAN)).toThrow("is out of range");
     expect(coerceField(field({ type: "integer" }), 4, CLEAN)).toBe(4);
   });
@@ -110,18 +113,20 @@ describe("coerceField", () => {
     const kept = coerceField(tags, sent, CLEAN);
     expect(kept).toEqual(["red"]);
     expect(kept).not.toBe(sent);
-    for (const value of ["red", ["red", "red", "red", "red", "red", "red"], [1], ["green"]]) {
+
+    for (const value of ["red", ["red", "red", "red", "red", "red", "red"], [1], ["green"]])
       expect(() => coerceField(tags, value, CLEAN)).toThrow('field "tags" must be a list of red, blue');
-    }
+
     expect(() => coerceField(field({ type: "array" }), ["x"], CLEAN)).toThrow("must be a list of ");
   });
 
   it("checks a point: exactly two integer coordinates", () => {
     const point = field({ ref: "Point", type: "object" });
     expect(coerceField(point, { x: 1, y: 2 }, CLEAN)).toEqual({ x: 1, y: 2 });
-    for (const value of ["1,2", [1, 2], { x: 1 }, { x: 1, y: 2, z: 3 }, { x: 1.5, y: 2 }, { x: 1, y: "2" }]) {
+
+    for (const value of ["1,2", [1, 2], { x: 1 }, { x: 1, y: 2, z: 3 }, { x: 1.5, y: 2 }, { x: 1, y: "2" }])
       expect(() => coerceField(point, value, CLEAN)).toThrow('field "f" must be a Point');
-    }
+
     expect(() => coerceField(field({ ref: "TreeNode", type: "object" }), { x: 1, y: 2 }, CLEAN)).toThrow(
       "must be a TreeNode",
     );
@@ -156,9 +161,10 @@ describe("coerceField on strings", () => {
   it("enforces the date-time and uuid formats", () => {
     const due = field({ format: "date-time" });
     expect(coerceField(due, "2024-01-02T03:04:05.123+01:00", CLEAN)).toBe("2024-01-02T03:04:05.123+01:00");
-    for (const value of ["2024-01-02", "2024-13-45T00:00:00Z"]) {
+
+    for (const value of ["2024-01-02", "2024-13-45T00:00:00Z"])
       expect(() => coerceField(due, value, CLEAN)).toThrow("must be an RFC 3339 date-time");
-    }
+
     expect(coerceField(field({ format: "uuid" }), UUID, CLEAN)).toBe(UUID);
     expect(() => coerceField(field({ format: "uuid" }), "nope", CLEAN)).toThrow("must be a UUID");
   });
@@ -185,9 +191,9 @@ describe("pathId", () => {
   it("reads an integer identity as a number, and refuses a malformed one", () => {
     const entities = shapedEntities({ ids: "integer" });
     expect(pathId(entities, "table_id", "42")).toBe(42);
-    for (const raw of ["0", "042", "4x", "1234567890123456"]) {
+
+    for (const raw of ["0", "042", "4x", "1234567890123456"])
       expect(() => pathId(entities, "table_id", raw)).toThrow(`"${raw}" is not a valid table_id`);
-    }
   });
 
   it("refuses a malformed uuid identity", () => {

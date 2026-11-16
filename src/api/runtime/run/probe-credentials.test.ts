@@ -6,7 +6,7 @@ import { contextOf, LOGIN, optionsFor, overriding, withLogin } from "./__fixture
 import { keysApi, MINTED } from "./__fixtures__/keys.ts";
 import { probeCredentials } from "./probe-credentials.ts";
 
-/* What an operation check probes with: a dedicated credential of a principal's own, or the value it holds. */
+// What an operation check probes with: a dedicated credential of a principal's own, or the value it holds.
 
 const ROTATING: SecurityConfig = {
   bearer: {
@@ -21,6 +21,7 @@ describe("probeCredentials", () => {
     const probe = probeCredentials(ctx);
     const own = await probe.held({ principal: "alpha", scheme: "bearer" });
     const dedicated = await probe.dedicated({ principal: "alpha", scheme: "bearer" });
+
     if ("untested" in dedicated || "untested" in own) throw new Error("expected credentials");
     expect(dedicated).toMatchObject({ actor: { principal: "alpha#probe-1" }, owner: "alpha", scheme: "bearer" });
     expect(dedicated.value).not.toBe(own.value);
@@ -35,6 +36,7 @@ describe("probeCredentials", () => {
   it("offers no revoke or rotate for a recipe that declares neither", async () => {
     const ctx = await contextOf(optionsFor(withLogin(), { security: LOGIN }));
     const dedicated = await probeCredentials(ctx).dedicated({ principal: "alpha", scheme: "bearer" });
+
     if ("untested" in dedicated) throw new Error(dedicated.untested);
     expect([dedicated.revoke, dedicated.rotate]).toEqual([undefined, undefined]);
   });
@@ -45,6 +47,7 @@ describe("probeCredentials", () => {
     const ctx = await contextOf(optionsFor(overriding(withLogin(), once), { security: ROTATING }));
     const probe = probeCredentials(ctx);
     const dedicated = await probe.dedicated({ principal: "alpha", scheme: "bearer" });
+
     if ("untested" in dedicated) throw new Error(dedicated.untested);
     const rotated = await dedicated.rotate?.();
     expect(await rotated?.replay()).toEqual({ accepted: false, reason: expect.stringMatching(/401/) });
@@ -81,6 +84,7 @@ describe("probeCredentials: recipe", () => {
         refresh: { from: "$.token", steps: [{ operationId: "auth.login" }] },
       },
     };
+
     const ctx = await contextOf(optionsFor(withLogin(), { security }));
     expect(probeCredentials(ctx).recipe({ principal: "alpha", scheme: "bearer" })).toEqual({
       issue: "auth.login",
@@ -94,12 +98,15 @@ describe("probeCredentials: recipe", () => {
     const elsewhere: SecurityConfig = {
       bearer: { login: { from: "$.t", steps: [{ method: "POST", origin: "idp", path: "/login" }] } },
     };
+
     const ctx = await contextOf(optionsFor(withLogin(), { security: { bearer: { static: "alpha-key" } } }));
     const probe = probeCredentials({ ...ctx, options: { ...ctx.options, security: elsewhere } });
     expect(probe.recipe({ principal: "alpha", scheme: "bearer" })).toEqual({ kind: "login" });
+
     const unknown: SecurityConfig = {
       bearer: { login: { from: "$.t", steps: [{ method: "GET", path: "/nowhere" }] } },
     };
+
     expect(
       probeCredentials({ ...ctx, options: { ...ctx.options, security: unknown } }).recipe({
         principal: "alpha",
@@ -107,9 +114,11 @@ describe("probeCredentials: recipe", () => {
       }),
     ).toEqual({ kind: "login" });
     expect(probeCredentials(ctx).recipe({ principal: "alpha", scheme: "bearer" })).toEqual({ kind: "static" });
+
     const keyed = await contextOf(
       optionsFor(keysApi(), { principals: { alpha: { scope: { project_id: "p1" } } }, security: MINTED }),
     );
+
     expect(probeCredentials(keyed).recipe({ principal: "alpha", scheme: "key" })).toEqual({
       issue: "keys.create",
       kind: "mint",
@@ -122,9 +131,11 @@ describe("probeCredentials: recipe, where nothing is declared", () => {
   it("names no issue for a login an out-of-band step completes, which calls no operation", async () => {
     const ctx = await contextOf(optionsFor(withLogin(), { security: LOGIN }));
     const otp = { outOfBand: { address: "a@x.test", as: "otp", kind: "otp" } } as const;
+
     const security: SecurityConfig = {
       bearer: { login: { from: "otp", steps: [{ operationId: "auth.login" }, otp] } },
     };
+
     const probe = probeCredentials({ ...ctx, options: { ...ctx.options, security } });
     expect(probe.recipe({ principal: "alpha", scheme: "bearer" })).toEqual({ kind: "login" });
   });

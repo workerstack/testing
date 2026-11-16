@@ -15,7 +15,7 @@ import type { SecurityScheme } from "../security/schemes.ts";
 import type { OperationObject } from "../types.ts";
 import type { ParamStyles } from "./parameters.ts";
 
-export interface OperationModel {
+export type OperationModel = {
   operationId: string;
   method: string;
   path: string;
@@ -116,9 +116,9 @@ export interface OperationModel {
    * operation is listed, and a check that reaches it sends nothing.
    */
   unsendable: string | null;
-}
+};
 
-export interface EntityModel {
+export type EntityModel = {
   name: string;
   identity: string | null;
   create?: string;
@@ -138,9 +138,9 @@ export interface EntityModel {
   trackable: boolean;
   /** Effective unique sets for this entity (from create, else any tagged operation). */
   unique: string[][] | null;
-}
+};
 
-export interface SpecModel {
+export type SpecModel = {
   operations: OperationModel[];
   byOperationId: Map<string, OperationModel>;
   byRoute: Map<string, OperationModel>;
@@ -155,7 +155,7 @@ export interface SpecModel {
   /** Every declared security scheme, read: where its credential goes, or why the API tester cannot send it. */
   schemes: ReadonlyMap<string, SecurityScheme>;
   hasAuthOperations: boolean;
-}
+};
 
 /**
  * The responses an operation documents: exact codes, `NXX` ranges, and `default`.
@@ -163,9 +163,9 @@ export interface SpecModel {
  * Parsing the keys as integers read `2XX` as status 2 and dropped `default` entirely, so a
  * document written in ranges declared nothing a real status could match.
  */
-export interface DocumentedStatuses {
+export type DocumentedStatuses = {
   exact: number[];
   /** Status classes documented as a range: 2 for `2XX`. */
   ranges: number[];
   default: boolean;
-}
+};

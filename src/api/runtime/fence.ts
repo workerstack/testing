@@ -9,13 +9,13 @@
 
 import type { FenceDecision, FenceRequest } from "../config/types/hooks.ts";
 
-export interface FencedRequest {
+export type FencedRequest = {
   method: string;
   url: string;
   operationId?: string;
   phase: string;
   reason: string;
-}
+};
 
 export class FencedError extends Error {
   override name = "FencedError";
@@ -37,7 +37,9 @@ export class Fence {
   /** Resolves when the request may go; throws `FencedError`, after recording it, when it may not. */
   async check(request: FenceRequest): Promise<void> {
     const decision = await this.hook(request);
+
     if (decision.allow) return;
+
     const refused: FencedRequest = {
       method: request.method,
       phase: request.phase,
@@ -45,6 +47,7 @@ export class Fence {
       url: request.url,
       ...(request.operationId === undefined ? {} : { operationId: request.operationId }),
     };
+
     this.fenced.push(refused);
     throw new FencedError(refused);
   }

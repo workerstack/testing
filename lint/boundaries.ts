@@ -4,17 +4,15 @@ import { join } from "node:path";
 import type { Context, Node, Rule } from "./ast.ts";
 import { isTestCode, repoPath } from "./paths.ts";
 
-/*
- * The API tester's dependency arrows, low to high:
- *   errors, config/types → security, steps → spec → client, credentials, reference → runtime (checks
- *   included) → runtime/run → config, report, conformance → cli, index
- * A module imports its own layer group or any lower layer. security is a leaf above the errors:
- * it imports nothing else. steps, the scenario step builders a config imports from
- * `@workerstack/testing/api/steps`, sits beside it and imports only the step types and the errors. client and credentials sit below the runtime, so the runtime calls them
- * and never the reverse. Only cli and index import report or conformance (conformance renders
- * through report). The reference backend is a separate program: it never imports the client or
- * the runtime, and only conformance, cli and index import it.
- */
+// The API tester's dependency arrows, low to high:
+//   errors, config/types → security, steps → spec → client, credentials, reference → runtime (checks
+//   included) → runtime/run → config, report, conformance → cli, index
+// A module imports its own layer group or any lower layer. security is a leaf above the errors:
+// it imports nothing else. steps, the scenario step builders a config imports from
+// `@workerstack/testing/api/steps`, sits beside it and imports only the step types and the errors. client and credentials sit below the runtime, so the runtime calls them
+// and never the reverse. Only cli and index import report or conformance (conformance renders
+// through report). The reference backend is a separate program: it never imports the client or
+// the runtime, and only conformance, cli and index import it.
 const MESSAGE = "import is outside the API tester's module boundaries (see AGENTS.md: dependency arrows)";
 
 type Bucket =
@@ -52,19 +50,21 @@ const LAYER: Readonly<Record<Bucket, number>> = {
   index: 7,
 };
 
-/* Buckets on one layer that may import each other. */
+// Buckets on one layer that may import each other.
 const GROUPS: ReadonlyArray<ReadonlySet<Bucket>> = [
   new Set<Bucket>(["client", "credentials"]),
   new Set<Bucket>(["errors", "config-types"]),
   new Set<Bucket>(["conformance", "report"]),
 ];
+
 const TOP_ONLY: ReadonlySet<string> = new Set(["report", "conformance"]);
 const REFERENCE_USERS: ReadonlySet<string> = new Set(["reference", "conformance", "cli", "index"]);
-/* A driver the reference backend loads for one engine, and conformance probes for; the API tester itself never needs it. */
+
+// A driver the reference backend loads for one engine, and conformance probes for; the API tester itself never needs it.
 const REFERENCE_DRIVERS = new Set(["postgres"]);
 const DRIVER_USERS: ReadonlySet<string> = new Set(["reference", "conformance"]);
 
-/* Top-level directories that are a bucket by themselves. */
+// Top-level directories that are a bucket by themselves.
 const DIRECTORIES: ReadonlySet<string> = new Set([
   "errors",
   "spec",
@@ -79,82 +79,104 @@ const DIRECTORIES: ReadonlySet<string> = new Set([
   "conformance",
 ]);
 
-/* The HTTP client and its transport still live in runtime/ until they move to client/: bucketed by file or directory. */
+// The HTTP client and its transport still live in runtime/ until they move to client/: bucketed by file or directory.
 const CLIENT_FILES: ReadonlySet<string> = new Set(
   ["exchange", "fence", "headers", "poll", "sse"].map((name) => `runtime/${name}.ts`),
 );
+
 const CLIENT_DIRECTORIES: readonly string[] = ["cookies", "exchanges", "network", "rate-limit", "transcript"].map(
   (name) => `runtime/${name}/`,
 );
 
 function bucket(rel: string): Bucket | "unknown" {
   if (rel === "cli.ts" || rel.startsWith("cli/")) return "cli";
+
   if (rel === "index.ts") return "index";
+
   if (rel.startsWith("runtime/run/")) return "run";
+
   if (rel.startsWith("config/types/")) return "config-types";
+
   if (CLIENT_FILES.has(rel) || CLIENT_DIRECTORIES.some((dir) => rel.startsWith(dir))) return "client";
   const top = rel.split("/", 1).join("");
+
   return rel.includes("/") && DIRECTORIES.has(top) ? (top as Bucket) : "unknown";
 }
 
 function resolveRel(fromRel: string, spec: string): string {
   const dir = fromRel.split("/").slice(0, -1);
+
   for (const part of spec.split("/")) {
     if (part === "..") dir.pop();
     else if (part !== ".") dir.push(part);
   }
+
   return dir.join("/");
 }
 
-/* What src may import from npm: the package itself and its runtime dependencies. A
- * devDependency, an unlisted package, and a builtin without `node:` are not among them. */
+// What src may import from npm: the package itself and its runtime dependencies. A
+// devDependency, an unlisted package, and a builtin without `node:` are not among them.
 function declaredPackages(): Set<string> {
   const manifest = JSON.parse(readFileSync(join(import.meta.dirname, "..", "package.json"), "utf8")) as {
     name: string;
     dependencies: Record<string, string>;
   };
+
   return new Set([manifest.name, ...Object.keys(manifest.dependencies)]);
 }
 
-/* `pkg/sub` → `pkg`, `@scope/pkg/sub` → `@scope/pkg`. */
+// `pkg/sub` → `pkg`, `@scope/pkg/sub` → `@scope/pkg`.
 export const packageName = (spec: string): string => spec.split("/", spec.startsWith("@") ? 2 : 1).join("/");
 
 function allowedBetween(from: Bucket | "unknown", to: Bucket | "unknown"): boolean {
   if (from === "unknown" || to === "unknown") return false;
+
   if (to === "reference" && !REFERENCE_USERS.has(from)) return false;
+
   if (from === "reference" && LAYER[to] === LAYER.reference && to !== "reference") return false;
+
   if (from === to || GROUPS.some((group) => group.has(from) && group.has(to))) return true;
+
   if (TOP_ONLY.has(to)) return from === "cli" || from === "index";
+
   return LAYER[to] < LAYER[from];
 }
 
 function allowed(fromRel: string, spec: string, packages: () => Set<string>): boolean {
   if (spec.startsWith("node:")) return true;
   const from = bucket(fromRel);
+
   if (!spec.startsWith(".")) {
     const name = packageName(spec);
+
     return packages().has(name) || (DRIVER_USERS.has(from) && REFERENCE_DRIVERS.has(name));
   }
+
   return allowedBetween(from, bucket(resolveRel(fromRel, spec)));
 }
 
-interface Importing extends Node {
+type Importing = Node & {
   source?: { type: string; value?: unknown } | null;
-}
+};
 
 export const rule: Rule = {
   create(context: Context) {
     const file = repoPath(context.filename);
     const at = file.lastIndexOf("/src/api/");
+
     if (at === -1 || isTestCode(file)) return {};
     const fromRel = file.slice(at + "/src/api/".length);
     let packages: Set<string> | undefined;
     const declared = (): Set<string> => (packages ??= declaredPackages());
+
     const check = (node: Importing): void => {
       const source = node.source;
+
       if (source?.type !== "Literal" || typeof source.value !== "string") return;
+
       if (!allowed(fromRel, source.value, declared)) context.report({ message: MESSAGE, node });
     };
+
     return {
       ExportAllDeclaration: check,
       ExportNamedDeclaration: check,

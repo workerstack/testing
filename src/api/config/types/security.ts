@@ -1,8 +1,6 @@
-/*
- * 0.25.0 credentials: one recipe per security scheme the document declares, and principals as
- * identity data. Where each credential goes comes from the scheme; a recipe says only how to get
- * the value.
- */
+// 0.25.0 credentials: one recipe per security scheme the document declares, and principals as
+// identity data. Where each credential goes comes from the scheme; a recipe says only how to get
+// the value.
 
 import type { AuthStep } from "./steps.ts";
 
@@ -10,15 +8,15 @@ import type { AuthStep } from "./steps.ts";
 export type ExpiresIn = number | { from: string };
 
 /** An extra place a credential is sent, beside the one its scheme declares. */
-export interface ExtraPlacement {
+export type ExtraPlacement = {
   in: "header" | "query" | "cookie";
   name: string;
   /** The value, with `{credential}` where the credential goes. Default: `{credential}`. */
   template?: string;
-}
+};
 
 /** Sign in by running steps; `from` is where the credential is in the last answer. */
-export interface LoginRecipe {
+export type LoginRecipe = {
   steps: [AuthStep, ...AuthStep[]];
   from: string;
   /**
@@ -34,10 +32,10 @@ export interface LoginRecipe {
    * sessions its security probes open, never for a principal's own.
    */
   revoke?: string | { operationId: string; body?: unknown };
-}
+};
 
 /** Make the credential by calling an operation with another scheme's credential. */
-export interface MintRecipe {
+export type MintRecipe = {
   /** The scheme whose credential calls `operationId`. */
   with: string;
   operationId: string;
@@ -47,22 +45,22 @@ export interface MintRecipe {
   from: string;
   /** The operation that revokes a minted credential, when the run is done with it. */
   revoke?: string;
-}
+};
 
 /** A value fixed in config: a token, or a basic pair. */
 export type StaticRecipe = string | { username: string; password: string };
 
 /** An OAuth 2 grant the API tester performs itself, at the token URL the document declares. */
-export interface OAuth2Recipe {
+export type OAuth2Recipe = {
   flow: "clientCredentials" | "password";
   clientId: string;
   clientSecret?: string;
   username?: string;
   password?: string;
   scopes?: string[];
-}
+};
 
-interface RecipeOptions {
+type RecipeOptions = {
   /** Renew the credential before it lapses, by the same steps a login runs. */
   refresh?: { steps: [AuthStep, ...AuthStep[]]; from: string };
   /** The value written into the scheme's place, e.g. `ApiKey {credential}`. */
@@ -71,7 +69,7 @@ interface RecipeOptions {
   /** The scopes a static or hooked credential carries, so scope-gated operations know it suffices. */
   holds?: string[];
   placements?: ExtraPlacement[];
-}
+};
 
 /** How one scheme's credential is obtained: exactly one kind. */
 export type Recipe = RecipeOptions &
@@ -79,7 +77,7 @@ export type Recipe = RecipeOptions &
     | { login: LoginRecipe; mint?: never; static?: never; hook?: never; oauth2?: never }
     | { mint: MintRecipe; login?: never; static?: never; hook?: never; oauth2?: never }
     | { static: StaticRecipe; login?: never; mint?: never; hook?: never; oauth2?: never }
-    /* `hooks.resolveCredential(scheme, principal)` returns it. */
+    // `hooks.resolveCredential(scheme, principal)` returns it.
     | { hook: true; login?: never; mint?: never; static?: never; oauth2?: never }
     | { oauth2: OAuth2Recipe; login?: never; mint?: never; static?: never; hook?: never }
   );
@@ -88,7 +86,7 @@ export type Recipe = RecipeOptions &
 export type RecipeKind = "login" | "mint" | "static" | "hook" | "oauth2";
 
 /** A principal: identity data recipes interpolate as `{principal.<key>}`, plus how it is graded. */
-export interface PrincipalEntry {
+export type PrincipalEntry = {
   [identity: string]: unknown;
   /** The tenant it belongs to; principals in different tenants enable the isolation checks. */
   tenant?: string;
@@ -112,9 +110,10 @@ export interface PrincipalEntry {
   created?: boolean;
   /** Per-scheme recipe overrides for this principal alone. */
   security?: Record<string, Partial<Recipe>>;
-}
+};
 
 /** The config's `security`: one recipe per scheme the document declares, by scheme name. */
 export type SecurityConfig = Record<string, Recipe>;
+
 /** The config's `principals`: each principal's identity data, by id. */
 export type PrincipalsConfig = Record<string, PrincipalEntry>;

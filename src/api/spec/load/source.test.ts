@@ -15,6 +15,7 @@ async function file(name: string, text: string): Promise<string> {
   const dir = await mkdtemp(join(tmpdir(), "testing-load-"));
   const path = join(dir, name);
   await writeFile(path, text);
+
   return path;
 }
 
@@ -29,10 +30,13 @@ describe("loadSpec", () => {
 
   it("fetches a URL, and a route below the base URL, only through the caller's fetcher", async () => {
     const asked: string[] = [];
+
     const fetchText = async (url: string): Promise<string> => {
       asked.push(url);
+
       return JSON.stringify(DOC);
     };
+
     await loadSpec("https://api.test/openapi.json", { fetchText });
     await loadSpec("http://api.test/openapi.json", { fetchText });
     await loadSpec("v1/openapi", { baseUrl: "https://api.test/base", fetchText });
@@ -65,10 +69,13 @@ describe("loadSpec", () => {
     expect((await loadSpec("a.json", { dir })).openapi).toBe("3.1.0");
     expect((await loadSpec(json, { dir: tmpdir() })).openapi).toBe("3.1.0");
     const asked: string[] = [];
+
     const fetchText = async (url: string): Promise<string> => {
       asked.push(url);
+
       return JSON.stringify(DOC);
     };
+
     await loadSpec("v1/openapi", { baseUrl: "https://api.test", dir, fetchText });
     expect(asked).toEqual(["https://api.test/v1/openapi"]);
     await expect(loadSpec("b.json", { dir })).rejects.toThrow(`Tried:\n  ${join(dir, "b.json")}`);
@@ -93,6 +100,7 @@ describe("loadSpec and the files a document refers to", () => {
       content: { "application/json": { schema: { $ref: "schemas/pet.yaml#/Pet" } } },
       description: "x",
     };
+
     const doc = { ...DOC, paths: { "/x": { get: { responses: { "200": response } } } } };
     const fetchText = async (): Promise<string> => JSON.stringify(doc);
     const { externalRefs } = dereference(await loadSpec("https://api.test/openapi.json", { fetchText }));

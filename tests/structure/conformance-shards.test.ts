@@ -6,25 +6,26 @@ import { describe, expect, it } from "vitest";
 import { BACKENDS, LEGS } from "../../src/api/cli/commands/conformance-matrix.ts";
 import { conformanceShards } from "../../src/api/conformance/shards.ts";
 
-/*
- * CI runs the self-test as shards: nothing drops out of it unnoticed. Every leg and every local
- * backend is in some shard, the matrix is the script's own list, and each shard that needs a server
- * is a job of its own that starts it, runs that shard, and has a timeout of twice its time.
- */
+// CI runs the self-test as shards: nothing drops out of it unnoticed. Every leg and every local
+// backend is in some shard, the matrix is the script's own list, and each shard that needs a server
+// is a job of its own that starts it, runs that shard, and has a timeout of twice its time.
 
 const ROOT = join(import.meta.dirname, "..", "..");
 const CI = readFileSync(join(ROOT, ".github", "workflows", "ci.yml"), "utf8");
 
 const flag = (flags: readonly string[], name: string): string | undefined => {
   const at = flags.indexOf(name);
+
   return at === -1 ? undefined : flags[at + 1];
 };
 
 /** A job of ci.yml, by its id: its lines up to the next job. */
 function job(id: string): string {
   const start = CI.indexOf(`\n  ${id}:\n`);
+
   if (start === -1) return "";
   const next = CI.slice(start + 1).search(/\n {2}[a-z][\w-]*:\n/);
+
   return next === -1 ? CI.slice(start) : CI.slice(start, start + 1 + next);
 }
 

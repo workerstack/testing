@@ -6,10 +6,8 @@ import type { Responder } from "../../__fixtures__/harness.ts";
 import { notesContext, notesModel, notesServer } from "./__fixtures__/notes.ts";
 import { confirmedIdentity, liveRecord } from "./records.ts";
 
-/*
- * The records the write checks compare against: an acknowledged create's id is believed only once
- * the entity's read returns it with what was sent, and a live record comes from the item read.
- */
+// The records the write checks compare against: an acknowledged create's id is believed only once
+// the entity's read returns it with what was sent, and a live record comes from the item read.
 
 const MODEL = notesModel();
 const NOTE = { code: "c", id: "n7", name: "seven", size: 7 };
@@ -70,22 +68,27 @@ describe("liveRecord", () => {
     const { ctx } = stage(() => {
       throw new Error("socket closed");
     });
+
     expect(await liveRecord(ctx, "n7")).toBeUndefined();
   });
 
   it("passes a fenced read on, so the caller hears it could not ask", async () => {
     const fenced = new FencedError({ method: "GET", phase: "check", reason: "fenced", url: "/notes/n7" });
+
     const { ctx } = stage(() => {
       throw fenced;
     });
+
     await expect(liveRecord(ctx, "n7")).rejects.toBe(fenced);
   });
 
   it("passes a read whose security cannot be met on, so the caller is untested with the reason", async () => {
     const blocked = new UnsatisfiedSecurity("blocked", "alpha is BLOCKED: login failed");
+
     const { ctx } = stage(() => {
       throw blocked;
     });
+
     await expect(liveRecord(ctx, "n7")).rejects.toBe(blocked);
   });
 });

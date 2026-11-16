@@ -17,13 +17,11 @@ import { dereference } from "../../../src/api/spec/load/dereference.ts";
 import { accountMakersOf } from "../../../src/api/spec/sign-up.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 
-/*
- * A principal's login credential over its lifetime, as a run holds it: signed in once through the
- * step engine, renewed ahead of expiry or after a 401 by its declared refresh, once however many
- * requests need it, and replaced by a credential the run is handed.
- */
+// A principal's login credential over its lifetime, as a run holds it: signed in once through the
+// step engine, renewed ahead of expiry or after a 401 by its declared refresh, once however many
+// requests need it, and replaced by a credential the run is handed.
 
-interface Harness {
+type Harness = {
   url: string;
   close: () => Promise<void>;
   registerHits: string[];
@@ -33,14 +31,16 @@ interface Harness {
   tokenWho: string[];
   setGetStatus: (status: number | ((n: number) => number)) => void;
   delayRefreshMs: number;
-}
+};
 
 function send(res: ServerResponse, status: number, body?: unknown): void {
   if (body === undefined) {
     res.writeHead(status);
     res.end();
+
     return;
   }
+
   const text = JSON.stringify(body);
   res.writeHead(status, { "content-length": String(Buffer.byteLength(text)), "content-type": "application/json" });
   res.end(text);
@@ -54,10 +54,13 @@ function readJson(req: IncomingMessage): Promise<unknown> {
     });
     req.on("end", () => {
       const text = Buffer.concat(chunks).toString("utf8");
+
       if (text === "") {
         resolve(undefined);
+
         return;
       }
+
       try {
         resolve(JSON.parse(text) as unknown);
       } catch (error) {
@@ -68,7 +71,7 @@ function readJson(req: IncomingMessage): Promise<unknown> {
   });
 }
 
-/* Items need alpha's bearer token; signing in and refreshing are public. */
+// Items need alpha's bearer token; signing in and refreshing are public.
 const SPEC = {
   ...bearerSecurity(),
   info: { title: "auth-refresh", version: "1" },
@@ -117,6 +120,7 @@ async function listen(handler: (req: IncomingMessage, res: ServerResponse) => vo
     server.listen(0, "127.0.0.1", resolve);
   });
   const addr = server.address() as AddressInfo;
+
   return {
     close: () =>
       new Promise((resolve, reject) => {
@@ -126,15 +130,15 @@ async function listen(handler: (req: IncomingMessage, res: ServerResponse) => vo
   };
 }
 
-interface AuthOptions {
+type AuthOptions = {
   expiresIn?: number;
   refreshExpiresIn?: number;
   plainToken?: boolean;
-}
+};
 
 type Route = (req: IncomingMessage, res: ServerResponse) => Promise<void> | void;
 
-/* The token, refresh and resource endpoints, recording each hit on the harness. */
+// The token, refresh and resource endpoints, recording each hit on the harness.
 class AuthBackend {
   readonly harness: Harness;
   #tokenN = 0;
@@ -145,7 +149,7 @@ class AuthBackend {
   constructor(options: AuthOptions | undefined) {
     this.#options = options;
     this.harness = {
-      close: async () => undefined,
+      close: async () => {},
       delayRefreshMs: 0,
       refreshHits: [],
       registerHits: [],
@@ -162,6 +166,7 @@ class AuthBackend {
   #issue(kind: "acquire" | "refresh"): Record<string, unknown> {
     this.#tokenN += 1;
     const token = this.#options?.plainToken === true ? `plain-${this.#tokenN}` : `${kind}-${this.#tokenN}`;
+
     return {
       access_token: token,
       access_token_expires_in:
@@ -175,19 +180,24 @@ class AuthBackend {
       this.harness.resourceAuth.push(req.headers.authorization ?? "");
       this.#getN += 1;
       const status = typeof this.#getStatus === "function" ? this.#getStatus(this.#getN) : this.#getStatus;
+
       if (status === 401) return send(res, 401, { error: "expired" });
+
       return send(res, 200, { items: [] });
     },
     "GET /v1/openapi/spec": (_req, res) => send(res, 200, SPEC),
     "POST /v1/auth/refresh": async (req, res) => {
       const delay = this.harness.delayRefreshMs;
+
       if (delay > 0) await new Promise((done) => setTimeout(done, delay));
       const body = (await readJson(req)) as { refresh_token?: string };
       this.harness.refreshHits.push(body.refresh_token ?? "");
+
       return send(res, 200, this.#issue("refresh"));
     },
     "POST /v1/auth/register": (_req, res) => {
       this.harness.registerHits.push("register");
+
       return send(res, 200, this.#issue("acquire"));
     },
     "POST /v1/auth/token": async (req, res) => {
@@ -195,6 +205,7 @@ class AuthBackend {
       this.harness.tokenBodies.push(await readJson(req));
       const who = req.headers["x-who"];
       this.harness.tokenWho.push(typeof who === "string" ? who : "");
+
       return send(res, 200, this.#issue("acquire"));
     },
   };
@@ -202,23 +213,27 @@ class AuthBackend {
 
 async function startAuthServer(options?: AuthOptions): Promise<Harness> {
   const backend = new AuthBackend(options);
+
   const server = await listen((req, res) => {
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
     const route = backend.routes[`${(req.method ?? "GET").toUpperCase()} ${url.pathname}`];
+
     if (route === undefined) return send(res, 404, { error: "missing" });
     void route(req, res);
   });
+
   backend.harness.url = server.url;
   backend.harness.close = server.close;
+
   return backend.harness;
 }
 
 const model = buildModel(dereference(SPEC).doc);
 
-/* The register answer's refresh token, saved so the declared refresh can send it. */
+// The register answer's refresh token, saved so the declared refresh can send it.
 const SAVE_REFRESH = { refresh_token: "$.refresh_token" };
 
-/* Signs up by auth.register; its lifetime is the answer's `access_token_expires_in`. */
+// Signs up by auth.register; its lifetime is the answer's `access_token_expires_in`.
 function signupRecipe(refresh: boolean): Recipe {
   return {
     expiresIn: { from: "$.access_token_expires_in" },
@@ -252,42 +267,45 @@ afterEach(async () => {
   await Promise.all(servers.splice(0).map((s) => s.close()));
 });
 
-/* A started auth server, closed after the test. */
+// A started auth server, closed after the test.
 async function harnessed(options?: AuthOptions): Promise<Harness> {
   const harness = await startAuthServer(options);
   servers.push(harness);
+
   return harness;
 }
 
-interface Stack {
+type Stack = {
   client: Client;
   store: CredentialStore;
   /** Moves the store's clock on: a credential issued 90 s out is 20 s out after `pass(70_000)`. */
   pass: (ms: number) => void;
-}
+};
 
 const unused = async (): Promise<never> => {
   throw new Error("no recipe here mints a credential or posts a token form");
 };
 
-/*
- * What a run builds for alpha's bearer `recipe`: a client whose source resolves alpha over a store,
- * whose login and refresh steps run through the step engine on that same client.
- */
+// What a run builds for alpha's bearer `recipe`: a client whose source resolves alpha over a store,
+// whose login and refresh steps run through the step engine on that same client.
 function stackOf(harness: Harness, recipe: Recipe): Stack {
   const security: SecurityConfig = { bearer: recipe };
   const principals: PrincipalsConfig = { alpha: {} };
   const wired: { client?: Client } = {};
+
   const steps = (): StepRunner =>
     stepRunner({ client: (wired.client as Client).view({ purpose: "auth" }), hooks: {}, model });
+
   const ports: CredentialPorts = {
     operations: { call: unused },
     records: { gone: unused, removed: () => false },
     steps: { run: (list, at) => steps().run(list, at) },
-    secrets: { register: () => undefined },
+    secrets: { register: () => {} },
     tokens: { post: unused },
   };
+
   let now = Date.now();
+
   const store = createStore({
     now: () => now,
     ports,
@@ -296,12 +314,14 @@ function stackOf(harness: Harness, recipe: Recipe): Stack {
     security,
     signups: accountMakersOf(model),
   });
+
   wired.client = new Client({
     baseUrl: harness.url,
     credentials: createCredentialSource({ model, principals, security, store }),
     operationResolver: operationResolver(model),
     redactor: new Redactor(),
   });
+
   return {
     client: wired.client,
     pass: (ms) => {
@@ -313,21 +333,21 @@ function stackOf(harness: Harness, recipe: Recipe): Stack {
 
 const ALPHA = { principal: "alpha", scheme: "bearer" };
 
-/* alpha's bearer credential as the store holds it now, renewed first when it is stale. */
+// alpha's bearer credential as the store holds it now, renewed first when it is stale.
 async function held(stack: Stack): Promise<Held> {
   return stack.store.acquire(ALPHA);
 }
 
-/* What 90 s of lifetime has left once 70 s passed: inside the 30 s renewal buffer. */
+// What 90 s of lifetime has left once 70 s passed: inside the 30 s renewal buffer.
 const TO_20S_OUT = 70_000;
 
-/* alpha signed in, and then the clock moved on until its credential is 20 s from lapsing. */
+// alpha signed in, and then the clock moved on until its credential is 20 s from lapsing.
 async function twentySecondsOut(stack: Stack): Promise<void> {
   await held(stack);
   stack.pass(TO_20S_OUT);
 }
 
-/* One resource read as alpha. */
+// One resource read as alpha.
 function getItems(client: Client) {
   return client.request("GET", "/v1/items", { as: { principal: "alpha" } });
 }
@@ -409,6 +429,7 @@ describe("countdown refresh", () => {
 
   it("never proactive-refreshes a credential with no lifetime", async () => {
     const harness = await harnessed({ expiresIn: 90, plainToken: true });
+
     const recipe: Recipe = {
       login: {
         from: "$.access_token",
@@ -419,6 +440,7 @@ describe("countdown refresh", () => {
         steps: [{ body: { refresh_token: "{refresh_token}" }, operationId: "auth.refreshToken", saveAs: SAVE_REFRESH }],
       },
     };
+
     const stack = stackOf(harness, recipe);
     expect(await held(stack)).toMatchObject({ expiresAt: null, value: "plain-1" });
     await getItems(stack.client);
@@ -452,7 +474,7 @@ describe("countdown refresh", () => {
     const jwt = `eyJhbGciOiJub25lIn0.${payload}.sig`;
     await stack.store.adopt({ ...ALPHA, value: jwt });
     expect(await held(stack)).toMatchObject({ expiresAt: 4_102_444_800_000, value: jwt });
-    /* An empty value is no credential: what was held stays. */
+    // An empty value is no credential: what was held stays.
     await stack.store.adopt({ ...ALPHA, value: "" });
     expect(await held(stack)).toMatchObject({ value: jwt });
     expect(harness.registerHits).toEqual(["token"]);
@@ -460,6 +482,7 @@ describe("countdown refresh", () => {
 
   it("interpolates nested bodies, arrays, and non-strings", async () => {
     const harness = await harnessed();
+
     const recipe: Recipe = {
       login: {
         from: "$.access_token",
@@ -474,6 +497,7 @@ describe("countdown refresh", () => {
         ],
       },
     };
+
     const stack = stackOf(harness, recipe);
     expect(await held(stack)).toMatchObject({ value: "acquire-1" });
     expect(harness.tokenBodies).toEqual([

@@ -290,26 +290,6 @@
         "panel": "new",
         "reveal": "always"
       }
-    },
-    {
-      "label": "typecheck:test",
-      "type": "shell",
-      "command": "bun run typecheck:test",
-      "problemMatcher": [],
-      "presentation": {
-        "panel": "new",
-        "reveal": "always"
-      }
-    },
-    {
-      "label": "typecheck:web-test",
-      "type": "shell",
-      "command": "bun run typecheck:web-test",
-      "problemMatcher": [],
-      "presentation": {
-        "panel": "new",
-        "reveal": "always"
-      }
     }
   ],
   "version": "2.0.0"

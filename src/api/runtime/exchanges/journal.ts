@@ -23,28 +23,28 @@ import { persistRequestBody, persistResponseBody } from "./persist.ts";
 /** Index lines buffered before one append. */
 const JOURNAL_BATCH = 64;
 
-interface ExchangeMeta {
+type ExchangeMeta = {
   check?: string;
   entity?: string;
   phase?: string;
-}
+};
 
-export interface ExchangeJournal {
+export type ExchangeJournal = {
   readonly dir: string;
   readonly count: number;
   record(exchange: Exchange, meta?: ExchangeMeta): Promise<void>;
   /** Writes the index lines still buffered. Called once the run is over. */
   flush(): Promise<void>;
-}
+};
 
 /** The bodies of one exchange, as written. */
-interface PersistedBodies {
+type PersistedBodies = {
   requestBody: unknown;
   responseBody: unknown;
-}
+};
 
 /** The full exchange file: headers and URLs redacted, bodies as persisted. */
-export interface JournalExchangeFile {
+export type JournalExchangeFile = {
   at: number;
   durationMs: number;
   fixture?: string;
@@ -61,7 +61,7 @@ export interface JournalExchangeFile {
   seq: number;
   status: number;
   url: string;
-}
+};
 
 function exchangeFile(exchange: Exchange, bodies: PersistedBodies, redactor: Redactor): JournalExchangeFile {
   return {
@@ -93,12 +93,12 @@ function exchangeFile(exchange: Exchange, bodies: PersistedBodies, redactor: Red
 }
 
 /** What an index line carries beside the exchange: its tags, and the file the exchange is in. */
-interface IndexMeta extends ExchangeMeta {
+type IndexMeta = ExchangeMeta & {
   file: string;
-}
+};
 
 /** The exchange's line in `exchanges.jsonl`, pointing at its file. */
-export interface JournalIndexLine extends IndexMeta {
+export type JournalIndexLine = IndexMeta & {
   at: number;
   durationMs: number;
   method: string;
@@ -113,7 +113,7 @@ export interface JournalIndexLine extends IndexMeta {
   finalUrl?: string;
   /** How many redirects the exchange followed; the hops are in its file. */
   redirects?: number;
-}
+};
 
 function indexLine(exchange: Exchange, meta: IndexMeta, redactor: Redactor): JournalIndexLine {
   const line: JournalIndexLine = {
@@ -128,13 +128,21 @@ function indexLine(exchange: Exchange, meta: IndexMeta, redactor: Redactor): Jou
     status: exchange.status,
     url: redactor.url(exchange.url),
   };
+
   if (exchange.operationId !== undefined) line.operationId = exchange.operationId;
+
   if (exchange.fixture !== undefined) line.fixture = exchange.fixture;
+
   if (exchange.finalUrl !== undefined) line.finalUrl = exchange.finalUrl;
+
   if (exchange.redirects !== undefined) line.redirects = exchange.redirects.length;
+
   if (meta.check !== undefined) line.check = meta.check;
+
   if (meta.entity !== undefined) line.entity = meta.entity;
+
   if (meta.phase !== undefined) line.phase = meta.phase;
+
   return line;
 }
 
@@ -142,24 +150,29 @@ function indexLine(exchange: Exchange, meta: IndexMeta, redactor: Redactor): Jou
 function claimStem(exchange: Exchange, dir: string, taken: Set<string>): string {
   let stem = exchangeFileStem(exchange.requestId, exchange.seq, taken);
   const exchangesDir = join(dir, "exchanges");
+
   while (existsSync(join(exchangesDir, `${stem}.json`))) {
     taken.add(stem);
     stem = exchangeFileStem(exchange.requestId, exchange.seq, taken);
   }
+
   taken.add(stem);
+
   return stem;
 }
 
 /** The directories, made once, on the first record. */
 function lazyDirs(dir: string): () => Promise<void> {
   let ready: Promise<void> | undefined;
+
   return async (): Promise<void> => {
     if (ready === undefined) {
       ready = Promise.all([
         mkdir(join(dir, "exchanges"), { recursive: true }),
         mkdir(join(dir, "blobs"), { recursive: true }),
-      ]).then(() => undefined);
+      ]).then(() => {});
     }
+
     await ready;
   };
 }
@@ -169,12 +182,13 @@ export function createExchangeJournal(dir: string, redactor: Redactor): Exchange
   const store = createBlobStore(dir, redactor);
   const ensure = lazyDirs(dir);
   let count = 0;
-  /* Index lines and exchange files are written in batches: one awaited write per exchange was
-   * most of the journal's cost. */
+  // Index lines and exchange files are written in batches: one awaited write per exchange was
+  // most of the journal's cost.
   let pending: string[] = [];
   let pendingFiles: Array<{ path: string; content: string }> = [];
+
   const flush = async (): Promise<void> => {
-    /* An exchange's file and its index line are queued together. */
+    // An exchange's file and its index line are queued together.
     if (pending.length === 0) return;
     const lines = pending;
     const files = pendingFiles;
@@ -194,7 +208,7 @@ export function createExchangeJournal(dir: string, redactor: Redactor): Exchange
     flush,
     async record(exchange, meta = {}) {
       await ensure();
-      /* A secret the response issues may already sit in the request, headers or URL written first. */
+      // A secret the response issues may already sit in the request, headers or URL written first.
       redactor.learn(exchange.responseBody);
       const requestBody = await persistRequestBody(exchange.requestBody, store);
       const responseBody = await persistResponseBody(exchange, store);
@@ -202,6 +216,7 @@ export function createExchangeJournal(dir: string, redactor: Redactor): Exchange
       const file = exchangeFile(exchange, { requestBody, responseBody }, redactor);
       pendingFiles.push({ content: `${JSON.stringify(file, null, 2)}\n`, path: join(dir, rel) });
       pending.push(`${JSON.stringify(indexLine(exchange, { ...meta, file: rel }, redactor))}\n`);
+
       if (pending.length >= JOURNAL_BATCH) await flush();
       count += 1;
     },

@@ -30,17 +30,17 @@ function implicitRuleFor(category: string): CompiledRateLimitRule {
 }
 
 /** The request a rate applies to: its method, its path below the base URL, and its operation. */
-export interface RateRoute {
+export type RateRoute = {
   method: string;
   pathname: string;
   operationId?: string | undefined;
-}
+};
 
 /** An untagged cooldown: when its first 429 opened it, and when it ends. */
-interface Cooldown {
+type Cooldown = {
   openedAt: number;
   until: number;
-}
+};
 
 export class RateLimiter {
   private readonly buckets = new Map<string, RateBucket>();
@@ -73,7 +73,9 @@ export class RateLimiter {
    */
   implicitRule(method: string): CompiledRateLimitRule | undefined {
     const category = implicitCategory(method);
+
     if (!this.implicitUntil.has(category)) return undefined;
+
     return implicitRuleFor(category);
   }
 
@@ -84,21 +86,25 @@ export class RateLimiter {
   noteBackoff(route: RateRoute, waitMs: number): CompiledRateLimitRule {
     const { method, pathname, operationId } = route;
     const tagged = this.resolve(method, pathname, operationId);
+
     if (tagged !== undefined) {
       this.bucketFor(tagged).penalize(waitMs);
+
       return tagged;
     }
+
     const category = implicitCategory(method);
     const now = performance.now();
     const until = now + Math.max(0, waitMs);
     const open = this.implicitUntil.get(category);
-    /* A 429 inside an open cooldown extends it from when it opened; one after it lapsed opens anew. */
+    // A 429 inside an open cooldown extends it from when it opened; one after it lapsed opens anew.
     this.implicitUntil.set(
       category,
       open !== undefined && now < open.until
         ? { openedAt: open.openedAt, until: Math.max(open.until, until) }
         : { openedAt: now, until },
     );
+
     return implicitRuleFor(category);
   }
 
@@ -109,10 +115,12 @@ export class RateLimiter {
   async waitImplicit(method: string): Promise<boolean> {
     const cooldown = this.implicitUntil.get(implicitCategory(method));
     const now = performance.now();
+
     if (cooldown === undefined || now >= cooldown.until) return true;
     const spread = Math.min(cooldown.until - cooldown.openedAt, IMPLICIT_RELEASE_SPREAD_MS);
     const leaves = cooldown.until + this.random() * spread;
     await new Promise<void>((resolve) => setTimeout(resolve, leaves - now));
+
     return false;
   }
 
@@ -122,10 +130,12 @@ export class RateLimiter {
 
   private bucketFor(rule: CompiledRateLimitRule): RateBucket {
     let bucket = this.buckets.get(rule.category);
+
     if (bucket === undefined) {
       bucket = new RateBucket(rule.rps);
       this.buckets.set(rule.category, bucket);
     }
+
     return bucket;
   }
 }

@@ -19,16 +19,19 @@ export const likeEscaping: Check<{ field: string; likeTerm: Record<string, strin
   plan: (ctx) => {
     if (!filterable(ctx) || ctx.records.length <= 1) return cannot();
     const field = firstFilterable(ctx, (name) => (ctx.query?.searchable ?? []).includes(name));
+
     if (field === null) return cannot("a field that is both filterable and searchable");
-    /* A literal `%` is not a wildcard in this grammar — `*` is, or the value is a bare substring.
-     * Matching everything means the value was interpolated into a LIKE pattern unescaped. Where
-     * the grammar declares `%` its wildcard, matching everything is the answer, not a leak. */
+
+    // A literal `%` is not a wildcard in this grammar — `*` is, or the value is a bare substring.
+    // Matching everything means the value was interpolated into a LIKE pattern unescaped. Where
+    // the grammar declares `%` its wildcard, matching everything is the answer, not a leak.
     if (filterSpec(conv(ctx)).likeWildcard === "%") return cannot("a like operator that reads % literally");
     const likeTerm = filterTerm(conv(ctx), { field, op: "like", value: "%" });
+
     return likeTerm === null ? cannot("a filter grammar with a like operator") : ready({ field, likeTerm });
   },
-  /* The tell is "the filtered result equals the whole listing". Where the listing is already
-   * wrong, that comparison is against a set the backend never served correctly. */
+  // The tell is "the filtered result equals the whole listing". Where the listing is already
+  // wrong, that comparison is against a set the backend never served correctly.
   dependsOn: ["query.filter-selects-from-whole-set", "pagination.page-walk-covers-set", "list.read-after-write"],
   id: "filter.like-metacharacters-escaped",
   lists: true,
@@ -37,6 +40,7 @@ export const likeEscaping: Check<{ field: string; likeTerm: Record<string, strin
   async run(ctx, { field, likeTerm }): Promise<Outcome> {
     const total = await readSet(ctx);
     const probe = await readSet(ctx, likeTerm);
+
     if (probe.status !== "ok") {
       return ctx.findings.unresolved(
         this.id,
@@ -44,9 +48,10 @@ export const likeEscaping: Check<{ field: string; likeTerm: Record<string, strin
         `the like probe was rejected with ${probe.last.exchange.status}, so escaping was never exercised`,
       );
     }
-    if (total.status !== "ok" || !total.complete || !probe.complete) {
+
+    if (total.status !== "ok" || !total.complete || !probe.complete)
       return ctx.findings.unresolved(this.id, ctx.entityName, "the sets are larger than a read covers");
-    }
+
     if (total.items.length === 0) {
       return ctx.findings.unresolved(
         this.id,
@@ -54,7 +59,9 @@ export const likeEscaping: Check<{ field: string; likeTerm: Record<string, strin
         "the unfiltered listing returned nothing, leaving no baseline to compare the probe against",
       );
     }
+
     if (probe.items.length < total.items.length) return ASSERTED;
+
     return ctx.findings.backend(this.id, ctx.entityName, {
       summary: "LIKE metacharacters in a filter value are not escaped",
       detail:

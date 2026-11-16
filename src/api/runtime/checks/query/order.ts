@@ -12,8 +12,10 @@ export function tiedSortField(ctx: Listed): string | null {
   for (const field of ctx.query?.sortable ?? []) {
     if (field === ctx.identity) continue;
     const values = ctx.records.map((r) => JSON.stringify(r[field]));
+
     if (new Set(values).size < values.length) return field;
   }
+
   return null;
 }
 
@@ -32,6 +34,7 @@ export function nullableField(ctx: Listed, candidates: readonly string[]): strin
 /** Null on some cohort records and set on others. */
 export function holdsSomeNulls(ctx: CheckContext, field: string): boolean {
   const nulls = ctx.records.filter((row) => row[field] === null || row[field] === undefined).length;
+
   return nulls > 0 && nulls < ctx.records.length;
 }
 
@@ -40,6 +43,7 @@ export function compareScalars(a: unknown, b: unknown): number {
   if (typeof a === "number" && typeof b === "number") return a - b;
   const as = String(a);
   const bs = String(b);
+
   return as < bs ? -1 : as > bs ? 1 : 0;
 }
 
@@ -53,6 +57,7 @@ const TEXT_ORDERS = {
   folded: (a: string, b: string): number => {
     const x = a.toLowerCase();
     const y = b.toLowerCase();
+
     return x < y ? -1 : x > y ? 1 : 0;
   },
   locale: (a: string, b: string): number => a.localeCompare(b),
@@ -63,10 +68,10 @@ type TextOrder = keyof typeof TEXT_ORDERS;
 const DECLARED_TEXT_ORDER = { binary: "binary", "case-insensitive": "folded", locale: "locale" } as const;
 
 /** How the backend has shown it orders each sort field: its text order and where nulls go. */
-interface ObservedOrder {
+type ObservedOrder = {
   text: TextOrder;
   nulls?: "first" | "last";
-}
+};
 
 const isNull = (value: unknown): boolean => value === null || value === undefined;
 
@@ -81,7 +86,9 @@ const isNull = (value: unknown): boolean => value === null || value === undefine
 export function sortedUnder(ctx: Listed, field: string, values: readonly unknown[]): TextOrder | null {
   const present = values.filter((value) => !isNull(value));
   const { candidates, known } = orderInForce(ctx, field);
+
   if (!nullsPlaced(values, present.length, known?.nulls)) return null;
+
   return candidates.find((order) => ascendingUnder(present, order)) ?? null;
 }
 
@@ -92,6 +99,7 @@ export function sortedUnder(ctx: Listed, field: string, values: readonly unknown
 function orderInForce(ctx: Listed, field: string): { candidates: TextOrder[]; known?: ObservedOrder } {
   const sortCaps = resolvedCaps(ctx).sort;
   const observed = memoTable<ObservedOrder>(ctx.memo.entity, "textOrders").get(field);
+
   const known: ObservedOrder | undefined =
     sortCaps?.collation === undefined && sortCaps?.defaultNulls === undefined
       ? observed
@@ -100,31 +108,40 @@ function orderInForce(ctx: Listed, field: string): { candidates: TextOrder[]; kn
             sortCaps.collation === undefined ? (observed?.text ?? "binary") : DECLARED_TEXT_ORDER[sortCaps.collation],
           ...(sortCaps.defaultNulls === undefined ? {} : { nulls: sortCaps.defaultNulls }),
         };
+
   const candidates: TextOrder[] =
     known === undefined || (sortCaps?.collation === undefined && observed === undefined)
       ? ["binary", "folded", "locale"]
       : [known.text];
+
   return known === undefined ? { candidates } : { candidates, known };
 }
 
 /** Nulls together at one end — and the same end every time once one has been seen. */
 function nullsPlaced(values: readonly unknown[], present: number, end: ObservedOrder["nulls"]): boolean {
   const nulls = values.length - present;
+
   if (nulls === 0 || present === 0) return true;
   const first = values.slice(0, nulls).every(isNull);
   const last = values.slice(present).every(isNull);
+
   if (!first && !last) return false;
+
   if (end === "first" && !first) return false;
+
   return end !== "last" || last;
 }
 
 /** Whether `present` ascends under `order`: numbers numerically, text under that order, ties either way. */
 function ascendingUnder(present: readonly unknown[], order: TextOrder): boolean {
   const text = TEXT_ORDERS[order];
+
   return present.every((value, index) => {
     if (index === 0) return true;
     const prior = present[index - 1];
+
     if (typeof prior === "number" && typeof value === "number") return prior <= value;
+
     return text(String(prior), String(value)) <= 0;
   });
 }
@@ -132,13 +149,16 @@ function ascendingUnder(present: readonly unknown[], order: TextOrder): boolean 
 /** Records how the backend ordered `field`, so later checks hold it to the same order. */
 export function observeTextOrder(ctx: CheckContext, field: string, text: TextOrder, values: readonly unknown[]): void {
   const orders = memoTable<ObservedOrder>(ctx.memo.entity, "textOrders");
+
   if (orders.has(field)) return;
+
   const nulls =
     values.some(isNull) && values.some((value) => !isNull(value))
       ? isNull(values[0])
         ? ("first" as const)
         : ("last" as const)
       : undefined;
+
   orders.set(field, nulls === undefined ? { text } : { nulls, text });
 }
 
@@ -156,8 +176,10 @@ export async function orderIgnored(
     ...query,
     ...q(ctx, { order: sortTerm(conv(ctx), { direction: "desc", field }) }),
   });
+
   const reversed = descending.items.map((item) => item[field]);
   const distinct = new Set(ascending.map((value) => JSON.stringify(value))).size;
   const same = JSON.stringify(reversed) === JSON.stringify(ascending);
+
   return descending.exchange.status < 400 && distinct > 1 && same ? descending : null;
 }

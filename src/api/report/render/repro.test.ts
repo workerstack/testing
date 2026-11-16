@@ -11,6 +11,7 @@ describe("repro scripts", () => {
       "http://h.test/api/",
       new Redactor(),
     );
+
     expect(script?.content).toContain('BASE="${BASE:-http://h.test/api}"');
     expect(script?.content).toContain('"$BASE/v1/rows"');
   });
@@ -21,6 +22,7 @@ describe("repro scripts", () => {
       "http://h.test/api",
       new Redactor(),
     );
+
     expect(script?.content).toContain("'http://h.test/apiv2/rows'");
     expect(script?.content).not.toContain("$BASE");
   });
@@ -31,6 +33,7 @@ describe("repro scripts", () => {
       "http://h.test",
       new Redactor(),
     );
+
     expect(script?.content).toContain(`'http://other.test/it'\\''s'`);
     expect(script?.content).toContain(`-H 'x-note: it'\\''s'`);
   });
@@ -45,6 +48,7 @@ describe("repro scripts", () => {
       "http://h.test",
       new Redactor(),
     );
+
     expect(scripts.map((script) => script.filename)).toEqual([
       "row-sort-order-is-applied.sh",
       "row-sort-order-is-applied-2.sh",
@@ -56,6 +60,7 @@ describe("repro scripts", () => {
 describe("a repro script's content", () => {
   it("write a header naming the finding, then one curl per step, and skip findings with no evidence", () => {
     const detail = `${"word ".repeat(30)}end`;
+
     const scripts = renderRepros(
       [
         finding({ evidence: [] }),
@@ -69,6 +74,7 @@ describe("a repro script's content", () => {
       "http://h.test",
       new Redactor(),
     );
+
     expect(scripts).toHaveLength(1);
     const lines = scripts[0]?.content.split("\n") ?? [];
     expect(lines.slice(0, 4)).toEqual([

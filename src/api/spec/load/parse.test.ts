@@ -57,8 +57,8 @@ describe("assertOpenApi", () => {
 
   it("refuses a document without a version, and one without paths", () => {
     expect(() => assertOpenApi({ openapi: 3, paths: {} }, "s")).toThrow('no "openapi" version field');
-    for (const paths of [undefined, null, [], "p"]) {
+
+    for (const paths of [undefined, null, [], "p"])
       expect(() => assertOpenApi({ openapi: "3.1.0", paths }, "s")).toThrow('no "paths" object');
-    }
   });
 });

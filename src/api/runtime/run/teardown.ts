@@ -15,6 +15,7 @@ import { createdByRun } from "./principals.ts";
  */
 export function trackCreates(ctx: RunContext): void {
   const { client, ledger, model, principals, records, state, store, exclusion } = ctx;
+
   const adopter = createRecordAdopter({
     mapping: ctx.options.sharedCredentials?.mapping,
     model,
@@ -22,6 +23,7 @@ export function trackCreates(ctx: RunContext): void {
     relativePath: (url) => client.relativePath(url),
     store,
   });
+
   const tracker = createTracker({
     client,
     ledger,
@@ -34,10 +36,11 @@ export function trackCreates(ctx: RunContext): void {
       ]),
     ),
     readable: exclusion.readable,
-    /* A probe write a backend let through with no credential is applied all the same: the first
-     * principal reads it back and removes it, or teardown reports it as a record that may remain. */
+    // A probe write a backend let through with no credential is applied all the same: the first
+    // principal reads it back and removes it, or teardown reports it as a record that may remain.
     stranger: { owner: principals.ownerOf(principals.alpha), roots: { ...principals.alpha.scope } },
   });
+
   client.setAfterExchange(async (exchange) => {
     await adopter.observe(exchange);
     await tracker.observe(exchange);
@@ -53,9 +56,11 @@ export async function unwind(ctx: RunContext): Promise<void> {
   const { ledger, progress, options, findings } = ctx;
   progress.check = undefined;
   progress.tick({ message: `${ledger.size} record(s)`, phase: "teardown", requests: progress.requests });
+
   if (options.keepFixtures === true || ledger.size === 0) return;
-  /* What this unwind takes: when it throws, none of it is shown gone. */
+  // What this unwind takes: when it throws, none of it is shown gone.
   const pending = [...ledger.entries()];
+
   try {
     const report = await ledger.unwind(ctx.model, ctx.client.view({ purpose: "teardown" }), {
       fallbacks: ctx.principals.fallbackDeleters,
@@ -73,6 +78,7 @@ export async function unwind(ctx: RunContext): Promise<void> {
         ...(ctx.hooks.verifyRemoved === undefined ? {} : { verifyRemoved: ctx.hooks.verifyRemoved }),
       },
     });
+
     noteHookErrors(ctx, report.verifyHookErrors ?? []);
     ctx.state.teardown = merged(ctx.state.teardown, report);
   } catch (error) {
@@ -84,9 +90,10 @@ export async function unwind(ctx: RunContext): Promise<void> {
   }
 }
 
-/* Records an unwind that threw was to remove: each may remain, so each is a leftover. */
+// Records an unwind that threw was to remove: each may remain, so each is a leftover.
 function unshown(pending: readonly Disposable[], why: string): TeardownReport {
   const reason = `teardown stopped on an unexpected error: ${why}`;
+
   return {
     failed: pending.map(({ entity, id, owner }) => ({ entity, id, principal: owner.id, reason })),
     records: pending.map(({ entity, id, owner }) => ({ entity, id, principal: owner.id, removed: false })),
@@ -96,7 +103,7 @@ function unshown(pending: readonly Disposable[], why: string): TeardownReport {
   };
 }
 
-/* Once per run, however many calls threw or unwinds ran. */
+// Once per run, however many calls threw or unwinds ran.
 function noteHookErrors({ state, findings }: RunContext, errors: readonly string[]): void {
   if (errors.length === 0 || state.verifyHookFailed) return;
   state.verifyHookFailed = true;
@@ -120,6 +127,7 @@ export function merged(before: TeardownReport | null, report: TeardownReport): T
 /** Records of an entity no delete reaches stay behind; the report says which, and how to fix it. */
 export function reportUnremovable({ state, findings }: RunContext): void {
   const unremovable = state.teardown?.unsupported ?? [];
+
   if (unremovable.length === 0) return;
   const names = unremovable.join(", ");
   findings.gap("world.teardown" satisfies RunFindingId, names, {
@@ -148,27 +156,30 @@ export async function revokeCredentials({ options, store, state }: RunContext): 
  */
 export async function revokeSessions(ctx: RunContext): Promise<void> {
   const { options, store, state } = ctx;
+
   if (options.keepCredentials === true || options.sharedCredentials !== undefined) return;
   const failures = await store.revokeSessions((principal) => !createdByRun(ctx, principal));
-  /* A record's credential is ended too once renewal made it a session, but its record is gone by now, so a
-   * refusal says nothing is left behind. */
+  // A record's credential is ended too once renewal made it a session, but its record is gone by now, so a
+  // refusal says nothing is left behind.
   recordUnrevoked(
     state,
     failures.filter((failure) => !isRecordHolder(failure.principal)),
   );
 }
 
-/* Each revoke that failed is a credential the run could not remove. */
+// Each revoke that failed is a credential the run could not remove.
 function recordUnrevoked(
   state: RunContext["state"],
   failures: ReadonlyArray<{ principal: string; scheme: string; reason: string }>,
 ): void {
   if (failures.length === 0) return;
+
   const failed = failures.map(({ principal, reason, scheme }) => ({
     entity: "credential",
     id: `${principal}/${scheme}`,
     principal,
     reason,
   }));
+
   state.teardown = merged(state.teardown, { failed, records: [], removed: 0, unidentified: [], unsupported: [] });
 }

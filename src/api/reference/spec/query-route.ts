@@ -28,7 +28,7 @@ export function paymentSchemas(): Record<"Bank" | "Card", Json> {
   };
 }
 
-/* A card or a bank account, told apart by `kind`: the union of component refs a discriminator names. */
+// A card or a bank account, told apart by `kind`: the union of component refs a discriminator names.
 function paymentMethod(): Json {
   return {
     discriminator: {

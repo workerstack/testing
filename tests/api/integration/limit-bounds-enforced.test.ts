@@ -7,11 +7,9 @@ import { isRootCause } from "../../../src/api/runtime/finding.ts";
 import { run } from "../../../src/api/runtime/run/index.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 
-/*
- * A page size out of range may be clamped or refused; both are honest contracts, so the API tester does not
- * pick one for an API. When the document declares `limitOutOfRange: reject`, a page size of 0 or
- * past the maximum that comes back 200 breaks that promise, and is a finding.
- */
+// A page size out of range may be clamped or refused; both are honest contracts, so the API tester does not
+// pick one for an API. When the document declares `limitOutOfRange: reject`, a page size of 0 or
+// past the maximum that comes back 200 breaks that promise, and is a finding.
 
 const ITEM = { properties: { id: { type: "string" } }, required: ["id"], type: "object" };
 
@@ -51,6 +49,7 @@ function spec(declared: boolean): OpenApiDocument {
 
 const ROWS = Array.from({ length: 6 }, (_, index) => ({ id: `n${index + 1}` }));
 const servers: Array<() => Promise<void>> = [];
+
 afterAll(async () => {
   await Promise.all(servers.map((close) => close()));
 });
@@ -58,35 +57,45 @@ afterAll(async () => {
 async function serve(refuses: boolean, declared: boolean): Promise<string> {
   const server = createServer((req, res) => {
     const at = new URL(req.url ?? "/", "http://x");
+
     if (at.pathname === "/openapi.json") {
       res.writeHead(200, { "content-type": "application/json" });
       res.end(JSON.stringify(spec(declared)));
+
       return;
     }
+
     const skip = Number(at.searchParams.get("skip") ?? "0");
     const take = Number(at.searchParams.get("take") ?? "2");
+
     if (refuses && (take < 1 || take > 3)) {
       res.writeHead(400, { "content-type": "application/json" });
       res.end(JSON.stringify({ error: "take out of range" }));
+
       return;
     }
+
     const served = Math.min(Math.max(take, 1), 3);
     res.writeHead(200, { "content-type": "application/json" });
     res.end(JSON.stringify({ data: ROWS.slice(skip, skip + served), totalCount: ROWS.length }));
   });
+
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   servers.push(() => new Promise((resolve) => server.close(() => resolve())));
+
   return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 }
 
 async function judged(refuses: boolean, declared: boolean) {
   const url = await serve(refuses, declared);
+
   const result = await run({
     baseUrl: url,
     principals: { alpha: {} },
     seed: 1,
     spec: `${url}/openapi.json`,
   });
+
   return {
     ran: result.checksRun.includes("pagination.limit-bounds-enforced"),
     found: result.findings.filter((f) => isRootCause(f) && f.check === "pagination.limit-bounds-enforced"),

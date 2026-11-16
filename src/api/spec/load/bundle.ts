@@ -15,7 +15,7 @@ import { parseText } from "./parse.ts";
 export const EXTERNAL_KEY = "x-testing-external";
 
 /** One bundling in progress. */
-interface Bundling {
+type Bundling = {
   /** The document's real path. */
   root: string;
   /** Its real folder: no ref may resolve outside it, through `..` or a symlink alike. */
@@ -23,13 +23,13 @@ interface Bundling {
   /** Each file read, by real path, as its key under `EXTERNAL_KEY`. */
   keys: Map<string, string>;
   files: Record<string, unknown>;
-}
+};
 
 /** Nodes met while collecting refs: a YAML alias reaches one node twice, or loops back. */
-interface Collecting {
+type Collecting = {
   seen: Set<object>;
   holders: JsonSchema[];
-}
+};
 
 /**
  * Reads every file `doc`, read from `sourcePath`, refers to by relative path, recursively. A URL
@@ -41,36 +41,45 @@ export async function bundleLocalRefs(doc: OpenApiDocument, sourcePath: string):
   const root = await realpath(sourcePath);
   const ctx: Bundling = { files: {}, folder: dirname(root), keys: new Map(), root };
   await rewriteRefs(ctx, doc, root);
+
   if (ctx.keys.size > 0) (doc as Record<string, unknown>)[EXTERNAL_KEY] = ctx.files;
+
   return doc;
 }
 
 async function rewriteRefs(ctx: Bundling, node: unknown, file: string): Promise<void> {
   const found: Collecting = { holders: [], seen: new Set() };
   collect(found, node, "node");
+
   for (const holder of found.holders) holder.$ref = await rewrite(ctx, holder.$ref as string, file);
 }
 
-/* Mirrors `walk`: an `example`, a schema's `examples` array and an Example Object's `value` are data. */
+// Mirrors `walk`: an `example`, a schema's `examples` array and an Example Object's `value` are data.
 function collect(ctx: Collecting, node: unknown, mode: "node" | "example"): void {
   if (node === null || typeof node !== "object" || ctx.seen.has(node)) return;
   ctx.seen.add(node);
+
   if (Array.isArray(node)) {
     for (const item of node) collect(ctx, item, "node");
+
     return;
   }
+
   const obj = node as JsonSchema;
+
   if (typeof obj.$ref === "string") ctx.holders.push(obj);
+
   for (const [key, value] of Object.entries(obj)) collectEntry(ctx, key, value, mode);
 }
 
 function collectEntry(ctx: Collecting, key: string, value: unknown, mode: "node" | "example"): void {
   if (key === "example" || (mode === "example" && key === "value")) return;
+
   if (key !== "examples") return collect(ctx, value, "node");
-  /* A map of Example Objects: each may be a $ref, and each one's `value` is data. */
-  if (value !== null && typeof value === "object" && !Array.isArray(value)) {
+
+  // A map of Example Objects: each may be a $ref, and each one's `value` is data.
+  if (value !== null && typeof value === "object" && !Array.isArray(value))
     for (const example of Object.values(value)) collect(ctx, example, "example");
-  }
 }
 
 /** `ref`, met in `file`, as a pointer into the bundled document; read its file when first named. */
@@ -78,34 +87,42 @@ async function rewrite(ctx: Bundling, ref: string, file: string): Promise<string
   const hash = ref.indexOf("#");
   const path = hash === -1 ? ref : ref.slice(0, hash);
   const fragment = hash === -1 ? "" : ref.slice(hash + 1);
+
   if (fragment !== "" && !fragment.startsWith("/")) return ref;
+
   if (path === "") return pointer(ctx, file, fragment);
+
   if (isAbsolute(path) || /^file:/i.test(path)) {
     throw new UsageError(
       `testing api: ${file} refers to ${ref}, an absolute path; the API tester reads only paths relative to the document`,
     );
   }
+
   if (/^[a-z][a-z\d+.-]*:/i.test(path)) return ref;
   const target = await realOf(resolve(dirname(file), decoded(path)), ref, file);
   const inFolder = relative(ctx.folder, target);
+
   if (inFolder.split(sep)[0] === ".." || isAbsolute(inFolder)) {
     throw new UsageError(
       `testing api: ${file} refers to ${ref}, which resolves outside ${ctx.folder}; the API tester reads only files in the document's folder`,
     );
   }
+
   if (target !== ctx.root && !ctx.keys.has(target)) {
     ctx.keys.set(target, inFolder.split(sep).join("/"));
     const parsed = await parseText(await readFile(target, "utf8"), target);
     ctx.files[inFolder.split(sep).join("/")] = parsed;
     await rewriteRefs(ctx, parsed, target);
   }
+
   return pointer(ctx, target, fragment);
 }
 
 /** The pointer to `fragment` inside `file`: the document itself, or its entry under `EXTERNAL_KEY`. */
 function pointer(ctx: Bundling, file: string, fragment: string): string {
   if (file === ctx.root) return `#${fragment}`;
-  const key = (ctx.keys.get(file) as string).replace(/~/g, "~0").replace(/\//g, "~1").replace(/%/g, "%25");
+  const key = (ctx.keys.get(file) as string).replaceAll("~", "~0").replaceAll("/", "~1").replaceAll("%", "%25");
+
   return `#/${EXTERNAL_KEY}/${key}${fragment}`;
 }
 
@@ -118,7 +135,7 @@ async function realOf(target: string, ref: string, file: string): Promise<string
   }
 }
 
-/* A ref is a URI reference: `my%20file.yaml` names "my file.yaml". A malformed escape is literal. */
+// A ref is a URI reference: `my%20file.yaml` names "my file.yaml". A malformed escape is literal.
 function decoded(path: string): string {
   try {
     return decodeURIComponent(path);

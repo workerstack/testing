@@ -7,31 +7,29 @@ import { createMemoryServer } from "../../../src/api/reference/http/engines.ts";
 import { EXIT } from "../../../src/api/runtime/exit.ts";
 import { latestJournal, latestReport, tester, referenceConfig, tempDirs } from "../support/cli-run.ts";
 
-/*
- * A second host with a document of its own, run by the same principals as the primary. Its
- * operations are named `<origin>:<operationId>`, its findings carry the origin into every report,
- * and a diff of two runs tells a defect on the origin from the same defect on the primary.
- */
+// A second host with a document of its own, run by the same principals as the primary. Its
+// operations are named `<origin>:<operationId>`, its findings carry the origin into every report,
+// and a diff of two runs tells a defect on the origin from the same defect on the primary.
 
 const dirs = tempDirs("testing-origins-");
+
 afterAll(dirs.removeAll);
 
 const FILTER = "filter.unknown-field-rejected";
 
-/* Each defect list is one reference: the primary's, then the `cdn` origin's. */
-interface Hosts {
+// Each defect list is one reference: the primary's, then the `cdn` origin's.
+type Hosts = {
   primary: string[];
   cdn: string[];
-}
+};
 
-/*
- * `testing api run --ops <ops>` against two references, `cdn` an origin of the first. The origin signs no
- * one in: the primary's jwt is sent there, and its apiKey scheme, minted on the primary only, is
- * dropped from its document.
- */
+// `testing api run --ops <ops>` against two references, `cdn` an origin of the first. The origin signs no
+// one in: the primary's jwt is sent there, and its apiKey scheme, minted on the primary only, is
+// dropped from its document.
 async function runBoth(dir: string, hosts: Hosts, ops: string) {
   const primary = await createMemoryServer({ defects: hosts.primary });
   const cdn = await createMemoryServer({ defects: hosts.cdn });
+
   try {
     const origin = {
       baseUrl: cdn.url,
@@ -40,9 +38,11 @@ async function runBoth(dir: string, hosts: Hosts, ops: string) {
       security: { jwt: "jwt" },
       spec: `${cdn.url}/v1/openapi/spec`,
     };
+
     const config = await referenceConfig(dir, primary.url, { origins: [origin] });
     const runs = join(dir, "runs");
     const { code, out } = await tester(["run", "--config", config, "--out", runs, "--ops", ops, "--quiet"]);
+
     return { cdnUrl: cdn.url, code, run: join(runs, "latest"), runs, text: out };
   } finally {
     await Promise.all([primary.close(), cdn.close()]);
@@ -56,6 +56,7 @@ describe("a run over a primary and a secondary origin", () => {
       { cdn: ["FILTER_IGNORED"], primary: [] },
       "table.list,cdn:table.list",
     );
+
     expect(code).toBe(EXIT.defects);
     expect(text).toMatch(/✓ table\.list\s+passed/);
     expect(text).toMatch(/✗ cdn:table\.list\s+failed .*filter\.unknown-field-rejected/);
@@ -79,6 +80,7 @@ describe("a run over a primary and a secondary origin", () => {
       { cdn: ["FILTER_IGNORED"], primary: [] },
       "table.get",
     );
+
     expect(code).toBe(EXIT.clean);
     expect((await latestReport(runs)).scope.originsSkipped).toEqual(["cdn"]);
     expect((await latestJournal(runs)).some((line) => line.url.startsWith(cdnUrl))).toBe(false);
@@ -89,8 +91,9 @@ describe("a recipe only an origin's scheme uses", () => {
   it("is acquired on the primary and sent where the origin's scheme places it, in its own format", async () => {
     const dir = await dirs.make();
     const server = await createMemoryServer({ defects: [] });
+
     try {
-      /* One backend twice: the primary's document drops apiKey, the origin's drops jwt and keeps apiKey. */
+      // One backend twice: the primary's document drops apiKey, the origin's drops jwt and keeps apiKey.
       const origin = {
         baseUrl: server.url,
         id: "cdn",
@@ -98,12 +101,15 @@ describe("a recipe only an origin's scheme uses", () => {
         security: { apiKey: "cdnKey" },
         spec: `${server.url}/v1/openapi/spec`,
       };
+
       const config = await referenceConfig(dir, server.url, {
         origins: [origin],
         overlay: { securitySchemes: { apiKey: null } },
         security: { cdnKey: SECURITY["apiKey"], jwt: SECURITY["jwt"] },
       });
+
       const runs = join(dir, "runs");
+
       const { code, out } = await tester([
         "run",
         "--config",
@@ -114,6 +120,7 @@ describe("a recipe only an origin's scheme uses", () => {
         "cdn:table.list",
         "--quiet",
       ]);
+
       expect(out).toMatch(/✓ cdn:table\.list\s+passed/);
       expect(code).toBe(EXIT.clean);
     } finally {

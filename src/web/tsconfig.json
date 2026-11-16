@@ -1,0 +1,7 @@
+{
+  // The web modules and their unit tests: the root config plus the DOM, since `ready.settle` runs a function in the page.
+  "compilerOptions": { "lib": ["ES2023", "DOM", "DOM.Iterable"] },
+  "exclude": [],
+  "extends": "../../tsconfig.json",
+  "include": ["**/*.ts"]
+}

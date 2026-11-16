@@ -5,7 +5,7 @@ import type { ProgressInflight, ProgressLast, ProgressSnapshot } from "./types.t
 /** Idle this long after a completed call reads as a stall. */
 export const STALL_MS = 15_000;
 
-export interface ProgressFields {
+export type ProgressFields = {
   status: string;
   done: string;
   total: string;
@@ -25,7 +25,7 @@ export interface ProgressFields {
   res_b: string;
   idle_ms: string;
   elapsed_ms: string;
-}
+};
 
 type CallFields = Pick<
   ProgressFields,
@@ -36,6 +36,7 @@ type CallFields = Pick<
 function requestPath(url: string): string {
   try {
     const parsed = new URL(url);
+
     return `${parsed.pathname}${parsed.search}`;
   } catch {
     return url;
@@ -60,6 +61,7 @@ function runFields(snap: ProgressSnapshot): Omit<ProgressFields, keyof CallField
 /** A call still on the wire: idle counts from when it started, and it has no answer yet. */
 function inflightFields(inflight: ProgressInflight, now: number): CallFields {
   const requestId = inflight.requestId;
+
   return {
     http: "-",
     idle_ms: String(Math.max(0, now - inflight.at)),
@@ -91,6 +93,7 @@ const NO_CALL: CallFields = {
 function lastFields(last: ProgressLast | undefined, now: number): CallFields {
   if (last === undefined) return NO_CALL;
   const stalled = now - last.at >= STALL_MS;
+
   return {
     http: String(last.status),
     idle_ms: String(Math.max(0, now - last.at)),
@@ -101,11 +104,12 @@ function lastFields(last: ProgressLast | undefined, now: number): CallFields {
     req_b: String(last.requestBytes),
     req_id: last.requestId,
     res_b: String(last.responseBytes),
-    status: last.network !== undefined ? "network" : stalled ? "stall" : "ok",
+    status: last.network === undefined ? (stalled ? "stall" : "ok") : "network",
   };
 }
 
 export function progressFields(snap: ProgressSnapshot, now: number): ProgressFields {
   const call = snap.inflight === undefined ? lastFields(snap.last, now) : inflightFields(snap.inflight, now);
+
   return { ...runFields(snap), ...call };
 }

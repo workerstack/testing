@@ -13,7 +13,7 @@
 
 import type { QueryConventions } from "../query/conventions.ts";
 
-export interface ReferenceShape {
+export type ReferenceShape = {
   /** Pagination model, layered over the dialect. */
   pagination?: "page-total" | "cursor-only" | "offset-total";
   /** A page-size ceiling the server applies without documenting it. */
@@ -91,9 +91,9 @@ export interface ReferenceShape {
    * project: two tenants can each hold `quarterly-report-0`. Rows keep the table's internal id.
    */
   tableKey?: "slug";
-}
+};
 
-export interface NamedShape {
+export type NamedShape = {
   name: string;
   /** What a correct backend is doing differently here, in the reader's terms. */
   why: string;
@@ -108,4 +108,4 @@ export interface NamedShape {
   cannotExhibit?: readonly string[];
   /** Defects only this shape can show, run in its recall pass on top of the common ones. */
   exhibits?: readonly string[];
-}
+};

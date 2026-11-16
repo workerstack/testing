@@ -16,34 +16,41 @@ import type { EntityRun, World } from "./state.ts";
  */
 export async function seedFailed(run: EntityRun, createOp: OperationModel, error: unknown): Promise<World | null> {
   const { entity, findings, ctx } = run;
+
   if (isNetworkError(error)) {
     await ctx.network.note(error, entity.name);
+
     return null;
   }
+
   if (error instanceof FencedError) {
     findings.blocked("world.seed" satisfies RunFindingId, entity.name, {
       summary: `seeding "${entity.name}" was fenced: ${error.request.reason}`,
       cause: `${error.message}. The request was never sent, so "${entity.name}" has no cohort to test.`,
     });
+
     return null;
   }
+
   if (isOverflowError(error)) {
     const overflow = overflowFrom(error, createOp.operationId);
     findings.gap("world.seed" satisfies RunFindingId, entity.name, {
       summary: overflow.message,
       detail: overflow.message,
     });
+
     return existingOrBlocked(run, {
       check: "world.seed" satisfies RunFindingId,
       detail: overflow.message,
       summary: `could not seed "${entity.name}"`,
     });
   }
+
   return createFailed(run, createOp, error);
 }
 
 /** What a failed create left: which operation failed, how, and the exchange that shows it. */
-interface Failure {
+type Failure = {
   cause: string;
   message: string;
   failedOp: string;
@@ -54,14 +61,15 @@ interface Failure {
    * reported as a defect of its own.
    */
   support: boolean;
-}
+};
 
 async function createFailed(run: EntityRun, createOp: OperationModel, error: unknown): Promise<World | null> {
   const { entity, findings } = run;
   const failure = await failureOf(run, createOp, error);
   const status = error instanceof SeedError ? error.status : undefined;
-  /* A create that fails with 5xx is not a fixture problem — it is the defect. Reporting it as
-   * merely "blocked" buries the most serious thing the API tester found. */
+
+  // A create that fails with 5xx is not a fixture problem — it is the defect. Reporting it as
+  // merely "blocked" buries the most serious thing the API tester found.
   if (status !== undefined && status >= 500 && !failure.support) {
     run.ctx.findings
       .attributed([failure.failedOp])
@@ -75,7 +83,8 @@ async function createFailed(run: EntityRun, createOp: OperationModel, error: unk
         evidence: failure.evidence,
       });
   }
-  /* A backend whose create is broken can still have a working list. */
+
+  // A backend whose create is broken can still have a working list.
   const world = await existingOrBlocked(run, {
     check: "world.seed" satisfies RunFindingId,
     detail: failure.support
@@ -84,11 +93,13 @@ async function createFailed(run: EntityRun, createOp: OperationModel, error: unk
     evidence: failure.evidence,
     summary: `could not seed "${entity.name}"`,
   });
+
   if (world === null) return null;
   findings.gap("world.seed" satisfies RunFindingId, entity.name, {
     summary: `seeding "${entity.name}" failed; running read-only checks against existing records`,
     detail: `${failure.cause}: ${failure.message}. Write-path and lifecycle checks are skipped for this entity.`,
   });
+
   return world;
 }
 
@@ -96,6 +107,7 @@ async function failureOf(run: EntityRun, createOp: OperationModel, error: unknow
   const { client, scope } = run.ctx;
   const seedError = error instanceof SeedError ? error : undefined;
   const failedOp = seedError?.operationId ?? createOp.operationId;
+
   const evidence =
     seedError?.exchange === undefined
       ? await Promise.all(
@@ -105,6 +117,7 @@ async function failureOf(run: EntityRun, createOp: OperationModel, error: unknow
             .map((exchange) => client.hydrate(exchange)),
         )
       : [seedError.exchange];
+
   return {
     cause: seedError?.culprit ?? "unknown",
     evidence,

@@ -42,13 +42,16 @@ export function deletedEarlierIn(transcript: readonly Exchange[]): (path: string
       .filter((exchange) => exchange.method === "DELETE" && exchange.status >= 200 && exchange.status < 300)
       .map((exchange) => new URL(exchange.url).pathname),
   );
+
   const earlierSegments = [...earlierDeletes].map(segmentsOf);
+
   return (path) => {
     const target = segmentsOf(path.split("?")[0] as string);
+
     return earlierSegments.some((done) => {
-      for (let k = target.length; k >= 1; k--) {
+      for (let k = target.length; k >= 1; k--)
         if (done.length >= k && done.slice(-k).every((segment, at) => segment === target[at])) return true;
-      }
+
       return false;
     });
   };
@@ -59,7 +62,9 @@ export function readPathOf(model: SpecModel, item: Disposable): { op: OperationM
   const readId = model.entities.get(item.entity)?.read;
   const op = readId === undefined ? undefined : model.byOperationId.get(readId);
   const param = op?.pathParams.at(-1);
+
   if (op === undefined || param === undefined) return null;
+
   try {
     return { op, path: fillPath(op.path, { ...item.scope, [param]: item.id }) };
   } catch {
@@ -73,15 +78,19 @@ export function readPathOf(model: SpecModel, item: Disposable): { op: OperationM
  */
 export function deleteOperationFor(entityName: string, model: SpecModel): OperationModel | null {
   const entity = model.entities.get(entityName);
-  /* An entity's delete is one of the model's operations. */
+
+  // An entity's delete is one of the model's operations.
   if (entity?.delete !== undefined) return model.byOperationId.get(entity.delete) as OperationModel;
 
   for (const op of model.operations) {
     if (op.entity !== entityName || op.cleanup === null) continue;
     const parsed = parseRouteRef(op.cleanup);
+
     if (parsed === null) continue;
     const target = model.byRoute.get(`${parsed.method} ${parsed.path}`);
+
     if (target !== undefined) return target;
   }
+
   return null;
 }

@@ -51,10 +51,12 @@ export const filterSearchSortCompose: Check<Subset & { token: string; sortField:
   async run(ctx, { field, sortField, term, token }): Promise<Outcome> {
     const conventions = conv(ctx);
     const limit = pageSize(ctx);
+
     const pair = await collectSet(ctx, limit, {
       ...term,
       ...q(ctx, { search: token }),
     });
+
     const triple = await collectSet(
       ctx,
       limit,
@@ -63,9 +65,10 @@ export const filterSearchSortCompose: Check<Subset & { token: string; sortField:
         order: sortTerm(conventions, { direction: "desc", field: sortField }),
       },
     );
-    if (pair === null || triple === null) {
+
+    if (pair === null || triple === null)
       return ctx.findings.unresolved(this.id, ctx.entityName, "combining a filter, a search and a sort was rejected");
-    }
+
     if (!pair.complete || !triple.complete) {
       return ctx.findings.unresolved(
         this.id,
@@ -78,7 +81,9 @@ export const filterSearchSortCompose: Check<Subset & { token: string; sortField:
     const got = new Set(ids(triple.items, ctx.identity));
     const missing = [...expected].filter((id) => !got.has(id));
     const extraIds = [...got].filter((id) => !expected.has(id));
+
     if (missing.length === 0 && extraIds.length === 0) return ASSERTED;
+
     const moved = await unlessMoved(ctx, this.id, {
       reads: [pair, triple],
       terms: [
@@ -89,16 +94,18 @@ export const filterSearchSortCompose: Check<Subset & { token: string; sortField:
         },
       ],
     });
+
     if (moved !== null) return moved;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
       summary: "adding a sort changes which records a filter and a search return",
       detail:
         `filter on "${field}" with q=${JSON.stringify(token)} matched ${expected.size}; ` +
-        `the same request with order=${sortField} desc matched ${got.size}. ` +
-        (missing.length > 0 ? `Dropped: ${missing.slice(0, 3).join(", ")}. ` : "") +
-        (extraIds.length > 0 ? `Appeared: ${extraIds.slice(0, 3).join(", ")}. ` : "") +
-        "A sort must reorder the intersection, never change it.",
+        `the same request with order=${sortField} desc matched ${got.size}. ${
+          missing.length > 0 ? `Dropped: ${missing.slice(0, 3).join(", ")}. ` : ""
+        }${
+          extraIds.length > 0 ? `Appeared: ${extraIds.slice(0, 3).join(", ")}. ` : ""
+        }A sort must reorder the intersection, never change it.`,
       evidence: [pair.last.exchange, triple.last.exchange],
     });
   },

@@ -134,8 +134,8 @@ export const PLAIN: Dialect = {
   grammar: "equality",
   name: "plain",
   params: {
-    /* Declared for completeness; the equality grammar never sends it, and the fixture never
-     * reads it. A parameter a backend accepts and ignores is itself a defect the API tester reports. */
+    // Declared for completeness; the equality grammar never sends it, and the fixture never
+    // reads it. A parameter a backend accepts and ignores is itself a defect the API tester reports.
     filter: "filter",
     limit: "limit",
     order: "sort",

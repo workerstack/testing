@@ -1,20 +1,23 @@
 import { describe, expect, it } from "vitest";
 
+import type { Row } from "../cell.ts";
 import { DefectSet } from "../defects/defect-set.ts";
 import type { DefectName } from "../defects/table.ts";
 import { ROW } from "../model/row.ts";
-import type { Row } from "../store-api.ts";
 import { project } from "./project.ts";
 
 const ROW_VALUE: Row = { id: "r1", label: "x", table_id: "t1" };
+
 const embed = async (relation: string, row: Row): Promise<Row | null> =>
   row["table_id"] === undefined ? null : { name: `${relation}-name`, status: "active", secret: 1 };
+
 /** What a fieldset is projected from: the sample row, with no defect and the embed on, unless given. */
-interface Projecting {
+type Projecting = {
   defects?: DefectName[];
   row?: Row;
   withEmbed?: boolean;
-}
+};
+
 const projected = (select: string | undefined, { defects = [], row = ROW_VALUE, withEmbed = true }: Projecting = {}) =>
   project(row, { defects: new DefectSet(defects), embed: withEmbed ? embed : undefined, entity: ROW, select });
 

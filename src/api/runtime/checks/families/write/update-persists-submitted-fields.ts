@@ -15,23 +15,25 @@ import { recordUpdateDrops } from "../../payloads/update-drops.ts";
 import { itemParamFor, subjectsOf } from "../../planning/subjects.ts";
 
 const ID = "update.persists-submitted-fields";
+
 /** At most this many single-field updates when the combined one is refused. */
 const MAX_ALONE = 8;
-/* A status, state, plan or tier enum is a lifecycle switch: changing it can suspend or bill the record. */
+
+// A status, state, plan or tier enum is a lifecycle switch: changing it can suspend or bill the record.
 const LIFECYCLE = /(^|_)(status|state|plan|tier)$/i;
 
-interface Plan {
+type Plan = {
   updateOp: OperationModel;
   readOp: OperationModel;
   /** The fields the update offers that a read returns and a change cannot set off a side effect. */
   offered: string[];
-}
+};
 
 /** The update's own answer and a read past the cache: the two witnesses of what was stored. */
-interface Witnesses {
+type Witnesses = {
   answer: Record_ | undefined;
   back: Record_ | undefined;
-}
+};
 
 /**
  * An update must store what it was sent. One update, on a record this check made, carries a new
@@ -42,8 +44,10 @@ interface Witnesses {
 export const updatePersistsFields: Check<Plan> = defineCheck<Plan>({
   plan: (ctx) => {
     const { createOp, readOp, updateOp } = ctx;
+
     if (createOp === undefined || readOp === undefined || updateOp === undefined) return cannot();
     const offered = offeredFields(ctx, updateOp);
+
     return offered.length === 0
       ? cannot("an update that offers a field a read returns")
       : ready({ offered, readOp, updateOp });
@@ -55,18 +59,22 @@ export const updatePersistsFields: Check<Plan> = defineCheck<Plan>({
   subjects: subjectsOf.update,
   async run(ctx, plan): Promise<Outcome> {
     const made = await scratchRecord(ctx, ID);
+
     if ("outcome" in made) return made.outcome;
     const params = { ...ctx.scope, ...itemParamFor(ctx, made.scratch.id) };
     const read = () => ctx.client.get(fillPath(plan.readOp.path, params), { as: { principal: ctx.actor.id } });
     const before = await read();
     const original = before.status < 300 ? readRecord(plan.readOp, before) : undefined;
-    if (original === undefined) {
+
+    if (original === undefined)
       return ctx.findings.unresolved(ID, ctx.entityName, `reading the record returned ${before.status}`);
-    }
+
     const changes = changesFor(ctx, plan, original);
+
     if (Object.keys(changes).length === 0) return standDown("no offered field has another valid value");
     const outcome = await updateAndJudge(ctx, { changes, path: fillPath(plan.updateOp.path, params), plan, read });
     recordUpdateDrops(ctx, outcome.dropped);
+
     return judge(ctx, outcome);
   },
 });
@@ -74,10 +82,12 @@ export const updatePersistsFields: Check<Plan> = defineCheck<Plan>({
 /** The update body's fields a read returns, none fixed, secret, privileged or a lifecycle switch. */
 function offeredFields(ctx: CheckContext, updateOp: OperationModel): string[] {
   const schema = requestSchemaOf(ctx, updateOp);
+
   const properties = (schema?.properties ?? {}) as Record<
     string,
     JsonSchema & { readOnly?: unknown; writeOnly?: unknown }
   >;
+
   const fixed = new Set([
     ...updateOp.immutable,
     ...updateOp.generated,
@@ -85,37 +95,40 @@ function offeredFields(ctx: CheckContext, updateOp: OperationModel): string[] {
     ...withheldProperties(ctx, updateOp),
     ctx.identity,
   ]);
+
   return Object.entries(properties)
     .filter(([name, field]) => !fixed.has(name) && field.readOnly !== true && field.writeOnly !== true)
     .filter(([name, field]) => !(LIFECYCLE.test(name) && Array.isArray(field.enum)))
     .map(([name]) => name);
 }
 
-/*
- * A value per offered field the record holds: the salted valid body's, unique to this check, so a
- * rename never takes a name another check's record will want; else a changed value.
- */
+// A value per offered field the record holds: the salted valid body's, unique to this check, so a
+// rename never takes a name another check's record will want; else a changed value.
 function changesFor(ctx: WriteContext, plan: Plan, original: Record_): Record<string, unknown> {
   const schema = requestSchemaOf(ctx, plan.updateOp);
   const fresh = schema === null ? {} : validBody(ctx, schema);
   const changes: Record<string, unknown> = {};
+
   for (const field of plan.offered) {
     if (!Object.hasOwn(original, field)) continue;
     const salted = fresh[field];
+
     const next =
       salted !== undefined && JSON.stringify(salted) !== JSON.stringify(original[field])
         ? salted
         : changedValue(ctx, field, original[field], plan.updateOp);
+
     if (next !== undefined) changes[field] = next;
   }
+
   return changes;
 }
 
-interface Judged {
+type Judged = {
   dropped: string[];
   refused: Array<{ field: string; status: number }>;
   evidence: Exchange[];
-}
+};
 
 /** One combined update; when it is refused, each field alone (at most MAX_ALONE), so one bad field hides none. */
 async function updateAndJudge(
@@ -124,13 +137,17 @@ async function updateAndJudge(
 ): Promise<Judged> {
   const send = (fields: Record<string, unknown>) => sendUpdate(ctx, { fields, path: run.path, plan: run.plan });
   const combined = await send(run.changes);
+
   if (combined.status < 300) return witnessed(run, [combined, Object.entries(run.changes)]);
   const judged: Judged = { dropped: [], evidence: [], refused: [] };
+
   for (const [field, value] of Object.entries(run.changes).slice(0, MAX_ALONE)) {
     const alone = await send({ [field]: value });
+
     if (alone.status >= 300) judged.refused.push({ field, status: alone.status });
     else mergeInto(judged, await witnessed(run, [alone, [[field, value]]]));
   }
+
   return judged;
 }
 
@@ -144,8 +161,9 @@ async function sendUpdate(
   { fields, path, plan }: { fields: Record<string, unknown>; path: string; plan: Plan },
 ): Promise<Exchange> {
   const schema = requestSchemaOf(ctx, plan.updateOp);
-  /* A PUT replaces the record, so it carries a whole valid body; a PATCH only the fields. */
+  // A PUT replaces the record, so it carries a whole valid body; a PATCH only the fields.
   const whole = plan.updateOp.method.toUpperCase() === "PATCH" || schema === null ? {} : validBody(ctx, schema);
+
   return ctx.client.request(plan.updateOp.method, path, {
     as: { principal: ctx.actor.id },
     body: { ...whole, ...fields },
@@ -163,16 +181,20 @@ async function witnessed(
   [update, sent]: [Exchange, Array<[string, unknown]>],
 ): Promise<Judged> {
   const after = await run.read();
+
   const seen: Witnesses = {
     answer: readRecord(run.plan.updateOp, update),
     back: after.status < 300 ? readRecord(run.plan.readOp, after) : undefined,
   };
+
   const dropped = sent.filter((field) => !holds(seen.answer, field) && !holds(seen.back, field)).map(([key]) => key);
+
   return { dropped, evidence: dropped.length === 0 ? [] : [update, after], refused: [] };
 }
 
 function refusedNote(refused: Judged["refused"]): string {
   const fields = refused.map(({ field, status }) => `${field} on its own (${status})`).join(", ");
+
   return `the update refused ${fields}; every other field it was sent was stored`;
 }
 
@@ -180,11 +202,13 @@ function judge(ctx: WriteContext, judged: Judged): Outcome {
   if (judged.dropped.length === 0)
     return judged.refused.length === 0 ? ASSERTED : asserted(refusedNote(judged.refused));
   const named = judged.dropped.map((field) => `"${field}"`).join(", ");
+
   return ctx.findings.backend(ID, ctx.entityName, {
     detail:
       `the update answered success and stored none of ${named} as sent: neither its answer nor a read ` +
-      "past the cache shows them. Callers are told the write succeeded." +
-      (judged.refused.length === 0 ? "" : ` Also, ${refusedNote(judged.refused)}.`),
+      `past the cache shows them. Callers are told the write succeeded.${
+        judged.refused.length === 0 ? "" : ` Also, ${refusedNote(judged.refused)}.`
+      }`,
     evidence: judged.evidence.slice(0, 4),
     summary: "update silently discards submitted fields",
   });

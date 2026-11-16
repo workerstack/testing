@@ -12,10 +12,10 @@ type Identity = Pick<OperationModel, "identity" | "identitySource">;
  * when the path ends with it.
  */
 /** An operation's path, and its path parameters in order. */
-export interface OperationRoute {
+export type OperationRoute = {
   path: string;
   pathParams: readonly string[];
-}
+};
 
 export function operationIdentity(
   declared: string | undefined,
@@ -25,8 +25,10 @@ export function operationIdentity(
   const lastParam = pathParams.at(-1);
   const itemRoute = lastParam !== undefined && path.endsWith(`{${lastParam}}`);
   const identity = declared ?? deriveIdentity(itemSchema, lastParam, itemRoute);
+
   const identitySource: OperationModel["identitySource"] =
-    declared !== undefined ? "declared" : identity === null ? null : itemRoute ? "route" : "schema";
+    declared === undefined ? (identity === null ? null : itemRoute ? "route" : "schema") : "declared";
+
   return { identity, identitySource };
 }
 

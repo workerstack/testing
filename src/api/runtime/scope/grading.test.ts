@@ -6,11 +6,13 @@ import { gradingOf } from "./grading.ts";
 
 const ledgerOf = (...checks: string[]): GradeLedger => {
   const ledger = new GradeLedger();
+
   for (const check of checks) ledger.graded(["pay.start"], check);
+
   return ledger;
 };
 
-/* A finding attributed to no operation. */
+// A finding attributed to no operation.
 const { operations: _operations, ...unattributed } = finding("BACKEND_BUG", "unattributed");
 
 describe("gradingOf", () => {
@@ -22,6 +24,7 @@ describe("gradingOf", () => {
       }),
       "pay.start",
     );
+
     expect(grading).toMatchObject({ passed: ["a.check", "b.check"], status: "passed", succeeded: true });
   });
 
@@ -55,6 +58,7 @@ describe("gradingOf, short of a pass", () => {
       }),
       "pay.start",
     );
+
     expect(grading).toMatchObject({ failed: ["a.check"], gaps: [], inconclusive: [], status: "failed" });
     expect(grading.defects).toHaveLength(2);
   });
@@ -69,7 +73,9 @@ describe("gradingOf, short of a pass", () => {
       }),
       "pay.start",
     );
+
     expect(inconclusive).toMatchObject({ inconclusive: ["b.check"], status: "inconclusive" });
+
     const gap = gradingOf(
       coverageInput({
         findings: [finding("COVERAGE_GAP", "a.check"), finding("COVERAGE_GAP", "unran.check")],
@@ -77,6 +83,7 @@ describe("gradingOf, short of a pass", () => {
       }),
       "pay.start",
     );
+
     expect(gap).toMatchObject({ gaps: ["a.check"], status: "untested" });
     expect(gap.gapFindings).toHaveLength(1);
     expect(gradingOf(coverageInput({ findings: [finding("BLOCKED", "s.pay")] }), "pay.start").status).toBe("blocked");

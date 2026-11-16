@@ -32,6 +32,7 @@ describe("webImportAllowed", () => {
     expect(allowed("ready.ts", "../api/index.ts")).toBe(false);
     expect(allowed("ready.ts", "./solid/hydrate.ts")).toBe(false);
     expect(allowed("ready.ts", "solid-js")).toBe(false);
+
     for (const solidOnly of ["@solidjs/web", "@solidjs/vite-plugin", "vite", "parse5"])
       expect(allowed("ready.ts", solidOnly)).toBe(false);
   });
@@ -48,6 +49,7 @@ describe("webImportAllowed", () => {
     expect(allowed("solid/hydrate.ts", "./tags.ts")).toBe(true);
     expect(allowed("solid/hydrate.ts", "solid-js")).toBe(true);
     expect(allowed("solid/hydrate.ts", "solid-js/web")).toBe(true);
+
     for (const name of ["@solidjs/web", "@solidjs/vite-plugin", "vite", "parse5"])
       expect(allowed("solid/vitest.ts", name)).toBe(true);
     expect(allowed("solid/hydrate.ts", "../../api/index.ts")).toBe(false);
@@ -83,6 +85,7 @@ describe("testing/web-boundaries", () => {
         "export const e = (name: string) => import(name)",
       ].join("\n"),
     };
+
     const reports = reportsOf(rule, fixture);
     expect(reports.map(({ line }) => line)).toEqual([1, 2, 3]);
     expect(reports[0]?.message).toBe(MESSAGE);
@@ -95,12 +98,14 @@ describe("testing/web-boundaries", () => {
 
   it("leaves tests, fixtures and code outside src/web alone", () => {
     const source = 'import { x } from "../api/index.ts"\n';
+
     const fixture = {
       "src/web/ready.test.ts": source,
       "src/web/__fixtures__/page.ts": source,
       "src/api/index.ts": 'import { x } from "lodash"\n',
       "tests/web/browser/runner.test.ts": source,
     };
+
     expect(reportsOf(rule, fixture)).toEqual([]);
   });
 

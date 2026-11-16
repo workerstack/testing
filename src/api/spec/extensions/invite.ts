@@ -3,7 +3,7 @@
 import type { OperationObject } from "../types.ts";
 import { extObject } from "./tag.ts";
 
-export interface InviteSpec {
+export type InviteSpec = {
   invite: string;
   accept: string;
   revoke: string;
@@ -37,7 +37,7 @@ export interface InviteSpec {
    * them names their lifetime. Absent means the first read after the revoke must be refused.
    */
   revokeStaleness?: number;
-}
+};
 
 const stringOr = (value: unknown, fallback: string): string => (typeof value === "string" ? value : fallback);
 
@@ -48,9 +48,12 @@ const nonEmpty = (value: unknown): value is string => typeof value === "string" 
 
 export function readInvite(op: OperationObject): InviteSpec | null {
   const tag = extObject<InviteSpec>(op, "x-invite");
+
   if (tag === undefined) return null;
   const { invite, accept, revoke } = tag;
+
   if (typeof invite !== "string" || typeof accept !== "string" || typeof revoke !== "string") return null;
+
   const spec: InviteSpec = {
     accept,
     credentialFrom: nonEmpty(tag.credentialFrom) ? tag.credentialFrom : "$.access_token",
@@ -61,9 +64,14 @@ export function readInvite(op: OperationObject): InviteSpec | null {
     tokenFrom: tag.tokenFrom === "outOfBand" ? "outOfBand" : "response",
     tokenPointer: stringOr(tag.tokenPointer, "$.token"),
   };
+
   if (nonEmpty(tag.tokenKind)) spec.tokenKind = tag.tokenKind;
+
   if (nonEmpty(tag.grants)) spec.grants = tag.grants;
+
   if (tag.acceptFrom === "link") spec.acceptFrom = "link";
+
   if (wholeSeconds(tag.revokeStaleness)) spec.revokeStaleness = tag.revokeStaleness;
+
   return spec;
 }

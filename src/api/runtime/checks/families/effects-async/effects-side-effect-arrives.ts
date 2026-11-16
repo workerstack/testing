@@ -28,11 +28,14 @@ export const sideEffectArrives: Check = defineCheck({
   subjects: subjectsOf.waits,
   async run(all): Promise<Outcome> {
     const notes: string[] = [];
+
     for (const op of all.waitOps) {
       const ctx = forOperation(all, op);
       const spec = op.wait;
+
       if (spec === null) continue;
       const pollOp = ctx.model.byOperationId.get(spec.operationId);
+
       if (pollOp === undefined) {
         ctx.findings.gap(this.id, ctx.entityName, {
           summary: `${op.operationId} x-wait names "${spec.operationId}", which is not in the document`,
@@ -45,12 +48,13 @@ export const sideEffectArrives: Check = defineCheck({
         invokeAndWait({ check: this.id, ctx, fixture: slot?.filename, notes, op, pollOp, spec }, uploads),
       );
     }
+
     return notes.length === 0 ? ASSERTED : asserted([...new Set(notes)].join("; "));
   },
 });
 
 /** One invocation of one write declaring x-wait: what every step reports against. */
-interface Invocation {
+type Invocation = {
   check: string;
   ctx: WriteContext;
   /** Where a wait that concluded only past its budget leaves its note. */
@@ -59,30 +63,36 @@ interface Invocation {
   pollOp: OperationModel;
   spec: WaitSpec;
   fixture: string | undefined;
-}
+};
 
 /** Invokes the write, then polls its x-wait operation until the side effect shows or time runs out. */
 async function invokeAndWait(run: Invocation, uploads: UploadContext): Promise<void> {
   const { ctx, op, pollOp, spec, fixture } = run;
   const body = op.hasRequestBody ? bodyForOp(ctx, op) : undefined;
+
   const invoked = await ctx.client.request(op.method, fillPath(op.path, ctx.scope), {
     as: { principal: ctx.actor.id },
     operationId: op.operationId,
     ...(fixture === undefined ? {} : { fixture }),
     ...(body === undefined ? {} : await encodeOpBody(ctx, op, body, { variant: "baseline", index: 0, uploads })),
   });
+
   if (standDownForFeatureGate(ctx, op, invoked, run.check)) return;
+
   if (standDownForRateLimit(ctx, invoked, run.check)) return;
+
   if (invoked.status >= 400) {
     ctx.findings.gap(run.check, subject(ctx.entityName, op.operationId, fixture), {
       summary: `${op.operationId} could not be invoked`,
       detail: `returned ${invoked.status}; its declared x-wait is unverified`,
       fixture,
     });
+
     return;
   }
 
   const scope = bindWaitScope(ctx, op, pollOp, invoked.responseBody);
+
   const outcome = await driveWait({
     awaitSideEffect: ctx.hooks.awaitSideEffect,
     client: ctx.client,
@@ -93,23 +103,27 @@ async function invokeAndWait(run: Invocation, uploads: UploadContext): Promise<v
     spec,
     writeOpId: op.operationId,
   });
+
   if (!outcome.timedOut) {
     const late = overBudget(op.operationId, {
       elapsedMs: outcome.elapsedMs,
       kind: "x-wait",
       timeoutMs: spec.timeoutMs,
     });
+
     if (late !== undefined) run.notes.push(late);
+
     return;
   }
+
   ctx.findings.backend(run.check, subject(ctx.entityName, op.operationId, fixture), {
     summary: `${op.operationId} side effect did not appear within ${spec.timeoutMs}ms`,
     detail:
-      `x-wait polls ${spec.operationId}` +
-      (spec.until === undefined ? "" : ` until ${spec.until} is non-empty`) +
-      ` and the path was still empty after ${outcome.polls} poll(s) / ${Math.round(outcome.elapsedMs)}ms. ` +
-      "Queue consumers and webhook inboxes are not the same request; a timeout here is a " +
-      "missed delivery, not a coverage gap.",
+      `x-wait polls ${spec.operationId}${
+        spec.until === undefined ? "" : ` until ${spec.until} is non-empty`
+      } and the path was still empty after ${outcome.polls} poll(s) / ${Math.round(outcome.elapsedMs)}ms. ` +
+      `Queue consumers and webhook inboxes are not the same request; a timeout here is a ` +
+      `missed delivery, not a coverage gap.`,
     evidence: [invoked, ...outcome.exchanges.slice(-2)],
     fixture,
   });
@@ -124,5 +138,6 @@ function bindWaitScope(
   const scope = { ...ctx.scope };
   Object.assign(scope, bindAfterCreateEffects(ctx.model, writeOp.effects, { body: writeBody }));
   Object.assign(scope, bindMissingPathParams(pollOp.pathParams, scope, writeBody));
+
   return scope;
 }

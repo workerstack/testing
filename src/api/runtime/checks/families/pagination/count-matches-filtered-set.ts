@@ -14,15 +14,17 @@ export const countMatchesWalk: Check<{ countTerm: Record<string, string> }> = de
   plan: (ctx) => {
     if (ctx.records.length <= 1 || !filterable(ctx) || !identityIsFilterable(ctx)) return cannot();
     const targetId = idOf(ctx.records[0], ctx.identity);
+
     const countTerm =
       targetId === undefined ? null : filterTerm(conv(ctx), { field: filterIdentity(ctx), op: "eq", value: targetId });
+
     return countTerm === null
       ? cannot("a filter grammar that can express equality on the identity")
       : ready({ countTerm });
   },
-  /* Compares the reported total against the *filtered* set. Where the filter is ignored the two
-   * agree trivially — both describe the whole collection — so the count cannot be judged until
-   * filtering itself is known to work. */
+  // Compares the reported total against the *filtered* set. Where the filter is ignored the two
+  // agree trivially — both describe the whole collection — so the count cannot be judged until
+  // filtering itself is known to work.
   dependsOn: ["query.filter-selects-from-whole-set", "list.read-after-write", "filter.equality-selects-exactly-one"],
   id: "count.matches-filtered-set",
   lists: true,
@@ -30,11 +32,15 @@ export const countMatchesWalk: Check<{ countTerm: Record<string, string> }> = de
   subjects: subjectsOf.list,
   async run(ctx, { countTerm }): Promise<Outcome> {
     const filtered = await list(ctx, { ...q(ctx, { limit: pageSize(ctx) }), ...countTerm });
+
     if (filtered.exchange.status >= 400)
       return ctx.findings.unresolved(this.id, ctx.entityName, "the filtered listing was rejected");
     const reported = envelopeValue(ctx, filtered, "total");
+
     if (typeof reported !== "number") return standDown("the listing reports no total");
+
     if (reported === filtered.items.length) return ASSERTED;
+
     return ctx.findings.backend(this.id, ctx.entityName, {
       summary: "reported count disagrees with the filtered result",
       detail:

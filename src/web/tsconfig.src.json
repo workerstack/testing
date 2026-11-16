@@ -1,0 +1,5 @@
+{
+  // The shipped web modules under the strict flags.
+  "exclude": ["**/*.test.ts"],
+  "extends": ["./tsconfig.json", "@workerstack/repo/tsconfig/strict"]
+}

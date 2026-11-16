@@ -26,9 +26,10 @@ async function runOnce(
   ops: string[] | undefined,
   via: Via,
 ): Promise<{ findings: Finding[]; statuses: Map<string, string> }> {
-  /* A defect behind an opt-in shows only with it on, in the reference and in the API tester both. */
+  // A defect behind an opt-in shows only with it on, in the reference and in the API tester both.
   const optIn = optInFor(defects);
   const server = await launch({ backend: "memory", dialect: "postgrest", via }, { defects, ...optIn.reference });
+
   try {
     const result = await run({
       ...optIn.run,
@@ -40,6 +41,7 @@ async function runOnce(
       ...(ops === undefined ? {} : { ops }),
       ...reach(server),
     });
+
     return {
       findings: result.findings.filter((f) => !NOT_DEFECTS.has(f.verdict)),
       statuses: new Map(result.scope.operations.map((op) => [op.operationId, op.status])),
@@ -59,8 +61,9 @@ export async function runScopeSuite(
   known?: Readonly<Record<string, readonly string[]>>,
 ): Promise<ParserResult[]> {
   const results: ParserResult[] = [];
-  /* What the default backend and dialect this suite targets can exhibit: a shape-only or
-   * dialect-only defect has nowhere to happen here. */
+
+  // What the default backend and dialect this suite targets can exhibit: a shape-only or
+  // dialect-only defect has nowhere to happen here.
   const names = defectsFor("memory", "postgrest").filter(
     (name) => filter === undefined || filter.length === 0 || filter.includes(name),
   );
@@ -69,22 +72,28 @@ export async function runScopeSuite(
     const check = primaryOf(EXPECTED[defect]);
     const name = `--ops recall: ${defect}`;
     const why = `a run targeted at the operation ${check} judges must still report it`;
+
     try {
       const reported = known?.[defect];
+
       const fresh =
         reported === undefined
           ? (await runOnce([defect], undefined, via)).findings.filter((f) => f.check === check)
           : [];
+
       const ops: readonly string[] | undefined =
         reported ?? (fresh.length === 0 ? undefined : judgedOperations(fresh, check));
+
       if (ops === undefined) {
         results.push({ detail: "the full run did not report it either", name, ok: false, why });
         continue;
       }
+
       if (ops.length === 0) {
         results.push({ detail: `${check} finding carries no operation`, name, ok: false, why });
         continue;
       }
+
       const targeted = await runOnce([defect], [...ops], via);
       const detected = targeted.findings.some((f) => f.check === check);
       const failed = ops.some((op) => targeted.statuses.get(op) === "failed");
@@ -100,5 +109,6 @@ export async function runScopeSuite(
       results.push({ detail: messageOf(error), name, ok: false, why });
     }
   }
+
   return results;
 }

@@ -26,9 +26,11 @@ describe("a failed send", () => {
   it("is recorded as status 0 under its operation, and raised as a NetworkError", async () => {
     const wire = transport(() => Promise.reject(refused()));
     const ctx = wireOf(wire, { operationResolver: resolver });
+
     const error = await sendAttempt(prepare(ctx, "GET", "/rows/1", { as: ANON }), 2, ctx).catch(
       (caught: unknown) => caught,
     );
+
     expect(error).toBeInstanceOf(NetworkError);
     expect(error).toMatchObject({ attempts: 3, kind: "refused", method: "GET", url: `${BASE}/rows/1` });
     const [{ exchange, entity }] = ctx.delivered as [(typeof ctx.delivered)[0]];
@@ -88,11 +90,13 @@ describe("an answer's stamps", () => {
       transport(() => json({})),
       { credentials: fixedSource(sendingHeaders({ authorization: "Bearer t" })) },
     );
+
     const options = {
       as: { principal: "alpha" },
       context: { check: "list.reads", purpose: "assertion" as const, subject: "row" },
       fixture: "a.png",
     };
+
     const exchange = await sendAttempt(prepare(ctx, "GET", "/rows", options), 0, ctx);
     expect(exchange).toMatchObject({
       check: "list.reads",
@@ -103,18 +107,22 @@ describe("an answer's stamps", () => {
       subject: "row",
     });
     expect(exchange).not.toHaveProperty("forged");
+
     const forging = wireOf(
       transport(() => json({}, 401)),
       { credentials: fixedSource({ kind: "forged", schemes: ["jwt"], sends: {} }) },
     );
+
     const forged = await sendAttempt(
       prepare(forging, "GET", "/rows", { as: { forged: { scheme: "jwt", value: "f" } } }),
       0,
       forging,
     );
+
     expect(forged).toMatchObject({ forged: true, schemes: ["jwt"] });
     expect(forged).not.toHaveProperty("principal");
     const plain = await sendAttempt(prepare(wireOf(transport(() => json({}))), "GET", "/rows", { as: ANON }), 0, ctx);
+
     for (const key of [
       "principal",
       "schemes",
@@ -126,9 +134,8 @@ describe("an answer's stamps", () => {
       "redirects",
       "finalUrl",
       "cookies",
-    ]) {
+    ])
       expect(plain).not.toHaveProperty(key);
-    }
   });
 });
 
@@ -136,11 +143,13 @@ describe("an answer's bodies and travels", () => {
   it("keeps a digest of a large body sent and received", async () => {
     const big = "z".repeat(INLINE_BODY_LIMIT + 1);
     const ctx = wireOf(transport(() => new Response(big, { headers: { "content-type": "text/plain" } })));
+
     const exchange = await sendAttempt(
       prepare(ctx, "POST", "/rows", { as: ANON, body: big, contentType: "text/plain" }),
       0,
       ctx,
     );
+
     expect(exchange.requestDigest).toMatchObject({ bytes: INLINE_BODY_LIMIT + 1 });
     expect(exchange.responseDigest).toMatchObject({ bytes: INLINE_BODY_LIMIT + 1 });
     const small = await sendAttempt(prepare(ctx, "POST", "/rows", { as: ANON, body: "s" }), 0, ctx);
@@ -153,6 +162,7 @@ describe("an answer's bodies and travels", () => {
         ? new Response(null, { headers: { location: "/v1/b", "set-cookie": "sid=1; Path=/" }, status: 302 })
         : json({}),
     );
+
     const ctx = wireOf(wire);
     const exchange = await sendAttempt(prepare(ctx, "GET", "/a", { as: ANON, redirect: "follow" }), 0, ctx);
     expect(exchange).toMatchObject({ cookies: { sid: "1" }, finalUrl: `${BASE}/b`, redirects: [{ status: 302 }] });
@@ -162,10 +172,12 @@ describe("an answer's bodies and travels", () => {
 describe("the credentials a recipe reads from an answer", () => {
   it("registers each string value at a named address, and ignores an address with no string", async () => {
     const redactor = new Redactor();
+
     const ctx = wireOf(
       transport(() => json({ access_token: "tok-secret-9", expires_in: 60 })),
       { redactor },
     );
+
     const secrets = ["$.access_token", "$.expires_in", "$.absent"];
     const context = { issuedBy: "credentials", secrets } as const;
     const sent = await sendAttempt(prepare(ctx, "POST", "/token", { as: ANON, context }), 0, ctx);
@@ -176,16 +188,21 @@ describe("the credentials a recipe reads from an answer", () => {
 
   it("registers a form answer's values by the same addresses, by its media type alone", async () => {
     const text = "access_token=tok-form-9&refresh_token=ref-form-9";
+
     const sendTyped = async (type: string) => {
       const redactor = new Redactor();
+
       const ctx = wireOf(
         transport(() => new Response(text, { headers: { "content-type": type } })),
         { redactor },
       );
+
       const context = { issuedBy: "credentials", secrets: ["$.access_token", "refresh_token"] } as const;
       await sendAttempt(prepare(ctx, "POST", "/token", { as: ANON, context }), 0, ctx);
+
       return redactor.text("tok-form-9 ref-form-9");
     };
+
     expect(await sendTyped("application/x-www-form-urlencoded; charset=utf-8")).toBe("<redacted> <redacted>");
     expect(await sendTyped("text/plain")).toBe("tok-form-9 ref-form-9");
   });
@@ -199,10 +216,12 @@ describe("a paced answer", () => {
       source: "tag" as const,
       test: (method: string) => method === "POST",
     };
+
     const ctx = wireOf(
       transport(() => json({})),
       { rateLimiter: new RateLimiter([writes], { maxRps: 1000 }) },
     );
+
     const sent = await sendAttempt(prepare(ctx, "POST", "/rows", { as: ANON, body: {} }), 0, ctx);
     expect(sent).toMatchObject({ rateLimitCategory: "writes", rateLimitHadRoom: true, rateLimitSource: "tag" });
   });
@@ -214,11 +233,12 @@ describe("an exchange sent as a probe", () => {
     const send = (options: Parameters<typeof prepare>[3]) => sendAttempt(prepare(ctx, "GET", "/rows", options), 0, ctx);
     expect((await send({ as: ANON, probe: true })).probe).toBe(true);
     expect(await send({ as: ANON })).not.toHaveProperty("probe");
+
     const probing = wireOf(
       transport(() => json({})),
       {
         credentials: fixedSource({
-          block: () => undefined,
+          block: () => {},
           kind: "sends",
           lapsed: () => false,
           principal: "alpha",
@@ -230,11 +250,13 @@ describe("an exchange sent as a probe", () => {
         }),
       },
     );
+
     const sent = await sendAttempt(
       prepare(probing, "GET", "/rows", { as: { principal: "alpha#probe-1" } }),
       0,
       probing,
     );
+
     expect(sent.principal).toBe("alpha");
     expect(sent).not.toHaveProperty("probe");
     expect(sent).not.toHaveProperty("forged");

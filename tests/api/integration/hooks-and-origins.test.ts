@@ -29,8 +29,10 @@ function send(res: ServerResponse, status: number, body?: unknown): void {
   if (body === undefined) {
     res.writeHead(status);
     res.end();
+
     return;
   }
+
   const text = JSON.stringify(body);
   res.writeHead(status, { "content-length": String(Buffer.byteLength(text)), "content-type": "application/json" });
   res.end(text);
@@ -44,10 +46,13 @@ function readJson(req: IncomingMessage): Promise<unknown> {
     });
     req.on("end", () => {
       const text = Buffer.concat(chunks).toString("utf8");
+
       if (text === "") {
         resolve(undefined);
+
         return;
       }
+
       try {
         resolve(JSON.parse(text) as unknown);
       } catch (error) {
@@ -67,6 +72,7 @@ async function listen(handler: (req: IncomingMessage, res: ServerResponse) => vo
     server.listen(0, "127.0.0.1", resolve);
   });
   const addr = server.address() as AddressInfo;
+
   return {
     close: () =>
       new Promise((resolve, reject) => {
@@ -76,7 +82,7 @@ async function listen(handler: (req: IncomingMessage, res: ServerResponse) => vo
   };
 }
 
-/* Items need a bearer token; registering is public. */
+// Items need a bearer token; registering is public.
 const AUTH_SPEC = {
   ...bearerSecurity(),
   info: { title: "hooks", version: "1" },
@@ -100,26 +106,29 @@ const unused = async (): Promise<never> => {
   throw new Error("this recipe sends nothing through this port");
 };
 
-/* What a store needs beyond its recipe: a step runner and the credential hook, else ports that refuse. */
-interface StoreParts {
+// What a store needs beyond its recipe: a step runner and the credential hook, else ports that refuse.
+type StoreParts = {
   steps?: StepRunner;
   resolveCredential?: Hooks["resolveCredential"];
   /** The store's clock. Default: the system clock. */
   now?: () => number;
-}
+};
 
-/* A store holding alpha's bearer credential by `recipe`, over AUTH_SPEC's schemes. */
+// A store holding alpha's bearer credential by `recipe`, over AUTH_SPEC's schemes.
 function storeOf(recipe: Recipe, parts: StoreParts = {}): CredentialStore {
   const { now, resolveCredential, steps } = parts;
+
   const ports: CredentialPorts = {
     operations: { call: unused },
     records: { gone: unused, removed: () => false },
     steps: steps ?? { run: unused },
-    secrets: { register: () => undefined },
+    secrets: { register: () => {} },
     tokens: { post: unused },
     ...(resolveCredential === undefined ? {} : { resolveCredential }),
   };
+
   const { schemes } = buildModel(dereference(AUTH_SPEC).doc);
+
   return createStore({
     ...(now === undefined ? {} : { now }),
     ports,
@@ -138,16 +147,19 @@ describe("resolveOutOfBand backoff", () => {
     ).rejects.toThrow(/no resolveOutOfBand hook/);
 
     let n = 0;
+
     const value = await resolveOutOfBandValue(
       async ({ attempt, kind, address }) => {
         expect(kind).toBe("email-verify");
         expect(address).toBe("a@x.test");
         n = attempt;
+
         return attempt < 3 ? (attempt === 1 ? null : "") : "tok";
       },
       "a@x.test",
       { kind: "email-verify", label: 'principal "a"', outOfBand: { attempts: 4, initialMs: 1, maxMs: 1 } },
     );
+
     expect(value).toBe("tok");
     expect(n).toBe(3);
 
@@ -180,6 +192,7 @@ describe("hooks.resolveCredential", () => {
   it("acquires from the hook and renews by calling it again", async () => {
     let n = 0;
     let now = Date.now();
+
     const store = storeOf(
       { hook: true },
       {
@@ -187,29 +200,34 @@ describe("hooks.resolveCredential", () => {
         resolveCredential: async (scheme, principal) => {
           expect([scheme, principal.id]).toEqual(["bearer", "alpha"]);
           n += 1;
+
           return n === 1 ? { expiresIn: 1, value: "first" } : { expiresIn: 90, value: "second" };
         },
       },
     );
+
     expect(await store.acquire(ALPHA)).toMatchObject({ value: "first" });
     now += 1_000;
     expect(await store.acquire(ALPHA)).toMatchObject({ value: "second" });
-    /* A 401 on what it sent renews it once more, by the hook. */
+    // A 401 on what it sent renews it once more, by the hook.
     expect(await store.refresh({ ...ALPHA, sentValue: "second" })).toMatchObject({ value: "second" });
     expect(n).toBe(3);
   });
 
   it("does not proactive-refresh when expiry is unknown", async () => {
     let n = 0;
+
     const store = storeOf(
       { hook: true },
       {
         resolveCredential: async () => {
           n += 1;
+
           return "static";
         },
       },
     );
+
     expect(await store.acquire(ALPHA)).toMatchObject({ expiresAt: null, value: "static" });
     await store.acquire(ALPHA);
     expect(n).toBe(1);
@@ -219,15 +237,18 @@ describe("hooks.resolveCredential", () => {
 describe("resolveHeaders", () => {
   it("merges after globalHeaders and before auth", async () => {
     const seen: string[] = [];
+
     const server = await listen((req, res) => {
       seen.push(
         `${req.headers["x-global"] ?? ""}|${req.headers["cf-turnstile-response"] ?? ""}|${req.headers.authorization ?? ""}`,
       );
       send(res, 200, { items: [] });
     });
+
     closers.push(server.close);
+
     const live: Resolution = {
-      block: () => undefined,
+      block: () => {},
       kind: "sends",
       lapsed: () => false,
       principal: "alpha",
@@ -237,6 +258,7 @@ describe("resolveHeaders", () => {
       sends: { bearer: { cookies: {}, headers: { authorization: "Bearer live" }, query: {} } },
       sentValues: { bearer: "live" },
     };
+
     const client = new Client({
       baseUrl: server.url,
       credentials: { resolve: async () => live },
@@ -246,9 +268,11 @@ describe("resolveHeaders", () => {
         expect(method).toBe("GET");
         expect(url).toContain("/v1/items");
         expect(operationId).toBe("item.list");
+
         return { "cf-turnstile-response": "fresh" };
       },
     });
+
     await client.get("/v1/items", { as: { principal: "alpha" }, operationId: "item.list" });
     expect(seen).toEqual(["g|fresh|Bearer live"]);
   });
@@ -276,24 +300,29 @@ const CDN_TOKEN_SPEC = {
   },
 } as OpenApiDocument;
 
-/* A server that answers only `/openapi`, with `spec`. */
+// A server that answers only `/openapi`, with `spec`.
 async function specServer(spec: OpenApiDocument) {
   const server = await listen((req, res) => {
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
+
     if (url.pathname === "/openapi") return send(res, 200, spec);
     send(res, 404);
   });
+
   closers.push(server.close);
+
   return server;
 }
 
-/* A spec titled `title` with one entity, listed under `key` at `/v1/<key>` and created there. */
+// A spec titled `title` with one entity, listed under `key` at `/v1/<key>` and created there.
 function entitySpec(title: string, entity: string, key: string): OpenApiDocument {
   const row = { properties: { id: { type: "string" }, name: { type: "string" } }, type: "object" };
+
   const list = {
     properties: { [key]: { items: { properties: { id: { type: "string" } }, type: "object" }, type: "array" } },
     type: "object",
   };
+
   return {
     info: { title, version: "1" },
     openapi: "3.1.0",
@@ -317,35 +346,45 @@ function entitySpec(title: string, entity: string, key: string): OpenApiDocument
   } as OpenApiDocument;
 }
 
-/* A backend serving `spec` and one collection at `/v1/<key>`, ids `<prefix><n>`; returns its rows. */
+// A backend serving `spec` and one collection at `/v1/<key>`, ids `<prefix><n>`; returns its rows.
 async function collectionServer(spec: OpenApiDocument, key: string, prefix: string) {
   const rows: Array<{ id: string; name: string }> = [];
+
   const server = await listen((req, res) => {
     void (async () => {
       const url = new URL(req.url ?? "/", "http://127.0.0.1");
       const method = (req.method ?? "GET").toUpperCase();
+
       if (url.pathname === "/openapi") return send(res, 200, spec);
+
       if (url.pathname === `/v1/${key}` && method === "GET") return send(res, 200, { [key]: [...rows] });
+
       if (url.pathname === `/v1/${key}` && method === "POST") {
         const body = (await readJson(req)) as { name?: string };
         const row = { id: `${prefix}${rows.length + 1}`, name: body.name ?? prefix };
         rows.push(row);
+
         return send(res, 201, row);
       }
+
       return send(res, 404);
     })();
   });
+
   closers.push(server.close);
+
   return { rows, url: server.url };
 }
 
 describe("origins and auth-step origin", () => {
   it("sends an auth hop to a named origin", async () => {
     const cdnHits: string[] = [];
+
     const cdn = await listen((req, res) => {
       cdnHits.push(`${req.method} ${req.url}`);
       send(res, 200, { access_token: "from-cdn" });
     });
+
     closers.push(cdn.close);
     const api = await specServer(AUTH_SPEC);
     await specServer(CDN_TOKEN_SPEC);
@@ -353,15 +392,18 @@ describe("origins and auth-step origin", () => {
     const model = buildModel(dereference(AUTH_SPEC).doc);
     const originModel = buildModel(dereference(CDN_TOKEN_SPEC).doc);
     const originClient = new Client({ baseUrl: cdn.url, redactor: new Redactor() });
+
     const steps = stepRunner({
       client: new Client({ baseUrl: api.url, redactor: new Redactor() }),
       hooks: {},
       model,
       originClients: new Map([["cdn", { client: originClient, model: originModel }]]),
     });
+
     const hop: Recipe = {
       login: { from: "$.access_token", steps: [{ body: {}, operationId: "cdn.token", origin: "cdn" }] },
     };
+
     const held = await storeOf(hop, { steps }).acquire(ALPHA);
     expect(held).toMatchObject({ value: "from-cdn" });
     expect("sends" in held ? Object.values(held.sends.headers) : []).toEqual(["Bearer from-cdn"]);
@@ -370,6 +412,7 @@ describe("origins and auth-step origin", () => {
     const astray: Recipe = {
       login: { from: "$.access_token", steps: [{ method: "POST", origin: "missing", path: "/x" }] },
     };
+
     expect(await storeOf(astray, { steps }).acquire(ALPHA)).toEqual({
       blocked: expect.stringMatching(/not in config\.origins/),
     });
@@ -388,6 +431,7 @@ describe("origins and auth-step origin", () => {
       seed: 1,
       spec: `${api.url}/openapi`,
     });
+
     expect(result.entitiesTested.some((name) => name === "note" || name.endsWith(":file") || name === "cdn:file")).toBe(
       true,
     );

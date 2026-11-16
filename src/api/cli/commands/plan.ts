@@ -12,9 +12,10 @@ import { type Args, list } from "../flags.ts";
 import type { Writer } from "../writer.ts";
 import { modeled } from "./spec.ts";
 
-/* What of the config the plan reads: its recipes and principals, and the hook that supplies roots. */
+// What of the config the plan reads: its recipes and principals, and the hook that supplies roots.
 function configView(config: ApiConfig | undefined): Pick<PlanView, "credentials" | "hooks"> {
   if (config === undefined) return {};
+
   return {
     credentials: {
       principals: config.principals ?? {},
@@ -28,22 +29,28 @@ function configView(config: ApiConfig | undefined): Pick<PlanView, "credentials"
 /** `testing api plan`: the test model derived from the document, offline; targeted when `--ops` or `--only` says. */
 export async function commandPlan(writer: Writer, flags: Args["flags"]): Promise<number> {
   const read = await modeled(writer, flags);
+
   if (typeof read === "number") return read;
   const { model, config, unsetEnv } = read;
   const ops = list(flags, "ops") ?? config?.ops;
   const only = list(flags, "only") ?? config?.only;
   const authCreates = authStepOperationIds(config ?? {});
+
   const scope = targetedScope(model, {
     ...(ops === undefined ? {} : { ops }),
     ...(only === undefined ? {} : { only }),
     authCreates,
   });
+
   if (scope instanceof ScopeError) {
     writer.err(`${scope.message}\n`);
+
     return EXIT.usage;
   }
-  /* A diagnostic beside the plan, so the plan on stdout stays the plan, as text or JSON. */
+
+  // A diagnostic beside the plan, so the plan on stdout stays the plan, as text or JSON.
   const [note] = unsetEnvLines(unsetEnv);
+
   if (note !== undefined) writer.err(`${note}\n`);
   writer.out(
     report.plan(model, flags.json === true, {
@@ -53,6 +60,7 @@ export async function commandPlan(writer: Writer, flags: Args["flags"]): Promise
       unsetEnv,
     }),
   );
+
   return 0;
 }
 

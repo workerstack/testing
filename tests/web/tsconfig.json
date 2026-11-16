@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    // Solid's JSX, which its vite plugin compiles; tsc only checks it.
+    "jsx": "preserve",
+    "jsxImportSource": "@solidjs/web",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    // The consumers import the package by name, as a consumer does; the check reads the source.
+    "paths": {
+      "@workerstack/testing/web": ["../../src/web/index.ts"],
+      "@workerstack/testing/web/dom": ["../../src/web/dom/index.ts"],
+      "@workerstack/testing/web/solid": ["../../src/web/solid/index.ts"],
+      "@workerstack/testing/web/solid/vitest": ["../../src/web/solid/vitest.ts"]
+    },
+    // The tests read src/web through the paths.
+    "rootDir": "../.."
+  },
+  // The browser tests, run in a page or against one.
+  "exclude": [],
+  "extends": "../../tsconfig.json",
+  "include": ["**/*.ts", "**/*.tsx"]
+}

@@ -3,28 +3,33 @@ import { describe, expect, it } from "vitest";
 
 import { createReady, settleAnimations } from "./ready.ts";
 
-interface Calls {
+type Calls = {
   goto: string[];
   waits: Array<{ marker: string; state: string; timeout: number }>;
   evaluated: unknown[];
-}
+};
 
-/* A page whose marker shows up, or times out as Playwright's own wait does. */
+// A page whose marker shows up, or times out as Playwright's own wait does.
 function fakePage(shows: boolean | Error): { page: Page; calls: Calls } {
   const calls: Calls = { evaluated: [], goto: [], waits: [] };
+
   const page = {
     goto: async (path: string) => {
       calls.goto.push(path);
+
       return null;
     },
     locator: (marker: string) => ({
       waitFor: async (options: { state: string; timeout: number }) => {
         calls.waits.push({ marker, ...options });
+
         if (shows instanceof Error) throw shows;
+
         if (!shows) throw new errors.TimeoutError(`locator.waitFor: Timeout ${options.timeout}ms exceeded.`);
       },
     }),
   };
+
   return { calls, page: page as unknown as Page };
 }
 
@@ -55,21 +60,23 @@ describe("ready.goto", () => {
 describe("ready.settle", () => {
   it("runs the settle function in the page on the element", async () => {
     const calls: unknown[] = [];
+
     const locator = {
       evaluate: async (fn: unknown) => {
         calls.push(fn);
       },
     } as unknown as Locator;
+
     await createReady(fakePage(true).page).settle(locator);
     expect(calls).toEqual([settleAnimations]);
   });
 });
 
-interface FakeAnimation {
+type FakeAnimation = {
   playState: string;
   effect: { getComputedTiming: () => { endTime: number } } | null;
   finished: Promise<unknown>;
-}
+};
 
 const animation = (playState: string, endTime: number, finished: Promise<unknown>): FakeAnimation => ({
   effect: { getComputedTiming: () => ({ endTime }) },
@@ -77,13 +84,15 @@ const animation = (playState: string, endTime: number, finished: Promise<unknown
   playState,
 });
 
-/* An element whose animations change from one look to the next, in a window whose frames run at once. */
+// An element whose animations change from one look to the next, in a window whose frames run at once.
 function fakeElement(looks: FakeAnimation[][]): { element: Element; frames: () => number; looked: () => number } {
   let look = 0;
   let frames = 0;
+
   const element = {
     getAnimations: (options: { subtree: boolean }) => {
       expect(options).toEqual({ subtree: true });
+
       return looks[Math.min(look++, looks.length - 1)] ?? [];
     },
     ownerDocument: {
@@ -95,20 +104,25 @@ function fakeElement(looks: FakeAnimation[][]): { element: Element; frames: () =
       },
     },
   };
+
   return { element: element as unknown as Element, frames: () => frames, looked: () => look };
 }
 
 describe("settleAnimations", () => {
   it("waits for every running finite animation, then a frame, then looks again", async () => {
     let finish: (() => void) | undefined;
+
     const finite = new Promise<void>((resolve) => {
       finish = resolve;
     });
+
     const { element, frames, looked } = fakeElement([[animation("running", 400, finite)], []]);
     let settled = false;
+
     const settling = settleAnimations(element).then(() => {
       settled = true;
     });
+
     await Promise.resolve();
     expect(settled).toBe(false);
     finish?.();
@@ -119,9 +133,11 @@ describe("settleAnimations", () => {
 
   it("does not wait on an infinite, paused or finished animation", async () => {
     const never = new Promise(() => {});
+
     const { element, looked } = fakeElement([
       [animation("running", Infinity, never), animation("paused", 400, never), animation("finished", 400, never)],
     ]);
+
     await settleAnimations(element);
     expect(looked()).toBe(1);
   });

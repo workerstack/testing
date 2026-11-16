@@ -4,17 +4,17 @@ import { createMemoryServer, createSqliteServer } from "../../../src/api/referen
 import type { ReferenceServer } from "../../../src/api/reference/http/server.ts";
 import { referenceToken } from "../support/reference-auth.ts";
 
-/* The reference backend's null rules (`src/api/reference/query/term.ts`) are decided once and every store
- * must hold them. `eq.null` compares against the text "null", as PostgREST does; `is.null` is the
- * test for a missing value. */
+// The reference backend's null rules (`src/api/reference/query/term.ts`) are decided once and every store
+// must hold them. `eq.null` compares against the text "null", as PostgREST does; `is.null` is the
+// test for a missing value.
 
 const JOBS = "/v1/projects/proj_alpha/jobs";
 
 /** A reference store, and alpha's headers on it: a jwt the reference issued for alpha's key. */
-interface Signed {
+type Signed = {
   server: ReferenceServer;
   headers: Record<string, string>;
-}
+};
 
 async function seed({ server, headers }: Signed): Promise<void> {
   for (const [name, note] of [
@@ -27,6 +27,7 @@ async function seed({ server, headers }: Signed): Promise<void> {
       headers,
       method: "POST",
     });
+
     expect(response.status).toBeLessThan(300);
   }
 }
@@ -35,6 +36,7 @@ async function names({ server, headers }: Signed, filter: string): Promise<strin
   const url = `${server.url}${JOBS}?limit=100&filter=${encodeURIComponent(filter)}`;
   const body = (await (await fetch(url, { headers })).json()) as Record<string, unknown>;
   const rows = Object.values(body).find(Array.isArray) as Array<{ name: string }>;
+
   return rows.map((row) => row.name).sort();
 }
 
@@ -69,9 +71,8 @@ describe("null semantics", () => {
 
   for (const [filter, expected] of CASES) {
     it(`${filter} selects the same rows in every store`, async () => {
-      for (const [label, signed] of servers) {
+      for (const [label, signed] of servers)
         expect({ [label]: await names(signed, filter) }).toEqual({ [label]: expected });
-      }
     });
   }
 });

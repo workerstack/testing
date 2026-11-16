@@ -9,11 +9,9 @@ import { buildModel } from "../../../src/api/spec/graph/build.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 import { checkContext } from "../support/check-context.ts";
 
-/*
- * Checks run side by side, and two of them may build a create body before either request is
- * sent. Bodies must still differ — above all a client-chosen identity, which would otherwise send
- * the second create into the first one's record.
- */
+// Checks run side by side, and two of them may build a create body before either request is
+// sent. Bodies must still differ — above all a client-chosen identity, which would otherwise send
+// the second create into the first one's record.
 
 const NOTE = {
   properties: { id: { maximum: 999, minimum: 1, type: "integer" }, name: { minLength: 1, type: "string" } },
@@ -36,9 +34,12 @@ function context() {
       },
     },
   } as OpenApiDocument;
+
   const model = buildModel(document);
   const listOp = model.byOperationId.get("note.list");
+
   if (listOp === undefined) throw new Error("no list operation");
+
   return checkContext({
     client: new Client({ baseUrl: "http://127.0.0.1:1", redactor: new Redactor() }),
     entityName: "note",

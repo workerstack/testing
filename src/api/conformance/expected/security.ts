@@ -24,8 +24,8 @@ type SecurityDefect = Extract<
 export const SECURITY_EXPECTED: Record<SecurityDefect, FindingId | FindingId[]> = {
   AUTH_IGNORED_ON_ROUTE: [
     "auth.missing-credential-refused",
-    /* A route that checks no credential takes any credential too: garbage, a bad signature and
-     * another scheme's value are each accepted there, the same hole seen from each probe. */
+    // A route that checks no credential takes any credential too: garbage, a bad signature and
+    // another scheme's value are each accepted there, the same hole seen from each probe.
     "auth.invalid-credential-refused",
     "auth.wrong-scheme-refused",
   ],
@@ -36,7 +36,7 @@ export const SECURITY_EXPECTED: Record<SecurityDefect, FindingId | FindingId[]> 
   PUBLIC_ROUTE_GUARDED: "auth.anonymous-operation-open",
   REVOKED_TOKEN_ACCEPTED: [
     "auth.revoked-credential-refused",
-    /* A logout that revokes nothing leaves the disposable user's ended session working too. */
+    // A logout that revokes nothing leaves the disposable user's ended session working too.
     "auth.destructive-spares-the-caller",
   ],
   REFRESH_REUSE_ACCEPTED: "auth.refresh-reuse-refused",
@@ -45,6 +45,6 @@ export const SECURITY_EXPECTED: Record<SecurityDefect, FindingId | FindingId[]> 
   PRIVILEGED_FIELD_WRITABLE: "auth.privileged-field-ignored",
   PRIVILEGED_FIELD_ON_SIGNUP: "auth.privileged-field-ignored",
   LOGIN_NOT_THROTTLED: "auth.login-throttled",
-  /* Proved on a key made for the probe: the run's own minted keys are never the target. */
+  // Proved on a key made for the probe: the run's own minted keys are never the target.
   KEY_DELETE_CROSS_TENANT: "tenant.item-not-writable-cross-tenant",
 };

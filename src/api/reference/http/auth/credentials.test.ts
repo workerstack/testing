@@ -26,18 +26,21 @@ function refusal(run: () => unknown): { status: number; message: string } {
   } catch (error) {
     if (error instanceof HttpError) return { message: error.message, status: error.status };
   }
+
   throw new Error("no refusal");
 }
 
 describe("authenticate", () => {
   it("refuses a request with no credential, an empty one, or one of a scheme the server does not take", async () => {
     const state = await world();
+
     for (const header of [undefined, "", "Bearer", "Bearer   "]) {
       expect(refusal(() => authenticate(state, request(header)))).toEqual({
         message: "missing credential",
         status: 401,
       });
     }
+
     expect(refusal(() => authenticate(state, request("Basic YTpi")))).toEqual({
       message: "unsupported credential scheme",
       status: 401,

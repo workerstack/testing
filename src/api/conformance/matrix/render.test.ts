@@ -34,6 +34,7 @@ const untagged = (extra: Partial<CaseResult> = {}): CaseResult =>
 
 const caught = (extra: Partial<CaseResult> = {}): CaseResult => {
   const fired = finding("list.read-after-write", { operations: ["note.list", "note.list", "note.read"] });
+
   return tagged({
     defect: "STALE_LIST",
     detected: true,
@@ -91,8 +92,10 @@ describe("renderSuite on a baseline", () => {
 describe("renderSuite on what a baseline leaves behind", () => {
   it("lets a baseline stay undecided only where its backend and shape allow it", () => {
     const allowance = { "memory:postgrest": ["c.x"], "memory:postgrest:untagged": ["c.y"] };
+
     const undecided = (label: CaseResult["label"], inconclusive: string[]) =>
       renderSuite([tagged({ inconclusive, label })], { inconclusive: allowance }).failures;
+
     expect(undecided("baseline (correct backend)", ["c.x: why"])).toBe(0);
     expect(undecided("baseline (correct backend)", ["c.y: why", "c.xx: why"])).toBe(1);
     expect(undecided("baseline (untagged spec)", ["c.y: why"])).toBe(0);
@@ -110,6 +113,7 @@ describe("renderSuite on what a baseline leaves behind", () => {
       [{ unreported: ["n2"] }, "left 1 record(s) behind without reporting them: n2"],
       [{ inconclusive: ["c.x: why"] }, "inconclusive on a correct backend: c.x: why"],
     ];
+
     for (const [extra, line] of cases) {
       const { failures, text } = renderSuite([tagged(extra)]);
       expect([failures, text.includes(line)]).toEqual([1, true]);
@@ -151,6 +155,7 @@ describe("passAnswer", () => {
       "memory",
       "postgrest",
     );
+
     expect(answer.failures).toBe(0);
     expect(answer.baselines).toEqual({ tagged: IDS, untagged: IDS.slice(0, 10) });
     expect(answer.primaryOps).toEqual({ STALE_LIST: ["note.list", "note.read"] });

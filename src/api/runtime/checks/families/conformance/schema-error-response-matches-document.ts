@@ -26,8 +26,10 @@ export const errorSchemaHonored: Check<{
 }>({
   plan: (ctx) => {
     const { readOp, validator } = ctx;
+
     if (readOp === undefined || validator === undefined) return cannot();
     const raw = ctx.model.rawOperations.get(readOp.operationId);
+
     return raw === undefined ? cannot() : ready({ raw, readOp, validator });
   },
   id: "schema.error-response-matches-document",
@@ -40,34 +42,37 @@ export const errorSchemaHonored: Check<{
     ]),
   ],
   async run(ctx, { raw, readOp, validator }): Promise<Outcome> {
-    /* An empty list has no id to miss. Probing one would grade the get without a row. */
+    // An empty list has no id to miss. Probing one would grade the get without a row.
     if (ctx.createOp === undefined && ctx.records.length === 0) return standDown("the list returned no id");
     const judge: ErrorJudge = { check: this.id, ctx, validator };
     const judged: string[] = [];
+
     if (graded(ctx, readOp)) {
       await probeMissingItemError(judge, readOp, raw);
       judged.push(readOp.operationId);
     }
+
     judged.push(...(await judgeExpectedRefusals(judge)));
     ctx.judged?.([...new Set(judged)]);
+
     return ASSERTED;
   },
 });
 
 /** What judging an error body needs: the check, its context, and the validator. */
-interface ErrorJudge {
+type ErrorJudge = {
   check: string;
   ctx: CheckContext;
   validator: SchemaValidator;
-}
+};
 
 /** An error body's operation, and where a schema that cannot compile and a drifted body are reported. */
-interface ErrorSubject {
+type ErrorSubject = {
   operationId: string;
   raw: OperationObject;
   gaps: FindingCollector;
   drift: FindingCollector;
-}
+};
 
 /**
  * Expected refusals are coverage for the check that drew them, not for the error schema: a
@@ -77,26 +82,32 @@ interface ErrorSubject {
 async function judgeExpectedRefusals(judge: ErrorJudge): Promise<string[]> {
   const { ctx } = judge;
   const judged: string[] = [];
+
   for (const listed of ctx.client.exchangesForEntity(ctx.entityName)) {
-    /* A security probe's answer is the security checks' to judge; see probe-judging.ts. */
+    // A security probe's answer is the security checks' to judge; see probe-judging.ts.
     if (!judges("schema.error-response-matches-document", listed)) continue;
-    /* Error bodies are what this judges; one moved out of memory is read back. */
+    // Error bodies are what this judges; one moved out of memory is read back.
     const exchange = listed.status >= 400 ? await ctx.client.hydrate(listed) : listed;
+
     if (exchange.superseded === true) continue;
     const op = exchange.operationId === undefined ? undefined : ctx.model.byOperationId.get(exchange.operationId);
+
     if (op === undefined || op.entity !== ctx.entityName || !graded(ctx, op)) continue;
     const gated = isDocumentedFeatureGateDenial(op, exchange.status, exchange.responseBody);
     const conflict = exchange.status === 409 && op.unique !== null && op.unique.length > 0;
+
     if (!gated && !conflict) continue;
     judged.push(op.operationId);
     errorBodyDrift(judge, op, exchange);
   }
+
   return judged;
 }
 
 /** Reports an error body that fails the schema its operation declares for that status. */
 function errorBodyDrift(judge: ErrorJudge, op: OperationModel, exchange: Exchange): void {
   const raw = judge.ctx.model.rawOperations.get(op.operationId);
+
   if (raw === undefined || !judge.validator.documents(raw, exchange.status)) return;
   const findings = judge.ctx.findings.attributed([op.operationId]);
   judgeErrorBody(judge, { drift: findings, gaps: findings, operationId: op.operationId, raw }, exchange);
@@ -106,16 +117,20 @@ function errorBodyDrift(judge: ErrorJudge, op: OperationModel, exchange: Exchang
 async function probeMissingItemError(judge: ErrorJudge, readOp: OperationModel, raw: OperationObject): Promise<void> {
   const { ctx } = judge;
   const missing = absentId(ctx);
+
   if (missing === null) return;
   const params = { ...ctx.scope, ...itemParamFor(ctx, missing) };
   const exchange = await asProbe(ctx).client.get(fillPath(readOp.path, params), { as: { principal: ctx.actor.id } });
+
   if (exchange.status < 400 || !judge.validator.documents(raw, exchange.status)) return;
+
   const subject = {
     drift: ctx.findings.attributed([readOp.operationId]),
     gaps: ctx.findings,
     operationId: readOp.operationId,
     raw,
   };
+
   judgeErrorBody(judge, subject, exchange);
 }
 
@@ -124,13 +139,16 @@ function judgeErrorBody(judge: ErrorJudge, subject: ErrorSubject, exchange: Exch
   const { check, ctx, validator } = judge;
   const { operationId } = subject;
   const result = verdictOf(validator, { operationId, raw: subject.raw }, exchange);
+
   if (result.unchecked !== undefined) {
     subject.gaps.gap(check, ctx.entityName, {
       summary: `${operationId} ${exchange.status} has a schema that cannot be compiled`,
       detail: `AJV refused the documented schema, so the body was not validated: ${result.unchecked}`,
     });
+
     return;
   }
+
   if (result.ok) return;
   subject.drift.spec(check, ctx.entityName, {
     summary: `${exchange.status} error body does not match its documented schema`,

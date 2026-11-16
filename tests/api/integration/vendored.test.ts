@@ -7,11 +7,9 @@ import { describe, expect, it } from "vitest";
 
 import { ensureVendored, type Vendored } from "../support/vendored.ts";
 
-/*
- * A third-party file a test needs but the repository must not hold — a published test key, a
- * document carrying a sample token — is fetched from a pinned URL and kept only when its bytes hash
- * to the pinned sha256.
- */
+// A third-party file a test needs but the repository must not hold — a published test key, a
+// document carrying a sample token — is fetched from a pinned URL and kept only when its bytes hash
+// to the pinned sha256.
 
 const BYTES = "the pinned bytes\n";
 const SHA = createHash("sha256").update(BYTES).digest("hex");
@@ -20,10 +18,13 @@ const FILE: Vendored = { path: "keys/jwks.json", sha256: SHA, url: "https://pinn
 /** A fetch that answers `body` with `status`, counting its calls. */
 function fetcher(body: string, status = 200) {
   const calls: string[] = [];
+
   const fetch = async (url: string | URL | Request): Promise<Response> => {
     calls.push(String(url));
+
     return new Response(body, { status });
   };
+
   return { calls, fetch: fetch as typeof globalThis.fetch };
 }
 

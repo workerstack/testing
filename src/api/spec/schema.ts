@@ -17,14 +17,14 @@ import type { JsonSchema } from "./types.ts";
 
 type Direction = "request" | "response";
 
-export interface NormalizeOptions {
+export type NormalizeOptions = {
   direction: Direction;
   /**
    * A request as any writer may send it: an optional property marked `x-privileged`, which only the
    * highest rank may set, is left out. A required one stays, and only the highest rank sends it.
    */
   ordinary?: boolean;
-}
+};
 
 /** Keywords whose value is one subschema. */
 const SINGLE: ReadonlySet<string> = /* @__PURE__ */ new Set([
@@ -71,11 +71,11 @@ const BOUNDS = [
 ] as const;
 
 /** One translation in progress: each source node is translated once, so a cycle stays a cycle. */
-interface Normalizing {
+type Normalizing = {
   direction: Direction;
   ordinary: boolean;
   seen: Map<object, JsonSchema>;
-}
+};
 
 function isSchema(value: unknown): value is JsonSchema {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -88,42 +88,54 @@ export function normalizeSchema(schema: JsonSchema, options: NormalizeOptions): 
 
 function visit(ctx: Normalizing, node: JsonSchema): JsonSchema {
   const cached = ctx.seen.get(node);
+
   if (cached !== undefined) return cached;
   const out: JsonSchema = {};
   ctx.seen.set(node, out);
-  for (const [key, value] of Object.entries(node)) {
-    if (!OPENAPI_ONLY.has(key)) translate(ctx, out, key, value);
-  }
+
+  for (const [key, value] of Object.entries(node)) if (!OPENAPI_ONLY.has(key)) translate(ctx, out, key, value);
+
   resolveExclusiveBounds(out);
   readExample(node, out);
   pinTags(ctx, node, out);
-  /* Properties that do not travel in this direction are neither allowed nor required. */
+  // Properties that do not travel in this direction are neither allowed nor required.
   dropProperties(out, ctx.direction === "request" ? "readOnly" : "writeOnly");
+
   if (ctx.ordinary) dropPrivileged(out);
-  /* `nullable` widens whatever the schema otherwise allows. 3.1 has no such keyword, but
-   * generators still emit it, and reading it there costs nothing. */
+
+  // `nullable` widens whatever the schema otherwise allows. 3.1 has no such keyword, but
+  // generators still emit it, and reading it there costs nothing.
   if (node.nullable === true) return nullable(out);
+
   return out;
 }
 
-/* OpenAPI 3.0's one `example` is JSON Schema's `examples`: listed after any the node already has. */
+// OpenAPI 3.0's one `example` is JSON Schema's `examples`: listed after any the node already has.
 function readExample(node: JsonSchema, out: JsonSchema): void {
   if (node.example === undefined) return;
+
   if (out.examples === undefined) out.examples = [node.example];
   else if (Array.isArray(out.examples)) out.examples = [...out.examples, node.example];
 }
 
 /** Writes one keyword of a schema node into `out`, translating any subschemas it holds. */
 function translate(ctx: Normalizing, out: JsonSchema, key: string, value: unknown): void {
-  if (SINGLE.has(key) && isSchema(value)) out[key] = visit(ctx, value);
-  else if (LIST.has(key) && Array.isArray(value)) out[key] = visitEach(ctx, value);
-  /* Draft-04 tuple form: positional item schemas. */
-  else if (key === "items" && Array.isArray(value)) out.prefixItems = visitEach(ctx, value);
-  else if (MAP.has(key) && isSchema(value)) {
+  if (SINGLE.has(key) && isSchema(value)) {
+    out[key] = visit(ctx, value);
+  } else if (LIST.has(key) && Array.isArray(value)) {
+    out[key] = visitEach(ctx, value);
+  }
+  // Draft-04 tuple form: positional item schemas.
+  else if (key === "items" && Array.isArray(value)) {
+    out.prefixItems = visitEach(ctx, value);
+  } else if (MAP.has(key) && isSchema(value)) {
     const map: JsonSchema = {};
+
     for (const [name, sub] of Object.entries(value)) map[name] = isSchema(sub) ? visit(ctx, sub) : sub;
     out[key] = map;
-  } else out[key] = value;
+  } else {
+    out[key] = value;
+  }
 }
 
 function visitEach(ctx: Normalizing, items: unknown[]): unknown[] {
@@ -140,29 +152,34 @@ function pinTags(ctx: Normalizing, node: JsonSchema, out: JsonSchema): void {
   const tags = node[DISCRIMINATOR_KEY];
   const key = out.oneOf === undefined ? "anyOf" : "oneOf";
   const union = out[key];
+
   if (!isTags(tags) || !Array.isArray(union) || union.length !== tags.values.length) return;
   const hidden = ctx.direction === "request" ? "readOnly" : "writeOnly";
   const sources = [node, ...(node[key] as unknown[])];
+
   if (sources.some((source) => isSchema(source) && hides(source, tags.propertyName, hidden))) return;
   out[key] = union.map((branch, index) => pinned(branch, tags.propertyName, tags.values[index] as string[]));
 }
 
 function isTags(value: unknown): value is Discriminated {
   if (value === null || typeof value !== "object" || !("propertyName" in value) || !("values" in value)) return false;
+
   return typeof value.propertyName === "string" && Array.isArray(value.values);
 }
 
 function hides(schema: JsonSchema, tag: string, hidden: "readOnly" | "writeOnly"): boolean {
   const property = isSchema(schema.properties) ? schema.properties[tag] : undefined;
+
   return isSchema(property) && property[hidden] === true;
 }
 
-/* A copy of `branch` whose `tag` is required and holds one of `values`; the branch itself is shared. */
+// A copy of `branch` whose `tag` is required and holds one of `values`; the branch itself is shared.
 function pinned(branch: unknown, tag: string, values: string[]): unknown {
   if (!isSchema(branch)) return branch;
   const properties = isSchema(branch.properties) ? branch.properties : {};
   const own = properties[tag];
   const required = Array.isArray(branch.required) ? branch.required : [];
+
   return {
     ...branch,
     properties: { ...properties, [tag]: { ...(isSchema(own) ? own : {}), enum: values } },
@@ -173,25 +190,31 @@ function pinned(branch: unknown, tag: string, values: string[]): unknown {
 function resolveExclusiveBounds(out: JsonSchema): void {
   for (const [flag, bound] of BOUNDS) {
     if (typeof out[flag] !== "boolean") continue;
-    if (out[flag] === true && typeof out[bound] === "number") {
+
+    if (out[flag] && typeof out[bound] === "number") {
       out[flag] = out[bound];
       delete out[bound];
-    } else delete out[flag];
+    } else {
+      delete out[flag];
+    }
   }
 }
 
 function dropProperties(out: JsonSchema, hidden: "readOnly" | "writeOnly"): void {
   if (!isSchema(out.properties)) return;
   const properties = { ...out.properties };
+
   const dropped = Object.entries(properties)
     .filter(([, sub]) => isSchema(sub) && sub[hidden] === true)
     .map(([name]) => name);
+
   for (const name of dropped) delete properties[name];
   out.properties = properties;
+
   if (Array.isArray(out.required)) out.required = out.required.filter((name) => !dropped.includes(String(name)));
 }
 
-/* An optional property marked x-privileged: an ordinary writer never sends it. */
+// An optional property marked x-privileged: an ordinary writer never sends it.
 function dropPrivileged(out: JsonSchema): void {
   if (!isSchema(out.properties)) return;
   const required = Array.isArray(out.required) ? out.required : [];
@@ -207,14 +230,19 @@ function nullable(schema: JsonSchema): JsonSchema {
   const type = schema.type;
   const typed = typeof type === "string" || Array.isArray(type);
   const composite = ["allOf", "anyOf", "oneOf", "$ref", "not", "const"].some((key) => key in schema);
+
   if (typed && !composite) {
     const out: JsonSchema = { ...schema };
     const types = Array.isArray(type) ? [...type] : [type];
+
     if (!types.includes("null")) types.push("null");
     out.type = types;
+
     if (Array.isArray(out.enum) && !out.enum.includes(null)) out.enum = [...out.enum, null];
+
     return out;
   }
+
   return { anyOf: [schema, { type: "null" }] };
 }
 
@@ -222,7 +250,7 @@ export type ScalarKind = "string" | "number" | "integer" | "boolean";
 
 const SCALAR_KINDS: ReadonlySet<string> = /* @__PURE__ */ new Set(["string", "number", "integer", "boolean"]);
 
-/* What makes an allOf branch say something about the type, rather than annotate it. */
+// What makes an allOf branch say something about the type, rather than annotate it.
 const TYPING_KEYS = ["type", "oneOf", "anyOf", "allOf", "enum", "const", "properties", "items"] as const;
 
 /**
@@ -237,54 +265,71 @@ const TYPING_KEYS = ["type", "oneOf", "anyOf", "allOf", "enum", "const", "proper
 export function scalarKinds(schema: unknown): ScalarKind[] | undefined {
   if (!isSchema(schema)) return undefined;
   const kinds = kindsOf(schema);
+
   return kinds === undefined || kinds.length === 0 ? undefined : [...new Set(kinds)];
 }
 
-/* The scalar kinds of `schema`; empty when it admits only null, `undefined` when not a scalar. */
+// The scalar kinds of `schema`; empty when it admits only null, `undefined` when not a scalar.
 function kindsOf(schema: JsonSchema): ScalarKind[] | undefined {
   const { type } = schema;
+
   if (typeof type === "string") return type === "null" ? [] : kindsOfTypes([type]);
+
   if (Array.isArray(type)) return type.length === 0 ? undefined : kindsOfTypes(type);
   const branches = schema.oneOf ?? schema.anyOf;
+
   if (Array.isArray(branches)) return kindsOfBranches(branches);
+
   if (Array.isArray(schema.allOf)) return kindsOfAll(schema.allOf);
+
   if (Array.isArray(schema.enum)) return kindsOfValues(schema.enum);
+
   return "const" in schema ? kindsOfValues([schema.const]) : undefined;
 }
 
 function kindsOfTypes(types: readonly unknown[]): ScalarKind[] | undefined {
   const kinds: ScalarKind[] = [];
+
   for (const type of types) {
     if (type === "null") continue;
+
     if (typeof type !== "string" || !SCALAR_KINDS.has(type)) return undefined;
     kinds.push(type as ScalarKind);
   }
+
   return kinds;
 }
 
-/* Every branch a scalar or null; the kinds of them all. */
+// Every branch a scalar or null; the kinds of them all.
 function kindsOfBranches(branches: readonly unknown[]): ScalarKind[] | undefined {
   const kinds: ScalarKind[] = [];
+
   for (const branch of branches) {
     const branchKinds = isSchema(branch) ? kindsOf(branch) : undefined;
+
     if (branchKinds === undefined) return undefined;
     kinds.push(...branchKinds);
   }
+
   return kinds;
 }
 
 function kindsOfAll(branches: readonly unknown[]): ScalarKind[] | undefined {
   const typed = branches.filter((branch) => isSchema(branch) && TYPING_KEYS.some((key) => key in branch));
+
   return typed.length === 1 ? kindsOf(typed[0] as JsonSchema) : undefined;
 }
 
 function kindsOfValues(values: readonly unknown[]): ScalarKind[] | undefined {
   const kinds: ScalarKind[] = [];
+
   for (const value of values) {
     if (value === null) continue;
     const kind = typeof value;
+
     if (kind !== "string" && kind !== "number" && kind !== "boolean") return undefined;
     kinds.push(kind);
   }
+
   return kinds;
 }

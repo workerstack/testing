@@ -4,7 +4,7 @@ import { PRINCIPALS, SECURITY } from "../../../src/api/conformance/matrix/princi
 import { createMemoryServer } from "../../../src/api/reference/http/engines.ts";
 import { run } from "../../../src/api/runtime/run/index.ts";
 
-/* The checks Phase 6 added, each against the defect built for it and against a correct backend. */
+// The checks Phase 6 added, each against the defect built for it and against a correct backend.
 const CASES = [
   ["CROSS_TENANT_WRITE", "tenant.item-not-writable-cross-tenant"],
   ["ROLE_WRITE_INVERTED", "auth.rank-is-monotonic-on-writes"],
@@ -15,6 +15,7 @@ const CASES = [
 
 async function findings(defects: string[]): Promise<{ checks: string[]; notes: string[] }> {
   const server = await createMemoryServer({ defects });
+
   try {
     const result = await run({
       baseUrl: server.url,
@@ -23,6 +24,7 @@ async function findings(defects: string[]): Promise<{ checks: string[]; notes: s
       seed: 42,
       spec: `${server.url}/v1/openapi/spec`,
     });
+
     return {
       checks: result.findings.filter((f) => f.verdict !== "COVERAGE_GAP").map((f) => f.check),
       notes: result.checkNotes.map((note) => note.note),

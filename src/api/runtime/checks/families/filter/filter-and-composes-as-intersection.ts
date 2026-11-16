@@ -20,8 +20,8 @@ export const filterAndComposesAsIntersection: Check<Compound> = defineCheck<Comp
     "list.read-after-write",
     "create.persists-submitted-fields",
     "filter.equality-selects-exactly-one",
-    /* Both sides are gathered across pages, so a walk that skips or repeats records changes
-     * the membership being compared for reasons unrelated to composition. */
+    // Both sides are gathered across pages, so a walk that skips or repeats records changes
+    // the membership being compared for reasons unrelated to composition.
     "pagination.page-walk-covers-set",
   ],
   id: "filter.and-composes-as-intersection",
@@ -34,6 +34,7 @@ export const filterAndComposesAsIntersection: Check<Compound> = defineCheck<Comp
       { combined, termA, termB },
       (a, b) => new Set([...a].filter((id) => b.has(id))),
     );
+
     if (composed === "rejected") {
       return ctx.findings.unresolved(
         this.id,
@@ -41,6 +42,7 @@ export const filterAndComposesAsIntersection: Check<Compound> = defineCheck<Comp
         "one of the three listings needed for the intersection was rejected",
       );
     }
+
     if (composed === "incomplete") {
       return ctx.findings.unresolved(
         this.id,
@@ -48,19 +50,19 @@ export const filterAndComposesAsIntersection: Check<Compound> = defineCheck<Comp
         "the collection is larger than the walk covers, so the intersection cannot be verified",
       );
     }
+
     if (composed === "moving") return ctx.findings.unresolved(this.id, ctx.entityName, MOVING_COLLECTION);
     const { expected, extra, got, missing, onlyA, onlyB, setA, setB } = composed;
+
     if (missing.length === 0 && extra.length === 0) return ASSERTED;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
       summary: "and() does not compose as the intersection of its terms",
-      detail:
-        `and(${fieldA}.eq.${valueA},${fieldB}.eq.${valueB}) returned ${got.size} record(s); ` +
-        `${fieldA}.eq.${valueA} alone returned ${setA.size}, ${fieldB}.eq.${valueB} alone returned ` +
-        `${setB.size}, whose intersection is ${expected.size}. ` +
-        (missing.length > 0 ? `Missing from the combined result: ${missing.slice(0, 3).join(", ")}. ` : "") +
-        (extra.length > 0 ? `Present but should not match both terms: ${extra.slice(0, 3).join(", ")}. ` : "") +
-        "A conjunction must select exactly the records both terms match individually.",
+      detail: `and(${fieldA}.eq.${valueA},${fieldB}.eq.${valueB}) returned ${got.size} record(s); ${fieldA}.eq.${valueA} alone returned ${setA.size}, ${fieldB}.eq.${valueB} alone returned ${setB.size}, whose intersection is ${expected.size}. ${
+        missing.length > 0 ? `Missing from the combined result: ${missing.slice(0, 3).join(", ")}. ` : ""
+      }${
+        extra.length > 0 ? `Present but should not match both terms: ${extra.slice(0, 3).join(", ")}. ` : ""
+      }A conjunction must select exactly the records both terms match individually.`,
       evidence: [onlyA.last.exchange, onlyB.last.exchange, composed.combined.last.exchange],
     });
   },

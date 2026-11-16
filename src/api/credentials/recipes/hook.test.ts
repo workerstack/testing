@@ -19,12 +19,15 @@ describe("acquireHook", () => {
 
   it("passes the principal's id and identity", async () => {
     const seen: unknown[] = [];
+
     const { ports } = fakePorts({
       hook: (scheme, principal) => {
         seen.push([scheme, principal]);
+
         return Promise.resolve("v");
       },
     });
+
     await acquireHook(ctxOf(ports), {});
     expect(seen).toEqual([["jwt", { id: "ann", identity: { email: "ann@x.io", password: "pw" } }]]);
   });

@@ -6,21 +6,22 @@ import { memoTable } from "../../sets/read.ts";
 import { backend, NOTES, queryDoc, queryOf, REJECT, stage } from "../composition/__fixtures__/query-api.ts";
 import { orderChangesResult } from "./sort-order-is-applied.ts";
 
-/* The backend with the order parameter dropped: it serves `rows` in their own sequence. */
+// The backend with the order parameter dropped: it serves `rows` in their own sequence.
 const ignoringOrder =
   (rows: readonly Record_[]): Responder =>
   (method, path, options) => {
     const { order: _dropped, ...rest } = queryOf(options);
+
     return backend(rows)(method, path, { query: rest });
   };
 
 const byTitle = NOTES.toSorted((a, b) => (String(a["title"]) < String(b["title"]) ? -1 : 1));
 
-/* Sorted by title whatever is asked, and refusing a descending order. */
+// Sorted by title whatever is asked, and refusing a descending order.
 const refusingDescending: Responder = (method, path, options) =>
   queryOf(options)["order"] === "title.desc" ? REJECT : ignoringOrder(byTitle)(method, path, options);
 
-/* Every record without its title. */
+// Every record without its title.
 const untitled: Responder = () => ({ body: NOTES.map(({ title: _title, ...rest }) => rest), status: 200 });
 
 describe("sort.order-is-applied judges", () => {

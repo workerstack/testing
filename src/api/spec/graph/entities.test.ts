@@ -9,6 +9,7 @@ const invite = { accept: "POST /a", invite: "POST /i", revoke: "DELETE /i" } as 
 const register = (operations: OperationModel[]) => {
   const entities = new Map<string, EntityModel>();
   registerOperations(entities, operations);
+
   return entities;
 };
 
@@ -33,6 +34,7 @@ describe("registerOperations", () => {
       note(null, "notes.orphan"),
       operation({ action: "read", entity: null, operationId: "ping" }),
     ]);
+
     expect([...entities.keys()]).toEqual(["note"]);
     expect(entities.get("note")).toMatchObject({
       actions: ["notes.pin"],
@@ -59,6 +61,7 @@ describe("registerOperations", () => {
       note("create", undefined, { tenantParam: "team", unique: [["name"]] }),
       note("update", undefined, { unique: [["late"]] }),
     ]);
+
     expect(entities.get("note")).toMatchObject({ tenantParams: ["org", "team"], unique: [["name"]] });
   });
 });

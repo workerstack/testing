@@ -12,7 +12,7 @@ import type { OpenApiDocument } from "../spec/types.ts";
 import type { Resolution, Sending } from "./credential-source.ts";
 import { type CredentialStorePort, createCredentialSource } from "./credentials.ts";
 
-/* A store that issues `<principal>-<scheme>-<n>` per renewal and records every call. */
+// A store that issues `<principal>-<scheme>-<n>` per renewal and records every call.
 function fakeStore(
   model: Pick<ReturnType<typeof buildModel>, "schemes">,
   security: SecurityConfig,
@@ -20,17 +20,22 @@ function fakeStore(
 ) {
   const calls: string[] = [];
   const issued = new Map<string, number>();
+
   const held = (key: CredentialKey): Held => {
     if (blocked.has(key.scheme)) return { blocked: `could not acquire ${key.scheme}` };
     const n = issued.get(key.scheme) ?? 1;
     const value = `${key.principal}-${key.scheme}-${n}`;
     const spec = model.schemes.get(key.scheme);
+
     if (spec === undefined) throw new Error(`the test asked for ${key.scheme}`);
+
     return { expiresAt: null, value, ...sendsFor(spec, security[key.scheme] ?? {}, value) };
   };
+
   const store: CredentialStorePort = {
     acquire: async (key) => {
       calls.push(`acquire ${key.principal} ${key.scheme} [${(key.scopes ?? []).join(",")}]`);
+
       return held(key);
     },
     block: (key, reason) => {
@@ -40,10 +45,13 @@ function fakeStore(
     refresh: async (request) => {
       calls.push(`refresh ${request.principal} ${request.scheme} ${request.sentValue}`);
       issued.set(request.scheme, (issued.get(request.scheme) ?? 1) + 1);
+
       if (request.scheme === "apiKey") blocked.add("apiKey");
+
       return held(request);
     },
   };
+
   return { calls, store };
 }
 
@@ -51,6 +59,7 @@ const security: SecurityConfig = {
   apiKey: { format: "ApiKey {credential}", holds: ["rows:read"], static: "key_alpha" },
   jwt: { from: "$.token", login: { from: "$.token", steps: [{ operationId: "auth.login" }] } } as never,
 };
+
 const principals: PrincipalsConfig = {
   alpha: {},
   machine: { security: { jwt: { format: "{credential}" } } },
@@ -61,6 +70,7 @@ function sourceOf(more: { security?: SecurityConfig; principals?: PrincipalsConf
   const config = more.security ?? security;
   const { calls, store } = fakeStore(model, config, more.blocked);
   const source = createCredentialSource({ model, principals: more.principals ?? principals, security: config, store });
+
   return { calls, source };
 }
 
@@ -68,6 +78,7 @@ const ROUTE = "GET /rows";
 
 const sending = (resolution: Resolution): Sending => {
   if (resolution.kind !== "sends") throw new Error(`expected sends, got ${resolution.kind}`);
+
   return resolution;
 };
 
@@ -79,9 +90,11 @@ describe("createCredentialSource: alternatives", () => {
     expect(jwt.sends).toEqual({ jwt: { cookies: {}, headers: { Authorization: "Bearer alpha-jwt-1" }, query: {} } });
     expect(jwt.secrets).toEqual({ cookies: [], headers: ["Authorization"], query: [], values: ["alpha-jwt-1"] });
     const keyOnly = sourceOf({ security: { apiKey: security["apiKey"] } as SecurityConfig });
+
     const key = sending(
       await keyOnly.source.resolve({ route: ROUTE, actor: { principal: "alpha" }, operationId: "row.list" }),
     );
+
     expect(key.sends).toEqual({
       apiKey: { cookies: {}, headers: { Authorization: "ApiKey alpha-apiKey-1" }, query: {} },
     });
@@ -94,9 +107,11 @@ describe("createCredentialSource: alternatives", () => {
     const pair = { api_email: { static: "a@b.c" }, api_key: { static: "k" } } as SecurityConfig;
     const { store } = fakeStore(model, pair);
     const source = createCredentialSource({ model, principals: { alpha: {} }, security: pair, store });
+
     const both = sending(
       await source.resolve({ route: ROUTE, actor: { principal: "alpha" }, operationId: "zones.list" }),
     );
+
     expect(both.schemes).toEqual(["api_email", "api_key"]);
     expect(Object.keys(both.sends)).toEqual(["api_email", "api_key"]);
     expect(both.secrets.headers).toEqual(["X-Auth-Email", "X-Auth-Key"]);
@@ -128,10 +143,12 @@ describe("createCredentialSource: nothing to send", () => {
 
   it("refuses a principal's request that matches no documented operation and names no scheme", async () => {
     const { calls, source } = sourceOf();
+
     const unmatched = {
       kind: "unsatisfied",
       reason: "no documented operation matches GET /jobs/1: name its scheme with as: { principal, scheme }",
     };
+
     const route = "GET /jobs/1";
     expect(await source.resolve({ actor: { principal: "alpha" }, route })).toEqual(unmatched);
     expect(await source.resolve({ actor: { principal: "alpha" }, operationId: "nope", route })).toEqual(unmatched);
@@ -205,9 +222,11 @@ describe("createCredentialSource: a continuation", () => {
 describe("createCredentialSource: refresh", () => {
   it("renews each scheme it sent, naming the value it carried", async () => {
     const { calls, source } = sourceOf();
+
     const first = sending(
       await source.resolve({ route: ROUTE, actor: { principal: "alpha" }, operationId: "row.list" }),
     );
+
     const renewed = sending(await first.refresh());
     expect(renewed.sentValues).toEqual({ jwt: "alpha-jwt-2" });
     expect(sending(await renewed.refresh()).sentValues).toEqual({ jwt: "alpha-jwt-3" });
@@ -216,9 +235,11 @@ describe("createCredentialSource: refresh", () => {
 
   it("blocks every scheme it sent, by the store's own scheme, with the reason", async () => {
     const { calls, source } = sourceOf();
+
     const first = sending(
       await source.resolve({ route: ROUTE, actor: { principal: "alpha" }, operationId: "row.list" }),
     );
+
     first.block("refused where the old one was accepted");
     expect(calls.slice(1)).toEqual(["block alpha jwt: refused where the old one was accepted"]);
   });
@@ -230,15 +251,17 @@ describe("createCredentialSource: refresh", () => {
   });
 });
 
-/* A source whose alpha was handed a jwt for /rows/r1. */
+// A source whose alpha was handed a jwt for /rows/r1.
 function recordSource() {
   const model = buildModel(anyrow);
   const { calls, store } = fakeStore(model, security);
   const records = createRecordScopes();
   records.add({ holder: "alpha#record-1", path: "/rows/r1", principal: "alpha", scheme: "jwt" });
   const source = createCredentialSource({ model, principals, records, security, store });
+
   return { calls, source };
 }
+
 const asAlpha = (route: string) => ({ actor: { principal: "alpha" }, operationId: "row.list", route });
 
 describe("createCredentialSource: a credential a create handed its creator", () => {
@@ -328,15 +351,17 @@ describe("createCredentialSource: forged", () => {
 describe("createCredentialSource: a dedicated credential's probe principal", () => {
   it("acquires under the probe principal, and names the principal it was made for as the sender", async () => {
     const { calls, source } = sourceOf({ principals: { ...principals, "alpha#probe-1": {} } });
+
     const sent = sending(
       await source.resolve({ route: ROUTE, actor: { principal: "alpha#probe-1", scheme: "apiKey" } }),
     );
+
     expect(sent.principal).toBe("alpha");
     expect(calls).toEqual(["acquire alpha#probe-1 apiKey []"]);
   });
 });
 
-/* A secondary origin's document: fileKey and other declared, ghost only named. */
+// A secondary origin's document: fileKey and other declared, ghost only named.
 const files = {
   components: {
     securitySchemes: {
@@ -353,20 +378,23 @@ const files = {
   },
 } as unknown as OpenApiDocument;
 
-/* The origin's adapter, mapping fileKey and ghost to the primary's jwt. */
+// The origin's adapter, mapping fileKey and ghost to the primary's jwt.
 function originSource() {
   const { calls, store } = fakeStore(buildModel(anyrow), security);
   const model = buildModel(files);
   const mapping = { fileKey: "jwt", ghost: "jwt" };
+
   return { calls, source: createCredentialSource({ mapping, model, principals, security, store }) };
 }
 
 describe("createCredentialSource: a secondary origin", () => {
   it("sends the mapped primary credential, placed where the origin's scheme puts it", async () => {
     const { calls, source } = originSource();
+
     const placed = sending(
       await source.resolve({ route: ROUTE, actor: { principal: "alpha" }, operationId: "file.list" }),
     );
+
     expect(placed).toMatchObject({ schemes: ["fileKey"], sentValues: { fileKey: "alpha-jwt-1" } });
     expect(placed.sends).toEqual({ fileKey: { cookies: {}, headers: {}, query: { k: "alpha-jwt-1" } } });
     expect(placed.secrets).toEqual({ cookies: [], headers: [], query: ["k"], values: ["alpha-jwt-1"] });
@@ -395,10 +423,12 @@ describe("createCredentialSource: a recipe only an origin's scheme is for", () =
   it("places a recipe only the origin's scheme is for in that recipe's own format", async () => {
     const model = buildModel(files);
     const ownSecurity: SecurityConfig = { fileToken: { format: "Token {credential}", static: "s" } };
+
     const { store } = fakeStore(
       { schemes: new Map([["fileToken", model.schemes.get("other") as SecurityScheme]]) },
       ownSecurity,
     );
+
     const source = createCredentialSource({
       mapping: { other: "fileToken" },
       model,
@@ -407,9 +437,11 @@ describe("createCredentialSource: a recipe only an origin's scheme is for", () =
       security: ownSecurity,
       store,
     });
+
     const placed = sending(
       await source.resolve({ route: ROUTE, actor: { principal: "alpha" }, operationId: "other.list" }),
     );
+
     expect(placed.sends["other"]?.headers).toEqual({ Authorization: "Token alpha-fileToken-1" });
   });
 });

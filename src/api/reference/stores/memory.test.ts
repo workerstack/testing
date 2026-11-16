@@ -11,7 +11,9 @@ const ALL: SelectPlan = { collation: "binary", order: [], shuffleTies: false, wh
 
 async function seeded(): Promise<MemoryStore> {
   const store = new MemoryStore();
+
   for (const id of ["a", "b", "c"]) await store.insert(ITEM, { id, rank: id === "b" ? 1 : 2 });
+
   return store;
 }
 
@@ -22,6 +24,7 @@ describe("MemoryStore", () => {
     const store = await seeded();
     const read = await store.byId(ITEM, "a");
     expect(read).toEqual({ id: "a", rank: 2 });
+
     if (read !== null) read["rank"] = 99;
     expect(await store.byId(ITEM, "a")).toEqual({ id: "a", rank: 2 });
     expect(await store.byId(OTHER, "a")).toBeNull();
@@ -44,11 +47,13 @@ describe("MemoryStore", () => {
 
   it("selects the matching rows in the plan's order", async () => {
     const store = await seeded();
+
     const plan: SelectPlan = {
       ...ALL,
       order: [{ asText: false, descending: false, field: "rank", nullsFirst: false }],
       where: { asText: false, field: "id", kind: "cmp", nullsMatch: false, op: "neq", value: "c" },
     };
+
     expect(ids(await store.select(ITEM, plan))).toEqual(["b", "a"]);
   });
 
@@ -67,10 +72,11 @@ describe("MemoryStore", () => {
     const shuffled = { ...ALL, shuffleTies: true };
     const alone = await seeded();
     const interleaved = await seeded();
+
     for (const id of ["x", "y"]) await interleaved.insert(OTHER, { id });
     const first = ids(await alone.select(ITEM, shuffled));
     const second = ids(await alone.select(ITEM, shuffled));
-    /* Two lanes' list walks land in whatever order the server answers them. */
+    // Two lanes' list walks land in whatever order the server answers them.
     expect(ids(await interleaved.select(ITEM, shuffled))).toEqual(first);
     await interleaved.select(OTHER, shuffled);
     expect(ids(await interleaved.select(ITEM, shuffled))).toEqual(second);

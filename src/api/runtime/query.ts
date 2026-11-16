@@ -11,10 +11,12 @@ export type QueryParams = Record<string, string | readonly string[]>;
 export function mergeQuery(a: QueryParams, b: QueryParams, repeat: boolean): QueryParams {
   if (!repeat) return { ...a, ...b };
   const merged: Record<string, string | readonly string[]> = { ...a };
+
   for (const [key, value] of Object.entries(b)) {
     const before = merged[key];
     merged[key] = before === undefined ? value : [...asList(before), ...asList(value)];
   }
+
   return merged;
 }
 

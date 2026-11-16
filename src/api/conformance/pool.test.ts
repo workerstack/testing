@@ -8,11 +8,9 @@ import { createPool, defaultJobs, forkWorker, type PoolWorker } from "./pool.ts"
 import { serveTasks } from "./serve-tasks.ts";
 import type { ConformanceTask } from "./tasks.ts";
 
-/*
- * A worker the pool drives as it would a forked process. Tasks cross a real MessageChannel, cloned
- * both ways, to `serveTasks` on the other end, which runs them against the reference in process.
- * A deaf one takes tasks and never answers, so a test can fail or end it mid-task.
- */
+// A worker the pool drives as it would a forked process. Tasks cross a real MessageChannel, cloned
+// both ways, to `serveTasks` on the other end, which runs them against the reference in process.
+// A deaf one takes tasks and never answers, so a test can fail or end it mid-task.
 class ChannelWorker extends EventEmitter implements PoolWorker {
   exitCode: number | null = null;
   signalCode: string | null = null;
@@ -22,11 +20,14 @@ class ChannelWorker extends EventEmitter implements PoolWorker {
   constructor(deaf = false) {
     super();
     const { port1, port2 } = this.#channel;
-    if (!deaf)
+
+    if (!deaf) {
       serveTasks(
         { on: (event, listener) => port2.on(event, listener), send: (reply) => port2.postMessage(reply) },
         inProcess,
       );
+    }
+
     port1.on("message", (reply) => this.emit("message", reply));
   }
 
@@ -50,6 +51,7 @@ class ChannelWorker extends EventEmitter implements PoolWorker {
 
 function workers(deaf = false): { spawned: ChannelWorker[]; spawn: () => ChannelWorker } {
   const spawned: ChannelWorker[] = [];
+
   return { spawn: () => spawned[spawned.push(new ChannelWorker(deaf)) - 1] as ChannelWorker, spawned };
 }
 

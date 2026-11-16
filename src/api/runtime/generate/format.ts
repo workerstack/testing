@@ -7,13 +7,16 @@ import type { Context } from "./types.ts";
 export function uuidFrom(salt: string): string {
   let h = 0x811c9dc5;
   const hex: string[] = [];
+
   for (let round = 0; hex.join("").length < 32; round++) {
     for (const ch of `${salt}:${round}`) h = Math.imul(h ^ ch.charCodeAt(0), 0x01000193) >>> 0;
     hex.push(h.toString(16).padStart(8, "0"));
   }
+
   const s = hex.join("").slice(0, 32);
-  /* Four rounds of eight hex digits: the string is 32 long, so position 16 is there. */
+  // Four rounds of eight hex digits: the string is 32 long, so position 16 is there.
   const variant = "89ab"[Number.parseInt(s[16] as string, 16) % 4];
+
   return `${s.slice(0, 8)}-${s.slice(8, 12)}-4${s.slice(13, 16)}-${variant}${s.slice(17, 20)}-${s.slice(20, 32)}`;
 }
 
@@ -22,7 +25,7 @@ function pad(n: number): string {
 }
 
 /** What every format draws on, worked out once. */
-interface Parts {
+type Parts = {
   i: number;
   salt: string;
   slug: string;
@@ -30,7 +33,7 @@ interface Parts {
   tail: string;
   date: string;
   time: string;
-}
+};
 
 function partsOf(ctx: Context, distinct: boolean): Parts {
   const i = ctx.index;
@@ -39,6 +42,7 @@ function partsOf(ctx: Context, distinct: boolean): Parts {
   const year = first ? 2000 : last ? 2099 : 2024;
   const month = first ? 1 : last ? 12 : (i % 12) + 1;
   const day = first ? 1 : last ? 28 : (i % 28) + 1;
+
   return {
     date: `${year}-${pad(month)}-${pad(day)}`,
     i,

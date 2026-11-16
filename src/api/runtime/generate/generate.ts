@@ -32,13 +32,16 @@ export function generate(schema: unknown, options: GenerateOptions = {}): Genera
     refs: [],
     variant: options.variant ?? "baseline",
   };
+
   try {
     return { ok: true, value: instance(schema, { ctx, distinct: false, pointer: "" }) };
   } catch (error) {
     if (error instanceof Unconstructible) return { ok: false, pointer: error.pointer || "/", reason: error.reason };
+
     if (error instanceof RangeError)
       return { ok: false, pointer: "/", reason: "the schema nests too deeply to generate" };
-    /* Anything else is a schema generation could not even read: a reason, never a crash. */
+
+    // Anything else is a schema generation could not even read: a reason, never a crash.
     return { ok: false, pointer: "/", reason: `generation failed: ${messageOf(error)}` };
   }
 }

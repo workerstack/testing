@@ -11,6 +11,7 @@ export async function selfIdentity(ctx: RunContext, entity: EntityModel): Promis
   const { principals, client, findings, model, nonce, seed, hooks } = ctx;
   startedTest(ctx, entity, SELF_CHECK_ID);
   const ownRecords = ownRecordsOf(ctx);
+
   const outcome = await runSelfIdentity({
     client: guardedClient(client, ownRecords, model),
     entity,
@@ -22,5 +23,6 @@ export async function selfIdentity(ctx: RunContext, entity: EntityModel): Promis
     ...(hooks.resolveInput === undefined ? {} : { resolveInput: hooks.resolveInput }),
     seed,
   });
+
   graded(ctx, selfOperationIds(entity, model), SELF_CHECK_ID, outcome);
 }

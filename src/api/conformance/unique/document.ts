@@ -17,7 +17,9 @@ function shapesCase(): ParserResult {
     ["column objects", [{ columns: ["email"] }, { columns: ["workspace_id", "slug"] }]],
     ["single string[]", ["email"]],
   ];
+
   const sets = shapes.map(([, tag]) => parsed(tag));
+
   return {
     detail: shapes.map(([name], i) => `${name}=${JSON.stringify(sets[i])}`).join("; "),
     name: "accepted x-unique shapes parse to column sets",
@@ -44,9 +46,11 @@ function malformedCase(): ParserResult {
       },
     },
   } as OpenApiDocument);
+
   const model = buildModel(doc);
   const gap = model.gaps.gaps.some((g) => g.tag === "x-unique");
   const unique = model.byOperationId.get("thing.create")?.unique;
+
   return {
     detail: `unique=${String(unique)} gap=${String(gap)}`,
     name: "malformed x-unique is absent plus a doctor gap",
@@ -60,6 +64,7 @@ export function planCase(model: SpecModel): ParserResult {
   const plan = report.plan(model, false);
   const unique = model.entities.get("widget")?.unique ?? null;
   const shown = plan.includes("x-unique:");
+
   return {
     detail: shown ? formatUniqueSets(unique) : "missing from plan",
     name: "plan lists x-unique",
@@ -72,6 +77,7 @@ export function planCase(model: SpecModel): ParserResult {
 export function doctorCase(model: SpecModel): ParserResult {
   const { text } = report.doctor(model);
   const shown = text.includes("x-unique:");
+
   return {
     detail: shown ? "shown" : "missing from doctor",
     name: "doctor lists x-unique",
@@ -85,6 +91,7 @@ export function documentCases(): ParserResult[] {
   const empty = JSON.stringify(parsed([[], []]));
   const tagged = buildModel(widgetSpec({ tag: [["name"], ["email"]] }));
   const none = JSON.stringify(buildModel(widgetSpec({ tag: [] })).byOperationId.get("widget.create")?.unique);
+
   return [
     shapesCase(),
     {
@@ -108,6 +115,7 @@ export function documentCases(): ParserResult[] {
 /** `text`, the doctor report of a widget with no tag, names the checks the tag would unlock. */
 export function untaggedDoctorCase(text: string): ParserResult {
   const named = text.includes("x-unique");
+
   return {
     detail: named ? "named" : "missing from doctor",
     name: "doctor says unique checks do not run without the tag",

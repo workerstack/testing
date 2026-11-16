@@ -20,6 +20,7 @@ describe("triggerSentAt", () => {
       hop("http://api.test/invite", { email: "a@x.test" }, 10),
       hop("http://api.test/other", { email: "b@x.test" }, 20),
     ];
+
     expect(triggerSentAt(sent, "a@x.test")).toBe(9);
     expect(triggerSentAt([hop("http://api.test/r?to=a%40x.test", undefined, 5)], "a@x.test")).toBe(4);
     expect(triggerSentAt([hop("http://api.test/r", "to=a@x.test", 7)], "a@x.test")).toBe(6);
@@ -43,14 +44,17 @@ describe("resolveOutOfBandValue", () => {
 
   it("polls until the value arrives, asking with the address, scope and send time, and no credential", async () => {
     const asked: OutOfBandRequest[] = [];
+
     const value = await resolveOutOfBandValue(
       async (request) => {
         asked.push(request);
+
         return request.attempt >= 2 ? "tok" : null;
       },
       "a@x.test",
       { kind: "otp", label: "x", outOfBand: quick, scope: { s: "1" }, since: 5 },
     );
+
     expect(value).toBe("tok");
     expect(asked).toEqual([
       { address: "a@x.test", attempt: 1, kind: "otp", scope: { s: "1" }, since: 5 },
@@ -60,10 +64,13 @@ describe("resolveOutOfBandValue", () => {
 
   it("asks with an empty scope, and no send time, when given none", async () => {
     const asked: OutOfBandRequest[] = [];
+
     const hook = async (request: OutOfBandRequest) => {
       asked.push(request);
+
       return "tok";
     };
+
     await resolveOutOfBandValue(hook, "a@x.test", { kind: "otp", label: "x" });
     expect(asked).toEqual([{ address: "a@x.test", attempt: 1, kind: "otp", scope: {} }]);
   });

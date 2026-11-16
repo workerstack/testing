@@ -1,7 +1,7 @@
 /** One case of a suite that is not the defect matrix: what it checked, why, and how it came out. */
-export interface ParserResult {
+export type ParserResult = {
   name: string;
   why: string;
   ok: boolean;
   detail: string;
-}
+};

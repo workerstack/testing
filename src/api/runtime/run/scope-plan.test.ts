@@ -6,10 +6,8 @@ import { connected, notesApi, notesDoc, optionsFor } from "./__fixtures__/api.ts
 import { planScope } from "./scope-plan.ts";
 import type { RunOptions } from "./types.ts";
 
-/*
- * What a run grades and may call, decided before anyone signs up: a scenario that names an
- * operation no document has, or an origin nobody configured, is refused before a request.
- */
+// What a run grades and may call, decided before anyone signs up: a scenario that names an
+// operation no document has, or an origin nobody configured, is refused before a request.
 
 const OTHER = {
   baseUrl: "http://other.test",
@@ -44,6 +42,7 @@ const warn = (): undefined => undefined;
 async function plannedWith(extra: Partial<RunOptions>) {
   const snaps: ProgressSnapshot[] = [];
   const run = await connected(optionsFor(notesApi(twoEntities), { ...extra, onProgress: (snap) => snaps.push(snap) }));
+
   return { planned: planScope(run), snaps };
 }
 
@@ -67,10 +66,12 @@ describe("planScope", () => {
 describe("planScope scenarios", () => {
   it("keeps this origin's scenarios, and what they cover", async () => {
     const scenario = { covers: ["notes.create"], id: "s1", steps: [{ operationId: "notes.create" }] };
+
     const { planned } = await plannedWith({
       origins: [OTHER],
       scenarios: [scenario, { ...scenario, id: "s2", origin: "other" }] as never,
     });
+
     expect(planned.ownScenarios.map((own) => own.id)).toEqual(["s1"]);
     expect(planned.scenarioOwned).toEqual(new Set(["notes.create"]));
   });
@@ -79,6 +80,7 @@ describe("planScope scenarios", () => {
     const run = await connected(
       optionsFor(notesApi(), { scenarios: [{ covers: [], id: "s1", origin: "gone", steps: [] }] as never }),
     );
+
     expect(() => planScope(run)).toThrow(
       'testing api: scenario "s1" belongs to origin "gone", which is not in config.origins',
     );
@@ -86,9 +88,11 @@ describe("planScope scenarios", () => {
 
   it("refuses a scenario that names an operation its document lacks", async () => {
     const missing = { covers: ["no.such"], id: "s1", steps: [{ operationId: "no.such" }] };
+
     const run = await connected(
       optionsFor(notesApi(), { origins: [OTHER], scenarios: [missing, { ...missing, origin: "other" }] as never }),
     );
+
     expect(() => planScope(run)).toThrow(/no\.such/);
   });
 
@@ -105,6 +109,7 @@ describe("planScope scenarios", () => {
       uploads: { "notes.create": "a.png" } as never,
       warn,
     });
+
     expect(planned.uploads).toEqual({
       configDir: "/cfg",
       memory: uploadMemory(),

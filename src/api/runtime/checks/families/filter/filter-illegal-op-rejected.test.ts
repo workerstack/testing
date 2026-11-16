@@ -9,10 +9,13 @@ const COHORT = [
   { amount: 4, id: "w-1", status: "open" },
   { amount: 9, id: "w-2", status: "shut" },
 ];
+
 const CLOSED = { xQuery: { filterable: [{ field: "status", ops: ["eq", "in"] }] } };
 const POLICED = { closed: { status: ["eq", "in"] } };
+
 /** amount allows only gt; status is open-ended, so only amount yields a closed-list probe. */
 const MIXED = { xQuery: { filterable: [{ field: "amount", ops: ["gt"] }, "status"] } };
+
 const REFUSE_GT = {
   status: (query: Record<string, unknown>) => (String(query["filter"]).startsWith("amount.gt") ? 403 : undefined),
 };
@@ -31,6 +34,7 @@ describe("filter.illegal-op-rejected: run", () => {
       doc: CLOSED,
       records: COHORT,
     });
+
     expect(await runCheck(check, ctx)).toMatchObject({ kind: "finding" });
     expect(only(findings).detail).toBe(
       "status.ne returned 200 with the unfiltered set, so the operator was ignored. " +
@@ -52,6 +56,7 @@ describe("filter.illegal-op-rejected: run", () => {
       doc: CLOSED,
       records: COHORT,
     });
+
     expect(await runCheck(check, ctx)).toMatchObject({ kind: "finding" });
     expect(only(findings).summary).toBe("an illegal filter operator produces a server error");
   });
@@ -83,16 +88,20 @@ describe("filter.illegal-op-rejected: plan", () => {
     expect(check.plan(unset.ctx)).toMatchObject({
       value: { probes: [{ term: { filter: "note.ne.testing-probe" } }, { term: { filter: "note.zz.testing-probe" } }] },
     });
+
     const aliased = stage({
       doc: { xQuery: { aliases: { ne: "neq" }, filterable: [{ field: "status", ops: ["eq", "neq"] }] } },
       records: COHORT,
     });
+
     expect(check.plan(aliased.ctx)).toMatchObject({ value: { probes: [{ op: "gt" }, { op: "zz" }] } });
+
     const skipFirst = stage({
       conventions: reserving("4"),
       doc: { xQuery: { filterable: ["amount", "status"] } },
       records: COHORT,
     });
+
     expect(check.plan(skipFirst.ctx)).toMatchObject({
       value: { probes: [{ kind: "unknown", term: { filter: "status.zz.open" } }] },
     });
@@ -101,12 +110,14 @@ describe("filter.illegal-op-rejected: plan", () => {
   it("skips a field without a writable allowed operator, or whose terms cannot be written", () => {
     const caps = resolvedCaps(stage({ doc: CLOSED, records: COHORT }).ctx);
     const containsOnly = { ...caps, filterable: [{ field: "status", ops: ["contains" as const] }] };
+
     const noLegal = stage({
       conventions: without("contains"),
       doc: CLOSED,
       fields: { capabilities: containsOnly },
       records: COHORT,
     });
+
     expect(check.plan(noLegal.ctx)).toMatchObject({ value: { probes: [{ kind: "unknown" }] } });
     expect(check.plan(stage({ conventions: reserving("o"), doc: CLOSED, records: COHORT }).ctx).ok).toBe(false);
   });

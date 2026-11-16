@@ -18,14 +18,13 @@ import { missingCredentialRefused } from "./auth-missing-credential-refused.ts";
 import { scopeEnforced } from "./auth-scope-enforced.ts";
 import { wrongSchemeRefused } from "./auth-wrong-scheme-refused.ts";
 
-/*
- * Where the refusal checks' probes run: a collection read before the lanes, a read of one record and
- * a write after them, each of those two on a record the run created.
- */
+// Where the refusal checks' probes run: a collection read before the lanes, a read of one record and
+// a write after them, each of those two on a record the run created.
 
 const project = { in: "path", name: "project_id", required: true, schema: { type: "string" } };
 const noteId = { in: "path", name: "note_id", required: true, schema: { type: "string" } };
-/* `pins.get` reads one record with jwt alone, so the wrong-scheme check has a scheme to send it. */
+
+// `pins.get` reads one record with jwt alone, so the wrong-scheme check has a scheme to send it.
 const model = modelOf(
   securedDoc({
     "/projects/{project_id}/pins/{note_id}": {
@@ -33,22 +32,28 @@ const model = modelOf(
     },
   }),
 );
+
 const PIN_TARGET = { ...NOTE_TARGET, path: "/projects/proj_a/pins/n1" };
-/* Each check with a read of one record it probes, and the run-created record it may send to. */
+
+// Each check with a read of one record it probes, and the run-created record it may send to.
 const ITEM_READS = [
   { check: missingCredentialRefused, operationId: "notes.get", target: NOTE_TARGET },
   { check: invalidCredentialRefused, operationId: "notes.get", target: NOTE_TARGET },
   { check: wrongSchemeRefused, operationId: "pins.get", target: PIN_TARGET },
   { check: scopeEnforced, operationId: "notes.get", target: NOTE_TARGET },
 ] as const;
+
 const REFUSALS = [missingCredentialRefused, invalidCredentialRefused, wrongSchemeRefused, scopeEnforced];
 const principals = [actorOf("alpha", { scope: { project_id: "proj_a" } })] as [ReturnType<typeof actorOf>];
+
 const probe = {
   held: (request: { scheme: string; scopes?: readonly string[] }) => ({ value: keyValue(request) }),
   recipes: { apiKey: { kind: "mint" as const }, jwt: { kind: "login" as const } },
 };
+
 const refusing: SentResponder = () => ({ status: 401 });
-/* Refuses every probe, and lets in the key issued with the scopes that auth.scope-enforced sends as its control. */
+
+// Refuses every probe, and lets in the key issued with the scopes that auth.scope-enforced sends as its control.
 const refusingFor = (check: unknown): SentResponder =>
   check === scopeEnforced ? (sent) => ({ status: isScopedKey(sent) ? 200 : 401 }) : refusing;
 
@@ -69,6 +74,7 @@ describe("the refusal checks' placement", () => {
       expect(ctx.placement).toBe("item-read");
       expect(await runOperationCheck(check, ctx)).toEqual({ kind: "asserted" });
       expect(sent.length).toBeGreaterThan(0);
+
       for (const s of sent) expect([s.method, s.path, s.options.body]).toEqual(["GET", target.path, undefined]);
     }
   });
@@ -105,17 +111,20 @@ describe("the read-only probes' placement", () => {
       respond: () => ({ status: 200 }),
       target: NOTE_TARGET,
     });
+
     expect(await runOperationCheck(alternativeAccepted, ctx)).toEqual({ kind: "asserted" });
     expect(sent.map((s) => [s.method, s.path])).toEqual([["GET", NOTE_TARGET.path]]);
   });
 
   it("sends an open read of one record to the run-created record", async () => {
     const target = { ...NOTE_TARGET, path: "/projects/proj_a/boards/n1" };
+
     const { ctx, sent } = operationContextFor(open, "boards.get", {
       principals,
       respond: () => ({ status: 200 }),
       target,
     });
+
     expect(await runOperationCheck(anonymousOperationOpen, ctx)).toEqual({ kind: "asserted" });
     expect(sent.map((s) => [s.method, s.path])).toEqual([["GET", target.path]]);
   });

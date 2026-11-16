@@ -7,7 +7,7 @@ import { jsonResponse, ok } from "./operation.ts";
 import type { Json, SpecContext } from "./types.ts";
 
 /** The signed-up caller is the record. No list, no create, no path id. */
-/* Under the string guard: the name guarded, and a phone number whose own pattern sits beside the guard. */
+// Under the string guard: the name guarded, and a phone number whose own pattern sits beside the guard.
 const GUARDED_PROFILE: Readonly<Record<string, JsonSchema>> = {
   first_name: { maxLength: 64, pattern: STRING_GUARD, type: "string" },
   phone_number: {
@@ -31,6 +31,7 @@ export function callerProfilePaths(ctx: SpecContext): Json {
     required: ["first_name"],
     type: "object",
   };
+
   return {
     "/v1/me": {
       get: {
@@ -75,12 +76,11 @@ export function callerProfilePaths(ctx: SpecContext): Json {
   };
 }
 
-/*
- * Under the totp-setup shape: the caller enrolls TOTP. Outside any entity, as such a route is, so the
- * contract floor is what calls it, and its answer carries the secret three ways.
- */
+// Under the totp-setup shape: the caller enrolls TOTP. Outside any entity, as such a route is, so the
+// contract floor is what calls it, and its answer carries the secret three ways.
 function totpSetupOperation(ctx: SpecContext): Json {
   const text = { type: "string" };
+
   return {
     operationId: "auth.setup2fa",
     responses: {
@@ -191,7 +191,7 @@ function registerOperation(ctx: SpecContext): Json {
             additionalProperties: false,
             properties: {
               email: { format: "email", type: "string" },
-              /* Only an operator makes an account staff. */
+              // Only an operator makes an account staff.
               staff: { type: "boolean", "x-privileged": true },
             },
             required: ["email"],
@@ -226,6 +226,7 @@ function signupListOperation(ctx: SpecContext): Json {
     required: ["account_id", "email", "staff"],
     type: "object",
   };
+
   return {
     operationId: "signup.list",
     responses: {

@@ -11,19 +11,21 @@ import { sortStableTiebreak } from "./sort-stable-tiebreak.ts";
 const breakingBy = (stableTiebreak: string) => queryDoc({ stableTiebreak });
 const byId = breakingBy("id");
 
-/* Sorted by the requested order, the cohort first laid out as `rows`: ties keep that layout. */
+// Sorted by the requested order, the cohort first laid out as `rows`: ties keep that layout.
 const servingAs =
   (rows: readonly Record_[]): Responder =>
   (_method, _path, options) => ({ body: applyOrder(rows, queryOf(options)["order"] ?? ""), status: 200 });
 
-/* Ties on "open" laid out n1, n4, n2: rising, then falling. */
+// Ties on "open" laid out n1, n4, n2: rising, then falling.
 const scrambled = servingAs([NOTES[0], NOTES[3], NOTES[1], NOTES[2], NOTES[4], NOTES[5]] as Record_[]);
 
-/* Ties in id order on the first read, reversed on every read after. */
+// Ties in id order on the first read, reversed on every read after.
 function flipping(): Responder {
   let reads = 0;
+
   return (method, path, options) => {
     reads += 1;
+
     return servingAs(reads === 1 ? NOTES : NOTES.toReversed())(method, path, options);
   };
 }

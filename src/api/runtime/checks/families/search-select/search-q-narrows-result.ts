@@ -9,6 +9,7 @@ import { list } from "../../sets/list.ts";
 export const searchNarrowsResult: Check<{ field: string }> = defineCheck<{ field: string }>({
   plan: (ctx) => {
     const field = ctx.query?.searchable[0];
+
     return conv(ctx).search === undefined || field === undefined || ctx.records.length <= 2
       ? cannot()
       : ready({ field });
@@ -21,13 +22,16 @@ export const searchNarrowsResult: Check<{ field: string }> = defineCheck<{ field
   async run(ctx): Promise<Outcome> {
     const limit = pageSize(ctx);
     const all = await list(ctx, q(ctx, { limit }));
+
     if (all.items.length < 2)
       return ctx.findings.unresolved(this.id, ctx.entityName, "fewer than two records to narrow");
 
-    /* A token no record can contain: a correct search returns nothing. */
+    // A token no record can contain: a correct search returns nothing.
     const result = await list(ctx, q(ctx, { limit, search: "zzqqxx-testing-no-match-token" }));
+
     if (result.exchange.status >= 400)
       return ctx.findings.unresolved(this.id, ctx.entityName, "the search was rejected");
+
     if (result.items.length === 0) return ASSERTED;
 
     return ctx.findings.backend(this.id, ctx.entityName, {

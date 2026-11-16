@@ -227,6 +227,7 @@
   "src/api/errors/node-floor.ts": { "branches": 100, "functions": 100, "lines": 100, "statements": 100 },
   "src/api/errors/suggest.ts": { "branches": 100, "functions": 100, "lines": 100, "statements": 100 },
   "src/api/errors/usage-error.ts": { "branches": 100, "functions": 100, "lines": 100, "statements": 100 },
+  "src/api/reference/cell.ts": { "branches": 100, "functions": 100, "lines": 100, "statements": 100 },
   "src/api/reference/defects/bystanders.ts": { "branches": 100, "functions": 100, "lines": 100, "statements": 100 },
   "src/api/reference/defects/catalog.ts": { "branches": 100, "functions": 100, "lines": 100, "statements": 100 },
   "src/api/reference/defects/composition.ts": { "branches": 100, "functions": 100, "lines": 100, "statements": 100 },

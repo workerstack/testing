@@ -8,7 +8,7 @@ import type { Exchange } from "./exchange.ts";
 
 export type Verdict = "BACKEND_BUG" | "SPEC_BUG" | "SECURITY" | "AMBIGUITY" | "COVERAGE_GAP" | "BLOCKED";
 
-export interface Finding {
+export type Finding = {
   /** Stable identifier for the check that produced this — the conformance suite asserts on it. */
   check: string;
   verdict: Verdict;
@@ -24,7 +24,7 @@ export interface Finding {
   operations?: string[];
   /** A baseline entry names it: still reported, no longer a reason the run fails. */
   known?: { reason: string };
-}
+};
 
 /**
  * Whether a finding is a root cause — what fails a run. Coverage gaps and blocks are what the API tester
@@ -76,45 +76,43 @@ export function standDown(reason: string): Outcome {
  * where the property was verified. On a backend with several faults that is most of the suite
  * going quiet at once, which is the precise moment a reader most needs to know it happened.
  */
-export interface Inconclusive {
+export type Inconclusive = {
   check: string;
   entity: string;
   /** Why no verdict was reachable, in the reader's terms. */
   reason: string;
   operations?: string[];
-}
+};
 
 /** What a check states about a defect: the line a reader scans, the detail behind it, what proves it. */
-export interface Claim {
+export type Claim = {
   summary: string;
   detail: string;
   evidence: Exchange[];
   /** Fixture filename when `uploads.each` drove the invocation. */
   fixture?: string | undefined;
-}
+};
 
 /** A gap proves nothing by exchange: it is what the API tester could not look at. */
 export type GapClaim = Omit<Claim, "evidence">;
 
 /** A check that could not run because `cause` failed first. */
-export interface BlockedClaim {
+export type BlockedClaim = {
   summary: string;
   cause: string;
   evidence?: Exchange[] | undefined;
-}
+};
 
-/* A stack frame line as V8 prints it: a newline, indentation, then "at ...". */
+// A stack frame line as V8 prints it: a newline, indentation, then "at ...".
 const STACK_FRAME = /\n[ \t]*at [^\n]*/g;
 
-/*
- * An absolute path that names a user's directory: under /home/<user>, /Users/<user> or /root, or
- * any path on a Windows drive, optionally as a file:// URL. A Unix path elsewhere is left alone,
- * since an API route such as /rows/{id} reads the same and a report must keep it.
- */
+// An absolute path that names a user's directory: under /home/<user>, /Users/<user> or /root, or
+// any path on a Windows drive, optionally as a file:// URL. A Unix path elsewhere is left alone,
+// since an API route such as /rows/{id} reads the same and a report must keep it.
 const USER_PATH =
   /(?<![\w./\\-])(?:file:\/\/)?(?:\/(?:home|Users)\/[^\s/'"`()<>]+|\/root(?![^\s/'"`()<>])|[A-Za-z]:(?=[\\/]))[^\s'"`()<>]*/g;
 
-/* Everything up to the last path separator that something follows. */
+// Everything up to the last path separator that something follows.
 const DIRECTORIES = /^.*[\\/](?=[^\\/])/;
 
 /**
@@ -144,12 +142,12 @@ function reportable(text: string): string {
 }
 
 /** What a view of the findings stamps on and enforces for what it records. */
-interface CollectorView {
+type CollectorView = {
   /** The operations every finding it records is attributed to. */
   operations?: readonly string[] | undefined;
   /** The one check it accepts findings from. */
   owner?: string | undefined;
-}
+};
 
 export class FindingCollector {
   readonly findings: Finding[];
@@ -174,9 +172,8 @@ export class FindingCollector {
   }
 
   #own(check: string): void {
-    if (this.#owner !== undefined && check !== this.#owner) {
+    if (this.#owner !== undefined && check !== this.#owner)
       throw new Error(`check "${this.#owner}" tried to report under "${check}"`);
-    }
   }
 
   /**
@@ -203,27 +200,34 @@ export class FindingCollector {
     this.#own(check);
     const said = reportable(reason);
     this.inconclusive.push({ check, entity, reason: said, ...this.#stamp() });
+
     return { kind: "unresolved", reason: said };
   }
 
   /** Records a finding. Every finding passes here, so here its text is made fit to share. */
   report(finding: Finding): Outcome {
     this.#own(finding.check);
+
     const recorded: Finding = {
       ...finding,
       detail: reportable(finding.detail),
       summary: reportable(finding.summary),
       ...(finding.operations === undefined ? this.#stamp() : {}),
     };
+
     this.findings.push(recorded);
+
     if (recorded.verdict === "COVERAGE_GAP") return standDown(recorded.summary);
+
     if (recorded.verdict === "BLOCKED") return { kind: "unresolved", reason: recorded.summary };
+
     return { kind: "finding", verdict: recorded.verdict };
   }
 
   #claim(check: string, entity: string, claim: Claim & { verdict: Verdict }): Outcome {
     const { detail, evidence, fixture, summary, verdict } = claim;
     const finding: Finding = { check, detail, entity, evidence, summary, verdict };
+
     return this.report(fixture === undefined || fixture === "" ? finding : { ...finding, fixture });
   }
 
@@ -245,6 +249,7 @@ export class FindingCollector {
 
   blocked(check: string, entity: string, claim: BlockedClaim): Outcome {
     const { cause, evidence = [], summary } = claim;
+
     return this.report({ check, detail: `blocked by ${cause}`, entity, evidence, summary, verdict: "BLOCKED" });
   }
 

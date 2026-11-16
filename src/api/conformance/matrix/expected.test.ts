@@ -37,6 +37,7 @@ describe("judgedOperations", () => {
       finding("list.read-after-write"),
       finding("list.read-after-write", ["note.list"]),
     ];
+
     expect(judgedOperations(findings, "list.read-after-write")).toEqual(["note.list", "note.read"]);
     expect(judgedOperations(findings, null)).toEqual([]);
   });

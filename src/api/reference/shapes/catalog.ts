@@ -22,10 +22,10 @@ export const SHAPES: readonly NamedShape[] = [
       "HASMORE_ALWAYS_FALSE",
       "COUNT_ALWAYS_ZERO",
       "COUNT_IGNORES_FILTER",
-      /* Both are seen by comparing a cursor walk with a page walk, and there are no pages. */
+      // Both are seen by comparing a cursor walk with a page walk, and there are no pages.
       "CURSOR_DRIFT",
       "COLLATION_INCONSISTENT",
-      /* There is no page number to go past the end with. */
+      // There is no page number to go past the end with.
       "PAGE_PAST_END_REPEATS",
     ],
     name: "cursor-only",
@@ -41,7 +41,7 @@ export const SHAPES: readonly NamedShape[] = [
       "CURSOR_DRIFT",
       "COLLATION_INCONSISTENT",
       "HASMORE_ALWAYS_FALSE",
-      /* There is no page number to go past the end with. */
+      // There is no page number to go past the end with.
       "PAGE_PAST_END_REPEATS",
     ],
     name: "offset-total",
@@ -60,7 +60,7 @@ export const SHAPES: readonly NamedShape[] = [
       "COLLATION_INCONSISTENT",
       "HASMORE_ALWAYS_FALSE",
       "PAGE_PAST_END_REPEATS",
-      /* No nulls token to ignore. */
+      // No nulls token to ignore.
       "SORT_NULLS_MODIFIER_IGNORED",
     ],
     name: "wrapped-records",
@@ -82,7 +82,7 @@ export const SHAPES: readonly NamedShape[] = [
     why: "each listed row wraps its record under document beside its highlights, as a search engine answers",
   },
   {
-    /* It clamps a page size rather than refusing it, and its document says so. */
+    // It clamps a page size rather than refusing it, and its document says so.
     cannotRun: {
       "pagination.limit-bounds-enforced": "the page size is clamped, as the document declares, not refused",
     },
@@ -99,10 +99,10 @@ export const SHAPES: readonly NamedShape[] = [
   { name: "uuid-ids", shape: { ids: "uuid" }, why: "UUID identifiers; a malformed one in a path is a 400" },
   { name: "integer-ids", shape: { ids: "integer" }, why: "integer identifiers; a malformed one in a path is a 400" },
   {
-    /* CREATE_DROPS_FIELD: the lost field fails the read-back that would confirm the record, so
-     * the seed stops before its check reads the record back. */
-    /* READ_DROPS_FIELD: an acknowledged create is confirmed by the read that drops the field, so
-     * no record is ever confirmed and the seed stops before anything can be judged. */
+    // CREATE_DROPS_FIELD: the lost field fails the read-back that would confirm the record, so
+    // the seed stops before its check reads the record back.
+    // READ_DROPS_FIELD: an acknowledged create is confirmed by the read that drops the field, so
+    // no record is ever confirmed and the seed stops before anything can be judged.
     cannotExhibit: ["CREATE_DROPS_FIELD", "READ_DROPS_FIELD"],
     exhibits: ["CLIENT_ID_IGNORED", "CLIENT_ID_OVERWRITES"],
     name: "client-ids",
@@ -124,7 +124,7 @@ export const SHAPES: readonly NamedShape[] = [
       "create.unique-conflict-rejected": "the document declares nothing unique",
       "update.unique-conflict-rejected": "the document declares nothing unique",
     },
-    /* Nothing is declared unique, so there is no declared uniqueness to stop enforcing. */
+    // Nothing is declared unique, so there is no declared uniqueness to stop enforcing.
     cannotExhibit: ["UNIQUE_NOT_ENFORCED"],
     name: "tenant-slugs",
     shape: { tableKey: "slug" },
@@ -143,8 +143,8 @@ export const SHAPES: readonly NamedShape[] = [
   },
   { name: "path-prefix", shape: { basePath: "/api" }, why: "the whole API is mounted under /api" },
   {
-    /* PUT replaces by contract, so "a partial update that replaces" has no partial update to break. */
-    /* Both are partial-write faults; under PUT the checks that see them stand down. */
+    // PUT replaces by contract, so "a partial update that replaces" has no partial update to break.
+    // Both are partial-write faults; under PUT the checks that see them stand down.
     cannotExhibit: ["PATCH_REPLACES", "CONCURRENT_WRITE_LOST"],
     cannotRun: {
       "concurrency.no-lost-update":
@@ -191,7 +191,7 @@ export const SHAPES: readonly NamedShape[] = [
   },
   { name: "large-pages", shape: { largeRecords: true }, why: "one list page is larger than 256 KiB" },
   {
-    /* 2XX documents 200 and 201 alike: answering one where the other was meant is permitted. */
+    // 2XX documents 200 and 201 alike: answering one where the other was meant is permitted.
     cannotExhibit: ["CREATED_201_AS_200", "RESPONSE_STATUS_UNDECLARED"],
     name: "range-statuses",
     shape: { rangeStatuses: true },

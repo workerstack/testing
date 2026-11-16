@@ -15,32 +15,41 @@ import {
 import { sideEffectArrives as check } from "./effects-side-effect-arrives.ts";
 
 const quick = { pollIntervalMs: 1, timeoutMs: 25 };
+
 const doc = withOperation(baseDocument(), "post /notes", {
   operationId: "sendNote",
   requestBody: withBody,
   "x-wait": { ...quick, operationId: "getInbox", until: "$.items" },
 });
+
 withOperation(doc, "post /bare-notes", { operationId: "sendBare", "x-wait": { ...quick, operationId: "getInbox" } });
+
 withOperation(doc, "post /letters", { operationId: "sendLetter", "x-wait": { ...quick, operationId: "getMailbox" } });
+
 withOperation(doc, "get /mailboxes/{mailbox_id}", { operationId: "getMailbox" });
+
 withOperation(doc, "post /board-requests", {
   operationId: "requestBoard",
   "x-effects": [{ entity: "board", op: "create" }],
   "x-wait": { ...quick, operationId: "getBoard" },
 });
+
 withOperation(doc, "post /lost", { operationId: "sendLost", "x-wait": { operationId: "nowhere" } });
+
 withOperation(doc, "post /gated-notes", {
   operationId: "sendGated",
   "x-feature-gate": "pro",
   "x-wait": { ...quick, operationId: "getInbox" },
 });
+
 const model = modelOf(doc);
 const sendNote = op(model, "sendNote");
 
-/* The poll budget is virtual time: a run's verdict never depends on how fast the host is. */
+// The poll budget is virtual time: a run's verdict never depends on how fast the host is.
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "performance"] });
 });
+
 afterEach(() => {
   vi.useRealTimers();
 });
@@ -49,10 +58,11 @@ async function waited(respond: Responder, waitOps: OperationModel[] = [sendNote]
   const stage = contextFor(model, "listWidgets", { respond, fields: { waitOps, ...fields } });
   const running = check.run(stage.ctx, undefined);
   await vi.runAllTimersAsync();
+
   return { ...stage, outcome: await running };
 }
 
-/* Blocks the thread for `ms` of real time, which no fake timer shortens. */
+// Blocks the thread for `ms` of real time, which no fake timer shortens.
 function stall(ms: number): void {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
@@ -61,7 +71,7 @@ const delivered = { body: { items: ["n1"] }, status: 200 };
 const empty = { body: { items: [] }, status: 200 };
 
 const plan = (waitOps: OperationModel[]) =>
-  check.plan(contextFor(model, "listWidgets", { respond: () => undefined, fields: { waitOps } }).ctx).ok;
+  check.plan(contextFor(model, "listWidgets", { respond: () => {}, fields: { waitOps } }).ctx).ok;
 
 describe("plan", () => {
   it("applies when some operation declares x-wait", () => {
@@ -73,14 +83,17 @@ describe("plan", () => {
 describe("a write whose side effect is polled", () => {
   it("passes a side effect that arrives, after sending the write's body", async () => {
     let polled = 0;
-    /* A slow host: each poll takes 15ms of real time, so three of them outlast the 25ms budget on a wall clock. */
+
+    // A slow host: each poll takes 15ms of real time, so three of them outlast the 25ms budget on a wall clock.
     const respond = routes({
       "GET /inbox": () => {
         stall(15);
+
         return polled++ < 2 ? empty : delivered;
       },
       "POST /notes": () => ({ body: {}, status: 201 }),
     });
+
     const run = await waited(respond);
     expect(run.outcome).toBe(ASSERTED);
     expect(run.findings.findings).toEqual([]);
@@ -112,6 +125,7 @@ describe("a write whose side effect is polled", () => {
       routes({ "GET /inbox": () => ({ status: 500 }), "POST /bare-notes": () => ({ status: 201 }) }),
       [op(model, "sendBare")],
     );
+
     expect(run.findings.findings[0]?.detail).toMatch(/^x-wait polls getInbox and the path was still empty/);
   });
 });
@@ -119,6 +133,7 @@ describe("a write whose side effect is polled", () => {
 describe("polling hooks", () => {
   it("lets the awaitSideEffect hook decide the effect arrived", async () => {
     const awaitSideEffect = vi.fn<() => Promise<true | null>>(async () => true);
+
     const run = await waited(
       routes({ "GET /inbox": () => empty, "POST /notes": () => ({ status: 201 }) }),
       [sendNote],
@@ -126,6 +141,7 @@ describe("polling hooks", () => {
         hooks: { awaitSideEffect },
       },
     );
+
     expect(run.findings.findings).toEqual([]);
     expect(awaitSideEffect).toHaveBeenCalledWith({ attempt: 1, operationId: "sendNote", record: { items: [] } });
   });
@@ -142,6 +158,7 @@ describe("the poll path", () => {
       "GET /mailboxes/m1": () => delivered,
       "POST /letters": () => ({ body: { mailbox_id: "m1" }, status: 201 }),
     });
+
     const run = await waited(respond, [op(model, "sendLetter")]);
     expect(run.findings.findings).toEqual([]);
     expect(run.sent.map((s) => s.path)).toEqual(["/letters", "/mailboxes/m1"]);
@@ -152,6 +169,7 @@ describe("the poll path", () => {
       "GET /boards/b1": () => delivered,
       "POST /board-requests": () => ({ body: { id: "b1" }, status: 201 }),
     });
+
     const run = await waited(respond, [op(model, "requestBoard")]);
     expect(run.sent.map((s) => s.path)).toEqual(["/board-requests", "/boards/b1"]);
   });
@@ -159,7 +177,7 @@ describe("the poll path", () => {
 
 describe("a write that cannot be judged", () => {
   it("is a coverage gap when x-wait names an operation the document lacks", async () => {
-    const run = await waited(() => undefined, [op(model, "sendLost")]);
+    const run = await waited(() => {}, [op(model, "sendLost")]);
     expect(run.findings.findings).toMatchObject([
       {
         detail: "the side effect cannot be observed, so it is not verified",
@@ -200,6 +218,7 @@ describe("a write that cannot be judged", () => {
     const run = await waited(routes({ "POST /notes": () => ({ status: 400 }) }), [sendNote], {
       uploads: eachFixture("sendNote"),
     });
+
     expect(run.sent[0]?.options).toMatchObject({ fixture: "documents.ts" });
     expect(run.findings.findings).toMatchObject([{ entity: "sendNote · documents.ts", fixture: "documents.ts" }]);
   });
@@ -208,14 +227,17 @@ describe("a write that cannot be judged", () => {
 describe("a side effect that arrives past its budget", () => {
   it("notes a side effect that arrived only after its budget, so a slow host stays visible", async () => {
     let polled = 0;
-    /* Each poll spends 30ms of the run's clock: the second one, which delivers, ends past the 25ms budget. */
+
+    // Each poll spends 30ms of the run's clock: the second one, which delivers, ends past the 25ms budget.
     const respond = routes({
       "GET /inbox": () => {
         vi.advanceTimersByTime(30);
+
         return polled++ < 1 ? empty : delivered;
       },
       "POST /notes": () => ({ body: {}, status: 201 }),
     });
+
     const run = await waited(respond);
     expect(run.findings.findings).toEqual([]);
     expect(run.outcome).toEqual({

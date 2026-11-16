@@ -14,6 +14,7 @@ export function answer(status: number, body?: unknown, headers: Record<string, s
 /** The request body as JSON; an empty body is `undefined`, and a malformed one rejects. */
 export async function readJson(request: ReferenceRequest): Promise<unknown> {
   const text = await request.text();
+
   return text === "" ? undefined : (JSON.parse(text) as unknown);
 }
 

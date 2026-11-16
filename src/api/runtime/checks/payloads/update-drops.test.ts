@@ -12,7 +12,7 @@ describe("updateDrops", () => {
   });
 
   it("is one entity's: another entity's memo does not see it", () => {
-    const run = new Map<string, unknown>();
+    const run = new Map<string>();
     const org = { memo: checkMemo(run) };
     recordUpdateDrops(org, ["plan"]);
     expect([...updateDrops({ memo: checkMemo(run) })]).toEqual([]);

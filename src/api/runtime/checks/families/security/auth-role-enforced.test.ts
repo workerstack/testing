@@ -11,23 +11,24 @@ import { NOTE_TARGET, securedDoc, undeclaredDoc } from "./__fixtures__/secured-a
 import { roleEnforced } from "./auth-role-enforced.ts";
 import { BY_VALIDATION } from "./probing.ts";
 
-/* A principal the config marks readOnly cannot write: its write to a run-created record must be refused. */
+// A principal the config marks readOnly cannot write: its write to a run-created record must be refused.
 
 const model = modelOf(securedDoc());
 const alpha = actorOf("alpha", { rank: 2, scope: { project_id: "proj_a" }, tenant: "proj_a" });
 const member = actorOf("alpha_member", { rank: 1, scope: { project_id: "proj_a" }, tenant: "proj_a" });
 const viewer = actorOf("alpha_viewer", { rank: 0, readOnly: true, scope: { project_id: "proj_a" }, tenant: "proj_a" });
-/* Rank 0, but not marked: whether it may write is the API's business, not this check's. */
+
+// Rank 0, but not marked: whether it may write is the API's business, not this check's.
 const guest = actorOf("alpha_guest", { rank: 0, scope: { project_id: "proj_a" }, tenant: "proj_a" });
 const betaViewer = actorOf("beta_viewer", { readOnly: true, scope: { project_id: "proj_b" }, tenant: "proj_b" });
 const beta = actorOf("beta", { rank: 0, scope: { project_id: "proj_b" }, tenant: "proj_b" });
 const TEAM: [Actor, ...Actor[]] = [alpha, beta, member, viewer];
 
-interface Staging {
+type Staging = {
   respond?: SentResponder;
   principals?: [Actor, ...Actor[]];
   target?: WriteTarget | null;
-}
+};
 
 function staged(operationId: string, { respond, principals = TEAM, target = NOTE_TARGET }: Staging = {}) {
   return operationContextFor(model, operationId, {
@@ -51,6 +52,7 @@ describe("auth.role-enforced", () => {
         ["PATCH", NOTE_TARGET.path, { principal: "alpha_viewer" }, { title: "first" }, true],
       ]);
     }
+
     expect(roleEnforced.mutates).toBe(true);
   });
 
@@ -73,7 +75,7 @@ describe("auth.role-enforced", () => {
         summary: "a read-only principal's write is accepted",
       },
     ]);
-    /* What the backend applied is the record's own writable state: nothing changed. */
+    // What the backend applied is the record's own writable state: nothing changed.
     expect(backend.records).toEqual(untouched());
   });
 
@@ -105,6 +107,7 @@ describe("auth.role-enforced (2)", () => {
         operationContextFor(modelOf(undeclaredDoc()), "notes.update", { principals: TEAM, target: NOTE_TARGET }),
       ].map(async (stage) => runOperationCheck(roleEnforced, stage.ctx)),
     );
+
     expect(reasons.map((outcome) => ("reason" in outcome ? outcome.reason : outcome.kind))).toEqual([
       "a write method",
       "a write the document secures",
@@ -131,6 +134,7 @@ describe("auth.role-enforced (2)", () => {
       respond: viewerGets(403),
       target: { ...NOTE_TARGET, owner: "gone" },
     });
+
     expect(await runOperationCheck(roleEnforced, stage.ctx)).toEqual({ kind: "asserted" });
   });
 });
@@ -138,12 +142,15 @@ describe("auth.role-enforced (2)", () => {
 describe("auth.role-enforced: a read-only principal the run cannot send as", () => {
   it("stands down untested with the reason when its credential is BLOCKED", async () => {
     const reason = "refresh for alpha_viewer/jwt: auth step 1 answered 401";
+
     const stage = staged("notes.update", {
       respond: (sent) => {
         if (sender(sent) === "alpha_viewer") throw new UnsatisfiedSecurity("blocked", reason);
-        return undefined;
+
+        return;
       },
     });
+
     expect(await runOperationCheck(roleEnforced, stage.ctx)).toEqual({
       kind: "stood-down",
       reason: `alpha_viewer's write: ${reason}`,

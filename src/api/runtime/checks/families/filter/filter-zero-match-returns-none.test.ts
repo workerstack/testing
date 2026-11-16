@@ -9,6 +9,7 @@ const COHORT = [
   { id: "w-1", status: "open" },
   { id: "w-2", status: "open" },
 ];
+
 const ID_FILTERABLE = { xQuery: { filterable: ["id", "status"] } };
 
 describe("filter.zero-match-returns-none", () => {
@@ -33,10 +34,12 @@ describe("filter.zero-match-returns-none", () => {
   it("stands down without a filter, a filterable identity, an absent identity, or a writable term", () => {
     expect(check.plan(stage({ doc: { filterParam: false }, records: COHORT }).ctx).ok).toBe(false);
     expect(check.plan(stage({ doc: { xQuery: { filterable: ["status"] } }, records: COHORT }).ctx).ok).toBe(false);
+
     const enumerated = stage({
       doc: { ...ID_FILTERABLE, idSchema: { enum: ["w-1", "w-2"], type: "string" } },
       records: COHORT,
     });
+
     expect(check.plan(enumerated.ctx)).toEqual({ needs: NO_ABSENT_ID, ok: false });
     expect(check.plan(stage({ conventions: reserving("-"), doc: ID_FILTERABLE, records: COHORT }).ctx).ok).toBe(false);
   });

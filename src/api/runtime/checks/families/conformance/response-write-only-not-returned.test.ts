@@ -13,13 +13,11 @@ import {
 } from "./__fixtures__/items.ts";
 import { writeOnlyNotReturned } from "./response-write-only-not-returned.ts";
 
-/*
- * A property the document marks writeOnly is never sent back (OAS 3: "relevant only for request
- * messages"), whatever additionalProperties says: an open schema accepts a leaked secret, and this
- * check still reports it. The answers judged are the ones the run drew; nothing is sent.
- */
+// A property the document marks writeOnly is never sent back (OAS 3: "relevant only for request
+// messages"), whatever additionalProperties says: an open schema accepts a leaked secret, and this
+// check still reports it. The answers judged are the ones the run drew; nothing is sent.
 
-/* An open record: a password, a nickname the client sets and never reads, and its own fields. */
+// An open record: a password, a nickname the client sets and never reads, and its own fields.
 const OPEN = {
   properties: {
     id: { type: "string" },
@@ -30,16 +28,21 @@ const OPEN = {
   required: ["id", "name"],
   type: "object",
 };
+
 const RECORD: ItemsOptions = { record: OPEN };
 const ROW = { id: "1", name: "a" };
 
 async function judge(exchanges: Exchange[], options: ItemsOptions = RECORD, fields: Partial<Listed> = {}) {
   const judged: string[][] = [];
+
   const staged = overTranscript(modelOfItems(options), exchanges, {
     fields: { judged: (ids: readonly string[]) => judged.push([...ids]), ...fields },
   });
+
   const plan = writeOnlyNotReturned.plan(staged.ctx);
+
   if (!plan.ok) throw new Error("the write-only plan did not apply");
+
   return { ...staged, judged, outcome: await writeOnlyNotReturned.run(staged.ctx, plan.value) };
 }
 
@@ -50,22 +53,23 @@ const created = (body: unknown) => seen("item.create", { body, status: 201 });
 describe("response.write-only-not-returned plan", () => {
   it("needs a property the record's schema or a write's body marks writeOnly", () => {
     const model = modelOfItems(RECORD);
-    const { ctx } = contextFor(model, "item.list", { respond: () => undefined, fields: itemOperations(model) });
+    const { ctx } = contextFor(model, "item.list", { respond: () => {}, fields: itemOperations(model) });
     const planned = writeOnlyNotReturned.plan(ctx);
     expect(planned.ok && [...planned.value.fields.keys()].toSorted()).toEqual(["nickname", "password"]);
     const plain = modelOfItems();
-    const bare = contextFor(plain, "item.list", { respond: () => undefined, fields: itemOperations(plain) });
+    const bare = contextFor(plain, "item.list", { respond: () => {}, fields: itemOperations(plain) });
     expect(writeOnlyNotReturned.plan(bare.ctx).ok).toBe(false);
   });
 
   it("reads a write's body for writeOnly fields though the record's schema declares none, and grades the read and the listing", () => {
     const model = modelOfItems({ record: OPEN, read: { properties: { id: { type: "string" } }, type: "object" } });
-    const { ctx } = contextFor(model, "item.list", { respond: () => undefined, fields: itemOperations(model) });
+    const { ctx } = contextFor(model, "item.list", { respond: () => {}, fields: itemOperations(model) });
     const narrow = { ...ctx, listOp: undefined, updateOp: undefined } as unknown as typeof ctx;
-    /* The read answers no writeOnly field; the create's body declares both, and the read is there to judge. */
+    // The read answers no writeOnly field; the create's body declares both, and the read is there to judge.
     const planned = writeOnlyNotReturned.plan(narrow);
     expect(planned.ok && [...planned.value.fields.keys()].toSorted()).toEqual(["nickname", "password"]);
     const entity = model.entities.get("item");
+
     if (entity === undefined) throw new Error("the items document has an item entity");
     expect(writeOnlyNotReturned.subjects(entity, model).toSorted()).toEqual(["item.list", "item.read"]);
   });
@@ -74,7 +78,7 @@ describe("response.write-only-not-returned plan", () => {
 describe("response.write-only-not-returned scope", () => {
   it("does not apply to an entity with neither an item read nor a listing", () => {
     const model = modelOfItems(RECORD);
-    const { ctx } = contextFor(model, "item.list", { respond: () => undefined, fields: itemOperations(model) });
+    const { ctx } = contextFor(model, "item.list", { respond: () => {}, fields: itemOperations(model) });
     const writesOnly = { ...ctx, listOp: undefined, readOp: undefined } as unknown as typeof ctx;
     expect(writeOnlyNotReturned.plan(writesOnly).ok).toBe(false);
   });
@@ -99,6 +103,7 @@ describe("response.write-only-not-returned run", () => {
       listed([ROW, { ...ROW, id: "2", nickname: "al" }]),
       read({ ...ROW, nickname: "al" }),
     ]);
+
     expect(findings.findings.map((f) => [f.verdict, f.operations])).toEqual([
       ["SPEC_BUG", ["item.list"]],
       ["SPEC_BUG", ["item.read"]],
@@ -127,6 +132,7 @@ describe("response.write-only-not-returned run", () => {
 describe("response.write-only-not-returned, what it leaves alone", () => {
   it("leaves alone what is not an ordinary 2xx answer of this entity's item read or listing", async () => {
     const leaked = { ...ROW, password: "hunter2" };
+
     const { findings } = await judge([
       read(ROW),
       seen("item.read", { body: leaked, status: 404 }),
@@ -136,10 +142,13 @@ describe("response.write-only-not-returned, what it leaves alone", () => {
       unnamed({ body: leaked, status: 200 }),
       read(["not", "a", "record"]),
     ]);
+
     expect(findings.findings).toEqual([]);
+
     const ungraded = await judge([read({ ...ROW, password: "hunter2" }), listed([ROW])], RECORD, {
       inScope: (op) => op.operationId !== "item.read",
     });
+
     expect(ungraded.findings.findings).toEqual([]);
   });
 });

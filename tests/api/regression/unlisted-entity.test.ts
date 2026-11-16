@@ -7,15 +7,14 @@ import type { DefectName } from "../../../src/api/reference/defects/table.ts";
 import { NEEDS_LIST } from "../../../src/api/runtime/checks/core/run.ts";
 import { STILL_READS } from "../../../src/api/runtime/teardown/verify-gone.ts";
 
-/*
- * The reference's webhook has a create, an item read, an update and a delete, and no list. The API tester
- * tests it through the records its creates return: the checks that need only those run, those
- * that read a listing are skipped as needing one, and teardown reads each record back to show it
- * gone. Clean, it finds nothing; a defect on its create or delete is still found on it.
- */
+// The reference's webhook has a create, an item read, an update and a delete, and no list. The API tester
+// tests it through the records its creates return: the checks that need only those run, those
+// that read a listing are skipped as needing one, and teardown reads each record back to show it
+// gone. Clean, it finds nothing; a defect on its create or delete is still found on it.
 
 async function webhookRun(defects: DefectName[] = []) {
   const server = await launch({ backend: "memory", dialect: "postgrest", via: inProcess }, { defects });
+
   try {
     return await run({
       baseUrl: server.url,

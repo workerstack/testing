@@ -9,13 +9,16 @@ const COHORT = [
   { id: "w-2", name: "beta", status: "open" },
   { id: "w-3", name: "alpha", status: "shut" },
 ];
+
 const DOC = { xQuery: { filterable: ["id", "status", "name"] } };
 const intersect = (a: Set<string>, b: Set<string>) => new Set([...a].filter((id) => b.has(id)));
 
 function planned(options: Parameters<typeof stage>[0]) {
   const staged = stage(options);
   const plan = compoundPlan(staged.ctx, andTerm);
+
   if (!plan.ok) throw new Error("the compound plan stood down");
+
   return { staged, terms: plan.value };
 }
 
@@ -81,6 +84,7 @@ describe("readComposed", () => {
     expect(await readComposed(refused.staged.ctx, refused.terms, intersect)).toBe("rejected");
     const partial = planned({ ...endless(DOC), records: COHORT });
     expect(await readComposed(partial.staged.ctx, partial.terms, intersect)).toBe("incomplete");
+
     const moved = (after: number) =>
       planned({
         behavior: { swap: true },
@@ -88,6 +92,7 @@ describe("readComposed", () => {
         records: COHORT,
         store: growing(COHORT, after, { id: "w-9", name: "alpha", status: "open" }),
       });
+
     for (const after of [3, 4, 5]) {
       const { staged, terms } = moved(after);
       expect(await readComposed(staged.ctx, terms, intersect)).toBe("moving");
@@ -100,6 +105,7 @@ describe("readComposed", () => {
       doc: DOC,
       records: COHORT,
     });
+
     expect(await readComposed(staged.ctx, terms, intersect)).toBe("rejected");
   });
 });

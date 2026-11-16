@@ -7,14 +7,13 @@ import { run } from "../../../src/api/runtime/run/index.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 import { jsonBody } from "../support/json-body.ts";
 
-/*
- * The API tester grades what the document declares, never what a route happens to be called. The same API
- * served twice — once with familiar names, once with every path segment and operationId
- * renamed — must earn the same grade for every operation. A word-matching shortcut anywhere in
- * the runtime (`logout`, `register`, `me`, `passkey`) breaks this.
- */
+// The API tester grades what the document declares, never what a route happens to be called. The same API
+// served twice — once with familiar names, once with every path segment and operationId
+// renamed — must earn the same grade for every operation. A word-matching shortcut anywhere in
+// the runtime (`logout`, `register`, `me`, `passkey`) breaks this.
 
 let open: Array<{ close: () => Promise<void> }> = [];
+
 afterEach(async () => {
   for (const server of open) await server.close();
   open = [];
@@ -23,14 +22,14 @@ afterEach(async () => {
 /** What each operation does, whatever the document calls it. */
 type Role = "create" | "delete" | "get" | "list" | "logout" | "me" | "register" | "version";
 
-interface Names {
+type Names = {
   session: string;
   signUp: string;
   self: string;
   notes: string;
   version: string;
   ops: Record<Role, string>;
-}
+};
 
 const FAMILIAR: Names = {
   notes: "notes",
@@ -88,6 +87,7 @@ const textBody = {
   content: json({ properties: { text: { type: "string" } }, required: ["text"], type: "object" }),
   required: true,
 };
+
 const idParam = [{ in: "path", name: "note_id", required: true, schema: { type: "string" } }];
 
 function notePaths(names: Names): Record<string, unknown> {
@@ -174,7 +174,9 @@ function document(names: Names): OpenApiDocument {
 }
 
 type Note = { id: string; text: string };
+
 type World = { created: number; names: Names; notes: Map<string, Note>; tokens: Set<string> };
+
 type Exchange = {
   body: Record<string, unknown>;
   method: string;
@@ -192,6 +194,7 @@ function signUp(world: World, { body, send }: Exchange): void {
 
 function noteCollection(world: World, { body, method, send }: Exchange): void {
   if (method === "GET") return send(200, { items: [...world.notes.values()] });
+
   if (typeof body["text"] !== "string") return send(400, { error: "text" });
   world.created += 1;
   const note = { id: `n${world.created}`, text: body["text"] };
@@ -201,26 +204,36 @@ function noteCollection(world: World, { body, method, send }: Exchange): void {
 
 function noteItem(world: World, id: string, { method, send }: Exchange): void {
   const note = world.notes.get(id);
+
   if (note === undefined) return send(404, { error: "missing" });
+
   if (method === "GET") return send(200, note);
+
   if (method !== "DELETE") return send(404, { error: "missing" });
   world.notes.delete(note.id);
   send(204);
 }
 
-/* Everything past sign-up needs a live token; the session end revokes it. */
+// Everything past sign-up needs a live token; the session end revokes it.
 function authed(world: World, exchange: Exchange): void {
   const { method, pathname, send, token } = exchange;
   const { names } = world;
+
   if (!world.tokens.has(token)) return send(401, { error: "unauthorized" });
+
   if (pathname === `/v1/${names.self}`) return send(200, { email: `${token}@example.test` });
+
   if (pathname === `/v1/${names.session}` && method === "POST") {
     world.tokens.delete(token);
+
     return send(200, { ok: true });
   }
+
   if (pathname === `/v1/${names.version}`) return send(200, { version: "1.0.0" });
+
   if (pathname === `/v1/${names.notes}`) return noteCollection(world, exchange);
   const item = new RegExp(`^/v1/${names.notes}/([^/]+)$`).exec(pathname);
+
   if (item !== null) return noteItem(world, item[1] ?? "", exchange);
   send(404, { error: "missing" });
 }
@@ -228,35 +241,44 @@ function authed(world: World, exchange: Exchange): void {
 async function serve(names: Names): Promise<string> {
   const doc = document(names);
   const world: World = { created: 0, names, notes: new Map(), tokens: new Set(["alpha"]) };
+
   const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
     const method = (req.method ?? "GET").toUpperCase();
     let raw = "";
+
     for await (const chunk of req) raw += chunk;
     const body = jsonBody(raw);
+
     const send = (status: number, value?: unknown) => {
       res.writeHead(status, { "content-type": "application/json" });
       res.end(value === undefined ? "" : JSON.stringify(value));
     };
+
     if (url.pathname === "/openapi.json") return send(200, doc);
-    /* A body that is not JSON is refused, as any server would. */
+
+    // A body that is not JSON is refused, as any server would.
     if (body === undefined) return send(400, { error: "malformed json" });
     const token = (req.headers.authorization ?? "").replace(/^Bearer /, "");
     const exchange = { body, method, pathname: url.pathname, send, token };
+
     if (url.pathname === `/v1/${names.signUp}` && method === "POST") return signUp(world, exchange);
     authed(world, exchange);
   });
+
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   open.push({ close: () => new Promise<void>((resolve) => server.close(() => resolve())) });
+
   return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 }
 
 async function grades(names: Names): Promise<Record<string, string>> {
   const url = await serve(names);
+
   const result = await run({
     baseUrl: url,
     principals: { alpha: { security: { bearer: { static: "alpha" } } } },
-    /* A fresh principal holds what its signup answered; alpha holds a fixed token. */
+    // A fresh principal holds what its signup answered; alpha holds a fixed token.
     security: {
       bearer: {
         login: {
@@ -268,7 +290,9 @@ async function grades(names: Names): Promise<Record<string, string>> {
     seed: 7,
     spec: `${url}/openapi.json`,
   });
+
   const byRole = Object.fromEntries(Object.entries(names.ops).map(([role, id]) => [id, role]));
+
   return Object.fromEntries(
     result.scope.operations.map((op) => [byRole[op.operationId] ?? op.operationId, `${op.status}/${op.tier ?? "-"}`]),
   );
@@ -279,7 +303,7 @@ describe("rename invariance", () => {
     const familiar = await grades(FAMILIAR);
     const renamed = await grades(RENAMED);
     expect(renamed).toEqual(familiar);
-    /* Not vacuous: the familiar run graded the session end and the delete. */
+    // Not vacuous: the familiar run graded the session end and the delete.
     expect(familiar["logout"]).toBe("passed/verified");
     expect(familiar["delete"]).toMatch(/^passed\//);
   });

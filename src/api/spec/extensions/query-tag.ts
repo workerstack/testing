@@ -15,7 +15,7 @@ import type { Endpoint, JsonSchema } from "../types.ts";
 import type { GapCollector } from "./gaps.ts";
 import { extObject } from "./tag.ts";
 
-export interface QueryCapability {
+export type QueryCapability = {
   filterable: string[];
   sortable: string[];
   searchable: string[];
@@ -34,16 +34,20 @@ export interface QueryCapability {
   /** Structured rows when the tag used objects; otherwise one `{ field }` per name. */
   filterFields?: FilterableField[];
   sortableFields?: SortableField[];
-}
+};
 
 function scalarProperties(schema: JsonSchema): string[] {
   const props = schema.properties;
+
   if (props === null || typeof props !== "object") return [];
   const out: string[] = [];
+
   for (const [name, raw] of Object.entries(props as Record<string, unknown>)) {
     if (raw === null || typeof raw !== "object") continue;
+
     if (scalarKinds(raw) !== undefined) out.push(name);
   }
+
   return out;
 }
 
@@ -51,12 +55,13 @@ function declared(tag: RawOf<QueryTag>): QueryCapability {
   const catalog = parseQueryCatalog(tag);
   const fields = catalog.filterable ?? [];
   const sortFields = catalog.sortable ?? [];
+
   const cap: QueryCapability = {
     catalog,
     filterFields: fields,
     filterable: fields.map((field) => field.field),
     filterableDeclared: tag.filterable !== undefined,
-    /* The catalog keeps a searchable or selectable list whenever the tag holds one. */
+    // The catalog keeps a searchable or selectable list whenever the tag holds one.
     searchable: catalog.searchable ?? [],
     searchableDeclared: tag.searchable !== undefined,
     selectable: catalog.selectable ?? [],
@@ -66,18 +71,22 @@ function declared(tag: RawOf<QueryTag>): QueryCapability {
     sortableFields: sortFields,
     source: "tag",
   };
+
   if (typeof tag.maxLimit === "number") cap.maxLimit = tag.maxLimit;
+
   if (typeof tag.defaultOrder === "string") cap.defaultOrder = tag.defaultOrder;
+
   if (typeof tag.stableTiebreak === "string") cap.stableTiebreak = tag.stableTiebreak;
+
   return cap;
 }
 
 /** Where a capability is read from beside the operation: the gaps it records, and config's names. */
-export interface CapabilityContext {
+export type CapabilityContext = {
   gaps?: GapCollector | undefined;
   /** Config `query.params`, outranking `x-query.params`. */
   params?: QueryParamNames | undefined;
-}
+};
 
 function guessed(
   endpoint: Endpoint,
@@ -87,13 +96,15 @@ function guessed(
   const params = (endpoint.op.parameters ?? []).filter((p) => p.in === "query");
   const tag = extObject<QueryTag>(endpoint.op, "x-query");
   const named = mergeQueryParams({ config, declared: params.map((p) => p.name), tag: tag?.params });
-  /* Same roles the checks already use — named, or by the aliases `sort`/`fields`/`q`/`per_page`,
-   * not only the fixture spellings `filter`/`order`/`select`/`limit`. Pagination-only params do
-   * not count: a `page`/`limit` list is not a query grammar. */
+  // Same roles the checks already use — named, or by the aliases `sort`/`fields`/`q`/`per_page`,
+  // not only the fixture spellings `filter`/`order`/`select`/`limit`. Pagination-only params do
+  // not count: a `page`/`limit` list is not a query grammar.
   const conventions = deriveQueryConventions(params, null, { params: named });
+
   const roles = [conventions.filter, conventions.order, conventions.select, conventions.search].filter(
     (name): name is string => name !== undefined,
   );
+
   if (roles.length === 0) return null;
 
   const scalars = itemSchema === null ? [] : scalarProperties(itemSchema);
@@ -109,23 +120,27 @@ function guessed(
     filterable: scalars,
     searchable: scalars.filter((f) => /name|title|slug|label|description|email/i.test(f)),
     selectable: scalars,
-    /* A parameter of the list's own path holds one value across the listing: ordering by it shows nothing. */
+    // A parameter of the list's own path holds one value across the listing: ordering by it shows nothing.
     sortable: scalars.filter((field) => !endpoint.path.includes(`{${field}}`)),
     source: "heuristic",
   };
+
   if (conventions.limit !== undefined) {
     const max = params.find((p) => p.name === conventions.limit)?.schema?.maximum;
+
     if (typeof max === "number") cap.maxLimit = max;
   }
+
   return cap;
 }
 
-/* Keys that say how to send a query and read its answer, not what it can be asked. */
+// Keys that say how to send a query and read its answer, not what it can be asked.
 const NAMING_KEYS: ReadonlySet<string> = /* @__PURE__ */ new Set(["params", "envelope"]);
 
-/* A tag that only names parameters and envelope fields is still a guess. `{}` declares nothing at all. */
+// A tag that only names parameters and envelope fields is still a guess. `{}` declares nothing at all.
 function declaresCapabilities(tag: RawOf<QueryTag> | undefined): tag is RawOf<QueryTag> {
   const keys = tag === undefined ? [] : Object.keys(tag);
+
   return tag !== undefined && (keys.length === 0 || keys.some((key) => !NAMING_KEYS.has(key)));
 }
 
@@ -135,5 +150,6 @@ export function readQueryCapability(
   context: CapabilityContext = {},
 ): QueryCapability | null {
   const tag = extObject<QueryTag>(endpoint.op, "x-query");
+
   return declaresCapabilities(tag) ? declared(tag) : guessed(endpoint, itemSchema, context);
 }

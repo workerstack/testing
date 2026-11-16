@@ -45,6 +45,7 @@ describe("setCookieHeadersFrom / recordResponseHeaders", () => {
         getSetCookie: () => ["session=a", "refresh=b"],
       }),
     );
+
     expect(listed).toEqual({ "content-type": "text/plain", "set-cookie": "session=a\nrefresh=b" });
     const none = recordResponseHeaders(new Headers({ "content-type": "text/plain" }));
     expect(none).toEqual({ "content-type": "text/plain" });

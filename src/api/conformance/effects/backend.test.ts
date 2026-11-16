@@ -6,13 +6,15 @@ import { EXTRACT_TOKEN, extractBackend } from "./backend.ts";
 
 const TABLES = "/v1/projects/p1/tables";
 
-/* A caller of a fresh backend, sending the token it issues unless `headers` says otherwise. */
+// A caller of a fresh backend, sending the token it issues unless `headers` says otherwise.
 function caller(rowCount: number, headers: Record<string, string> = { authorization: `Bearer ${EXTRACT_TOKEN}` }) {
   const handle = extractBackend(rowCount);
+
   return async (method: string, path: string, body = "") => {
     const answer = await handle(
       referenceRequest(method, new URL(path, "http://suite.test"), { headers, read: async () => body }),
     );
+
     return [answer.status, answer.body];
   };
 }

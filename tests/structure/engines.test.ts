@@ -7,10 +7,8 @@ import { judgeSkipped } from "../../src/api/cli/commands/conformance-tail.ts";
 import { bufferWriter } from "../../src/api/cli/writer.ts";
 import { NODE_FLOOR } from "../../src/api/errors/node-floor.ts";
 
-/*
- * The API tester runs as shipped: plain `node`, no flag. The floor is the first Node where `node:sqlite`, a
- * `.ts` config and the QUERY method all work that way, and every place that names it says the same.
- */
+// The API tester runs as shipped: plain `node`, no flag. The floor is the first Node where `node:sqlite`, a
+// `.ts` config and the QUERY method all work that way, and every place that names it says the same.
 
 const ROOT = join(import.meta.dirname, "..", "..");
 const read = (...path: string[]): string => readFileSync(join(ROOT, ...path), "utf8");

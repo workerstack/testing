@@ -11,13 +11,14 @@
  * between runs — three properties an in-process store cannot exhibit.
  */
 
+import { type Cell, parseCell, type Row } from "../cell.ts";
 import type { DefectSet } from "../defects/defect-set.ts";
 import { ENTITIES } from "../model/entities.ts";
 import type { EntityDef, FieldDef } from "../model/types.ts";
 import type { SelectPlan } from "../query-types.ts";
-import type { Row, Store } from "../store-api.ts";
+import type { Store } from "../store-api.ts";
 import { type SqlFlavor, type SqlParam, compileOrder, compileWhere, globText } from "./sql-compile.ts";
-import type { SqliteDriver, SqlValue } from "./sqlite-driver.ts";
+import type { SqliteDriver, SqlRow, SqlValue } from "./sqlite-driver.ts";
 
 /** SQLite storage class per declared field type. */
 const AFFINITY: Record<FieldDef["type"], string> = {
@@ -38,7 +39,7 @@ const AFFINITY: Record<FieldDef["type"], string> = {
  * COLUMN_NAME_MISMATCH defect, which reproduces it.
  */
 function col(name: string): string {
-  return `"${name.replace(/"/g, '""')}"`;
+  return `"${name.replaceAll('"', '""')}"`;
 }
 
 /**
@@ -53,18 +54,18 @@ function tableName(entity: EntityDef, prefix: string): string {
 }
 
 /** The tables a store keeps: which entities, under which name prefix. */
-export interface SqlTables {
+export type SqlTables = {
   prefix?: string;
   entities?: readonly EntityDef[];
-}
+};
 
-/* The store's working parts: its driver, its tables' prefix, and what it models. */
-interface SqlParts {
+// The store's working parts: its driver, its tables' prefix, and what it models.
+type SqlParts = {
   defects: DefectSet;
   db: SqliteDriver;
   prefix: string;
   entities: readonly EntityDef[];
-}
+};
 
 export class SqlStore implements Store {
   private readonly flavor: SqlFlavor;
@@ -82,23 +83,27 @@ export class SqlStore implements Store {
       binary: (expr) => expr,
       bind: (args, value) => {
         args.push(value);
+
         return "?";
       },
       bool: (value) => (value ? 1 : 0),
       column: (_entity, field) => col(field),
       hasElement: (expr, element, args) => {
         args.push(element);
+
         return `EXISTS (SELECT 1 FROM json_each(${expr}) WHERE value = ?)`;
       },
-      /* GLOB is SQLite's case-sensitive matcher and needs no pragma, so the same SQL behaves
-       * identically in-process and on D1. Case-insensitive matching folds both sides with
-       * the engine's own LOWER so the two always agree on what "lower" means. */
+      // GLOB is SQLite's case-sensitive matcher and needs no pragma, so the same SQL behaves
+      // identically in-process and on D1. Case-insensitive matching folds both sides with
+      // the engine's own LOWER so the two always agree on what "lower" means.
       like: (expr, { insensitive, segments }, args) => {
         args.push(globText(segments));
+
         return insensitive ? `LOWER(${expr}) GLOB LOWER(?)` : `${expr} GLOB ?`;
       },
       position: (expr, { caseSensitive, text }, args) => {
         args.push(text);
+
         return caseSensitive ? `instr(${expr}, ?)` : `instr(LOWER(${expr}), LOWER(?))`;
       },
       random: "random()",
@@ -116,24 +121,26 @@ export class SqlStore implements Store {
     { prefix = "", entities = ENTITIES }: SqlTables = {},
   ): Promise<SqlStore> {
     const store = new SqlStore({ db: driver, defects, entities, prefix });
-    /* One statement per table would be one network round trip per table. Both drivers accept
-     * a multi-statement script, so the whole schema costs a single trip. */
+    // One statement per table would be one network round trip per table. Both drivers accept
+    // a multi-statement script, so the whole schema costs a single trip.
     await driver.exec(entities.map((entity) => store.ddl(entity)).join(";\n"));
+
     return store;
   }
 
   async close(): Promise<void> {
-    /* Persistent engines keep whatever this run created unless it is dropped. Failures here
-     * are swallowed: teardown must not mask the result the run was there to produce. */
+    // Persistent engines keep whatever this run created unless it is dropped. Failures here
+    // are swallowed: teardown must not mask the result the run was there to produce.
     if (this.prefix !== "") {
       for (const entity of this.entities) {
         try {
           await this.db.exec(`DROP TABLE IF EXISTS ${tableName(entity, this.prefix)}`);
         } catch {
-          /* ignore */
+          // ignore
         }
       }
     }
+
     await this.db.close();
   }
 
@@ -141,9 +148,12 @@ export class SqlStore implements Store {
     const columns = entity.fields.map((field) => {
       const physical = this.physical(field.name);
       const notNull = field.required === true ? " NOT NULL" : "";
+
       return `  ${physical} ${AFFINITY[field.type]}${notNull}`;
     });
+
     const table = tableName(entity, this.prefix);
+
     return (
       `CREATE TABLE ${table} (\n${columns.join(",\n")}\n);\n` +
       `CREATE INDEX "${this.prefix}idx_${entity.plural}_id" ON ${table} (${col(entity.identity)})`
@@ -160,14 +170,17 @@ export class SqlStore implements Store {
     const placeholders = names.map(() => "?").join(", ");
     const columns = names.map((n) => this.physical(n)).join(", ");
     const values = names.map((n) => toSql(record[n]));
-    /* RETURNING reads the stored row back in the same statement. On a networked engine the
-     * separate SELECT this replaces doubled the cost of every write. */
+
+    // RETURNING reads the stored row back in the same statement. On a networked engine the
+    // separate SELECT this replaces doubled the cost of every write.
     const written = await this.db.all(
       `INSERT INTO ${tableName(entity, this.prefix)} (${columns}) VALUES (${placeholders}) ` +
         `RETURNING ${this.selectList(entity)}`,
       values,
     );
+
     const row = written[0];
+
     return row === undefined ? record : this.decode(entity, row);
   }
 
@@ -182,18 +195,17 @@ export class SqlStore implements Store {
     return entity.fields
       .map((f) => {
         if (!this.defects.has("COLUMN_NAME_MISMATCH") || f.name !== "name") return col(f.name);
-        /*
-         * The bug is that DDL wrote `mislabeled_name` while reads ask for `name`.
-         *
-         * On an engine with double-quoted-string fallback ON, that is expressible in its
-         * natural form — `"name"` resolves to no column, so SQLite hands back the literal
-         * 'name' and the API serves the column's own name as every row's value. Writing
-         * it that way means the *engine* produces the damage, which is a materially
-         * stronger test than asserting the API tester catches a hand-written imitation.
-         *
-         * Where the fallback is compiled off the same SQL is an error, not a silent wrong
-         * answer, so the damaging outcome is emitted directly instead.
-         */
+
+        // The bug is that DDL wrote `mislabeled_name` while reads ask for `name`.
+        //
+        // On an engine with double-quoted-string fallback ON, that is expressible in its
+        // natural form — `"name"` resolves to no column, so SQLite hands back the literal
+        // 'name' and the API serves the column's own name as every row's value. Writing
+        // it that way means the *engine* produces the damage, which is a materially
+        // stronger test than asserting the API tester catches a hand-written imitation.
+        //
+        // Where the fallback is compiled off the same SQL is an error, not a silent wrong
+        // answer, so the damaging outcome is emitted directly instead.
         return this.db.dqs ? col(f.name) : `'${f.name}' AS ${col(f.name)}`;
       })
       .join(", ");
@@ -204,20 +216,26 @@ export class SqlStore implements Store {
       `SELECT ${this.selectList(entity)} FROM ${tableName(entity, this.prefix)} WHERE ${col(entity.identity)} = ?`,
       [id],
     );
+
     const row = rows[0];
+
     return row === undefined ? null : this.decode(entity, row);
   }
 
   async update(entity: EntityDef, id: string | number, patch: Row): Promise<Row | null> {
     const names = Object.keys(patch).filter((n) => entity.fields.some((f) => f.name === n));
+
     if (names.length === 0) return this.byId(entity, id);
     const assignments = names.map((n) => `${this.physical(n)} = ?`).join(", ");
+
     const written = await this.db.all(
       `UPDATE ${tableName(entity, this.prefix)} SET ${assignments} ` +
         `WHERE ${col(entity.identity)} = ? RETURNING ${this.selectList(entity)}`,
       [...names.map((n) => toSql(patch[n])), id],
     );
+
     const row = written[0];
+
     return row === undefined ? null : this.decode(entity, row);
   }
 
@@ -229,10 +247,12 @@ export class SqlStore implements Store {
     const args: SqlParam[] = [];
     const where = compileWhere(plan.where, { args, entity, flavor: this.flavor });
     const order = compileOrder(plan, entity, this.flavor);
+
     const rows = await this.db.all(
       `SELECT ${this.selectList(entity)} FROM ${tableName(entity, this.prefix)} WHERE ${where}${order}`,
       args.map(toSql),
     );
+
     return rows.map((row) => this.decode(entity, row));
   }
 
@@ -240,28 +260,33 @@ export class SqlStore implements Store {
    * Converts stored values back to their declared shape. SQLite has no boolean type, so a
    * field declared boolean comes back as 0/1 and would fail its own response schema.
    */
-  private decode(entity: EntityDef, row: Row): Row {
+  private decode(entity: EntityDef, row: SqlRow): Row {
     const out: Row = {};
-    for (const field of entity.fields) {
-      const raw = row[field.name];
-      if (raw === undefined || raw === null) {
-        out[field.name] = null;
-        continue;
-      }
-      out[field.name] =
-        field.type === "boolean"
-          ? raw === 1
-          : (field.type === "object" || field.type === "array") && typeof raw === "string"
-            ? JSON.parse(raw)
-            : raw;
-    }
+
+    for (const field of entity.fields) out[field.name] = cellOf(entity, field, row[field.name]);
+
     return out;
   }
 }
 
+// One stored value in its declared shape; a NULL column reads back as null rather than absent.
+function cellOf(entity: EntityDef, field: FieldDef, raw: SqlValue | undefined): Cell {
+  if (raw === undefined || raw === null) return null;
+
+  if (raw instanceof Uint8Array)
+    throw new TypeError(`column "${field.name}" of ${entity.plural} holds a blob, which no field type stores`);
+
+  if (field.type === "boolean") return raw === 1;
+
+  return (field.type === "object" || field.type === "array") && typeof raw === "string" ? parseCell(raw) : raw;
+}
+
 function toSql(value: unknown): SqlValue {
   if (value === null || value === undefined) return null;
+
   if (typeof value === "boolean") return value ? 1 : 0;
+
   if (typeof value === "object") return JSON.stringify(value);
+
   return value as SqlValue;
 }

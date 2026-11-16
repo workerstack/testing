@@ -88,38 +88,49 @@ export function projectSpec(): OpenApiDocument {
 }
 
 /** The project API, and how many times its paid extract was invoked. */
-export interface ProjectBackend {
+export type ProjectBackend = {
   handle: Handle;
   extractHits: () => number;
-}
+};
 
 export function projectBackend(): ProjectBackend {
   const spec = projectSpec();
   const rows = new Map<string, { id: string; name: string }>();
   let seq = 0;
   let extractHits = 0;
+
   const handle: Handle = async (request) => {
     const { pathname } = request.url;
     const { method } = request;
+
     if (pathname === "/v1/openapi/spec" && method === "GET") return answer(200, spec);
+
     if (pathname === "/v1/projects" && method === "GET") return answer(200, { projects: [...rows.values()] });
+
     if (pathname === "/v1/projects" && method === "POST") {
       const body = (await readJson(request)) as { name?: unknown } | undefined;
       seq += 1;
       const id = `p_${String(seq)}`;
       const row = { id, name: typeof body?.name === "string" ? body.name : "n" };
       rows.set(id, row);
+
       return answer(201, row);
     }
+
     if (/^\/v1\/projects\/[^/]+$/.test(pathname) && method === "GET") {
       const row = rows.get(decodeURIComponent(pathname.slice("/v1/projects/".length)));
+
       return row === undefined ? answer(404) : answer(200, row);
     }
+
     if (/^\/v1\/projects\/[^/]+\/extract$/.test(pathname) && method === "POST") {
       extractHits += 1;
+
       return answer(500, { error: "paid inference" });
     }
+
     return answer(404);
   };
+
   return { extractHits: () => extractHits, handle: guarded(handle) };
 }

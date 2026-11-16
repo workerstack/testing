@@ -19,13 +19,16 @@ const QUICK = { attempts: 1, initialMs: 0, maxMs: 0 };
 /** The invite document with the accept and the note read open to anyone: `security: []`. */
 function anonymousAccept(options: InviteDocOptions = {}) {
   const doc = inviteDocument(options);
+
   for (const [path, method] of [
     ["/invites/{token}/accept", "post"],
     ["/orgs/{org_id}/notes/{note_id}", "get"],
   ] as const) {
     const operation = doc.paths?.[path]?.[method] as Record<string, unknown> | undefined;
+
     if (operation !== undefined) operation["security"] = [];
   }
+
   return doc;
 }
 
@@ -33,10 +36,12 @@ describe("the invite token", () => {
   it("is asked of the out-of-band hook, by grantee and kind, when the tag says so", async () => {
     const resolveOutOfBand = vi.fn<() => Promise<string>>(async () => "t9");
     const doc = inviteDocument({ tag: { tokenFrom: "outOfBand", tokenKind: "share" } });
+
     const { ctx, sent } = inviteContext(doc, inviteBackend({ invited: { grant_id: "g1" } }), {
       hooks: { resolveOutOfBand },
       outOfBand: QUICK,
     });
+
     expect(await runCheck(inviteGrantsThenRevokes, ctx)).toEqual({ kind: "asserted" });
     expect(resolveOutOfBand).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -63,6 +68,7 @@ describe("the invite token", () => {
     const resolveOutOfBand = vi.fn<() => Promise<string>>(async () => {
       throw "mailbox offline";
     });
+
     const doc = inviteDocument({ tag: { tokenFrom: "outOfBand" } });
     const { ctx } = inviteContext(doc, inviteBackend(), { hooks: { resolveOutOfBand }, outOfBand: QUICK });
     expect(await runCheck(inviteGrantsThenRevokes, ctx)).toEqual({ kind: "unresolved", reason: "mailbox offline" });
@@ -95,7 +101,8 @@ describe("accepting by link", () => {
       invited: { grant_id: "g1", link: LINK },
       override: { [`GET ${LINK}`]: { status: 302 } },
     });
-    /* The redirect counts as accepted: the check goes on to the read, which this backend never opened. */
+
+    // The redirect counts as accepted: the check goes on to the read, which this backend never opened.
     const afterRedirect = inviteContext(linked, redirected);
     await runCheck(inviteGrantsThenRevokes, afterRedirect.ctx);
     expect(afterRedirect.findings.findings[0]?.summary).toBe("accepting an invite does not grant access");
@@ -141,10 +148,12 @@ describe("the credential an accept issues", () => {
     );
     expect(open.adopted).toEqual([]);
     const unread = credentialsOf();
+
     const orgWide = inviteDocument({
       invitePath: "/orgs/{org_id}/invites",
       revokePath: "/orgs/{org_id}/invites/{grant_id}",
     });
+
     const readless = { credentials: unread.credentials, readOp: undefined };
     await runCheck(inviteGrantsThenRevokes, inviteContext(orgWide, issuing, readless).ctx);
     expect(unread.adopted).toEqual([]);
@@ -161,6 +170,7 @@ describe("accept and revoke bodies", () => {
       revokeMethod: "post",
       revokePath: "/orgs/{org_id}/grants",
     });
+
     const { ctx, sent } = inviteContext(doc, inviteBackend());
     expect(await runCheck(inviteGrantsThenRevokes, ctx)).toEqual({ kind: "asserted" });
     expect(sent[3]?.options).toMatchObject({ body: { token: "t1" }, headers: { "content-type": "application/json" } });
@@ -207,6 +217,7 @@ describe("pointerValue", () => {
   it("reads a non-empty string or a finite number as text, and nothing else", () => {
     expect(pointerValue({ id: "g1" }, "$.id")).toBe("g1");
     expect(pointerValue({ id: 7 }, "$.id")).toBe("7");
+
     for (const id of ["", Number.NaN, null, { nested: true }]) expect(pointerValue({ id }, "$.id")).toBeUndefined();
   });
 });

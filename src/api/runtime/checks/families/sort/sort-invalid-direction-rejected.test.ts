@@ -4,18 +4,20 @@ import type { Responder } from "../../__fixtures__/harness.ts";
 import { backend, NOTES, PARAMS, queryDoc, queryOf, stage } from "../composition/__fixtures__/query-api.ts";
 import { sortInvalidDirectionRejected } from "./sort-invalid-direction-rejected.ts";
 
-/* A dotted grammar declared, so the direction tokens are the document's own. */
+// A dotted grammar declared, so the direction tokens are the document's own.
 const declared = queryDoc({ sortGrammar: "dotted" });
 
-/* Reads a direction it does not know as ascending. */
+// Reads a direction it does not know as ascending.
 const guessing: Responder = (method, path, options) => {
   const query = queryOf(options);
+
   return backend()(method, path, { query: { ...query, order: query["order"]?.replace("testingsideways", "asc") } });
 };
 
-/* Accepts a direction it does not know, and serves the cohort in its own order. */
+// Accepts a direction it does not know, and serves the cohort in its own order.
 const shrugging: Responder = (method, path, options) => {
   const query = queryOf(options);
+
   return query["order"]?.endsWith("testingsideways") === true
     ? { body: NOTES.toReversed(), status: 200 }
     : backend()(method, path, options);
@@ -47,7 +49,8 @@ describe("sort.invalid-direction-rejected judges", () => {
     const staged = stage(sortInvalidDirectionRejected, { doc: declared, respond: shrugging });
     expect(await staged.run()).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     expect(staged.findings.findings[0]?.detail).toBe(
-      "order=title.testingsideways returned 200. A direction the declared grammar does not have must be refused, not guessed.",
+      "order=title.testingsideways returned 200. " +
+        "A direction the declared grammar does not have must be refused, not guessed.",
     );
   });
 
@@ -75,6 +78,7 @@ describe("sort.invalid-direction-rejected plans", () => {
       { sortGrammar: "dotted" },
       PARAMS.filter((name) => name !== "order"),
     );
+
     expect(stage(sortInvalidDirectionRejected, { doc: unordered }).plan().ok).toBe(false);
     const inferred = stage(sortInvalidDirectionRejected);
     expect(await inferred.run()).toEqual({

@@ -8,17 +8,19 @@ import type { FilterGrammarSpec, FilterPredicate, FilterQuery } from "../render/
 import type { QueryConventions } from "./types.ts";
 
 /** One equality predicate: `field` equals `value`. */
-export interface Equality {
+export type Equality = {
   field: string;
   value: string;
-}
+};
 
 /** How this endpoint's filter terms are spelled: its declared template, or its named grammar's preset. */
 export function filterSpec(conventions: QueryConventions): FilterGrammarSpec {
   if (conventions.grammar === "template") {
     if (conventions.filterGrammar === undefined) throw new Error("a template grammar without its template");
+
     return conventions.filterGrammar;
   }
+
   return FILTER_PRESETS[conventions.grammar];
 }
 
@@ -35,7 +37,8 @@ export function filterTerm(conventions: QueryConventions, predicate: FilterPredi
 /** The equality term `filterTerm` wraps in its parameter, as bare text. */
 export function filterFragment(conventions: QueryConventions, field: string, value: string): string | null {
   const term = filterTerm(conventions, { field, op: "eq", value });
-  /* A rendered term is exactly one parameter and its text. */
+
+  // A rendered term is exactly one parameter and its text.
   return term === null ? null : (Object.values(term)[0] as string);
 }
 

@@ -71,14 +71,17 @@ describe("assertAllowedReferences", () => {
         refresh: { from: "$.t", steps: [step("login")] },
       },
     };
+
     const principals: Record<string, PrincipalEntry> = {
       a: { security: { jwt: { login: { from: "$.t", steps: [step("login")] } } } },
       b: {},
     };
+
     const scenarios = [
       { covers: ["note.list"], id: "s", steps: [step("note.list"), { wait: 1 }, step("x", "https://other")] },
       { covers: ["gone"], id: "remote", origin: "https://other", steps: [step("gone")] },
     ] as unknown as Scenario[];
+
     expect(() => assertAllowedReferences(kept, { principals, scenarios, security })).not.toThrow();
     expect(() => assertAllowedReferences(kept, {})).not.toThrow();
   });
@@ -88,9 +91,11 @@ describe("assertAllowedReferences", () => {
       apiKey: { mint: { from: "$.k", operationId: "key.create", revoke: "key.revoke", with: "jwt" } },
       jwt: { login: { from: "$.t", steps: [step("signin")] }, refresh: { from: "$.t", steps: [step("renew")] } },
     };
+
     const principals: Record<string, PrincipalEntry> = {
       a: { security: { jwt: { login: { from: "$.t", steps: [step("signin"), step("sso")] } } } },
     };
+
     const scenarios = [{ covers: ["note.read"], id: "s", steps: [step("note.create")] }] as unknown as Scenario[];
     expect(() => assertAllowedReferences(kept, { principals, scenarios, security })).toThrow(
       new UsageError(

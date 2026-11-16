@@ -3,6 +3,7 @@ import { CAMPUS, HUGE, KIND, NAME, NOTE, PLATFORM, POSITION, resource, SHOP, STA
 
 function pair(id: string, title: string, defects: World["defects"] = []): World {
   const tightLimit = id.includes("page") || id.includes("maxlimit");
+
   return {
     defects,
     entities: [
@@ -52,20 +53,28 @@ function withStore(world: World, extra: Partial<Entity>): World {
 
 /** Correct parent/child with a 2-value enum so composition has a proper subset. */
 const OK_PAIR: World = pair("ok-pair", "correct store+product");
+
 /** Child create does not bump store.product_count. */
 const BUG_STALE: World = pair("bug-stale", "stale parent counter", ["stale-parent"]);
+
 /** Filters parse and 400, then are ignored. */
 const BUG_NOFILTER: World = pair("bug-nofilter", "filter ignored", ["drop-filter"]);
+
 /** Item GET is global by id. */
 const BUG_LEAK: World = pair("bug-leak", "item GET ignores tenant", ["ignore-tenant-get"]);
+
 /** Spec lists `ghost` as filterable; the handler rejects it. */
 const BUG_OVERCLAIM: World = pair("bug-overclaim", "spec overclaims filterable", ["overclaim-filter"]);
+
 /** Page first, then filter the page. */
 const BUG_PAGEFILTER: World = pair("bug-pagefilter", "filter after pagination", ["filter-after-page"]);
+
 /** List advertises nextCursor and ignores it. */
 const BUG_CURSOR: World = pair("bug-cursor", "cursor advertised but ignored", ["ignore-cursor"]);
+
 /** PATCH writes the whole row, so concurrent field edits clobber each other. */
 const BUG_LOSTUPDATE: World = pair("bug-lostupdate", "full-row PATCH loses updates", ["clobber-patch"]);
+
 /** Invite accept is a no-op. */
 const BUG_INVITE: World = {
   ...pair("bug-invite", "invite accept does nothing", ["invite-noop"]),
@@ -73,6 +82,7 @@ const BUG_INVITE: World = {
     entity.name === "store" ? { ...entity, invite: true } : entity,
   ),
 };
+
 /** Same API, classic parameter names. */
 const OK_CLASSIC: World = {
   ...pair("ok-classic", "correct, sort/fields/per_page"),
@@ -83,6 +93,7 @@ const BUG_TOMBSTONE: World = withStore(
   pair("bug-tombstone", "soft-deleted rows stay in the list", ["list-tombstone"]),
   { softDelete: true },
 );
+
 const BUG_RANK: World = pair("bug-rank", "viewer can read a record member cannot", ["invert-rank"]);
 const BUG_FILTERLEAK: World = pair("bug-filterleak", "filter drops the tenant predicate", ["filter-bypass-tenant"]);
 const BUG_HASMORE: World = pair("bug-hasmore", "hasMore is always false", ["lie-has-more"]);
@@ -95,9 +106,11 @@ const BUG_IMMUTABLE: World = pair("bug-immutable", "x-immutable fields accept wr
 const BUG_ENUM: World = pair("bug-enum", "enum is not enforced", ["skip-enum"]);
 const BUG_MAXLEN: World = pair("bug-maxlen", "maxLength is not enforced", ["skip-max-length"]);
 const BUG_REQUIRED: World = pair("bug-required", "required fields are not enforced", ["skip-required"]);
+
 const BUG_REVOKE: World = withStore(pair("bug-revoke", "revoke leaves the grant in place", ["revoke-noop"]), {
   invite: true,
 });
+
 const BUG_OFFSET: World = pair("bug-offset", "page/offset is ignored", ["ignore-page"]);
 const BUG_ORACLE: World = pair("bug-oracle", "denial status reveals existence", ["oracle-status"]);
 const BUG_LIKE: World = pair("bug-like", "LIKE metacharacters are not escaped", ["unescape-like"]);

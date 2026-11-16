@@ -16,7 +16,7 @@ async function after(
   call: {
     operationId: string;
     ends?: boolean;
-    /* `nothing`: a refresh is declared, and sends no request (fenced, or missing a value). */
+    // `nothing`: a refresh is declared, and sends no request (fenced, or missing a value).
     renew?: Answer | "nothing";
     values?: Record<string, string>;
     read?: Partial<OperationModel>;
@@ -28,6 +28,7 @@ async function after(
   const op = input.model.byOperationId.get(call.operationId) as OperationModel;
   const read = { ...(input.model.byOperationId.get("profile.read") as OperationModel), ...call.read };
   const renew = call.renew;
+
   const session: Session = await sessionHolding(
     staged,
     "t1",
@@ -35,9 +36,10 @@ async function after(
       ? {}
       : { renew: async () => (renew === "nothing" ? undefined : exchange("POST", "/v1/refresh", renew)) },
   );
-  if (call.operationId === "auth.logout") {
+
+  if (call.operationId === "auth.logout")
     accountsApi(state)("POST", "/v1/logout", { headers: { authorization: "Bearer t1" } });
-  }
+
   await afterCall(input, {
     blame: { collector: input.findings.attributed([op.operationId]).ownedBy(CHECK), entity: "profile" },
     called,
@@ -47,6 +49,7 @@ async function after(
     session,
     values: call.values ?? {},
   });
+
   return input;
 }
 
@@ -57,10 +60,12 @@ describe("afterCall: the suite caller", () => {
   it("fails a call that logged the suite caller out", async () => {
     const input = await after(accounts({ killCaller: true }), { operationId: "auth.logout" });
     expect(summaries(input)).toEqual(["profile: the suite caller was logged out"]);
+
     const anonymous = await after(accounts({ killCaller: true }), {
       operationId: "auth.logout",
       read: { entity: null },
     });
+
     expect(summaries(anonymous)).toEqual(["caller: the suite caller was logged out"]);
   });
 });
@@ -107,6 +112,7 @@ describe("afterCall: an ended session", () => {
       operationId: "auth.logout",
       renew: { status: 200 },
     });
+
     expect(summaries(kept)).toEqual(["profile: the disposable session was still accepted"]);
     expect(kept.findings.findings[0]?.evidence).toHaveLength(3);
     const renewing = await after(accounts(), { ends: true, operationId: "auth.logout", renew: { status: 200 } });
@@ -121,6 +127,7 @@ describe("afterCall: an ended session", () => {
       operationId: "auth.logout",
       renew: { status: 401 },
     });
+
     expect(input.findings.findings).toEqual([]);
     expect(input.grades.evidence.get("auth.logout")?.observation).toMatchObject({ status: 401 });
   });
@@ -130,11 +137,13 @@ describe("afterCall: an ended session", () => {
     expect(summaries(unrenewable)).toEqual(["profile: the disposable session was still accepted"]);
     expect(unrenewable.findings.findings[0]?.evidence).toHaveLength(2);
     expect(unrenewable.grades.evidence.has("auth.logout")).toBe(false);
+
     const silent = await after(accounts({ keepSession: true }), {
       ends: true,
       operationId: "auth.logout",
       renew: "nothing",
     });
+
     expect(summaries(silent)).toEqual(["profile: the disposable session was still accepted"]);
   });
 

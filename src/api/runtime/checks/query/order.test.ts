@@ -13,17 +13,16 @@ import {
   tiedSortField,
 } from "./order.ts";
 
-/*
- * What the API tester may assume about a backend's order. It cannot know a collation, so an order is sorted
- * when it is sorted under one of the ways backends order text, and once the backend has shown —
- * or the document has declared — which, under that one alone; nulls sit together at one end.
- */
+// What the API tester may assume about a backend's order. It cannot know a collation, so an order is sorted
+// when it is sorted under one of the ways backends order text, and once the backend has shown —
+// or the document has declared — which, under that one alone; nulls sit together at one end.
 
 const withRecords = (records: Record_[]): Listed => notesContext(undefined, { records }).ctx;
 
 /** The notes context with the sort behavior the document declares. */
 function declaring(sort: { collation?: "binary" | "case-insensitive" | "locale"; defaultNulls?: "first" | "last" }) {
   const ctx = notesContext().ctx;
+
   return { ...ctx, capabilities: { ...resolvedCaps(ctx), sort } };
 }
 
@@ -33,6 +32,7 @@ describe("tiedSortField", () => {
       { id: "1", name: "a", rank: 1 },
       { id: "1", name: "b", rank: 1 },
     ];
+
     expect(tiedSortField(withRecords(records))).toBe("rank");
   });
 
@@ -53,7 +53,9 @@ describe("tiedSortField", () => {
       { id: "1", name: "a" },
       { id: "1", name: "b" },
     ]);
+
     const query = ctx.query;
+
     if (query === null) throw new Error("the notes list declares its query");
     expect(tiedSortField({ ...ctx, query: { ...query, sortable: ["id", "name"] } })).toBeNull();
   });

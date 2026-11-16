@@ -31,6 +31,7 @@ describe("probeField", () => {
       short: { maxLength: 3, type: "string" },
       size: { type: "integer" },
     });
+
     expect(probeField(schema)).toEqual({ kind: "boolean", maxLength: 0, name: "flag" });
     expect(probeField(object({ size: { type: "integer" } }))).toBeNull();
   });
@@ -58,6 +59,7 @@ describe("probeField and the fields it must leave alone", () => {
       properties: { dismissed: { type: "boolean" }, name: { type: "string" }, password: { type: "string" } },
       type: "object",
     };
+
     expect(probeField(schema, new Set(["name"]))).toEqual({ kind: "string", maxLength: 64, name: "password" });
     expect(probeField(schema, new Set(["name", "password"]))).toEqual({
       kind: "boolean",
@@ -80,6 +82,7 @@ describe("nextValue", () => {
 
 describe("probeField under a guard pattern on every string", () => {
   const guard = "^[^\\u0000\\uD800-\\uDFFF]*$";
+
   const phone = {
     anyOf: [
       { allOf: [{ pattern: "^\\+[1-9]\\d{7,14}$" }, { pattern: guard }], maxLength: 15, minLength: 7, type: "string" },

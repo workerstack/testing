@@ -7,7 +7,7 @@ import { folder, json, notesConfig, notesSpec, referenceConfig, signupConfig } f
 import { bufferWriter } from "../writer.ts";
 import { commandPlan, targetedScope } from "./plan.ts";
 
-/* The test model, offline: in full, or narrowed to what --ops or --only (or the config) target. */
+// The test model, offline: in full, or narrowed to what --ops or --only (or the config) target.
 
 describe("commandPlan", () => {
   it("prints the model of the whole document", async () => {
@@ -81,20 +81,24 @@ describe("commandPlan and the config's credentials", () => {
         `spec: ${JSON.stringify(notesSpec(dir))} }\n`,
     );
     const lines: { out: string[]; err: string[] } = { err: [], out: [] };
+
     const writer = {
       err: (text: string) => lines.err.push(text),
-      flush: () => undefined,
+      flush: () => {},
       out: (text: string) => lines.out.push(text),
     };
+
     expect(await commandPlan(writer, { config: path })).toBe(0);
     expect(lines.err).toEqual(["  env        TESTING_API_PLAN_TEST_TOKEN not set — a run stops until they are\n"]);
     expect(lines.out.join("")).toMatch(/\n {4}notes\.create {3,}bearer {3}alpha\n/);
     const machine = bufferWriter();
     expect(await commandPlan(machine, { config: path, json: true })).toBe(0);
+
     const plan = JSON.parse(machine.text().slice(machine.text().indexOf("{"))) as {
       security: { operations: Array<{ satisfiedBy?: unknown }> };
       unsetEnv: string[];
     };
+
     expect(plan.unsetEnv).toEqual(["TESTING_API_PLAN_TEST_TOKEN"]);
     expect(plan.security.operations.every((op) => op.satisfiedBy !== undefined)).toBe(true);
     const quiet = bufferWriter();

@@ -13,15 +13,16 @@ import type {
 } from "./types.ts";
 
 /** Who a step goes out as, and where: the keys a sender adds to every step it builds. */
-export interface Identity {
+export type Identity = {
   anonymous?: true;
   headers?: Record<string, string>;
   principal?: string;
   origin?: string;
-}
+};
 
 /** The scenario's own principal. */
 export const SELF: Identity = {};
+
 /** No credential at all. */
 export const ANON: Identity = { anonymous: true };
 
@@ -35,7 +36,7 @@ export function principalIdentity(name: string): Identity {
   return { principal: name };
 }
 
-/* The parts of an init that are present: an optional part given as undefined is no part at all. */
+// The parts of an init that are present: an optional part given as undefined is no part at all.
 function present<V extends object>(init: V): Partial<V> {
   return Object.fromEntries(Object.entries(init).filter(([, value]) => value !== undefined)) as Partial<V>;
 }
@@ -62,6 +63,7 @@ export class Sender<M extends OpMap, T extends StepTypes> {
     refusal: Refusal<M[K], Status>,
   ): RequestBuilder<OpId<T["ops"]>> {
     const { key, status, ...init } = refusal;
+
     return new RequestBuilder<OpId<T["ops"]>>(this.#step({ operationId }, init))
       .status(status)
       .equals("$.error_key", key);
@@ -81,6 +83,7 @@ export class Sender<M extends OpMap, T extends StepTypes> {
     const { headers, ...rest } = present(init as { headers?: Record<string, string> });
     const own = this.#identity.headers;
     const merged = headers === undefined && own === undefined ? {} : { headers: { ...own, ...headers } };
+
     return { ...this.#identity, ...rest, ...merged, ...target } as ScenarioRequestStep;
   }
 }

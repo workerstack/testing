@@ -3,14 +3,16 @@ import { describe, expect, it } from "vitest";
 import { loaded, notesApi, notesDoc, optionsFor } from "./__fixtures__/api.ts";
 import { createExclusion } from "./exclusion.ts";
 
-/* A profile leaves out what it names; the default runs everything. */
+// A profile leaves out what it names; the default runs everything.
 
 const writesExcluded = { profile: "readonly", profiles: { readonly: { exclude: ["notes.create"] } } };
 
 async function exclusionFor(extra = {}) {
   const run = await loaded(optionsFor(notesApi(), extra));
   const note = run.model.entities.get("note");
+
   if (note === undefined) throw new Error("the notes document has no note entity");
+
   return { exclusion: createExclusion(run), note, run };
 }
 

@@ -6,14 +6,14 @@ import { seedCreated } from "./seed-cohort.ts";
 import { degradedWorld, type EntityRun, type World } from "./state.ts";
 
 /** How the entity's records come to exist, in the order the cases are decided. */
-export interface SeedPlan {
+export type SeedPlan = {
   /** No create to seed through: an invite-only entity has its grant, not a create. */
   inviteOnly: boolean;
   /** The create is the principals' sign-up: it already ran in auth, and is no fixture. */
   authProvisioned: boolean;
   /** A listable entity with no create whose action declares x-effects: its list needs a parent. */
   needsListedCohort: boolean;
-}
+};
 
 /**
  * The entity's world, or `null` when there is nothing to test it against (the reason already
@@ -22,22 +22,27 @@ export interface SeedPlan {
  */
 export async function seedWorld(run: EntityRun, plan: SeedPlan): Promise<World | null> {
   const { createOp, ctx, entity } = run;
+
   if (createOp !== undefined && ctx.scenarioOwned.has(createOp.operationId)) {
-    /* A scenario owns this create: it holds what the create needs (a mailed token, a paid
-     * session), and a generated body would only be refused. The matrix reads what exists;
-     * with nothing to read, the entity is the scenario's alone. */
+    // A scenario owns this create: it holds what the create needs (a mailed token, a paid
+    // session), and a generated body would only be refused. The matrix reads what exists;
+    // with nothing to read, the entity is the scenario's alone.
     const existing = await readExisting(run, run.roots);
+
     return existing.records.length === 0 ? null : degradedWorld(existing);
   }
+
   if (createOp !== undefined && ctx.exclusion.excludeOp(entity, createOp)) {
-    /* The gap finding excludeOp already reported names the reason. */
+    // The gap finding excludeOp already reported names the reason.
     return existingOrBlocked(run, {
       check: "profile.skip" satisfies RunFindingId,
       detail: `create is excluded by profile "${ctx.profile.name}" and the list route returned no existing records to fall back on.`,
       summary: `could not test "${entity.name}"`,
     });
   }
+
   if (createOp === undefined || plan.authProvisioned) return listedWorld(run, plan);
+
   return seedCreated(run, createOp);
 }
 
@@ -49,25 +54,31 @@ export async function seedWorld(run: EntityRun, plan: SeedPlan): Promise<World |
 async function listedWorld(run: EntityRun, plan: SeedPlan): Promise<World> {
   const listedRoots = await listedRootsOf(run, plan);
   const existing = await readExisting(run, listedRoots);
+
   return degradedWorld({ records: existing.records, scope: { ...run.roots, ...existing.scope } });
 }
 
 async function listedRootsOf(run: EntityRun, plan: SeedPlan): Promise<Record<string, string>> {
   const { collectionOp, roots, seeding, ctx } = run;
+
   const listParent = async (): Promise<Record<string, string>> => ({
     ...roots,
     ...(await resolvePathScope(collectionOp, { client: seeding, model: ctx.model, options: worldOptions(run) })).values,
   });
-  /* An action cohort has to create the parent the list path names. */
+
+  // An action cohort has to create the parent the list path names.
   if (plan.needsListedCohort) return listParent();
+
   if (plan.inviteOnly || collectionOp.pathParams.every((param) => roots[param] !== undefined)) return roots;
-  /* A table's exports, a webhook's deliveries: nobody creates one directly, but the list sits
-   * under a parent the API tester can make, and every check on the entity goes through it. A parent the API tester
-   * cannot make leaves the scope as it was, and the gap says which. */
+
+  // A table's exports, a webhook's deliveries: nobody creates one directly, but the list sits
+  // under a parent the API tester can make, and every check on the entity goes through it. A parent the API tester
+  // cannot make leaves the scope as it was, and the gap says which.
   try {
     return await listParent();
   } catch (error) {
     if (!(error instanceof SeedError)) throw error;
+
     return roots;
   }
 }

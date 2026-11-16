@@ -9,7 +9,7 @@ import { folder, json, notesConfig, notesSpec, referenceConfig, signupConfig } f
 import { bufferWriter } from "../writer.ts";
 import { commandDoctor } from "./doctor.ts";
 
-/* What the API tester can and cannot test in a document, and why; exits 1 when something blocks testing. */
+// What the API tester can and cannot test in a document, and why; exits 1 when something blocks testing.
 
 describe("commandDoctor", () => {
   it("reports on a document, as text or JSON", async () => {
@@ -24,6 +24,7 @@ describe("commandDoctor", () => {
 
   it("reads the config's query, entities, hooks and allow list, and names a missing baseline", async () => {
     const dir = folder();
+
     const configPath = notesConfig(dir, {
       allow: ["notes.list", "notes.create", "notes.get", "notes.update", "notes.delete"],
       baseline: "known.json",
@@ -31,6 +32,7 @@ describe("commandDoctor", () => {
       hooks: {},
       query: { searchable: ["title"] },
     });
+
     const writer = bufferWriter();
     await commandDoctor(writer, { config: configPath });
     expect(writer.text()).toContain(`baseline   ${join(dir, "known.json")} does not exist`);
@@ -62,6 +64,7 @@ describe("commandDoctor", () => {
         },
       },
     };
+
     const writer = bufferWriter();
     const code = await commandDoctor(writer, { spec: notesSpec(folder(), unreachable) });
     expect([0, 1]).toContain(code);
@@ -83,9 +86,11 @@ describe("commandDoctor and a document the API tester does not read", () => {
 describe("commandDoctor and the credentials config", () => {
   it("exits 2 and names the problem when the config's credentials do not fit the document", async () => {
     const writer = bufferWriter();
+
     const code = await commandDoctor(writer, {
       config: notesConfig(folder(), { security: { jwt: { static: "t" } } }),
     });
+
     expect(code).toBe(2);
     expect(writer.text()).toContain("security.jwt names no scheme in the document");
   });
@@ -96,7 +101,7 @@ describe("commandDoctor and the operations a recipe names", () => {
     const writer = bufferWriter();
     await commandDoctor(writer, { config: referenceConfig(), json: true });
     const report = readBack(writer.text()) as { blocking: number; entities: number; trackableEntities: number };
-    /* The reference config's principals supply the project_id root, so nothing blocks. */
+    // The reference config's principals supply the project_id root, so nothing blocks.
     expect([report.entities, report.trackableEntities, report.blocking]).toEqual([8, 8, 0]);
     const text = bufferWriter();
     await commandDoctor(text, { config: referenceConfig() });
@@ -119,11 +124,13 @@ describe("commandDoctor and the operations a login sends", () => {
   it("leaves out what the auth flow owns, as a run does: the account it signs up, and its sign-in call's gap", async () => {
     const writer = bufferWriter();
     const code = await commandDoctor(writer, { config: signupConfig(), json: true });
+
     const report = readBack(writer.text()) as {
       blocking: number;
       entities: number;
       gaps: Array<{ operationId: string }>;
     };
+
     expect([code, report.entities, report.blocking]).toEqual([0, 1, 0]);
     expect(report.gaps.map((gap) => gap.operationId)).not.toContain("session.start");
     const text = bufferWriter();
@@ -132,7 +139,7 @@ describe("commandDoctor and the operations a login sends", () => {
   });
 });
 
-/* A config module for the notes document that reads its bearer token through env(). */
+// A config module for the notes document that reads its bearer token through env().
 function envConfig(dir: string, variable: string): string {
   const path = join(dir, "testing.api.config.mjs");
   const envModule = join(import.meta.dirname, "..", "..", "config", "env.ts");
@@ -142,6 +149,7 @@ function envConfig(dir: string, variable: string): string {
       `export default { baseUrl: "http://api.test", principals: { alpha: {} }, ` +
       `security: { bearer: { static: env(${JSON.stringify(variable)}) } }, spec: ${JSON.stringify(notesSpec(dir))} }\n`,
   );
+
   return path;
 }
 
@@ -176,18 +184,22 @@ describe("commandDoctor and the config's principals", () => {
     const writer = bufferWriter();
     await commandDoctor(writer, { config: notesConfig() });
     expect(writer.text()).toMatch(/\n {4}bearer {4,}\d+ {3}alpha\n/);
+
     const doc = notesDoc({
       "/legacy": {
         get: { operationId: "legacy.get", responses: { "200": { description: "ok" } }, security: [{ legacy: [] }] },
       },
     }) as unknown as { components: { securitySchemes: Record<string, unknown> } };
+
     doc.components.securitySchemes["legacy"] = { in: "header", name: "X-Legacy", type: "apiKey" };
     const dir = folder();
+
     const config = json(dir, "testing.api.config.json", {
       principals: { alpha: {} },
       security: { bearer: { static: "t" } },
       spec: notesSpec(dir, doc),
     });
+
     const blocked = bufferWriter();
     expect(await commandDoctor(blocked, { config })).toBe(1);
     expect(blocked.text()).toContain("none — no credential for legacy");

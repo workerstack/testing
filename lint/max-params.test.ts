@@ -17,6 +17,7 @@ describe("testing/max-params", () => {
         "export const j = (a, b, c, ...d) => a",
       ].join("\n"),
     };
+
     expect(reportsOf(rule, fixture).map(({ line }) => line)).toEqual([1, 2, 4, 5, 6]);
     expect(reportsOf(rule, fixture)[0]?.message).toBe(MESSAGE);
   });
@@ -30,6 +31,7 @@ describe("testing/max-params", () => {
         "export class K { constructor(private readonly a: A, b: B, c: C) {} }",
       ].join("\n"),
     };
+
     expect(reportsOf(rule, fixture)).toEqual([]);
   });
 
@@ -42,6 +44,7 @@ describe("testing/max-params", () => {
         "export class K { constructor(private readonly a: A, b: B, c: C, d: D) {} }",
       ].join("\n"),
     };
+
     expect(reportsOf(rule, fixture).map(({ line }) => line)).toEqual([1, 2, 3, 4]);
   });
 
@@ -54,6 +57,7 @@ describe("testing/max-params", () => {
         "export abstract class K { abstract m(a: A, b: B, c: C, d: D): void }",
       ].join("\n"),
     };
+
     expect(reportsOf(rule, fixture).map(({ line }) => line)).toEqual([1, 4]);
   });
 });
@@ -65,6 +69,7 @@ describe("testing/max-params reach", () => {
       "scripts/x.ts": "function f(a, b, c, d) {}\n",
       "labs/api/kit/y.ts": "function f(a, b, c, d) {}\n",
     };
+
     expect(reportsOf(rule, fixture)).toHaveLength(3);
   });
 
@@ -72,6 +77,7 @@ describe("testing/max-params reach", () => {
     const fixture = {
       "src/api/runtime/a.ts": "export function f(a, b, c, d) {}\nexport function g(ctx, a, b, c) {}\n",
     };
+
     expect(oxlintReports("max-params", fixture).map(({ line }) => line)).toEqual([1]);
   });
 });

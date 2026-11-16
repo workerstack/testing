@@ -21,7 +21,9 @@ import type { Json, SpecContext } from "./types.ts";
 export function parentReadRoutes(ctx: SpecContext, entity: EntityDef): string[] {
   if (entity.name !== "row") return [];
   const table = ctx.entities.find((candidate) => candidate.name === "table");
+
   if (table === undefined) return [];
+
   return [`GET ${table.collectionPath}`, `GET ${table.itemPath}`];
 }
 
@@ -65,7 +67,7 @@ function listOperation(ctx: SpecContext, entity: EntityDef, dialect: Dialect): J
       ...listLocated(ctx, entity, dialect),
     },
     "x-query": queryDeclaration(ctx, entity, dialect),
-    /* Generous enough never to slow a run; declared so a stricter real limit is testable. */
+    // Generous enough never to slow a run; declared so a stricter real limit is testable.
     "x-rate-limit": { category: `${entity.name}.list`, rps: 500 },
     "x-tenant": tenantParam(entity),
     ...(entity.softDeleteField === undefined ? {} : { "x-soft-delete": entity.softDeleteField }),
@@ -76,9 +78,9 @@ function listOperation(ctx: SpecContext, entity: EntityDef, dialect: Dialect): J
 function createParameters(ctx: SpecContext, entity: EntityDef): Json[] {
   return [
     ...pathParams(ctx, entity, false),
-    /* Declared as an ordinary header parameter, because that is how real APIs publish
-     * it. The API tester needs no new meta tag to find this: a create operation naming a header
-     * whose name reads as an idempotency key is enough to know replay is promised. */
+    // Declared as an ordinary header parameter, because that is how real APIs publish
+    // it. The API tester needs no new meta tag to find this: a create operation naming a header
+    // whose name reads as an idempotency key is enough to know replay is promised.
     {
       description:
         "Client-supplied key. Replaying a request with the same key must return the " +
@@ -99,15 +101,19 @@ function createdResponse(ctx: SpecContext, entity: EntityDef): Json {
       type: "object",
     });
   }
-  /* The async job is an action's receipt, not a record: its answer stays as it is. */
+
+  // The async job is an action's receipt, not a record: its answer stays as it is.
   const answer = entity.name === "job" ? undefined : ctx.shape.createAnswer;
+
   if (answer === "id-message") return jsonResponse(`Created ${entity.name}`, acknowledgmentSchema(entity));
+
   if (answer === "location") {
     return {
       description: `Created ${entity.name}`,
       headers: { Location: { description: `The new ${entity.name}'s URL`, schema: { type: "string" } } },
     };
   }
+
   return jsonResponse(`Created ${entity.name}`, createdSchema(ctx, entity));
 }
 
@@ -137,11 +143,9 @@ function createOperation(ctx: SpecContext, entity: EntityDef): Json {
     },
     "x-generated": fieldsWhere(entity, "generated"),
     ...(entity.unique === undefined || entity.unique.length === 0 ? {} : { "x-unique": entity.unique }),
-    /*
-     * A create invalidates its own listing, and — where the entity has a parent that
-     * carries a derived value — the parent's routes as well. Declaring it is what makes
-     * the cross-entity consistency testable rather than assumed.
-     */
+    // A create invalidates its own listing, and — where the entity has a parent that
+    // carries a derived value — the parent's routes as well. Declaring it is what makes
+    // the cross-entity consistency testable rather than assumed.
     "x-invalidate": [...listRoute(entity), ...parentReadRoutes(ctx, entity)],
     "x-tenant": tenantParam(entity),
   };
@@ -155,5 +159,6 @@ export function listRoute(entity: EntityDef): string[] {
 /** The path item at an entity's collection route: its listing, unless it has none, and its create. */
 export function collectionPathItem(ctx: SpecContext, entity: EntityDef, dialect: Dialect): Json {
   const create = { post: createOperation(ctx, entity) };
+
   return entity.unlisted === true ? create : { get: listOperation(ctx, entity, dialect), ...create };
 }

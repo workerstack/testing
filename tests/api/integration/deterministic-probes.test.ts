@@ -11,15 +11,14 @@ import { buildModel } from "../../../src/api/spec/graph/build.ts";
 import { dereference } from "../../../src/api/spec/load/dereference.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 
-/*
- * What the API tester sends is a function of its inputs: the same seed and nonce give the same bodies. A salt
- * drawn from the shared transcript, or from a counter every concurrent check advances, made a probe
- * depend on whatever else happened to run — the same run could send a different body, and a
- * verdict could change with the load on the machine.
- */
+// What the API tester sends is a function of its inputs: the same seed and nonce give the same bodies. A salt
+// drawn from the shared transcript, or from a counter every concurrent check advances, made a probe
+// depend on whatever else happened to run — the same run could send a different body, and a
+// verdict could change with the load on the machine.
 
 async function bodiesByCheck(): Promise<Record<string, string[]>> {
   const server = await createMemoryServer({ shape: "client-ids" });
+
   try {
     const result = await run({
       baseUrl: server.url,
@@ -29,12 +28,16 @@ async function bodiesByCheck(): Promise<Record<string, string[]>> {
       seed: 42,
       spec: `${server.url}/v1/openapi/spec`,
     });
+
     const out: Record<string, string[]> = {};
+
     for (const exchange of result.client.transcript) {
       if (exchange.check === undefined || exchange.method !== "POST") continue;
       (out[exchange.check] ??= []).push(JSON.stringify(exchange.requestBody));
     }
+
     for (const bodies of Object.values(out)) bodies.sort();
+
     return out;
   } finally {
     await server.close();
@@ -63,6 +66,7 @@ describe("recall behind the client-ids shape, under load", () => {
           }),
         ),
       );
+
       for (const result of results) {
         expect(result.error).toBeUndefined();
         expect(result.detected).toBe(true);
@@ -76,16 +80,20 @@ describe("the salts a check run draws", () => {
   it("are never shared by two checks on the same entity", async () => {
     const server = await createMemoryServer({ shape: "client-ids" });
     let entities: string[];
+
     try {
       const spec = (await (await fetch(`${server.url}/v1/openapi/spec`)).json()) as OpenApiDocument;
       entities = [...buildModel(dereference(spec).doc).entities.keys()];
     } finally {
       await server.close();
     }
+
     const seen = new Map<string, string>();
+
     for (const [entityIndex, entity] of entities.entries()) {
       for (const [checkIndex, check] of CHECKS.entries()) {
         const next = checkSalts(checkIndex, entityIndex);
+
         for (let draw = 0; draw < 40; draw++) {
           const salt = next();
           expect(seen.get(salt), `${check.id}@${entity} draws ${salt}`).toBeUndefined();
@@ -93,6 +101,7 @@ describe("the salts a check run draws", () => {
         }
       }
     }
+
     expect(seen.size).toBe(entities.length * CHECKS.length * 40);
   });
 });

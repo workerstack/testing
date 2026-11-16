@@ -4,7 +4,7 @@ import type { SpecModel } from "../../spec/graph/types.ts";
 import { referenceModel } from "./__fixtures__/models.ts";
 import { rootsOf } from "./roots.ts";
 
-/* A root no create operation makes is the config's to supply: by every principal's scope, a login claim, or a hook. */
+// A root no create operation makes is the config's to supply: by every principal's scope, a login claim, or a hook.
 
 const op = (operationId: string, path: string, rootParams: string[] = []) => ({
   entity: null,
@@ -13,6 +13,7 @@ const op = (operationId: string, path: string, rootParams: string[] = []) => ({
   pathParams: [...path.matchAll(/\{(\w+)\}/g)].map((m) => m[1]),
   rootParams,
 });
+
 const MODEL = {
   operations: [
     op("table.list", "/orgs/{org_id}/projects/{project_id}/tables", ["org_id"]),

@@ -21,6 +21,7 @@ export const unknownParameterConsistent: Check<{ names: string[] }> = defineChec
   plan: (ctx) => {
     if (ctx.records.length === 0) return cannot();
     const real = conv(ctx).limit ?? conv(ctx).page ?? conv(ctx).order ?? "limit";
+
     return ready({ names: ["testing_unknown_parameter", `${real}_testing_typo`] });
   },
   dependsOn: ["list.read-after-write", "pagination.page-walk-covers-set"],
@@ -30,14 +31,17 @@ export const unknownParameterConsistent: Check<{ names: string[] }> = defineChec
   subjects: subjectsOf.list,
   async run(ctx, { names }): Promise<Outcome> {
     const baseline = await readSet(ctx, {}, { fresh: true });
-    if (baseline.status !== "ok" || !baseline.complete) {
+
+    if (baseline.status !== "ok" || !baseline.complete)
       return ctx.findings.unresolved(this.id, ctx.entityName, baseline.reason);
-    }
+
     const expected = setOf(baseline.items, ctx.identity);
     const answers: Array<{ name: string; policy: "refused" | "ignored"; exchange: Exchange }> = [];
+
     for (const name of names) {
       const probe = await readSet(asProbe(ctx), { [name]: "1" }, { fresh: true });
       const exchange = probe.last.exchange;
+
       if (exchange.status >= 500) {
         return ctx.findings.backend(this.id, ctx.entityName, {
           summary: "an unknown query parameter crashes the listing",
@@ -45,10 +49,12 @@ export const unknownParameterConsistent: Check<{ names: string[] }> = defineChec
           evidence: [exchange],
         });
       }
+
       if (exchange.status === 400 || exchange.status === 422) {
         answers.push({ exchange, name, policy: "refused" });
         continue;
       }
+
       if (probe.status !== "ok" || !probe.complete) {
         return ctx.findings.unresolved(
           this.id,
@@ -56,6 +62,7 @@ export const unknownParameterConsistent: Check<{ names: string[] }> = defineChec
           `?${name}=1 was answered with ${exchange.status}, which says nothing about the parameter`,
         );
       }
+
       if (!sameSet(setOf(probe.items, ctx.identity), expected)) {
         return ctx.findings.backend(this.id, ctx.entityName, {
           summary: "an unknown query parameter silently changes the result",
@@ -66,18 +73,24 @@ export const unknownParameterConsistent: Check<{ names: string[] }> = defineChec
           evidence: [baseline.last.exchange, exchange],
         });
       }
+
       answers.push({ exchange, name, policy: "ignored" });
     }
+
     const policies = new Set(answers.map((answer) => answer.policy));
+
     if (policies.size > 1) {
       return ctx.findings.backend(this.id, ctx.entityName, {
         summary: "unknown query parameters are handled inconsistently",
-        detail:
-          answers.map((answer) => `?${answer.name}=1 was ${answer.policy} (${answer.exchange.status})`).join("; ") +
-          ". One unknown name refused and another ignored leaves callers guessing which mistakes are caught.",
+        detail: `${answers
+          .map((answer) => `?${answer.name}=1 was ${answer.policy} (${answer.exchange.status})`)
+          .join(
+            "; ",
+          )}. One unknown name refused and another ignored leaves callers guessing which mistakes are caught.`,
         evidence: answers.map((answer) => answer.exchange),
       });
     }
+
     return asserted(`unknown query parameters are ${answers[0]?.policy ?? "ignored"} on the listing`);
   },
 });

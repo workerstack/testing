@@ -27,7 +27,7 @@ describe("contractFloor", () => {
   });
 });
 
-/* A list that showed one note under `note_id`. */
+// A list that showed one note under `note_id`.
 const seen = (noteId: string) =>
   exchangeOf(
     { method: "GET", options: { as: { anonymous: true }, operationId: "notes.list" }, path: "/notes" },
@@ -40,6 +40,7 @@ describe("contractFloor and writes", () => {
     const ctx = await contextOf(options);
     ctx.client.transcript.push(seen("n-made"), seen("n-foreign"));
     const [made] = listedIds(["n-made"]);
+
     if (made === undefined) throw new Error("no id");
     ctx.ledger.record({ entity: "note", id: made, scope: {} }, owner("alpha"));
     await contractFloor(ctx);

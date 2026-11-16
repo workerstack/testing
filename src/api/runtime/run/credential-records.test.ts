@@ -8,14 +8,13 @@ import type { OpenApiDocument } from "../../spec/types.ts";
 import { type Answer, fakeClient, modelOf, type Responder } from "../checks/__fixtures__/harness.ts";
 import { credentialRecords } from "./credential-records.ts";
 
-/*
- * Keys with a read of their own, tokens revoked by a POST and read only through their list, pins
- * whose rows name no identity, things nothing reads, and a session ended by a path that names none.
- */
+// Keys with a read of their own, tokens revoked by a POST and read only through their list, pins
+// whose rows name no identity, things nothing reads, and a session ended by a path that names none.
 
 const param = (name: string) => ({ in: "path", name, required: true, schema: { type: "string" } });
 const ok = { "200": { description: "ok" } };
 const rows = { content: { "application/json": { schema: { items: { type: "object" }, type: "array" } } } };
+
 const paged = {
   content: {
     "application/json": {
@@ -58,8 +57,10 @@ const MODEL = modelOf({
     "/things/{thing_id}": { delete: { operationId: "things.delete", parameters: [param("thing_id")], responses: ok } },
   },
 } as unknown as OpenApiDocument);
-/* No document here leaves an entity with a path parameter unidentified, so the model says it directly. */
+
+// No document here leaves an entity with a path parameter unidentified, so the model says it directly.
 const pins = MODEL.entities.get("pin") as EntityModel;
+
 pins.identity = null;
 
 const AS = { principal: "alpha#probe-1", scheme: "bearer" };
@@ -68,13 +69,14 @@ function recordOf(operationId: string, scope: Record<string, string>): Credentia
   return { as: AS, operationId, scope: { credential: "secret", ...scope } };
 }
 
-/* Alpha's probe is bound to org o1; anyone else to nothing. */
+// Alpha's probe is bound to org o1; anyone else to nothing.
 const scopeOf = (principal: string) => (principal === AS.principal ? { org_id: "o1" } : {});
 
 /** The records port over a fake client answering `respond`. */
-function recordsOver(respond: Responder = () => undefined) {
+function recordsOver(respond: Responder = () => {}) {
   const { client, sent } = fakeClient(respond);
   const records = credentialRecords({ client: () => client, model: MODEL, scopeOf });
+
   return { client, records, sent };
 }
 
@@ -84,6 +86,7 @@ const TOKEN = recordOf("tokens.revoke", { token_id: "t1" });
 /** The records port over a client whose every read rejects with `error`. */
 function failing(error: Error) {
   const client = { get: () => Promise.reject(error) } as unknown as Client;
+
   return credentialRecords({ client: () => client, model: MODEL, scopeOf });
 }
 
@@ -141,14 +144,15 @@ describe("credentialRecords: gone", () => {
   it("reads nothing for a record with no id, no read or list, a list it cannot fill, or one without identity", async () => {
     const { records, sent } = recordsOver();
     const orphan = { ...recordOf("tokens.revoke", { token_id: "t1" }), as: { principal: "beta", scheme: "bearer" } };
+
     for (const record of [
       recordOf("session.end", {}),
       recordOf("things.delete", { thing_id: "x1" }),
       orphan,
       recordOf("pins.delete", { pin_id: "p1" }),
-    ]) {
+    ])
       expect(await records.gone(record)).toBe(false);
-    }
+
     expect(sent.map(({ path }) => path)).toEqual([]);
   });
 
@@ -161,10 +165,13 @@ describe("credentialRecords: gone", () => {
 describe("credentialRecords: gone from its list", () => {
   it("reads a record with no read of its own in its list, page by page, by the scope its principal holds", async () => {
     const pages: Record<string, string[]> = { "1": ["t2", "t3"], "2": ["t1"] };
+
     const { records, sent } = recordsOver((_method, _path, options) => {
       const page = String(options.query?.["page"] ?? 1);
+
       return { body: { has_more: page === "1", items: (pages[page] ?? []).map((id) => ({ id })) }, status: 200 };
     });
+
     expect(await records.gone(TOKEN)).toBe(false);
     pages["2"] = ["t4"];
     expect(await records.gone(TOKEN)).toBe(true);
@@ -172,7 +179,7 @@ describe("credentialRecords: gone from its list", () => {
   });
 
   it("is never gone from a list that did not show its end: one page of an unpaged list, or a page served again", async () => {
-    /* w1 is live beyond the one page served; nothing says that page was the whole list. */
+    // w1 is live beyond the one page served; nothing says that page was the whole list.
     const widgets = recordsOver(() => ({ body: [{ id: "w2" }], status: 200 }));
     expect(await widgets.records.gone(recordOf("widgets.delete", { widget_id: "w1" }))).toBe(false);
     const repeating = recordsOver(() => ({ body: { has_more: true, items: [{ id: "t2" }] }, status: 200 }));

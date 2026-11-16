@@ -13,14 +13,15 @@ import { encodeMultipart } from "./multipart.ts";
 import type { EncodedBody, EncodeOptions, EncodePlacement } from "./types.ts";
 
 /** The fields to encode as an operation's body, and where that body is placed. */
-export interface OperationFields extends EncodePlacement {
+export type OperationFields = EncodePlacement & {
   fields: Record<string, unknown>;
   /** See `EncodeOptions.omit`. */
   omit?: ReadonlySet<string> | undefined;
-}
+};
 
 export function requestContentOf(op: OperationModel, model: SpecModel): ReturnType<typeof requestContent> {
   const raw = model.rawOperations.get(op.operationId);
+
   return raw === undefined ? null : requestContent(raw);
 }
 
@@ -28,15 +29,16 @@ export async function encodeRequest(options: EncodeOptions): Promise<EncodedBody
   const fields = await applyResolveInput(options.fields, options.uploads.resolveInput, options);
   const next = { ...options, fields };
   const media = options.mediaType.toLowerCase();
-  if (media.startsWith("multipart/")) {
-    return { body: await encodeMultipart(next), contentType: null };
-  }
+
+  if (media.startsWith("multipart/")) return { body: await encodeMultipart(next), contentType: null };
+
   if (media.includes("x-www-form-urlencoded")) {
     return {
       body: encodeUrlencoded(next.fields, next.encoding),
       contentType: "application/x-www-form-urlencoded",
     };
   }
+
   return { body: next.fields, contentType: undefined };
 }
 
@@ -47,7 +49,9 @@ export async function encodeForOperation(
   { fields, uploads, variant = "baseline", index = 0, omit }: OperationFields,
 ): Promise<EncodedBody> {
   const content = requestContentOf(op, model);
+
   if (content === null) return { body: fields, contentType: undefined };
+
   const options: EncodeOptions = {
     fields,
     index,
@@ -57,7 +61,10 @@ export async function encodeForOperation(
     uploads,
     variant,
   };
+
   if (content.encoding !== undefined) options.encoding = content.encoding;
+
   if (omit !== undefined) options.omit = omit;
+
   return encodeRequest(options);
 }

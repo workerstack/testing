@@ -16,36 +16,45 @@ import { conv, type Query } from "../query/capabilities.ts";
  */
 export function envelopeValue(ctx: Listed, result: ListResult, role: "total" | "hasMore" | "nextCursor"): unknown {
   const key = conv(ctx).envelope[role];
+
   if (key !== undefined) return result.envelope[key];
 
   const c = conv(ctx);
+
   if (c.linkHeader === undefined) return undefined;
-  /* The document declares a Link header, so its *absence* on a given response is meaningful:
-   * no `rel="next"` means there is no next page. Treating a missing header as "unknown" would
-   * let a backend that simply stops emitting links look untestable rather than wrong. */
+  // The document declares a Link header, so its *absence* on a given response is meaningful:
+  // no `rel="next"` means there is no next page. Treating a missing header as "unknown" would
+  // let a backend that simply stops emitting links look untestable rather than wrong.
   const link = linkRelations(result.exchange);
+
   if (role === "hasMore") return link?.has("next") ?? false;
+
   if (role === "nextCursor") return link?.get("next") ?? null;
+
   return undefined;
 }
 
 /** Parses RFC 8288 `Link` into rel → URL, or null when the response carries no such header. */
 function linkRelations(exchange: Exchange): Map<string, string> | null {
   const header = exchange.responseHeaders?.["link"] ?? exchange.responseHeaders?.["Link"];
+
   if (typeof header !== "string" || header === "") return null;
   const relations = new Map<string, string>();
+
   for (const part of header.split(",")) {
     const match = /<([^>]+)>\s*;\s*rel\s*=\s*"?([^";]+)"?/.exec(part.trim());
+
     if (match?.[1] !== undefined && match[2] !== undefined) relations.set(match[2].trim(), match[1]);
   }
+
   return relations.size === 0 ? null : relations;
 }
 
-export interface ListResult {
+export type ListResult = {
   items: Record_[];
   envelope: Record<string, unknown>;
   exchange: Exchange;
-}
+};
 
 /**
  * One page of a list: the context's own, or `op`, read as `principal` (the actor by default) in
@@ -69,8 +78,10 @@ export async function list(
     operationId: op.operationId,
     query,
   });
+
   const body = exchange.responseBody;
   const items = recordsFromList(body, op === ctx.listOp ? rowsAt(ctx) : op.collection);
+
   return { envelope: (body ?? {}) as Record<string, unknown>, exchange, items };
 }
 
@@ -78,6 +89,7 @@ export async function list(
 export function forList<C extends ReadClient>(ctx: CheckContext<C>, op: OperationModel): Listed<C> {
   if (isListed(ctx) && op === ctx.listOp) return ctx;
   const entity = ctx.model.entities.get(op.entity ?? "");
+
   return {
     ...ctx,
     collectionKey: op.collection?.key ?? null,
@@ -96,7 +108,7 @@ export function ids(records: Record_[], identity: string): string[] {
   return records.flatMap((r) => idOf(r, identity) ?? []);
 }
 
-export interface Walk {
+export type Walk = {
   ids: string[];
   /** The records in the order the walk met them, repeats included. */
   items: Record_[];
@@ -104,4 +116,4 @@ export interface Walk {
   exchanges: Exchange[];
   /** True when the walk stopped at the page cap rather than at the end of the collection. */
   truncated: boolean;
-}
+};

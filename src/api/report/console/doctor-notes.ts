@@ -19,12 +19,14 @@ function catalogExtras(row: QueryCatalog): string[] {
     ["select.unknown", row.select?.unknown],
     ["select.nested", row.select?.nested],
   ];
+
   return pairs.filter(([, value]) => value !== undefined).map(([key, value]) => `${key}=${String(value)}`);
 }
 
 function catalogRowLines(row: QueryCatalog): string[] {
   const ops = row.operators === undefined ? "implicit eq/neq/gt/gte/lt/lte/like" : row.operators.join(",");
   const extras = catalogExtras(row);
+
   return [
     `    ${row.entity}  source=${row.source}${row.hook ? " +hook" : ""}${row.harvest.length > 0 ? ` harvest=${row.harvest.join(",")}` : ""}`,
     ...(row.grammar === undefined ? [] : [`      grammar     ${row.grammar}`]),
@@ -53,6 +55,7 @@ export function envelopeLines(model: SpecModel): string[] {
   const located = model.operations
     .filter((op) => op.recordPath !== null || op.createdIdFrom !== null)
     .sort((a, b) => a.operationId.localeCompare(b.operationId));
+
   return block(
     "  record envelopes (x-entity.recordPath / createdIdFrom)",
     located.map((op) => {
@@ -60,6 +63,7 @@ export function envelopeLines(model: SpecModel): string[] {
         op.recordPath === null ? null : `record ${op.recordPath}`,
         op.createdIdFrom === null ? null : `created id ${op.createdIdFrom}`,
       ].filter((part) => part !== null);
+
       return `    ${op.operationId.padEnd(28)} ${parts.join("  ")}`;
     }),
   );
@@ -77,7 +81,9 @@ export function authLines(model: SpecModel): string[] {
       "",
     ];
   }
+
   if (model.hasAuthOperations) return [];
+
   return [
     "  auth",
     `    document declares ${model.securitySchemes.map((s) => `"${s}"`).join(", ")} but contains no`,

@@ -8,10 +8,13 @@ import { successSchemaHonored } from "./schema-success-response-matches-document
 async function judge(created: Answer | null, options: ItemsOptions = {}) {
   const model = modelOfItems(options);
   const staged = contextFor(model, "item.list", { respond: () => created ?? undefined, fields: itemOperations(model) });
+
   if (created !== null)
     await staged.ctx.client.request("POST", "/items", { as: { principal: "alpha" }, operationId: "item.create" });
   const plan = successSchemaHonored.plan(staged.ctx);
+
   if (!plan.ok) throw new Error("the success-schema plan did not apply");
+
   return { ...staged, outcome: await successSchemaHonored.run(staged.ctx, plan.value) };
 }
 
@@ -21,7 +24,7 @@ const verdicts = (findings: { findings: { verdict: string; summary: string }[] }
 describe("schema.success-response-matches-document plan", () => {
   it("needs a create, a validator, and the create in the document", () => {
     const model = modelOfItems();
-    const { ctx } = contextFor(model, "item.list", { respond: () => undefined, fields: itemOperations(model) });
+    const { ctx } = contextFor(model, "item.list", { respond: () => {}, fields: itemOperations(model) });
     expect(successSchemaHonored.plan(ctx).ok).toBe(true);
     expect(successSchemaHonored.plan({ ...ctx, createOp: undefined })).toEqual({ needs: undefined, ok: false });
     expect(successSchemaHonored.plan({ ...ctx, validator: undefined }).ok).toBe(false);
@@ -92,10 +95,12 @@ describe("schema.success-response-matches-document run", () => {
 describe("schema.success-response-matches-document on a body held only by reference", () => {
   it("judges it by the verdict taken at capture", async () => {
     const model = modelOfItems();
+
     const staged = contextFor(model, "item.list", {
       fields: itemOperations(model),
       respond: () => ({ body: { id: "1", name: "a" }, status: 201 }),
     });
+
     await staged.ctx.client.request("POST", "/items", { as: { principal: "alpha" }, operationId: "item.create" });
     const [made] = staged.ctx.client.exchangesFor("item.create");
     Object.assign(made as object, {
@@ -103,6 +108,7 @@ describe("schema.success-response-matches-document on a body held only by refere
       schemaVerdict: { errors: ["/name must be string"] },
     });
     const plan = successSchemaHonored.plan(staged.ctx);
+
     if (!plan.ok) throw new Error("the success-schema plan did not apply");
     expect(await successSchemaHonored.run(staged.ctx, plan.value)).toEqual({ kind: "finding", verdict: "SPEC_BUG" });
     expect(staged.findings.findings[0]?.detail).toContain("/name must be string");

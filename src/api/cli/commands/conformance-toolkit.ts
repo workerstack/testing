@@ -1,4 +1,4 @@
-/* What `testing api conformance` runs, loaded only when it runs: none of it is needed for any other command. */
+// What `testing api conformance` runs, loaded only when it runs: none of it is needed for any other command.
 
 /** The self-test's suites and its defect matrix, read as one module. */
 type Suite = typeof import("../../conformance/suites/parser.ts") &
@@ -15,7 +15,7 @@ type Suite = typeof import("../../conformance/suites/parser.ts") &
   typeof import("../../conformance/harness/launch.ts") &
   typeof import("../../conformance/harness/counting.ts");
 
-export interface Toolkit {
+export type Toolkit = {
   suite: Suite;
   pool: typeof import("../../conformance/pool.ts");
   fuzz: typeof import("../../conformance/fuzz.ts");
@@ -28,7 +28,7 @@ export interface Toolkit {
   unique: typeof import("../../conformance/unique.ts");
   dialect: typeof import("../../reference/dialect/presets.ts");
   defects: typeof import("../../reference/defects/table.ts");
-}
+};
 
 /** Every module of the self-test, loaded at once. */
 export async function loadToolkit(): Promise<Toolkit> {
@@ -50,6 +50,7 @@ export async function loadToolkit(): Promise<Toolkit> {
       import("../../conformance/harness/counting.ts"),
     ])),
   ) as Suite;
+
   const [pool, fuzz, fuzzRender, shapes, seedContract, effects, featureGate, rateLimit, unique, dialect, defects] =
     await Promise.all([
       import("../../conformance/pool.ts"),
@@ -64,6 +65,7 @@ export async function loadToolkit(): Promise<Toolkit> {
       import("../../reference/dialect/presets.ts"),
       import("../../reference/defects/table.ts"),
     ]);
+
   return {
     defects,
     dialect,

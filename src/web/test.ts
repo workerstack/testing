@@ -9,7 +9,7 @@ import {
 
 import { fixtures, type WebFixtures } from "./fixtures.ts";
 
-/* Playwright's test with the web fixtures: a guarded page, the `guard` option and `ready`. */
+// Playwright's test with the web fixtures: a guarded page, the `guard` option and `ready`.
 export const test: TestType<
   PlaywrightTestArgs & PlaywrightTestOptions & WebFixtures,
   PlaywrightWorkerArgs & PlaywrightWorkerOptions

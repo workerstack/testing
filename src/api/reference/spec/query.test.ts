@@ -81,6 +81,7 @@ describe("queryDeclaration with a catalog", () => {
       ],
       filterCatalog: { opsByField: { flag: ["eq"], ghost: ["eq"] } },
     };
+
     const declared = queryDeclaration(CTX, odd, POSTGREST);
     expect(rows(declared["filterable"])).toEqual([
       { field: "flag", ops: ["eq"], type: "boolean" },

@@ -9,6 +9,7 @@ const schema = {
   required: ["title", "name"],
   type: "object",
 };
+
 const gated = {
   "x-feature-gate": "pro",
   responses: { "201": { description: "made" }, "403": { description: "gated" } },
@@ -17,7 +18,9 @@ const gated = {
 async function probe(answer: Answer, create: Record<string, unknown> = {}) {
   const staged = stage(itemsDocument(schema, create), answer);
   const plan = requiredValidated.plan(staged.ctx);
+
   if (!plan.ok) throw new Error("the required plan did not apply");
+
   return { ...staged, outcome: await requiredValidated.run(staged.ctx, plan.value) };
 }
 
@@ -27,6 +30,7 @@ describe("validation.required-enforced plan", () => {
       false,
     );
     const needs = { needs: "a request body with a required field", ok: false };
+
     for (const required of [undefined, [], "title"]) {
       const open = { properties: { title: { type: "string" } }, required, type: "object" };
       expect(requiredValidated.plan(stage(itemsDocument(open), { status: 201 }).ctx)).toEqual(needs);

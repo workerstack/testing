@@ -18,6 +18,7 @@ const KEY_HEADER = { in: "header", name: "Idempotency-Key", schema: { type: "str
 
 function stage(respond: Responder, options: WidgetDocOptions = {}, create: Partial<OperationModel> = {}) {
   const model = modelOf(widgetDoc({ createParameters: [KEY_HEADER], ...options }));
+
   return contextFor(model, "listWidgets", {
     respond,
     fields: {
@@ -33,10 +34,14 @@ const keyOf = (headers: unknown): string | undefined => (headers as Record<strin
 function honoringKeys(rows: Rows = new Map()): Responder {
   const api = widgetApi(rows);
   const answered = new Map<string, Answer | undefined>();
+
   return (method, path, options) => {
     const key = method === "POST" ? keyOf(options.headers) : undefined;
+
     if (key === undefined) return api(method, path, options);
+
     if (!answered.has(key)) answered.set(key, api(method, path, options));
+
     return answered.get(key);
   };
 }
@@ -44,9 +49,11 @@ function honoringKeys(rows: Rows = new Map()): Responder {
 /** Answers the `nth` POST (1-based) with `answer`; the rest reach `backend`. */
 function onPost(nth: number, answer: Answer, backend: Responder = widgetApi()): Responder {
   let posts = 0;
+
   return overriding(backend, (method) => {
-    if (method !== "POST") return undefined;
+    if (method !== "POST") return;
     posts += 1;
+
     return posts === nth ? answer : undefined;
   });
 }
@@ -77,11 +84,15 @@ describe("idempotency.replay-does-not-duplicate verdicts", () => {
     const rows: Rows = new Map();
     const honest = honoringKeys(rows);
     let posts = 0;
+
     const { ctx, findings } = stage((method, path, options) => {
       const answer = honest(method, path, options);
+
       if (method === "POST" && ++posts === 2) rows.set("twin", { id: "twin", name: "copy" });
+
       return answer;
     });
+
     const recordCreated = vi.fn<NonNullable<CheckContext["recordCreated"]>>();
     expect(await runCheck(idempotentReplay, { ...ctx, recordCreated })).toEqual({
       kind: "finding",
@@ -92,12 +103,16 @@ describe("idempotency.replay-does-not-duplicate verdicts", () => {
     expect(findings.findings[0]?.evidence).toHaveLength(4);
     expect(recordCreated).toHaveBeenCalledTimes(1);
     expect(recordCreated.mock.calls[0]?.[0]).toEqual({ entity: "widget", id: "twin", scope: {} });
-    /* Without a ledger the finding still stands. */
+
+    // Without a ledger the finding still stands.
     const { ctx: unledgered } = stage((method, path, options) => {
       const answer = honest(method, path, options);
+
       if (method === "POST") rows.set(`twin${rows.size}`, { id: `twin${rows.size}` });
+
       return answer;
     });
+
     expect((await runCheck(idempotentReplay, unledgered)).kind).toBe("finding");
   });
 });
@@ -107,10 +122,13 @@ describe("idempotency.replay-does-not-duplicate identities and gates", () => {
     const item = { ...WIDGET, properties: { ...(WIDGET.properties as object), id: { type: "string" } } };
     const rows: Rows = new Map();
     const honest = honoringKeys(rows);
+
     const acknowledging: Responder = (method, path, options) => {
       const answer = honest(method, path, options);
+
       return method === "POST" ? { body: null, status: 202 } : answer;
     };
+
     const { ctx, findings, sent } = stage(acknowledging, { item });
     expect(await runCheck(idempotentReplay, ctx)).toEqual({ kind: "asserted" });
     expect(findings.findings).toEqual([]);
@@ -121,6 +139,7 @@ describe("idempotency.replay-does-not-duplicate identities and gates", () => {
     const numeric = overriding(honoringKeys(), (method) =>
       method === "POST" ? { body: { id: 41, name: "n" }, status: 201 } : undefined,
     );
+
     const { ctx, findings } = stage(numeric);
     expect(await runCheck(idempotentReplay, ctx)).toEqual({ kind: "asserted" });
     expect(findings.findings).toEqual([]);
@@ -167,11 +186,14 @@ describe("idempotency.replay-does-not-duplicate preconditions", () => {
 
   it("is unresolved when the collection cannot be read whole around the replay", async () => {
     const reason = "the collection could not be read whole around the replay, so growth was not ruled out";
+
     for (const failingList of [1, 2]) {
       let lists = 0;
+
       const respond = overriding(honoringKeys(), (method, path) =>
         method === "GET" && path === "/widgets" && ++lists === failingList ? { status: 500 } : undefined,
       );
+
       const { ctx } = stage(respond);
       expect(await runCheck(idempotentReplay, ctx)).toEqual({ kind: "unresolved", reason });
     }

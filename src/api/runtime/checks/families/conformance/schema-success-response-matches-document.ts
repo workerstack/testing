@@ -20,13 +20,15 @@ export const successSchemaHonored: Check<{
 }>({
   plan: (ctx) => {
     const { createOp, validator } = ctx;
+
     if (createOp === undefined || validator === undefined) return cannot();
     const raw = ctx.model.rawOperations.get(createOp.operationId);
+
     return raw === undefined ? cannot() : ready({ createOp, raw, validator });
   },
-  /* The body is validated against the schema declared *for the status that came back*. When the
-   * status itself is undocumented there is no schema to validate against, and the right finding
-   * is the status one — not silence. */
+  // The body is validated against the schema declared *for the status that came back*. When the
+  // status itself is undocumented there is no schema to validate against, and the right finding
+  // is the status one — not silence.
   dependsOn: ["create.status-matches-document"],
   id: "schema.success-response-matches-document",
   judgesTranscript: true,
@@ -34,12 +36,16 @@ export const successSchemaHonored: Check<{
   subjects: subjectsOf.create,
   async run(ctx, { createOp, raw, validator }): Promise<Outcome> {
     const exchange = await createExchange(ctx);
+
     if (exchange === undefined)
       return ctx.findings.unresolved(this.id, ctx.entityName, "no successful create was observed");
+
     if (isEventStream(exchange, createOp)) return standDown("the create answers with an event stream");
-    /* A create documented to answer with no body — a 201 naming the record in `Location` — and
-     * answering none matches its document. */
+
+    // A create documented to answer with no body — a 201 naming the record in `Location` — and
+    // answering none matches its document.
     if (validator.documentsNoBody(raw, exchange.status) && emptyBody(exchange.responseBody)) return ASSERTED;
+
     if (!validator.documents(raw, exchange.status)) {
       return ctx.findings.unresolved(
         this.id,
@@ -50,12 +56,14 @@ export const successSchemaHonored: Check<{
     }
 
     const result = verdictOf(validator, { operationId: createOp.operationId, raw }, exchange);
+
     if (result.unchecked !== undefined) {
       return ctx.findings.gap(this.id, ctx.entityName, {
         summary: `${createOp.operationId} ${exchange.status} has a schema that cannot be compiled`,
         detail: `AJV refused the documented schema, so the body was not validated: ${result.unchecked}`,
       });
     }
+
     if (result.ok) return ASSERTED;
 
     return ctx.findings.spec(this.id, ctx.entityName, {

@@ -4,9 +4,10 @@ import { type FakeServer, fakeCreate, serve } from "./__fixtures__/fake-http.ts"
 import { listen } from "./node.ts";
 import { type ReferenceRequest, respond } from "./wire.ts";
 
-/* Listens with a handler that answers with what it was sent. */
+// Listens with a handler that answers with what it was sent.
 async function echoing() {
   const servers: FakeServer[] = [];
+
   const listening = await listen(
     async (request: ReferenceRequest) =>
       respond(201, {
@@ -17,6 +18,7 @@ async function echoing() {
       }),
     fakeCreate(servers, 5555),
   );
+
   return { listening, server: servers[0] as FakeServer };
 }
 
@@ -35,12 +37,14 @@ describe("listen", () => {
 
   it("translates a request in and its answer out", async () => {
     const { server } = await echoing();
+
     const served = await serve(server.listener, {
       chunks: ['{"a":', "1}"],
       headers: { "content-type": "application/json", "set-cookie": ["a", "b"] },
       method: "post",
       url: "/v1/x?y=1",
     });
+
     expect(served.status).toBe(201);
     expect(served.headers["content-type"]).toBe("application/json");
     expect(JSON.parse(served.body)).toEqual({

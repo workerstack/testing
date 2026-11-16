@@ -13,12 +13,11 @@
  * Async throughout, because a real database is: SQLite implementations resolve immediately.
  */
 
+import type { Row } from "./cell.ts";
 import type { EntityDef } from "./model/types.ts";
 import type { SelectPlan } from "./query-types.ts";
 
-export type Row = Record<string, unknown>;
-
-export interface Store {
+export type Store = {
   close(): Promise<void>;
   insert(entity: EntityDef, record: Row): Promise<Row>;
   byId(entity: EntityDef, id: string | number): Promise<Row | null>;
@@ -26,7 +25,7 @@ export interface Store {
   remove(entity: EntityDef, id: string | number): Promise<void>;
   /** Every row matching `plan.where`, ordered by `plan.order`. Paging happens above the store. */
   select(entity: EntityDef, plan: SelectPlan): Promise<Row[]>;
-}
+};
 
 /** Raised for input the storage layer rejects — surfaces as 400, or 500 under the defect. */
 export class SqlError extends Error {
@@ -44,7 +43,9 @@ export function encodeCursor(id: string): string {
 export function decodeCursor(cursor: string): string {
   try {
     const parsed = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8")) as { id?: string };
+
     if (typeof parsed.id !== "string") throw new Error("missing id");
+
     return parsed.id;
   } catch {
     throw new SqlError("invalid_cursor", "cursor is not a value produced by this API");

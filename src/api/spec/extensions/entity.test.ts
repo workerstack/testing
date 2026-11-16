@@ -22,6 +22,7 @@ describe("isEntityAction", () => {
   it("is each action x-entity may declare, and nothing else", () => {
     for (const action of ["create", "list", "read", "update", "delete", "action"])
       expect(isEntityAction(action)).toBe(true);
+
     for (const value of ["get", "LIST", "", null, 1]) expect(isEntityAction(value)).toBe(false);
   });
 });
@@ -79,7 +80,7 @@ describe("x-entity", () => {
     expect(action("patch", "/v1/notes/{id}")).toBe("update");
     expect(action("delete", "/v1/notes/{id}")).toBe("delete");
     expect(action("delete", "/v1/notes")).toBe("action");
-    /* The last fixed segment names the entity, so a trailing verb reads as one. */
+    // The last fixed segment names the entity, so a trailing verb reads as one.
     expect(readEntity(at("post", "/v1/tables/{id}/restore"))).toEqual({
       action: "create",
       name: "restore",

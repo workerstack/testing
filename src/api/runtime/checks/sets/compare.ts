@@ -23,6 +23,7 @@ export async function listAll(ctx: Listed, query: Query): Promise<Listing> {
  */
 export async function listAgain(ctx: Listed, query: Query): Promise<Listing | null> {
   const read = await readListing(ctx, query, true);
+
   return read.status === "ok" ? toListing(read) : null;
 }
 
@@ -40,11 +41,14 @@ function readListing(ctx: Listed, query: Query, fresh: boolean): Promise<SetRead
   const c = conv(ctx);
   const extra: Query = {};
   let order: string | undefined;
+
   for (const [key, value] of Object.entries(query)) {
     if (key === c.limit || key === c.page || key === c.offset || key === c.cursor) continue;
+
     if (key === c.order) order = value === undefined ? undefined : String(value);
     else extra[key] = value;
   }
+
   return readSet(ctx, extra, { ...(fresh ? { fresh: true } : {}), order });
 }
 
@@ -56,10 +60,11 @@ export async function collectSet(
   ctx: Listed,
   requested: number,
   extra: Query = {},
-  /* `fresh`: a repeat read that must see the collection as it is now, not as an earlier read saw it. */
+  // `fresh`: a repeat read that must see the collection as it is now, not as an earlier read saw it.
   { order, fresh = false }: { order?: SortValue | undefined; fresh?: boolean | undefined } = {},
 ): Promise<SetRead | null> {
   const read = await readSet(ctx, extra, { ...(fresh ? { fresh: true } : {}), order, size: requested });
+
   return read.status === "ok" ? read : null;
 }
 
@@ -69,10 +74,10 @@ export function membership(records: Record_[], identity: string): string {
 }
 
 /** Two reads that must hold the same rows. */
-export interface ReadPair<T> {
+export type ReadPair<T> = {
   first: T;
   second: T;
-}
+};
 
 /**
  * Two reads that must hold the same rows and do not. Read the first again: when the same read
@@ -87,11 +92,16 @@ export async function settlePair<T extends { items: Record_[] }>(
 ): Promise<ReadPair<T> | "moving" | null> {
   if (membership(first.items, identity) === membership(second.items, identity)) return { first, second };
   const firstAgain = await again.first();
+
   if (firstAgain === null) return null;
+
   if (membership(firstAgain.items, identity) !== membership(first.items, identity)) return "moving";
   const secondAgain = await again.second();
+
   if (secondAgain === null) return null;
+
   if (membership(secondAgain.items, identity) !== membership(second.items, identity)) return "moving";
+
   return { first: firstAgain, second: secondAgain };
 }
 
@@ -108,26 +118,32 @@ export async function readSettled(
 ): Promise<SetRead[] | "rejected" | "incomplete" | "moving"> {
   const limit = pageSize(ctx);
   const reads: SetRead[] = [];
+
   for (const term of terms) {
     const set = await collectSet(ctx, limit, term);
+
     if (set === null) return "rejected";
     reads.push(set);
   }
+
   if (!reads.every((set) => set.complete)) return "incomplete";
+
   if (agree(reads)) return reads;
+
   const moved = await movedSince(
     ctx,
     reads.map((read, index) => ({ query: terms[index], read })),
   );
+
   return moved === null ? "rejected" : moved ? "moving" : reads;
 }
 
 /** One term of a comparison as its check walked it: the query, and the walk's order and page size. */
-export interface SettledTerm {
+export type SettledTerm = {
   query?: Query | undefined;
   order?: SortValue | undefined;
   size?: number;
-}
+};
 
 /**
  * Whether the collection moved under reads that disagree. Each term is walked again as it was
@@ -142,9 +158,12 @@ async function movedSince(
 ): Promise<boolean | null> {
   for (const { order, query, read, size } of walked) {
     const again = await collectSet(ctx, size ?? pageSize(ctx), query ?? {}, { fresh: true, order });
+
     if (again === null) return null;
+
     if (membership(again.items, ctx.identity) !== membership(read.items, ctx.identity)) return true;
   }
+
   return false;
 }
 
@@ -162,17 +181,21 @@ export async function unlessMoved(
     ctx,
     reads.map((read, index) => ({ ...terms[index], read })),
   );
+
   if (moved === false) return null;
+
   return ctx.findings.unresolved(check, ctx.entityName, moved === null ? REREAD_REFUSED : MOVING_COLLECTION);
 }
 
 export function duplicates(values: string[]): string[] {
   const seen = new Set<string>();
   const dupes = new Set<string>();
+
   for (const value of values) {
     if (seen.has(value)) dupes.add(value);
     seen.add(value);
   }
+
   return [...dupes];
 }
 
@@ -182,6 +205,8 @@ export function setOf(records: Record_[], identity: string): Set<string> {
 
 export function sameSet(a: Set<string>, b: Set<string>): boolean {
   if (a.size !== b.size) return false;
+
   for (const item of a) if (!b.has(item)) return false;
+
   return true;
 }

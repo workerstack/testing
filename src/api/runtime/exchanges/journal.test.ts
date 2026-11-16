@@ -20,6 +20,7 @@ const indexLines = (): Array<RawOf<JournalIndexLine>> =>
     .trim()
     .split("\n")
     .map((line) => JSON.parse(line) as RawOf<JournalIndexLine>);
+
 const fileOf = <T = RawOf<JournalExchangeFile>>(rel: string): T =>
   JSON.parse(readFileSync(join(dir, rel), "utf8")) as T;
 
@@ -73,6 +74,7 @@ describe("createExchangeJournal, a full exchange", () => {
     const redactor = new Redactor();
     redactor.registerSecret("s3cret-value");
     const journal = createExchangeJournal(dir, redactor);
+
     const exchange = exchangeOf({
       finalUrl: "http://h.test/v1/items/2",
       fixture: "a.png",
@@ -84,6 +86,7 @@ describe("createExchangeJournal, a full exchange", () => {
       requestHeaders: { authorization: "Bearer t" },
       url: "http://h.test/v1/items?k=s3cret-value",
     });
+
     await journal.record(exchange, { check: "list.pages", entity: "items", phase: "test" });
     await journal.flush();
     const [line] = indexLines();
@@ -152,6 +155,7 @@ describe("createExchangeJournal, many exchanges", () => {
 
   it("appends the index in batches of 64 without being asked", async () => {
     const journal = createExchangeJournal(dir, new Redactor());
+
     for (let seq = 1; seq <= 64; seq++) await journal.record(exchangeOf({ requestId: `r${seq}`, seq }));
     expect(indexLines()).toHaveLength(64);
     await journal.record(exchangeOf({ requestId: "r65", seq: 65 }));
@@ -204,9 +208,11 @@ async function storesSseAsFrames(): Promise<void> {
       seq: 1,
     },
   ]);
+
   const file = fileOf<{ responseBody: Array<{ event: string; data: Record<string, unknown> }> }>(
     "exchanges/sse-1.json",
   );
+
   expect(file.responseBody).toEqual([{ data: { access_token: "<redacted>", n: 1 }, event: "batch" }]);
   expect(JSON.stringify(file)).not.toContain("nope");
 }
@@ -313,9 +319,11 @@ async function reusesStoredBlob(journal: Journal): Promise<void> {
       seq: 8,
     },
   ]);
+
   const reused = fileOf<{ requestBody: { sha256: string }; responseBody: { sha256: string } }>(
     "exchanges/reuse-blob.json",
   );
+
   expect(reused.requestBody.sha256).toBe(digest);
   expect(reused.responseBody.sha256).toBeDefined();
 }
@@ -336,15 +344,17 @@ async function recordsFormsAndOddTypes(journal: Journal): Promise<void> {
       seq: 11,
     },
   ]);
+
   const empty = fileOf<{ requestBody: { parts: Array<RawOf<Extract<FormPart, { filename: string }>>> } }>(
     "exchanges/empty-type.json",
   );
+
   expect(empty.requestBody.parts[0]?.mediaType).toBe("application/octet-stream");
   const sseCase = fileOf<{ responseBody: unknown }>("exchanges/sse-case.json");
   expect(sseCase.responseBody).toBe("hello-stream");
 }
 
-/* Every body shape in one journal, ending on PDF bytes, a scalar, a huge stream, plain text and an untyped body. */
+// Every body shape in one journal, ending on PDF bytes, a scalar, a huge stream, plain text and an untyped body.
 async function hashesRawBodies(): Promise<void> {
   const journal = journalIn();
   await recordsRawBodies(journal);

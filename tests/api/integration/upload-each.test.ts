@@ -67,18 +67,21 @@ async function scratch(): Promise<string> {
 async function writePdf(dir: string, name: string, marker: string): Promise<string> {
   const path = join(dir, name);
   await writeFile(path, `%PDF-1.1\n${marker}\n%%EOF\n`);
+
   return path;
 }
 
-/* Each-invocation slots for extract.once over `patterns` under `dir`, collecting warnings. */
+// Each-invocation slots for extract.once over `patterns` under `dir`, collecting warnings.
 async function eachOf(dir: string, patterns: string[], eachMax?: number) {
   const warnings: string[] = [];
+
   const slots = await resolveEachInvocations("extract.once", {
     configDir: dir,
     seed: 1,
     uploads: { each: { "extract.once": patterns }, ...(eachMax === undefined ? {} : { eachMax }) },
     warn: (message) => warnings.push(message),
   });
+
   return { slots, warnings };
 }
 
@@ -128,6 +131,7 @@ describe("resolveEachInvocations", () => {
 describe("resolveEachInvocations", () => {
   it("caps at eachMax and warns", async () => {
     const dir = await scratch();
+
     for (const name of ["a.pdf", "b.pdf", "c.pdf", "d.pdf", "e.pdf"]) await writePdf(dir, name, name);
     const { slots, warnings } = await eachOf(dir, ["./*.pdf"], 2);
     expect(slots).toHaveLength(2);
@@ -140,6 +144,7 @@ describe("resolveEachInvocations", () => {
     const bad = join(dir, "bad.pdf");
     await writeFile(bad, "secret");
     await chmod(bad, 0);
+
     try {
       const { slots, warnings } = await eachOf(dir, ["./ok.pdf", "./bad.pdf"]);
       expect(slots?.map((s) => s.filename)).toEqual(["ok.pdf"]);
@@ -160,19 +165,22 @@ describe("resolveEachInvocations", () => {
     const slots = await resolveEachInvocations("extract.once", {
       seed: 1,
       uploads: { each: { "extract.once": ["./testing-each-no-such-dir-xyz/*.pdf"] } },
-      warn: () => undefined,
+      warn: () => {},
     });
+
     expect(slots).toEqual([]);
   });
 
   it("prints nothing itself when no warn hook is set", async () => {
     const dir = await scratch();
     const warn = vi.spyOn(console, "warn");
+
     const slots = await resolveEachInvocations("extract.once", {
       configDir: dir,
       seed: 1,
       uploads: { each: { "extract.once": ["./gone/*.pdf"] } },
     });
+
     expect(slots).toEqual([]);
     expect(warn).not.toHaveBeenCalled();
     warn.mockRestore();
@@ -210,7 +218,7 @@ describe("forEachInvocation", () => {
 
 type EncodeInput = Parameters<typeof encodeRequest>[0];
 
-/* A multipart body for `operationId` with no fields of its own, filled from `uploads`. */
+// A multipart body for `operationId` with no fields of its own, filled from `uploads`.
 function encodeFile(operationId: string, uploads: EncodeInput["uploads"], index = 0) {
   return encodeRequest({
     fields: {},
@@ -229,6 +237,7 @@ describe("encode fill order", () => {
     await writePdf(dir, "invoice.pdf", "each-marker");
     const [slot] = (await eachOf(dir, ["./invoice.pdf"])).slots ?? [];
     expect(slot).toBeDefined();
+
     const encoded = await encodeFile("extract.once", {
       configDir: dir,
       ...(slot === undefined ? {} : { fixture: slot }),
@@ -236,6 +245,7 @@ describe("encode fill order", () => {
       seed: 1,
       uploads: { each: { "extract.once": ["./invoice.pdf"] } },
     });
+
     const form = encoded.body as FormData;
     expect(form.get("columns")).toBe("vendor,date,amount");
     const file = form.get("file") as File;
@@ -252,6 +262,7 @@ describe("encode fill order", () => {
     expect(slots).toHaveLength(2);
     const names: string[] = [];
     const markers: string[] = [];
+
     for (const slot of slots ?? []) {
       const encoded = await encodeFile(
         "extract.once",
@@ -268,10 +279,12 @@ describe("encode fill order", () => {
         },
         slot.index,
       );
+
       const file = (encoded.body as FormData).get("file") as File;
       names.push(file.name);
       markers.push(Buffer.from(await file.arrayBuffer()).toString("ascii"));
     }
+
     expect(names).toEqual(["hardcoded.pdf", "hardcoded.pdf"]);
     expect(markers.every((m) => m.includes("hook-jpeg"))).toBe(true);
   });
@@ -282,11 +295,13 @@ describe("encode fill order", () => {
     const dir = await scratch();
     await writePdf(dir, "pool.pdf", "pool-only");
     await writePdf(dir, "other.pdf", "other");
+
     const encoded = await encodeFile("suggest.schema", {
       configDir: dir,
       seed: 4,
       uploads: { each: { "extract.once": ["./*.pdf"] }, pool: ["./pool.pdf"] },
     });
+
     const file = (encoded.body as FormData).get("file") as File;
     expect(Buffer.from(await file.arrayBuffer()).toString("ascii")).toContain("pool-only");
   });
@@ -300,16 +315,20 @@ describe("seed fan-out", () => {
     await writePdf(dir, "three.pdf", "THREE");
     const seen: string[] = [];
     const { close, url } = await serveExtract((name) => seen.push(name));
+
     try {
       const model = extractModel();
       const createOp = model.byOperationId.get("extract.once");
+
       if (createOp === undefined) throw new Error("missing extract.once");
-      /* The document declares no security, so every actor sends nothing. */
+
+      // The document declares no security, so every actor sends nothing.
       const client = new Client({
         baseUrl: url,
         credentials: { resolve: async () => ({ kind: "anonymous" }) },
         redactor: new Redactor(),
       });
+
       const seeded = await seedCohort(
         createOp,
         {
@@ -328,6 +347,7 @@ describe("seed fan-out", () => {
         },
         { created: [], values: {} },
       );
+
       expect(seeded.records).toHaveLength(3);
       expect(seen.sort()).toEqual(["one.pdf", "three.pdf", "two.pdf"]);
     } finally {
@@ -343,6 +363,7 @@ describe("profile skip", () => {
     await writePdf(dir, "two.pdf", "2");
     const seen: string[] = [];
     const { close, url } = await serveExtract((name) => seen.push(name), true);
+
     try {
       const result = await run({
         baseUrl: url,
@@ -354,6 +375,7 @@ describe("profile skip", () => {
         spec: `${url}/openapi.json`,
         uploads: { each: { "extract.once": ["./*.pdf"] } },
       });
+
       expect(seen).toEqual([]);
       expect(result.findings.some((f) => f.check === "profile.skip")).toBe(true);
     } finally {
@@ -384,29 +406,39 @@ async function serveExtract(
       "/openapi.json": undefined,
     },
   };
+
   let seq = 0;
+
   const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     void (async () => {
       const url = new URL(req.url ?? "/", "http://127.0.0.1");
+
       if (withSpec && url.pathname === "/openapi.json") {
         const body = JSON.stringify({
           info: spec.info,
           openapi: spec.openapi,
           paths: { "/extracts": { get: LIST, post: EXTRACT } },
         });
+
         res.writeHead(200, { "content-type": "application/json" });
         res.end(body);
+
         return;
       }
+
       if ((req.method ?? "GET").toUpperCase() === "GET" && url.pathname === "/extracts") {
         res.writeHead(200, { "content-type": "application/json" });
         res.end(JSON.stringify({ extracts: [] }));
+
         return;
       }
+
       const chunks: Buffer[] = [];
+
       for await (const chunk of req) chunks.push(chunk as Buffer);
       const raw = Buffer.concat(chunks).toString("latin1");
       const match = /filename="([^"]+)"/.exec(raw);
+
       if (match?.[1] !== undefined) onFile(match[1]);
       res.writeHead(201, { "content-type": "application/json" });
       res.end(JSON.stringify({ id: `ex_${String((seq += 1))}` }));
@@ -415,11 +447,14 @@ async function serveExtract(
       res.end();
     });
   });
+
   await new Promise<void>((resolve) => {
     server.listen(0, "127.0.0.1", () => resolve());
   });
   const address = server.address();
+
   if (address === null || typeof address === "string") throw new Error("no listen address");
+
   return {
     close: () =>
       new Promise((resolve, reject) => {

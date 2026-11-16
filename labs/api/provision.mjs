@@ -72,17 +72,22 @@ const DEFAULT = [
   "bug-500",
   "bug-errschema",
 ];
+
 const SCALE = ["huge", "vast"];
 
 function parseEnv(text) {
   const out = {};
+
   for (const line of text.split("\n")) {
     const trimmed = line.trim();
+
     if (trimmed === "" || trimmed.startsWith("#")) continue;
     const eq = trimmed.indexOf("=");
+
     if (eq === -1) continue;
     out[trimmed.slice(0, eq)] = trimmed.slice(eq + 1);
   }
+
   return out;
 }
 
@@ -95,15 +100,18 @@ function dbName(worldId) {
 }
 
 let envText = "";
+
 try {
   envText = await readFile(envPath, "utf8");
 } catch {
   console.error("provision: repo-root .env is missing");
   process.exit(1);
 }
+
 const env = parseEnv(envText);
 const accountId = env.CLOUDFLARE_ACCOUNT_ID;
 const token = env.CLOUDFLARE_API_TOKEN;
+
 if (!accountId || !token) {
   console.error("provision: CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN must be set in .env");
   process.exit(1);
@@ -122,13 +130,16 @@ for (const id of ids) {
 const headers = { authorization: `Bearer ${token}`, "content-type": "application/json" };
 const listed = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database`, { headers });
 const listBody = await listed.json();
+
 if (!listBody.success) {
   console.error("provision: list D1 failed", JSON.stringify(listBody.errors ?? listBody, null, 2));
   process.exit(1);
 }
+
 const existing = new Map((listBody.result ?? []).map((db) => [db.name, db.uuid]));
 
 let map = {};
+
 try {
   map = JSON.parse(await readFile(mapPath, "utf8"));
 } catch {
@@ -144,28 +155,35 @@ async function query(databaseId, sql, params = []) {
       method: "POST",
     },
   );
+
   const body = await response.json();
+
   if (!response.ok || !body.success) {
     const detail = body.errors?.map((e) => `${e.code}: ${e.message}`).join("; ") ?? `HTTP ${response.status}`;
     throw new Error(`${detail} for ${sql.slice(0, 120)}`);
   }
+
   return body.result?.[0]?.results ?? [];
 }
 
 for (const id of ids) {
   const name = dbName(id);
   let databaseId = existing.get(name);
+
   if (databaseId === undefined) {
     const created = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database`, {
       body: JSON.stringify({ name }),
       headers,
       method: "POST",
     });
+
     const body = await created.json();
+
     if (!body.success) {
       console.error(`provision: create ${name} failed`, JSON.stringify(body.errors ?? body, null, 2));
       process.exit(1);
     }
+
     databaseId = body.result.uuid;
     console.log(`created  ${name}  ${databaseId}`);
   } else {
@@ -174,23 +192,28 @@ for (const id of ids) {
 
   const world = WORLDS[id];
   const statements = schemaStatements(world);
-  for (const sql of statements) {
-    await query(databaseId, sql);
-  }
+
+  for (const sql of statements) await query(databaseId, sql);
+
   const tables = await query(databaseId, "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name");
   console.log(`  schema  ${world.entities.length} entities  ${tables.length} tables`);
 
   const key = d1EnvKey(id);
+
   if (new RegExp(`^${key}=`, "m").test(envText)) {
     envText = envText.replace(new RegExp(`^${key}=.*$`, "m"), `${key}=${databaseId}`);
   } else {
     if (!envText.endsWith("\n")) envText += "\n";
     envText += `${key}=${databaseId}\n`;
   }
+
   map[id] = { id: databaseId, name, entities: world.entities.length };
 }
 
 await writeFile(envPath, envText);
+
 await mkdir(dirname(mapPath), { recursive: true });
+
 await writeFile(mapPath, `${JSON.stringify(map, null, 2)}\n`);
+
 console.log(`wrote ${ids.length} D1 id(s) to .env and labs/api/.d1.json`);

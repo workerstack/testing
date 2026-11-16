@@ -5,11 +5,9 @@ import { op } from "../__fixtures__/harness.ts";
 import { notesContext, notesModel, withConventions } from "../query/__fixtures__/notes.ts";
 import { envelopeValue, forList, ids, list, type ListResult } from "./list.ts";
 
-/*
- * One page of a list and the facts it carries. A pagination fact is read by whatever the
- * document calls it, from the body or from a declared `Link` header, where a missing `rel="next"`
- * is a definite "no more pages", not an unknown.
- */
+// One page of a list and the facts it carries. A pagination fact is read by whatever the
+// document calls it, from the body or from a declared `Link` header, where a missing `rel="next"`
+// is a definite "no more pages", not an unknown.
 
 const TAGS = {
   "/tags": {
@@ -53,10 +51,12 @@ describe("envelopeValue", () => {
 
   it("reads more pages and the next cursor from a declared Link header", () => {
     const ctx = withConventions(notesContext().ctx, { linkHeader: "Link" });
+
     const linked = page(
       {},
       { link: '<https://api.test/notes?page=2>; rel="next", <https://api.test/notes?page=1>; rel=first' },
     );
+
     expect(envelopeValue(ctx, linked, "hasMore")).toBe(true);
     expect(envelopeValue(ctx, linked, "nextCursor")).toBe("https://api.test/notes?page=2");
     expect(envelopeValue(ctx, linked, "total")).toBeUndefined();
@@ -97,6 +97,7 @@ describe("list", () => {
     const { ctx } = notesContext(() => ({ body: { items: [{ id: "1" }], total: 1 }, status: 200 }), {
       collectionKey: "items",
     });
+
     const result = await list(ctx);
     expect(result.items).toEqual([{ id: "1" }]);
     expect(result.envelope).toEqual({ items: [{ id: "1" }], total: 1 });

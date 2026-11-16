@@ -6,7 +6,7 @@ import { inProcess, type Via } from "../harness/launch.ts";
 import { publicCatalog } from "./public-catalog.ts";
 import { runTenantScopeSuite } from "./tenant-scope.ts";
 
-/* A transport that cannot reach anything: each case reports why, and the rest still run. */
+// A transport that cannot reach anything: each case reports why, and the rest still run.
 const nowhere: Via = {
   host: () => Promise.reject(new Error("no host")),
   launch: () => Promise.reject(new Error("no reference")),
@@ -39,11 +39,12 @@ describe("runTenantScopeSuite", () => {
   });
 
   it("names the verdict a leak got instead of the one it should have", async () => {
-    /* The reference launches without the defect it was asked for: no leak to find. */
+    // The reference launches without the defect it was asked for: no leak to find.
     const unbroken: Via = {
       ...inProcess,
       launch: (backend, options) => inProcess.launch(backend, { ...options, defects: [] }),
     };
+
     const results = await runTenantScopeSuite(unbroken);
     expect(results.map((r) => r.detail)).toEqual([
       "check did not apply; no finding",
@@ -63,21 +64,26 @@ function tenanted(spec: { paths: Record<string, Record<string, Record<string, un
   const paths = Object.entries(spec.paths).map(([path, item]) => {
     const ops = Object.entries(item).map(([method, op]) => {
       const parameters = [WORKSPACE, ...((op["parameters"] as unknown[] | undefined) ?? [])];
+
       return [method, { ...op, parameters, "x-tenant": "workspace_id" }];
     });
+
     return [path.replace("/v1/", "/v1/workspaces/{workspace_id}/"), Object.fromEntries(ops)];
   });
+
   return { ...spec, paths: Object.fromEntries(paths) };
 }
 
-interface Row {
+type Row = {
   id: string;
-}
+};
 
 /** Rows of `workspace` only: what an enforcing backend answers in place of the shared table. */
 function scoped(answer: ReferenceResponse, owners: Map<string, string>, workspace: string): ReferenceResponse {
   const body = JSON.parse(answer.body) as Row | { templates: Row[] };
+
   if (!("templates" in body)) return owners.get(body.id) === workspace ? answer : respond(404, { error: "not_found" });
+
   return respond(200, { templates: body.templates.filter((row) => owners.get(row.id) === workspace) });
 }
 
@@ -88,18 +94,23 @@ function scoped(answer: ReferenceResponse, owners: Map<string, string>, workspac
 function catalogUnder(enforce: boolean): Handle {
   const catalog = publicCatalog();
   const owners = new Map<string, string>();
+
   return async (request) => {
     const [, workspace = ""] = /^\/v1\/workspaces\/([^/]+)\//.exec(request.url.pathname) ?? [];
     const url = new URL(request.url);
     url.pathname = request.url.pathname.replace(`/workspaces/${workspace}/`, "/");
+
     const answer = await catalog(
       referenceRequest(request.method, url, { headers: request.headers, read: request.text }),
     );
-    if (url.pathname === "/v1/openapi/spec") {
+
+    if (url.pathname === "/v1/openapi/spec")
       return respond(200, tenanted(JSON.parse(answer.body) as Parameters<typeof tenanted>[0]));
-    }
+
     if (answer.status === 201) owners.set((JSON.parse(answer.body) as Row).id, workspace);
+
     if (!enforce || answer.status !== 200 || request.method !== "GET") return answer;
+
     return scoped(answer, owners, workspace);
   };
 }

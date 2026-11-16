@@ -30,7 +30,9 @@ async function serve(routes: readonly Route[]): Promise<{ url: string }> {
       if (!res.headersSent) send(res, 500);
     });
   });
+
   closers.push(server.close);
+
   return server;
 }
 
@@ -51,11 +53,12 @@ const okRoute = (method: string, path: string, body?: unknown): Route => [
   (_req, res) => send(res, 200, body),
 ];
 
-/* The owner of org_1, and another org's member it invites: each sends its own token. */
+// The owner of org_1, and another org's member it invites: each sends its own token.
 const principals = {
   alpha: { scope: { org_id: "org_1" }, tenant: "org_1", token: "a" },
   beta: { inviteAs: "beta@x.test", scope: { org_id: "org_2" }, tenant: "org_2", token: "b" },
 };
+
 const security = { bearer: { static: "{principal.token}" } };
 
 type RunOptions = Parameters<typeof run>[0];
@@ -85,8 +88,11 @@ function memberRead(granted: () => boolean, grantee: string, denied: number): Ro
     "/v1/orgs/org_1/members/m1",
     (req, res) => {
       const auth = req.headers.authorization ?? "";
+
       if (auth === grantee && granted()) return send(res, 200, { email: "beta@x.test", id: "m1" });
+
       if (auth === "Bearer a") return send(res, 200, { email: "owner@x.test", id: "m1" });
+
       return send(res, denied);
     },
   ];
@@ -102,25 +108,33 @@ const ownerOnlyRead: Route = [
 async function acceptJsonToken(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const type = req.headers["content-type"] ?? "";
   const body = await readJson(req);
+
   if (!type.includes("application/json")) return send(res, 415, { error: "unsupported_media_type" });
-  if (body === null || typeof body !== "object" || (body as { token?: unknown }).token !== "tok-from-invite") {
+
+  if (body === null || typeof body !== "object" || (body as { token?: unknown }).token !== "tok-from-invite")
     return send(res, 400, { error: "missing_token" });
-  }
+
   return send(res, 200, { ok: true });
 }
 
 async function acceptEmptyBody(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const chunks: Buffer[] = [];
+
   for await (const chunk of req) chunks.push(chunk as Buffer);
+
   if (Buffer.concat(chunks).length > 0) return send(res, 400, { error: "unexpected_body" });
+
   return send(res, 200, { ok: true });
 }
 
 async function revokeJsonGrant(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const type = req.headers["content-type"] ?? "";
   const body = await readJson(req);
+
   if (!type.includes("application/json")) return send(res, 415);
+
   if ((body as { grant_id?: unknown })?.grant_id !== "g1") return send(res, 400);
+
   return send(res, 200, { ok: true });
 }
 
@@ -128,7 +142,9 @@ async function revokeJsonGrant(req: IncomingMessage, res: ServerResponse): Promi
 function acceptToken(expected: string, then: (res: ServerResponse) => void, wrong?: unknown): Handler {
   return async (req, res) => {
     const body = await readJson(req);
+
     if ((body as { token?: unknown })?.token !== expected) return send(res, 400, wrong);
+
     return then(res);
   };
 }
@@ -185,6 +201,7 @@ async function sendsJsonRevokeBody(): Promise<void> {
 async function acceptsMailedToken(): Promise<void> {
   const spec = inviteSpecWith({ tokenFrom: "outOfBand", tokenKind: "org-invite" });
   const kinds: string[] = [];
+
   const server = await serve([
     ...baseRoutes(spec, { members: [] }, { grant_id: "g1", token: "tok-from-json-ignored" }),
     [
@@ -200,11 +217,13 @@ async function acceptsMailedToken(): Promise<void> {
       resolveOutOfBand: async ({ address, kind }) => {
         kinds.push(kind);
         expect(address).toBe("beta@x.test");
+
         return "tok-from-mail";
       },
     },
     outOfBand: OOB,
   });
+
   const accept = sent(result.client.transcript, "POST", "/v1/invites/accept");
   expect(accept?.requestBody).toEqual({ token: "tok-from-mail" });
   expect(kinds).toContain("org-invite");
@@ -213,6 +232,7 @@ async function acceptsMailedToken(): Promise<void> {
 
 async function readsGrantWithAcceptToken(): Promise<void> {
   let granted = false;
+
   const server = await serve([
     ...baseRoutes(inviteSpec("body"), OWNER_LIST, INVITED),
     [
@@ -235,12 +255,14 @@ async function readsGrantWithAcceptToken(): Promise<void> {
   ]);
 
   const result = await runMember(server.url);
+
   const acceptAt = result.client.transcript.findIndex(
     (exchange) => exchange.method === "POST" && new URL(exchange.url).pathname === "/v1/invites/accept",
   );
+
   const grantRead = sent(result.client.transcript.slice(acceptAt + 1), "GET", "/v1/orgs/org_1/members/m1");
   expect(acceptAt).toBeGreaterThanOrEqual(0);
-  /* The bearer scheme places it under its canonical name. */
+  // The bearer scheme places it under its canonical name.
   expect(grantRead?.requestHeaders["Authorization"]).toBe("Bearer fresh");
   expect(grantRead?.principal).toBe("beta");
   expect(grantRead?.status).toBe(200);
@@ -265,6 +287,7 @@ async function getsMailedLink(): Promise<void> {
   const spec = inviteSpecWith({ acceptFrom: "link", tokenFrom: "outOfBand", tokenKind: "org-invite" });
   let granted = false;
   const oob: Array<{ kind: string; scope: Record<string, string> }> = [];
+
   const server = await serve([
     ...baseRoutes(spec, OWNER_LIST, { grant_id: "g1", token: "ignored-json" }),
     okRoute("POST", "/v1/invites/accept", { ok: "json-token-accept-must-not-grant" }),
@@ -287,11 +310,13 @@ async function getsMailedLink(): Promise<void> {
     hooks: {
       resolveOutOfBand: async (request) => {
         oob.push({ kind: request.kind, scope: request.scope });
+
         return `${server.url}/consume?token=mailed-link`;
       },
     },
     outOfBand: OOB,
   });
+
   const getAccept = sent(result.client.transcript, "GET", "/consume");
   const postAccept = sent(result.client.transcript, "POST", "/v1/invites/accept");
   expect(getAccept).toBeDefined();
@@ -305,6 +330,7 @@ async function getsMailedLink(): Promise<void> {
 
 async function failsOnMissingLink(): Promise<void> {
   const spec = inviteSpecWith({ acceptFrom: "link", tokenFrom: "outOfBand" });
+
   const server = await serve([
     ...baseRoutes(spec, OWNER_LIST, { grant_id: "g1", token: "tok" }),
     okRoute("POST", "/v1/invites/accept", { ok: true }),
@@ -316,6 +342,7 @@ async function failsOnMissingLink(): Promise<void> {
     hooks: { resolveOutOfBand: async () => `${server.url}/missing-consume?token=x` },
     outOfBand: OOB,
   });
+
   expect(
     result.inconclusive.some(
       (row) => row.check === "auth.invite-grants-then-revokes" && /accept returned 404/.test(row.reason),
@@ -327,6 +354,7 @@ async function failsOnMissingLink(): Promise<void> {
 async function failsOnPostAgainstLinkWorld(): Promise<void> {
   const spec = inviteSpecWith({ tokenFrom: "outOfBand" });
   let granted = false;
+
   const server = await serve([
     ...baseRoutes(spec, OWNER_LIST, { grant_id: "g1", token: "tok" }),
     okRoute("POST", "/v1/invites/accept", { ok: true }),
@@ -346,6 +374,7 @@ async function failsOnPostAgainstLinkWorld(): Promise<void> {
     hooks: { resolveOutOfBand: async () => `${server.url}/consume?token=mailed` },
     outOfBand: OOB,
   });
+
   expect(
     result.findings.some(
       (f) =>
@@ -366,6 +395,7 @@ async function rejectsNonUrlLink(): Promise<void> {
     hooks: { resolveOutOfBand: async () => "not-a-url" },
     outOfBand: OOB,
   });
+
   expect(
     result.inconclusive.some(
       (row) => row.check === "auth.invite-grants-then-revokes" && /absolute http\(s\) URL/.test(row.reason),

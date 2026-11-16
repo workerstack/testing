@@ -8,11 +8,9 @@ import { inviteBackend, inviteContext, inviteDocument } from "./__fixtures__/inv
 import { inviteGrantsThenRevokes } from "./auth-invite-grants-then-revokes.ts";
 import { REVOKE_TIMING } from "./revoke-window.ts";
 
-/*
- * An API that does not invalidate the tokens it issued declares how long a revoked grant may keep
- * working. The delegate reads on a backoff until it is refused: within the bound passes, past it is
- * the revoke finding, and a bound past the longest watch is noted, not judged.
- */
+// An API that does not invalidate the tokens it issued declares how long a revoked grant may keep
+// working. The delegate reads on a backoff until it is refused: within the bound passes, past it is
+// the revoke finding, and a bound past the longest watch is noted, not judged.
 
 afterEach(() => {
   REVOKE_TIMING.clock = SYSTEM_CLOCK;
@@ -34,12 +32,17 @@ function lagging(lagMs: number, after?: () => Answer) {
   };
   const backend = inviteBackend();
   let revokedAt: number | undefined;
+
   const respond: Responder = (method, path, options) => {
     if (method === "DELETE") revokedAt = now;
+
     if (method !== "GET" || revokedAt === undefined) return backend(method, path, options);
+
     if (now - revokedAt < lagMs) return { body: { id: "n1" }, status: 200 };
+
     return after?.() ?? backend(method, path, options);
   };
+
   return respond;
 }
 
@@ -47,6 +50,7 @@ function lagging(lagMs: number, after?: () => Answer) {
 const renewalRefused = (): Answer => {
   throw new UnsatisfiedSecurity("blocked", "the refresh answered 401");
 };
+
 const unsatisfied = (): Answer => {
   throw new UnsatisfiedSecurity("unsatisfied", "no credential for bearer");
 };
@@ -124,6 +128,7 @@ describe("auth.invite-grants-then-revokes waits only when a bound is declared", 
       revokePath: "/orgs/{org_id}/invites/{grant_id}",
       tag: { revokeStaleness: 300 },
     });
+
     const { ctx, sent } = inviteContext(doc, lagging(1000), { readOp: undefined });
     expect(await runCheck(inviteGrantsThenRevokes, ctx)).toEqual({ kind: "asserted" });
     expect(sent.at(-1)?.method).toBe("DELETE");

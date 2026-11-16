@@ -5,11 +5,12 @@ import { describe, expect, it } from "vitest";
 import { bufferWriter } from "../writer.ts";
 import { signalExit, type SignalSource, stopOnSignal } from "./run-signals.ts";
 
-/* The first signal stops testing and still cleans up; a second exits at once. */
+// The first signal stops testing and still cleans up; a second exits at once.
 
 function source() {
   const emitter = new EventEmitter();
   const exits: number[] = [];
+
   const signals: SignalSource = {
     exit: ((code: number) => {
       exits.push(code);
@@ -18,6 +19,7 @@ function source() {
     off: (signal, listener) => emitter.off(signal, listener),
     on: (signal, listener) => emitter.on(signal, listener),
   };
+
   return { emitter, exits, signals };
 }
 

@@ -4,7 +4,7 @@ import { ok } from "../__fixtures__/documents.ts";
 import { modelOf } from "./__fixtures__/operations.ts";
 import type { SpecModel } from "./types.ts";
 
-/* A $ref that points at nothing: an unconstrained schema with a gap, or anywhere else an untested operation. */
+// A $ref that points at nothing: an unconstrained schema with a gap, or anywhere else an untested operation.
 
 const MISSING = "#/components/schemas/AppFeeAllocation";
 const fee = { $ref: MISSING };
@@ -35,6 +35,7 @@ describe("a dangling $ref in a schema", () => {
       },
       { components: { schemas: { Order: order } } },
     );
+
     const detail = `$ref ${MISSING} points at nothing; the API tester reads that schema as unconstrained`;
     expect(refGaps(model)).toEqual([`orders.list: ${detail}`, `orders.create: ${detail}`]);
     expect(model.operations.map((op) => op.unsendable)).toEqual([null, null, null]);
@@ -43,6 +44,7 @@ describe("a dangling $ref in a schema", () => {
   it("is found wherever a schema sits: parameters, headers, item schemas, and recursive definitions", () => {
     const node = { properties: { child: { $ref: "#/components/schemas/Node" }, fee }, type: "object" };
     const header = { content: { "text/plain": { schema: fee } } };
+
     const model = modelOf(
       {
         "/a": { get: { operationId: "a", parameters: [{ in: "query", name: "q", schema: fee }], responses: {} } },
@@ -55,6 +57,7 @@ describe("a dangling $ref in a schema", () => {
       },
       { components: { schemas: { Node: node } } },
     );
+
     expect(refGaps(model).map((line) => line.split(":")[0])).toEqual(["a", "b", "c", "d"]);
     expect(model.operations.every((op) => op.unsendable === null)).toBe(true);
   });
@@ -63,6 +66,7 @@ describe("a dangling $ref in a schema", () => {
 describe("a dangling $ref anywhere else", () => {
   it("leaves the operation untested with the reason, and models and runs the rest", () => {
     const missing = "#/components/parameters/Missing";
+
     const model = modelOf({
       "/things": {
         get: {
@@ -80,6 +84,7 @@ describe("a dangling $ref anywhere else", () => {
         },
       },
     });
+
     const list = model.byOperationId.get("things.list");
     expect(list).toMatchObject({ action: null, entity: null, unsendable: `$ref ${missing} points at nothing` });
     expect(refGaps(model)).toEqual([`things.list: ${untested(missing)}`]);
@@ -115,6 +120,7 @@ describe("a dangling $ref outside a schema", () => {
       },
       "/link": { get: { operationId: "link", responses: { "200": { links: { next: gone("link") } } } } },
     });
+
     const reasons = model.operations.map((op) => op.unsendable);
     expect(reasons).toEqual([
       "$ref #/components/x/body points at nothing",
@@ -144,6 +150,7 @@ describe("a dangling $ref in a callback", () => {
         },
       },
     });
+
     expect(model.byOperationId.get("callback")?.unsendable).toBe("$ref #/components/x/callback points at nothing");
     expect(refGaps(model)).toEqual([
       `callback: $ref ${MISSING} points at nothing; the API tester reads that schema as unconstrained`,
@@ -157,6 +164,7 @@ describe("a dangling $ref in a callback", () => {
 describe("a dangling $ref in a path item", () => {
   it("from a path item's shared parameters leaves each operation under it untested, and keeps a method's own reason", () => {
     const missing = "#/components/parameters/Org";
+
     const model = modelOf({
       "/orgs/{org}": {
         get: { operationId: "orgs.get", responses: ok(item) },
@@ -164,6 +172,7 @@ describe("a dangling $ref in a path item", () => {
         trace: { operationId: "orgs.trace", responses: {} },
       },
     });
+
     expect(model.byOperationId.get("orgs.get")?.unsendable).toBe(`$ref ${missing} points at nothing`);
     expect(model.byOperationId.get("orgs.trace")?.unsendable).toMatch(/^fetch refuses TRACE/);
     expect(refGaps(model)).toEqual([`orgs.get: ${untested(missing)}`, `orgs.trace: ${untested(missing)}`]);

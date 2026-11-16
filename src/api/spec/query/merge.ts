@@ -28,18 +28,19 @@ export function emptyCapabilities(): EffectiveQueryCapabilities {
   };
 }
 
-interface Axis<T> {
+type Axis<T> = {
   tagDeclared: boolean;
   tagValues: T[];
   configDeclared: boolean;
   config: T[];
   heuristic: T[];
-}
+};
 
 /** The tag's values when it declared the axis, unioned with config's when config did; else the guess. */
 function resolveAxis<T>(input: Axis<T>, union: (base: T[], extra: T[]) => T[]): T[] {
   if (!input.tagDeclared && !input.configDeclared) return input.heuristic;
   const values = input.tagDeclared ? input.tagValues : [];
+
   return input.configDeclared ? union(values, input.config) : values;
 }
 
@@ -54,16 +55,22 @@ const tagDeclares = (
 function withInferredType(field: FilterableField, types: Map<string, FieldType>): EffectiveFilterField {
   const effective: EffectiveFilterField = { field: field.field };
   const type = field.type ?? types.get(field.field);
+
   if (type !== undefined) effective.type = type;
+
   if (field.ops !== undefined) effective.ops = field.ops;
+
   return effective;
 }
 
 function withInferredSortType(field: SortableField, types: Map<string, FieldType>): EffectiveSortableField {
   const effective: EffectiveSortableField = { field: field.field };
   const type = field.type ?? types.get(field.field);
+
   if (type !== undefined) effective.type = type;
+
   if (field.nulls !== undefined) effective.nulls = field.nulls;
+
   return effective;
 }
 
@@ -78,6 +85,7 @@ function filterableAxis({ tag, global, entity }: MergeInput, types: Map<string, 
     },
     unionNamed,
   );
+
   return fields.map((field) => withInferredType(field, types));
 }
 
@@ -92,13 +100,16 @@ function sortableAxis({ tag, global, entity }: MergeInput, types: Map<string, Fi
     },
     unionNamed,
   );
+
   return fields.map((field) => withInferredSortType(field, types));
 }
 
 /** The config's searchable names: an explicit `null` on the entity, or on a global the entity leaves alone, is none. */
 function configSearchable(entity: string[] | null | undefined, global: string[] | null | undefined): string[] {
   if (entity === undefined) return global ?? [];
+
   if (entity === null) return [];
+
   return global === null || global === undefined ? entity : unionStrings(global, entity);
 }
 
@@ -134,13 +145,16 @@ function selectableAxis({ tag, global, entity }: MergeInput): string[] {
 function sourceOf({ tag, global, entity }: MergeInput): EffectiveQueryCapabilities["source"] {
   const tagContributed = tag?.source === "tag";
   const configContributed = global !== undefined || entity !== undefined;
+
   if (tagContributed) return configContributed ? "mixed" : "tag";
+
   return configContributed ? "config" : "heuristic";
 }
 
 export function mergeQueryCapabilities(input: MergeInput): EffectiveQueryCapabilities {
   const types = inferTypesFromSchema(input.itemSchema ?? null);
   const catalog = overlayCatalog(input.tag, input.global, input.entity);
+
   const result: EffectiveQueryCapabilities = {
     aliases: catalog.aliases ?? {},
     filterable: filterableAxis(input, types),
@@ -150,6 +164,8 @@ export function mergeQueryCapabilities(input: MergeInput): EffectiveQueryCapabil
     sortable: sortableAxis(input, types),
     source: sourceOf(input),
   };
+
   assignOptional(result, catalog);
+
   return result;
 }

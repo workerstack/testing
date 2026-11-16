@@ -6,7 +6,7 @@ import type { Exchange } from "../exchange.ts";
 import { doc, ok, pathParam } from "./__fixtures__/stage.ts";
 import { madeByRun } from "./made-by-run.ts";
 
-/* Keys an API mints, and notes: two collections whose records both answer `id`. */
+// Keys an API mints, and notes: two collections whose records both answer `id`.
 const model = modelOf(
   doc({
     "/keys": { post: { operationId: "keys.create", responses: { "201": { description: "made" } } } },
@@ -17,7 +17,7 @@ const model = modelOf(
   }),
 );
 
-/* A create of `operationId` answered `status` with `body`, sent by the credential store or not. */
+// A create of `operationId` answered `status` with `body`, sent by the credential store or not.
 function create(operationId: string | undefined, answer: { body: unknown; status?: number }, issued = true): Exchange {
   const sent = exchangeOf(
     {
@@ -27,13 +27,14 @@ function create(operationId: string | undefined, answer: { body: unknown; status
     },
     { body: answer.body, status: answer.status ?? 201 },
   );
+
   return issued ? { ...sent, issuedBy: "credentials" } : sent;
 }
 
-/* A ledger that holds nothing. */
+// A ledger that holds nothing.
 const none = { holds: () => false };
 
-/* A credential the store holds for `principal`. */
+// A credential the store holds for `principal`.
 const held = (principal: string, value: string): HeldCredential => ({
   credential: { expiresAt: null, value } as HeldCredential["credential"],
   principal,
@@ -41,7 +42,7 @@ const held = (principal: string, value: string): HeldCredential => ({
   scopes: [],
 });
 
-/* The revoke of key `id`, answered `status`. */
+// The revoke of key `id`, answered `status`.
 const revoke = (id: string, status: number): Exchange =>
   exchangeOf(
     { method: "DELETE", options: { as: { anonymous: true }, operationId: "keys.revoke" }, path: `/keys/${id}` },
@@ -56,6 +57,7 @@ describe("madeByRun", () => {
       ledger: { holds: (entity, id) => entity === "note" && id === "n1" },
       model,
     });
+
     expect(made("note", "n1")).toBe(true);
     expect(made("key", "n1")).toBe(false);
   });
@@ -69,8 +71,10 @@ describe("madeByRun", () => {
       create(undefined, { body: { id: "k_raw", key: "v-probe" } }),
       create("notes.create", { body: { id: "n_minted", key: "v-probe" } }),
     ];
+
     const made = madeByRun({ client: { transcript }, held: [held("alpha#probe-1", "v-probe")], ledger: none, model });
     expect(made("key", "k_minted")).toBe(true);
+
     for (const id of ["k_shown", "k_refused", "k_text", "k_raw", "n_minted"]) expect(made("key", id)).toBe(false);
     expect(made("note", "n_minted")).toBe(true);
     expect(made("ghost", "k_minted")).toBe(false);
@@ -85,6 +89,7 @@ describe("madeByRun", () => {
       revoke("k_revoked", 200),
       revoke("k_refused", 404),
     ];
+
     const made = madeByRun({ client: { transcript }, held: [held("alpha", "v-alpha")], ledger: none, model });
     expect(made("key", "k_alpha")).toBe(false);
     expect(made("key", "k_dropped")).toBe(false);

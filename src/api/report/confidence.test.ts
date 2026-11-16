@@ -8,12 +8,11 @@ import {
   renderConfidenceMarkdown,
 } from "./confidence.ts";
 
-/*
- * The page a person opens after a run: every operation in exactly one group, worst first, each with
- * one line on why it sits there and a link to the request that proves it.
- */
+// The page a person opens after a run: every operation in exactly one group, worst first, each with
+// one line on why it sits there and a link to the request that proves it.
 
 const none = { failed: [], gaps: [], inconclusive: [], passed: [], suppressed: [] };
+
 const row = (over: Partial<OperationCoverage> & { operationId: string }): OperationCoverage => ({
   checks: none,
   entity: null,
@@ -60,6 +59,7 @@ const scope: ScopeReport = {
   requested: { ops: [], only: [] },
   support: [],
 };
+
 const files = new Map([
   [1, "exchanges/req-1.json"],
   [2, "exchanges/req-2.json"],
@@ -88,11 +88,13 @@ describe("confidence groups", () => {
       { baseUrl: "https://api.example.test", generatedAt: "2026-10-13T00:00:00Z", scope },
       files,
     );
+
     expect(html.startsWith("<!doctype html>")).toBe(true);
     expect(html).not.toMatch(/<script[^>]+src=|<link[^>]+href="http/);
-    for (const label of ["Failed", "Blocked", "Effects unproven", "Verified", "Complete by contract"]) {
+
+    for (const label of ["Failed", "Blocked", "Effects unproven", "Verified", "Complete by contract"])
       expect(html).toContain(label);
-    }
+
     expect(html).toContain('href="exchanges/req-3.json"');
     expect(html).toContain("a read with no declared effects");
     expect(html).toContain("5 operations");
@@ -140,6 +142,7 @@ describe("exchange index", () => {
       JSON.stringify({ seq: 2 }),
       JSON.stringify({ file: "exchanges/c.json", seq: 3 }),
     ].join("\n");
+
     expect([...exchangeFilesFromIndex(index)]).toEqual([
       [1, "exchanges/a.json"],
       [3, "exchanges/c.json"],

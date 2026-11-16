@@ -11,6 +11,7 @@ import { list } from "../../sets/list.ts";
 export const orderChangesResult: Check<{ field: string }> = defineCheck<{ field: string }>({
   plan: (ctx) => {
     const field = ctx.query?.sortable.find((f) => f !== ctx.identity) ?? ctx.query?.sortable[0];
+
     return field === undefined || ctx.records.length <= 2 ? cannot() : ready({ field });
   },
   dependsOn: ["pagination.limit-bounds-page-size"],
@@ -21,20 +22,25 @@ export const orderChangesResult: Check<{ field: string }> = defineCheck<{ field:
   async run(ctx, { field }): Promise<Outcome> {
     const limit = pageSize(ctx);
     const ascending = await list(ctx, q(ctx, { limit, order: sortTerm(conv(ctx), { direction: "asc", field }) }));
-    if (ascending.exchange.status >= 400 || ascending.items.length < 2)
+
+    if (ascending.exchange.status >= 400 || ascending.items.length < 2) {
       return ctx.findings.unresolved(
         this.id,
         ctx.entityName,
         "the sorted listing was rejected or held fewer than two records",
       );
+    }
 
     const values = ascending.items.map((item) => item[field]);
+
     if (values.some((value) => value === undefined))
       return ctx.findings.unresolved(this.id, ctx.entityName, "the sort field is absent from the listed records");
     const order = sortedUnder(ctx, field, values);
+
     if (order !== null) {
       const query = q(ctx, { limit, order: sortTerm(conv(ctx), { direction: "asc", field }) });
       const descending = await orderIgnored(ctx, { ascending: values, field, query });
+
       if (descending !== null) {
         return ctx.findings.backend(this.id, ctx.entityName, {
           summary: "order is accepted but has no effect",
@@ -44,7 +50,9 @@ export const orderChangesResult: Check<{ field: string }> = defineCheck<{ field:
           evidence: [ascending.exchange, descending.exchange],
         });
       }
+
       observeTextOrder(ctx, field, order, values);
+
       return ASSERTED;
     }
 

@@ -7,17 +7,16 @@ import { expect, test } from "@playwright/test";
 
 import { VITEST_TIMEOUT_MS, runVitest } from "../support/child-vitest.ts";
 
-/*
- * `./web/solid` as an npm user meets it: the packed tarball under the consumer's own node_modules,
- * not this repo's self-reference, so vite loads it as a dependency for the server render and for
- * the browser bundle. The consumer's hydration and server tests pass, and vite logs no missing source map.
- */
+// `./web/solid` as an npm user meets it: the packed tarball under the consumer's own node_modules,
+// not this repo's self-reference, so vite loads it as a dependency for the server render and for
+// the browser bundle. The consumer's hydration and server tests pass, and vite logs no missing source map.
 
 const ROOT = join(import.meta.dirname, "..", "..", "..");
 const CONSUMER = join(ROOT, "tests", "web", "solid-consumer");
 
 function installTarball(): void {
   const packed = mkdtempSync(join(tmpdir(), "solid-consumer-"));
+
   try {
     const [info] = JSON.parse(
       execFileSync("npm", ["pack", "--ignore-scripts", "--json", "--pack-destination", packed], {
@@ -25,6 +24,7 @@ function installTarball(): void {
         encoding: "utf8",
       }),
     ) as Array<{ filename: string }>;
+
     const target = join(CONSUMER, "node_modules", "@workerstack", "testing");
     rmSync(join(CONSUMER, "node_modules"), { force: true, recursive: true });
     mkdirSync(target, { recursive: true });

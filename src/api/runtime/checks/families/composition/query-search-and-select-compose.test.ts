@@ -4,10 +4,10 @@ import { dropWhen, endlessWhen, fleetingSelect, pagedDoc, rewriting } from "./__
 import { NOTES, queryDoc, REJECT, stage } from "./__fixtures__/query-api.ts";
 import { querySearchAndSelectCompose } from "./query-search-and-select-compose.ts";
 
-/* The projected search refused. */
+// The projected search refused.
 const refusedProjection = rewriting((query) => ("select" in query ? REJECT : query));
 
-/* The projected search answered without the identity. */
+// The projected search answered without the identity.
 const anonymousProjection = rewriting((query) => ("select" in query ? { ...query, select: "title" } : query));
 
 describe("query.search-and-select-compose judges", () => {

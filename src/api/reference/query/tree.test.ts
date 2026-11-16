@@ -28,6 +28,7 @@ describe("fieldsIn", () => {
       ],
       kind: "and",
     };
+
     expect(fieldsIn(tree)).toEqual(["a", "b", "c", "d", "e", "f", "g"]);
     expect(fieldsIn({ kind: "const", value: false })).toEqual([]);
   });

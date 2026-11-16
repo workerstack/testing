@@ -2,10 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { declarationAnswer } from "./declarations.ts";
 
-/*
- * Only 400 and 422 say a declared capability is not supported. A request turned away before the
- * capability is consulted (401, 403, 404, 429), a crash, or no answer at all says nothing.
- */
+// Only 400 and 422 say a declared capability is not supported. A request turned away before the
+// capability is consulted (401, 403, 404, 429), a crash, or no answer at all says nothing.
 
 describe("declarationAnswer", () => {
   it("reads any answer below 400 as accepted", () => {

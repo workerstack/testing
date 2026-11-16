@@ -7,10 +7,8 @@ import { contextOf, entityRunOf, notesApi, notesDoc, optionsFor, secured } from 
 import { queryOf } from "./capabilities.ts";
 import { checkContext } from "./check-context.ts";
 
-/*
- * What the entity's list can query, from the tag, then config, then the hook: the checks read the
- * list's query narrowed to what was resolved.
- */
+// What the entity's list can query, from the tag, then config, then the hook: the checks read the
+// list's query narrowed to what was resolved.
 
 /** The notes document, its list declaring `parameters` and, unless `null`, tagged with `tag`. */
 function queried(
@@ -20,11 +18,15 @@ function queried(
   const doc = structuredClone(notesDoc()) as unknown as {
     paths: Record<string, Record<string, Record<string, unknown>>>;
   };
+
   const listed = doc.paths["/notes"]?.["get"];
+
   if (listed !== undefined) {
     listed["parameters"] = parameters.map((name) => ({ in: "query", name, schema: { type: "string" } }));
+
     if (tag !== null) listed["x-query"] = tag;
   }
+
   return doc as unknown as OpenApiDocument;
 }
 
@@ -40,18 +42,21 @@ describe("queryOf", () => {
 
   it("takes the global and the entity's configured query, and asks the hook", async () => {
     const asked: string[] = [];
+
     const ctx = await contextOf(
       optionsFor(notesApi(queried(["sort", "q"])), {
         entities: { note: { query: { sortable: [{ field: "id" }] } } } as never,
         hooks: {
           resolveQueryCapabilities: async (request) => {
             asked.push(request.entity);
+
             return null;
           },
         },
         query: { searchable: ["title"] } as never,
       }),
     );
+
     const { capabilities } = await queryOf(entityRunOf(ctx), {});
     expect(asked).toEqual(["note"]);
     expect(capabilities.sortable.map((field) => field.field)).toContain("id");
@@ -74,9 +79,11 @@ describe("queryOf", () => {
         },
       },
     }) as unknown as OpenApiDocument;
+
     const ctx = await contextOf(
       optionsFor((_, path) => (path === "/openapi.json" ? { body: doc, status: 200 } : { body: {}, status: 200 })),
     );
+
     expect((await queryOf(entityRunOf(ctx), {})).query).toBeNull();
   });
 });
@@ -106,7 +113,7 @@ describe("queryOf and the parameters the list declares", () => {
   });
 
   it("cuts the guessed per-field filters to the parameters the list declares", async () => {
-    /* No `x-query`: a free-text `q` makes the API tester guess every scalar filterable, one parameter each. */
+    // No `x-query`: a free-text `q` makes the API tester guess every scalar filterable, one parameter each.
     const ctx = await contextOf(optionsFor(notesApi(queried(["q", "title"], null))));
     const { capabilities, withheld } = await queryOf(entityRunOf(ctx), {});
     expect(capabilities.filterable.map((field) => field.field)).toEqual(["title"]);
@@ -122,6 +129,7 @@ describe("a filter probe and the parameters the list declares", () => {
     scope: { created: [], values: {} },
     uniqueAdopted: false,
   };
+
   const actor = { id: "alpha", inviteAs: undefined, rank: 0, scope: {}, tenant: "t" };
 
   async function probe(parameters: string[]) {
@@ -129,6 +137,7 @@ describe("a filter probe and the parameters the list declares", () => {
     const ctx = await contextOf(options);
     const checks = await checkContext(entityRunOf(ctx), world, [actor]);
     const outcome = await runCheck(zeroMatchFilter, checks);
+
     return { outcome, sent: options.seen.filter((seen) => seen.path === "/notes").map((seen) => seen.query) };
   }
 

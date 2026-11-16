@@ -7,26 +7,27 @@ import { createMemoryServer } from "../../../src/api/reference/http/engines.ts";
 import { EXIT } from "../../../src/api/runtime/exit.ts";
 import { latestJournal, latestReport, tester, referenceConfig, tempDirs } from "../support/cli-run.ts";
 
-/*
- * A profile gates which operations a run may touch. An excluded operation is never sent and never
- * reads as passed: the run names it as a coverage gap and lists it in the report. `cheap` also
- * turns the exchange journal off unless asked for.
- */
+// A profile gates which operations a run may touch. An excluded operation is never sent and never
+// reads as passed: the run names it as a coverage gap and lists it in the report. `cheap` also
+// turns the exchange journal off unless asked for.
 
 const dirs = tempDirs("testing-profiles-");
+
 afterAll(dirs.removeAll);
 
-/* A profile of the config's own that keeps a run off the table update. */
+// A profile of the config's own that keeps a run off the table update.
 const PROFILES = { profiles: { gentle: { exclude: ["table.update"] } } };
 
-/* `testing api run <flags>` against a clean reference, with `extra` in the config; `runs` is its --out. */
+// `testing api run <flags>` against a clean reference, with `extra` in the config; `runs` is its --out.
 async function runWith(extra: Record<string, unknown>, flags: string[]) {
   const server = await createMemoryServer({});
+
   try {
     const dir = await dirs.make();
     const config = await referenceConfig(dir, server.url, extra);
     const runs = join(dir, "runs");
     const { code, out } = await tester(["run", "--config", config, "--out", runs, "--quiet", ...flags]);
+
     return { code, runs, text: out };
   } finally {
     await server.close();

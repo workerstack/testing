@@ -1,15 +1,14 @@
 import { pointer } from "@workerstack/testing/web/dom";
 import { afterEach, describe, expect, it } from "vitest";
 
-/*
- * The built `./web/dom` pointer against real Chromium: real pointer events, real hit testing,
- * real animation frames. A row follows the pointer only while it is pressed, as a drag engine does.
- */
+// The built `./web/dom` pointer against real Chromium: real pointer events, real hit testing,
+// real animation frames. A row follows the pointer only while it is pressed, as a drag engine does.
 
 function row(name: string, top: number): HTMLElement {
   const el = document.createElement("div");
   el.dataset["row"] = name;
   el.style.cssText = `position:absolute;left:0;top:${top}px;width:200px;height:40px;touch-action:none`;
+
   return el;
 }
 
@@ -20,10 +19,11 @@ function stage(): { list: HTMLElement; a: HTMLElement; c: HTMLElement } {
   const c = row("c", 200);
   list.append(a, c);
   document.body.append(list);
+
   return { a, c, list };
 }
 
-/* Makes `el` follow the pointer on the y axis from its press until its release. */
+// Makes `el` follow the pointer on the y axis from its press until its release.
 function follow(el: HTMLElement): void {
   let start: number | null = null;
   el.addEventListener("pointerdown", (event) => {
@@ -47,10 +47,13 @@ describe("pointer in Chromium", () => {
     const { a, c, list } = stage();
     let frame = 0;
     let counting = true;
+
     const tick = (): void => {
       frame += 1;
+
       if (counting) requestAnimationFrame(tick);
     };
+
     requestAnimationFrame(tick);
     const moveFrames: number[] = [];
     a.addEventListener("pointermove", () => moveFrames.push(frame));

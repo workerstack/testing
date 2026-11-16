@@ -15,6 +15,7 @@ describe("signInFields", () => {
         ],
       },
     };
+
     expect(sorted(signInFields(recipe))).toEqual(["email", "handle", "password", "secret"]);
   });
 
@@ -29,17 +30,21 @@ describe("signInFields", () => {
         ],
       },
     };
+
     expect(sorted(signInFields(recipe))).toEqual(["inbox", "login", "name", "org", "tenant", "uid", "who", "x-user"]);
   });
 
   it("reads a refresh's steps, a mint's body and an oauth2 grant's fields", () => {
     const refresh = { from: "$.token", steps: [{ body: { device: "{principal.device}" }, operationId: "renew" }] };
+
     const minted: Partial<Recipe> = {
       mint: { body: { owner: "{principal.uid}" }, from: "$.key", operationId: "keys", with: "jwt" },
     };
+
     const oauth: Partial<Recipe> = {
       oauth2: { clientId: "c", flow: "password", password: "{principal.password}", username: "{principal.email}" },
     };
+
     expect(sorted(signInFields({ ...minted, refresh } as Partial<Recipe>))).toEqual(["device", "owner", "uid"]);
     expect(sorted(signInFields(oauth))).toEqual(["email", "password", "username"]);
   });
@@ -47,10 +52,12 @@ describe("signInFields", () => {
   it("names nothing for a recipe that reads no identity", () => {
     expect(signInFields({ static: "token" }).size).toBe(0);
     expect(signInFields({ hook: true }).size).toBe(0);
+
     const literal: Partial<Recipe> = {
       login: { from: "$.t", steps: [{ body: ["{principal.k}", 1], operationId: "l" }] },
     };
-    /* A key in an array has no field name of its own. */
+
+    // A key in an array has no field name of its own.
     expect(sorted(signInFields(literal))).toEqual(["k"]);
   });
 });

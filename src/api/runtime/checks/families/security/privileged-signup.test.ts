@@ -14,12 +14,12 @@ import {
 } from "./__fixtures__/operation-context.ts";
 import { isSignUp, type SignUpProbe, signUpAndJudge, signUpPlan } from "./privileged-signup.ts";
 
-/* A sign-up anyone may send must not make an account holding a property only the highest rank may set. */
+// A sign-up anyone may send must not make an account holding a property only the highest rank may set.
 
 const json = (schema: unknown) => ({ content: { "application/json": { schema } } });
 
 /** How the sign-up document is put together. */
-interface Parts {
+type Parts = {
   /** The marked property, an `admin` boolean by default. */
   marked?: Record<string, unknown>;
   /** The rest of the sign-up's body properties. */
@@ -42,18 +42,19 @@ interface Parts {
   required?: string[];
   /** Tag the sign-up with `x-entity`; the default. */
   entity?: boolean;
-}
+};
 
 const EMAIL = { format: "email", type: "string" };
 
-/* `x-entity.recordPath`, when one is given. */
+// `x-entity.recordPath`, when one is given.
 const recordAt = (recordPath: string | undefined) => (recordPath === undefined ? {} : { recordPath });
 
-/* The sign-up: open to all, its body the fields and the marked property. */
+// The sign-up: open to all, its body the fields and the marked property.
 function signUpOperation(parts: Parts) {
   const { fields = { email: EMAIL, password: { minLength: 8, type: "string" } } } = parts;
   const marked = parts.marked ?? { admin: { type: "boolean", "x-privileged": true } };
   const entity = { action: "create", identity: "email", name: "user", ...recordAt(parts.answerRecordPath) };
+
   return {
     operationId: "auth.register",
     requestBody: {
@@ -67,9 +68,10 @@ function signUpOperation(parts: Parts) {
   };
 }
 
-/* The caller's own read and the listing of users, each when the parts ask for it. */
+// The caller's own read and the listing of users, each when the parts ask for it.
 function readPaths(parts: Parts): Record<string, unknown> {
   const paths: Record<string, unknown> = {};
+
   if (parts.self !== undefined) {
     const entity = { action: "read", identity: "self", name: "me", ...recordAt(parts.selfRecordPath) };
     paths["/me"] = {
@@ -80,6 +82,7 @@ function readPaths(parts: Parts): Record<string, unknown> {
       },
     };
   }
+
   if (parts.listing !== undefined) {
     const { item, parameters, path } = parts.listing;
     const rows = json({ properties: { users: { items: item, type: "array" } }, type: "object" });
@@ -92,6 +95,7 @@ function readPaths(parts: Parts): Record<string, unknown> {
       },
     };
   }
+
   return paths;
 }
 
@@ -112,10 +116,10 @@ const owner = actorOf("alpha", { rank: 2, scope: { org_id: "org_a" }, tenant: "o
 const member = actorOf("alpha_member", { rank: 1, scope: { org_id: "org_a" }, tenant: "org_a" });
 const TEAM: [Actor, ...Actor[]] = [member, owner];
 
-interface Staging {
+type Staging = {
   respond?: SentResponder;
   accounts?: AccountScript;
-}
+};
 
 function staged(parts: Parts, staging: Staging = {}) {
   return operationContextFor(modelOf(signUpDoc(parts)), "auth.register", {
@@ -127,21 +131,27 @@ function staged(parts: Parts, staging: Staging = {}) {
 
 function planned(ctx: OperationWriteContext): SignUpProbe {
   const plan = signUpPlan(ctx);
+
   if (!plan.ok) throw new Error(`expected a plan, stood down: ${plan.needs}`);
+
   return plan.value;
 }
 
 const needs = (plan: Plan<SignUpProbe>): string | undefined => (plan.ok ? undefined : plan.needs);
 
-/* The sign-up answers 201 with `answer`; the listing shows each registered email with `admin` as `shown`. */
+// The sign-up answers 201 with `answer`; the listing shows each registered email with `admin` as `shown`.
 function backend({ shown, answer = {}, status = 201 }: { shown?: unknown; answer?: unknown; status?: number }) {
   let email: unknown;
+
   return (sent: Sent) => {
     if (sent.method === "POST") {
       email = (sent.options.body as { email?: unknown }).email;
+
       return { body: answer, status };
     }
+
     if (sent.path === "/me") return { body: { admin: shown, email }, status: 200 };
+
     return {
       body: {
         users: [
@@ -156,7 +166,7 @@ function backend({ shown, answer = {}, status = 201 }: { shown?: unknown; answer
 
 const signedInAs: AccountScript = () => ({ principal: "account-1" });
 
-/* The sign-up answers 201 and names nothing; the self read answers `me`, the listing `users`. */
+// The sign-up answers 201 and names nothing; the self read answers `me`, the listing `users`.
 const reading =
   (me: Answer, users: unknown[]): SentResponder =>
   (sent) =>
@@ -179,9 +189,11 @@ describe("signUpPlan: the value that grants the privilege", () => {
       role: { enum: ["owner"], type: "string", "x-privileged": true },
       tier: { const: "staff", "x-privileged": true },
     };
+
     const probe = planned(
       staged({ listing: { item: { properties: { ...marked, email: EMAIL } }, path: "/users" }, marked }).ctx,
     );
+
     expect(probe.values).toEqual([
       ["admin", true],
       ["role", "owner"],
@@ -196,10 +208,12 @@ describe("signUpPlan: the value that grants the privilege", () => {
     expect(needs(signUpPlan(staged({ listing: LISTING, marked }).ctx))).toBe(
       "role: no value the API tester can tell is privileged (no const, no one-member enum, not a boolean)",
     );
-    /* A marker the API tester reads through two allOf levels, where the schema lookup reads one. */
+
+    // A marker the API tester reads through two allOf levels, where the schema lookup reads one.
     const nested = {
       meta: { allOf: [{ allOf: [{ properties: { owner: { type: "boolean", "x-privileged": true } } }] }] },
     };
+
     expect(needs(signUpPlan(staged({ listing: LISTING, marked: nested }).ctx))).toBe(
       "meta.owner: no value the API tester can tell is privileged (no const, no one-member enum, not a boolean)",
     );
@@ -211,10 +225,12 @@ describe("signUpPlan: the body", () => {
     const marked = {
       meta: { properties: { admin: { type: "boolean", "x-privileged": true } }, required: [], type: "object" },
     };
+
     const self = {
       properties: { meta: { properties: { admin: { type: "boolean" } }, type: "object" } },
       type: "object",
     };
+
     const fields = { email: EMAIL, meta: marked.meta };
     const probe = planned(staged({ fields, marked: {}, self }).ctx);
     expect(probe.body["meta"]).toEqual({ admin: true });
@@ -240,9 +256,11 @@ describe("signUpPlan: the reads that show the account", () => {
     expect(listing).toMatchObject({ as: { id: "alpha" }, kind: "listing", path: "/users" });
     expect(listing?.kind === "listing" ? listing.identity : undefined).toEqual({ email: all.body["email"] });
     const wrapped = { properties: { data: ADMIN_ROW }, type: "object" };
+
     const enveloped = planned(
       staged({ answer: wrapped, answerRecordPath: "$.data", self: wrapped, selfRecordPath: "$.data" }).ctx,
     );
+
     expect(enveloped.reads.map((read) => read.kind)).toEqual(["self", "answer"]);
   });
 
@@ -268,6 +286,7 @@ describe("signUpPlan: the reads that show the account", () => {
       listing: { item: { properties: { email: EMAIL }, type: "object" }, path: "/users" },
       self: { properties: { email: EMAIL }, type: "object" },
     });
+
     expect(needs(signUpPlan(stage.ctx))).toBe(
       "a read that shows admin of the account auth.register makes: the account's own read (x-entity identity " +
         "self), a listing of the entity it makes, or its own answer",

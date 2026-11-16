@@ -23,13 +23,15 @@ import { dereference } from "../../../src/api/spec/load/dereference.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 import { latestJournal, latestReport, tester, referenceConfig, tempDirs } from "../support/cli-run.ts";
 
-/* A JSON answer, or a bare status; headers a test sets on `res` first go out with it. */
+// A JSON answer, or a bare status; headers a test sets on `res` first go out with it.
 function send(res: ServerResponse, status: number, body?: unknown): void {
   if (body === undefined) {
     res.writeHead(status);
     res.end();
+
     return;
   }
+
   const text = JSON.stringify(body);
   res.writeHead(status, {
     "content-length": String(Buffer.byteLength(text)),
@@ -47,6 +49,7 @@ async function listen(handler: (req: IncomingMessage, res: ServerResponse) => vo
     server.listen(0, "127.0.0.1", resolve);
   });
   const addr = server.address() as AddressInfo;
+
   return {
     close: () =>
       new Promise((resolve, reject) => {
@@ -74,7 +77,9 @@ function thingSpec(rateLimit: { category: string; rps?: number } | null): OpenAp
     },
     "x-entity": { action: "create", identity: "id", name: "thing" },
   };
+
   if (rateLimit !== null) create["x-rate-limit"] = rateLimit;
+
   return {
     info: { title: "rate-limit", version: "1" },
     openapi: "3.1.0",
@@ -150,73 +155,92 @@ describe("Retry-After parsing", () => {
   });
 });
 
-/* A thing endpoint that answers the first POST 429 with `headers`, then creates. */
+// A thing endpoint that answers the first POST 429 with `headers`, then creates.
 async function throttledOnce(headers?: Record<string, string>) {
   let posts = 0;
+
   const server = await listen((req, res) => {
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
+
     if (url.pathname !== "/v1/things" || req.method !== "POST") return send(res, 404);
     posts += 1;
+
     if (posts === 1) {
       for (const [name, value] of Object.entries(headers ?? {})) res.setHeader(name, value);
+
       return send(res, 429, { error: "too_many_requests" });
     }
+
     return send(res, 201, { id: "t1", name: "n" });
   });
+
   closers.push(server.close);
+
   return { posts: () => posts, server };
 }
 
 type ThingWorld = { posts: number; rows: Map<string, { id: string; name: string }>; spec: OpenApiDocument };
 
-/* The first create is throttled with a zero wait; the rest succeed. */
+// The first create is throttled with a zero wait; the rest succeed.
 function createThing(world: ThingWorld, res: ServerResponse): void {
   world.posts += 1;
+
   if (world.posts === 1) {
     res.setHeader("retry-after", "0");
+
     return send(res, 429, { error: "too_many_requests" });
   }
+
   const id = `t_${String(world.posts)}`;
   const row = { id, name: "n" };
   world.rows.set(id, row);
   send(res, 201, row);
 }
 
-/* The item a request names, and its method. */
-interface ItemRequest {
+// The item a request names, and its method.
+type ItemRequest = {
   id: string;
   method: string;
-}
+};
 
 function thingItem(world: ThingWorld, { id, method }: ItemRequest, res: ServerResponse): void {
   if (method === "GET") {
     const row = world.rows.get(id);
+
     return row === undefined ? send(res, 404) : send(res, 200, row);
   }
+
   if (method !== "DELETE") return send(res, 404);
   world.rows.delete(id);
   send(res, 204);
 }
 
-/* A full thing backend for a run. */
+// A full thing backend for a run.
 async function routeThings(world: ThingWorld, req: IncomingMessage, res: ServerResponse): Promise<void> {
   const url = new URL(req.url ?? "/", "http://127.0.0.1");
   const method = (req.method ?? "GET").toUpperCase();
+
   if (url.pathname === "/v1/openapi/spec" && method === "GET") return send(res, 200, world.spec);
+
   if (url.pathname === "/v1/things" && method === "GET") return send(res, 200, { items: [...world.rows.values()] });
+
   if (url.pathname === "/v1/things" && method === "POST") return createThing(world, res);
   const item = /^\/v1\/things\/([^/]+)$/.exec(url.pathname);
+
   if (item === null) return send(res, 404);
   thingItem(world, { id: item[1] ?? "", method }, res);
 }
 
-/* A run against the thing backend, seeding through its throttled first create. */
+// A run against the thing backend, seeding through its throttled first create.
 async function runThrottledSeed() {
   const world: ThingWorld = { posts: 0, rows: new Map(), spec: thingSpec(null) };
+
   const server = await listen((req, res) => {
     void routeThings(world, req, res);
   });
+
   closers.push(server.close);
+
   const result = await run({
     baseUrl: server.url,
     keepFixtures: true,
@@ -225,6 +249,7 @@ async function runThrottledSeed() {
     seed: 1,
     spec: `${server.url}/v1/openapi/spec`,
   });
+
   return { result, world };
 }
 
@@ -250,12 +275,14 @@ describe("Client.request 429 retry", () => {
     expect(rules).toEqual([]);
 
     const { posts, server } = await throttledOnce({ "retry-after": "1" });
+
     const client = new Client({
       baseUrl: server.url,
       maxInFlight: 4,
       rateLimiter: new RateLimiter(rules),
       redactor: new Redactor(),
     });
+
     const exchange = await client.request("POST", "/v1/things", { as: { anonymous: true }, body: { name: "n" } });
     expect(posts()).toBe(2);
     expect(exchange.status).toBe(201);
@@ -290,25 +317,28 @@ describe("rate-limit rules for a documented operation", () => {
     const model = buildModel(dereference(thingSpec({ category: "writes", rps: 2 })).doc);
     const [rule] = buildRateLimitRules(model, undefined);
     expect(rule?.test("POST", "/v1/things", "thing.create")).toBe(true);
-    /* Behind a base path the request path no longer looks like the template; the stamp still says which operation it was. */
+    // Behind a base path the request path no longer looks like the template; the stamp still says which operation it was.
     expect(rule?.test("POST", "/api/v1/things", "thing.create")).toBe(true);
     expect(rule?.test("POST", "/v1/things", "other.op")).toBe(false);
-    /* Unresolved, as for an absolute URL: method and path are all there is. */
+    // Unresolved, as for an absolute URL: method and path are all there is.
     expect(rule?.test("POST", "/v1/things")).toBe(true);
   });
 });
 
 const dirs = tempDirs("testing-rate-limit-");
+
 afterAll(dirs.removeAll);
 
-/* `testing api run --only table` against a reference whose listings declare `x-rate-limit`. */
+// `testing api run --only table` against a reference whose listings declare `x-rate-limit`.
 async function runDeclared(defects: string[]) {
   const server = await createMemoryServer({ defects });
+
   try {
     const dir = await dirs.make();
     const config = await referenceConfig(dir, server.url);
     const runs = join(dir, "runs");
     const { code, out } = await tester(["run", "--config", config, "--out", runs, "--only", "table", "--quiet"]);
+
     return { code, runs, text: out };
   } finally {
     await server.close();
@@ -333,7 +363,7 @@ describe("a declared rate limit, on the CLI", () => {
     expect(report.findings).toContainEqual(
       expect.objectContaining({ check: "spec.declared-rate-limit-is-honored", verdict: "SPEC_BUG" }),
     );
-    /* The throttled listing was sent again and answered: the 429 blocked nothing. */
+    // The throttled listing was sent again and answered: the 429 blocked nothing.
     const lists = (await latestJournal(runs)).filter((line) => line.operationId === "table.list");
     const throttled = lists.findIndex((line) => line.status === 429);
     expect(throttled).toBeGreaterThanOrEqual(0);

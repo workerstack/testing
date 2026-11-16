@@ -24,19 +24,25 @@ export const filterMalformedTermRejected: Check<{
 }>({
   plan: (ctx) => {
     const conventions = conv(ctx);
+
     if (conventions.grammarDeclared !== true || !filterable(ctx)) return cannot();
+
     for (const field of resolvedCaps(ctx).filterable) {
       const sample = ctx.records.find((row) => row[field.field] != null);
       const value = sample === undefined ? "testing-probe" : String(asTermValue(sample[field.field]));
+
       const malformed = renderMalformed({
         field: field.field,
         filterParam: conventions.filter,
         spec: filterSpec(conventions),
         value,
       });
+
       const control = filterTerm(conventions, { field: field.field, op: "eq", value });
+
       if (malformed !== null && control !== null) return ready({ control, field: field.field, malformed });
     }
+
     return cannot("a declared grammar whose terms carry a conjunction or an operator to leave out");
   },
   dependsOn: ["list.read-after-write", "filter.unknown-field-rejected", "error.malformed-filter-not-5xx"],
@@ -46,6 +52,7 @@ export const filterMalformedTermRejected: Check<{
   subjects: subjectsOf.list,
   async run(ctx, { control, field, malformed }): Promise<Outcome> {
     const accepted = await list(ctx, { ...q(ctx, { limit: pageSize(ctx) }), ...control });
+
     if (accepted.exchange.status >= 400) {
       return ctx.findings.unresolved(
         this.id,
@@ -53,7 +60,9 @@ export const filterMalformedTermRejected: Check<{
         `a well-formed term on "${field}" was refused, so a malformed one proves nothing`,
       );
     }
+
     const result = await list(asProbe(ctx), { ...q(ctx, { limit: pageSize(ctx) }), ...malformed });
+
     if (result.exchange.status >= 500) {
       return ctx.findings.backend(this.id, ctx.entityName, {
         summary: "a malformed filter term produces a server error",
@@ -61,13 +70,16 @@ export const filterMalformedTermRejected: Check<{
         evidence: [result.exchange],
       });
     }
+
     const refused = judgeRefusal(ctx, this.id, ["validation"], result.exchange);
+
     if (refused !== null) return refused;
     const baseline = await list(ctx, q(ctx, { limit: pageSize(ctx) }));
     const selected = (items: typeof result.items) => ids(items, ctx.identity).join(",");
     const same = selected(result.items) === selected(baseline.items);
-    /* Applied, not dropped: a grammar that spells equality with or without its operator (Typesense's
-     * `year:1` is `year:=1`) has no malformed term here to refuse. */
+
+    // Applied, not dropped: a grammar that spells equality with or without its operator (Typesense's
+    // `year:1` is `year:=1`) has no malformed term here to refuse.
     if (!same && selected(result.items) === selected(accepted.items)) {
       return ctx.findings.unresolved(
         this.id,
@@ -76,12 +88,12 @@ export const filterMalformedTermRejected: Check<{
           "the server reads a term without its operator as that equality, so there is no malformed term to send it",
       );
     }
+
     return ctx.findings.backend(this.id, ctx.entityName, {
       summary: "a malformed filter term is accepted",
-      detail:
-        `${Object.values(malformed).join("&")} returned ${result.exchange.status}` +
-        (same ? " with the unfiltered set, so the term was dropped" : "") +
-        ". A term the declared grammar cannot parse must be rejected.",
+      detail: `${Object.values(malformed).join("&")} returned ${result.exchange.status}${
+        same ? " with the unfiltered set, so the term was dropped" : ""
+      }. A term the declared grammar cannot parse must be rejected.`,
       evidence: [baseline.exchange, result.exchange],
     });
   },

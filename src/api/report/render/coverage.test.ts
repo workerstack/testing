@@ -27,6 +27,7 @@ describe("coverageByCheck", () => {
         entitiesTested: ["a", "b", "c"],
       }),
     );
+
     expect(coverage.never.map((row) => row.check)).toEqual(["nowhere"]);
     expect(coverage.never[0]).toMatchObject({ needs: "a list", ran: 0, skipped: 3, skippedEntities: ["a", "b", "c"] });
     expect(coverage.partialSkip).toEqual([]);
@@ -40,6 +41,7 @@ describe("coverageByCheck", () => {
     const coverage = coverageByCheck(
       reportOf({ checksSkipped: [{ check: "some", entity: "a", needs: "x" }], entitiesTested: ["a", "b"] }),
     );
+
     expect(coverage.partialSkip).toEqual([
       { blocked: 0, blockedEntities: [], check: "some", needs: "x", ran: 1, skipped: 1, skippedEntities: ["a"] },
     ]);
@@ -53,9 +55,10 @@ describe("coverageByCheck", () => {
 describe("coverageByCheck on checks judged per operation", () => {
   it("never calls a check that reached a verdict somewhere one that applied nowhere, whatever the entities", () => {
     const checks = ["auth.missing-credential-refused", "auth.invalid-credential-refused", "auth.role-enforced"];
+
     const result = coverageByCheck(
       reportOf({
-        /* Planned is not applied: login-throttled ran everywhere only to stand down. */
+        // Planned is not applied: login-throttled ran everywhere only to stand down.
         checksRun: [...checks, "auth.login-throttled"],
         checksSkipped: [...checks, "auth.login-throttled"].map(skipped),
         entitiesTested: [],
@@ -70,6 +73,7 @@ describe("coverageByCheck on checks judged per operation", () => {
         }),
       }),
     );
+
     expect(result.never.map((row) => row.check)).toEqual(["auth.login-throttled"]);
     expect(result.partialSkip.map((row) => row.check)).toEqual(checks.toSorted());
   });
@@ -92,6 +96,7 @@ describe("profileExclusionSummary", () => {
         ],
       }),
     );
+
     expect(summary).toBe(
       "skipped 3 operation(s) under --profile cheap (1 high-cost, 1 destructive, 1 excluded by name)",
     );
@@ -101,6 +106,7 @@ describe("profileExclusionSummary", () => {
     const summary = profileExclusionSummary(
       reportOf({ profileExclusions: [{ entity: "row", operationId: "row.delete", reason: "x-destructive" }] }),
     );
+
     expect(summary).toBe("skipped 1 operation(s) under --profile ? (1 destructive)");
   });
 
@@ -111,6 +117,7 @@ describe("profileExclusionSummary", () => {
         profileExclusions: [{ entity: "row", operationId: "row.export", reason: "x-cost: high" }],
       }),
     );
+
     expect(summary).toBe("skipped 1 operation(s) under --profile cheap (1 high-cost)");
   });
 });

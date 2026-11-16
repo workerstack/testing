@@ -101,5 +101,6 @@ const AFTER_CARDS = `  .card { background: var(--card); padding: 14px 16px 16px;
 /** The sheet for a poster of `entityCount` entities, one or more. */
 export function posterStyle(entityCount: number): string {
   const cards = `  .cards { display: grid; grid-template-columns: repeat(${Math.min(entityCount, 5)}, minmax(200px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }`;
+
   return `${BEFORE_CARDS}${cards}\n${AFTER_CARDS}`;
 }

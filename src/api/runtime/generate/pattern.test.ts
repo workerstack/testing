@@ -48,7 +48,7 @@ describe("matching", () => {
   });
 
   it("falls back to stock candidates when the expansion fails", () => {
-    /* An unclosed class expands to nothing, and as a regex matches nothing either. */
+    // An unclosed class expands to nothing, and as a regex matches nothing either.
     expect(matching("[", ANY, at())).toBeUndefined();
     expect(matching("^testing\\d?$|^zz$", ANY, at({ nonce: undefined }, true))).toBe("testing4");
     expect(matching("^(?=.*@)[a-z0-9-]+@example\\.test$", ANY, at())).toBe("testing-baseline-4@example.test");

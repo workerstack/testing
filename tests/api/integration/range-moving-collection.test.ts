@@ -16,11 +16,9 @@ import { dereference } from "../../../src/api/spec/load/dereference.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 import { checkContext } from "../support/check-context.ts";
 
-/*
- * The range check reads gte, then gt, then eq. A record another check creates between those reads
- * shows up in gt but not in the earlier gte. That is the collection moving, not gte missing a
- * record. A gte that really drops the equal record must still be reported.
- */
+// The range check reads gte, then gt, then eq. A record another check creates between those reads
+// shows up in gt but not in the earlier gte. That is the collection moving, not gte missing a
+// record. A gte that really drops the equal record must still be reported.
 
 const closers: Array<() => Promise<void>> = [];
 
@@ -85,16 +83,23 @@ function spec(): OpenApiDocument {
 function matches(row: Record_, term: string, gteDropsEqual: boolean): boolean {
   const [field = "", op = "", raw = ""] = term.split(".");
   const value = row[field];
+
   if (op === "eq") return String(value) === raw;
+
   if (typeof value !== "number") return false;
+
   if (op === "gt") return value > Number(raw);
+
   if (op === "gte") return gteDropsEqual ? value > Number(raw) : value >= Number(raw);
+
   if (op === "lt") return value < Number(raw);
+
   return false;
 }
 
 function select(rows: Record_[], filter: string | null, gteDropsEqual: boolean): Record_[] {
   if (filter === null) return rows;
+
   return rows.filter((row) => matches(row, filter, gteDropsEqual));
 }
 
@@ -102,31 +107,38 @@ async function listen(handler: (req: IncomingMessage, res: ServerResponse) => vo
   const server = createServer(handler);
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   closers.push(() => new Promise((resolve) => server.close(() => resolve())));
+
   return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 }
 
 async function run(opts: { grows: boolean; gteDropsEqual: boolean }): Promise<FindingCollector> {
   const id = "filter.gte-is-gt-or-eq";
   const check = entityChecks(CHECKS).find((item) => item.id === id);
+
   if (check === undefined) throw new Error(`no check ${id}`);
   const model = buildModel(dereference(spec()).doc);
   const listOp = model.byOperationId.get("template.list");
+
   if (listOp === undefined) throw new Error("missing template.list");
   const store = [...COHORT];
+
   const url = await listen((req, res) => {
     const at = new URL(req.url ?? "/", "http://127.0.0.1");
     const filter = at.searchParams.get("filter");
-    /* Another check creates a later template just before the gt term is read. */
-    if (opts.grows && filter?.includes(".gt.") === true && !store.some((row) => row["id"] === "t-new")) {
+
+    // Another check creates a later template just before the gt term is read.
+    if (opts.grows && filter?.includes(".gt.") === true && !store.some((row) => row["id"] === "t-new"))
       store.push({ category: "general", created_at: 999, id: "t-new" });
-    }
+
     const rows = select(store, filter, opts.gteDropsEqual);
     const limit = Number(at.searchParams.get("limit") ?? 20);
     const page = Number(at.searchParams.get("page") ?? 1);
     res.writeHead(200, { "content-type": "application/json" });
     res.end(JSON.stringify({ templates: rows.slice((page - 1) * limit, page * limit) }));
   });
+
   const findings = new FindingCollector();
+
   const ctx = checkContext({
     actors: [],
     asyncOps: [],
@@ -158,8 +170,10 @@ async function run(opts: { grows: boolean; gteDropsEqual: boolean }): Promise<Fi
     validator: new SchemaValidator(),
     waitOps: [],
   });
+
   expect(check.plan(ctx).ok).toBe(true);
   await planAndRun(check, ctx);
+
   return findings;
 }
 

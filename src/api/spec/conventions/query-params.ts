@@ -34,6 +34,7 @@ export function publicRole(role: Role): QueryParamRole {
  */
 export function readQueryParams(raw: unknown): QueryParamNames | undefined {
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+
   return Object.fromEntries(
     Object.entries(raw).filter(([role, name]) => isQueryParamRole(role) && typeof name === "string" && name !== ""),
   ) as QueryParamNames;
@@ -56,5 +57,6 @@ export function mergeQueryParams(sources: {
   declared: readonly string[];
 }): QueryParamNames {
   const applied = Object.entries(sources.config ?? {}).filter(([, name]) => sources.declared.includes(name));
+
   return { ...readQueryParams(sources.tag), ...Object.fromEntries(applied) };
 }

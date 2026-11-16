@@ -26,7 +26,9 @@ export function bearerSecurity(): {
 export function bearerGuarded(handle: Handle, token: string): Handle {
   return async (request) => {
     const isDocument = request.method === "GET" && request.url.pathname === "/v1/openapi/spec";
+
     if (isDocument || bearer(request) === token) return handle(request);
+
     return answer(401, { error_key: "unauthorized" });
   };
 }

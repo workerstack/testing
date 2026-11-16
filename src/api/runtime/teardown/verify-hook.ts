@@ -11,16 +11,16 @@ import type { Disposable, RecordState, TeardownReport, UnwindOptions } from "./t
 
 export const VERIFY_HOOK_PRESENT = "hooks.verifyRemoved says it is still present";
 
-/* Calls to `hooks.verifyRemoved` at once. */
+// Calls to `hooks.verifyRemoved` at once.
 const VERIFY_HOOK_CONCURRENCY = 4;
 
 /** The unwind's records, the ones never seen, and the report the verdicts amend. */
-export interface Verdicts {
+export type Verdicts = {
   queue: readonly Disposable[];
   records: ReadonlyMap<Disposable, RecordState>;
   neverSeen: ReadonlySet<Disposable>;
   report: TeardownReport;
-}
+};
 
 /**
  * Applies `hooks.verifyRemoved` to every record counted removed and every one never seen, a few at
@@ -32,23 +32,27 @@ export async function askVerifyHook(
   verdicts: Verdicts,
 ): Promise<void> {
   const { neverSeen, records, report } = verdicts;
-  /* Every record the unwind was given has its line. */
+  // Every record the unwind was given has its line.
   const recordOf = (item: Disposable): RecordState => records.get(item) as RecordState;
   const asked = verdicts.queue.filter((item) => recordOf(item).removed || neverSeen.has(item));
   const errors: string[] = [];
+
   const answer = async (item: Disposable): Promise<RemovalVerdict> => {
     try {
       return await hook({ entity: item.entity, id: item.id, principal: item.owner.id, scope: { ...item.scope } });
     } catch (error) {
       errors.push(error instanceof Error ? error.message : String(error));
+
       return "unknown";
     }
   };
+
   for (let at = 0; at < asked.length; at += VERIFY_HOOK_CONCURRENCY) {
     const batch = asked.slice(at, at + VERIFY_HOOK_CONCURRENCY);
     const answers = await Promise.all(batch.map(answer));
     batch.forEach((item, index) => apply(report, { item, record: recordOf(item), verdict: answers[index] }));
   }
+
   if (errors.length > 0) report.verifyHookErrors = errors;
 }
 
@@ -58,21 +62,28 @@ function apply(
   answered: { item: Disposable; record: RecordState; verdict: RemovalVerdict | undefined },
 ): void {
   const { item, record, verdict } = answered;
+
   if (verdict === "unknown") return;
+
   const failure = report.failed.findIndex(
     (entry) => recordKey(entry.entity, entry.id, entry.principal) === keyOf(item) && entry.reason === NEVER_SEEN,
   );
+
   if (verdict === "absent") {
     if (failure < 0) return;
     report.failed.splice(failure, 1);
     record.removed = true;
     report.removed += 1;
+
     return;
   }
-  if (failure >= 0) report.failed.splice(failure, 1);
-  else {
+
+  if (failure >= 0) {
+    report.failed.splice(failure, 1);
+  } else {
     record.removed = false;
     report.removed -= 1;
   }
+
   report.failed.push(leftover(item, VERIFY_HOOK_PRESENT));
 }

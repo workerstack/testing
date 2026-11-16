@@ -8,16 +8,19 @@ const IDENTITY_CANDIDATES = ["id", "uuid", "slug", "key", "name"];
 /** `{table_id}` or `{tableId}` on `/tables/…` implies the item's own key is `id`; `undefined` otherwise. */
 function hintedKey(pathParamHint: string | undefined): string | undefined {
   if (pathParamHint === undefined) return undefined;
+
   const implied = pathParamHint
     .replace(/^.*[_.-]/, "")
     .replace(/^[a-z0-9]+(?=[A-Z])/, "")
     .toLowerCase();
+
   return IDENTITY_CANDIDATES.includes(implied) ? implied : undefined;
 }
 
 /** A required identity-like property, else any identity-like property the schema has. */
 function identityProperty(itemSchema: JsonSchema, names: string[]): string | undefined {
   const required = Array.isArray(itemSchema.required) ? (itemSchema.required as string[]) : [];
+
   return (
     IDENTITY_CANDIDATES.find((candidate) => required.includes(candidate)) ??
     IDENTITY_CANDIDATES.find((candidate) => names.includes(candidate))
@@ -40,11 +43,15 @@ export function deriveIdentity(
   const hinted = hintedKey(pathParamHint);
   const itemSchema = effective(raw);
   const props = itemSchema?.properties;
+
   if (itemSchema !== null && props !== null && typeof props === "object") {
     const names = Object.keys(props as Record<string, unknown>);
+
     if (itemRoute && hinted !== undefined && names.includes(hinted)) return hinted;
     const found = identityProperty(itemSchema, names);
+
     if (found !== undefined) return found;
   }
+
   return hinted ?? null;
 }

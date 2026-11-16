@@ -38,7 +38,7 @@ describe("Ids", () => {
     const alone = new Ids();
     const interleaved = new Ids();
     const own = [alone.next(table), alone.next(table)];
-    /* A uuid's value is its order: lanes write in whatever order the server answers them. */
+    // A uuid's value is its order: lanes write in whatever order the server answers them.
     const mixed = [interleaved.next(table), interleaved.next(row), interleaved.next(table)];
     expect([mixed[0], mixed[2]]).toEqual(own);
     expect(alone.next(row)).not.toBe(own[0]);

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { opsForField } from "./field-ops.ts";
 import { emptyCapabilities, mergeQueryCapabilities } from "./merge.ts";
 
-/* The searchable names the merge gives for an entity and a global config. */
+// The searchable names the merge gives for an entity and a global config.
 const searchable = (entity: string[] | null | undefined, global: string[] | null | undefined) =>
   mergeQueryCapabilities({
     ...(entity === undefined ? {} : { entity: { searchable: entity } }),
@@ -28,6 +28,7 @@ describe("query capability merge", () => {
         source: "tag",
       },
     });
+
     expect(caps.source).toBe("tag");
     expect(caps.filterable).toEqual([{ field: "id", ops: ["eq", "in"], type: "string" }]);
     expect(caps.sortable).toEqual([{ field: "created_at", type: "date" }]);
@@ -47,6 +48,7 @@ describe("query capability merge", () => {
         source: "tag",
       },
     });
+
     expect(caps.filterable).toEqual([{ field: "id" }]);
     expect(caps.sortable).toEqual([{ field: "name" }]);
   });
@@ -70,6 +72,7 @@ describe("merge: config, or the guess", () => {
         source: "heuristic",
       },
     });
+
     expect(caps.source).toBe("config");
     expect(caps.filterable.map((field) => field.field)).toEqual(["_id"]);
     expect(caps.sortable).toEqual([{ field: "_created_at", nulls: ["first", "last"] }]);
@@ -81,6 +84,7 @@ describe("merge: config, or the guess", () => {
     const caps = mergeQueryCapabilities({
       tag: { filterable: ["id"], searchable: ["name"], selectable: ["id"], sortable: ["name"], source: "heuristic" },
     });
+
     expect(caps.source).toBe("heuristic");
     expect(caps.filterable).toEqual([{ field: "id" }]);
     expect(caps.sortable).toEqual([{ field: "name" }]);
@@ -116,6 +120,7 @@ describe("merge: tag and config together", () => {
         source: "tag",
       },
     });
+
     expect(caps.source).toBe("mixed");
     expect(caps.filterable).toEqual([
       { field: "id", ops: ["in"], type: "string" },
@@ -144,6 +149,7 @@ describe("merge: a declared none", () => {
         source: "tag",
       },
     });
+
     expect(caps.filterable).toEqual([]);
     expect(caps.sortable).toEqual([]);
     expect(caps.searchable).toEqual([]);
@@ -165,6 +171,7 @@ describe("merge: a declared none", () => {
         source: "tag",
       },
     });
+
     expect(caps.filterable[0]?.ops).toBeUndefined();
     expect(caps.operators).toBeUndefined();
     expect(opsForField({ field: "id" }, caps)).toEqual(["eq", "neq", "gt", "gte", "lt", "lte", "like"]);
@@ -215,6 +222,7 @@ describe("merge: catalog extras", () => {
         stableTiebreak: "id",
       },
     });
+
     expect(caps.sort).toEqual({ defaultOrder: "created_at.desc", maxKeys: 2, nulls: ["first"], stableTiebreak: "id" });
     expect(caps.emptyIn).toBe("reject");
     expect(caps.identityFilter).toBe("_id");
@@ -260,6 +268,7 @@ describe("merge: inferred types and the empty map", () => {
         source: "tag",
       },
     });
+
     expect(caps.filterable).toEqual([
       { field: "id", type: "enum" },
       { field: "amount", type: "number" },

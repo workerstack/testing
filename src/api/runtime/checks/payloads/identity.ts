@@ -4,31 +4,36 @@ import { type ClientIdentity, reserveIdentity } from "../../world/client-identit
 import type { CheckContext } from "../core/context.ts";
 import { itemSchemaOf } from "./item-schema.ts";
 
-/* ------------------------------------------------------------------- invented values */
+// ------------------------------------------------------------------- invented values
 
 /** This entity's identifier as its item route takes it: the path parameter's schema, else the record's. */
 function identifierSchema(ctx: CheckContext): JsonSchema {
   const properties = (itemSchemaOf(ctx)?.properties ?? {}) as Record<string, JsonSchema>;
   const recordIdentity = properties[ctx.identity];
+
   for (const op of [ctx.readOp, ctx.deleteOp, ctx.updateOp]) {
     if (op === undefined) continue;
     const name = op.pathParams.at(-1);
     const raw = ctx.model.rawOperations.get(op.operationId);
+
     const declared = (raw?.parameters ?? []).find(
       (parameter) => "name" in parameter && parameter.in === "path" && parameter.name === name,
     ) as { schema?: JsonSchema } | undefined;
+
     if (declared?.schema === undefined) continue;
-    /* A route parameter documented as a bare string says nothing; the record's own identity
-     * (an integer, a uuid) says what an identifier looks like. */
-    if (bareString(declared.schema) && recordIdentity !== undefined && !bareString(recordIdentity)) {
+
+    // A route parameter documented as a bare string says nothing; the record's own identity
+    // (an integer, a uuid) says what an identifier looks like.
+    if (bareString(declared.schema) && recordIdentity !== undefined && !bareString(recordIdentity))
       return recordIdentity;
-    }
+
     return declared.schema;
   }
+
   return recordIdentity ?? { type: "string" };
 }
 
-/* A string schema with nothing that narrows it: no format, pattern, enum or length. */
+// A string schema with nothing that narrows it: no format, pattern, enum or length.
 function bareString(schema: JsonSchema): boolean {
   return (
     schema.type === "string" &&
@@ -50,6 +55,7 @@ export const NO_ABSENT_ID = "an identifier of the documented shape that names no
 /** A well-formed identifier that names nothing, or `null` when the identifier schema allows none. */
 export function constructedAbsentId(ctx: CheckContext): string | null {
   const made = absentIdentifier(identifierSchema(ctx), ctx.nonce ?? "testing");
+
   return made.ok ? String(made.value) : null;
 }
 
@@ -58,6 +64,7 @@ export function saltOf(ctx: CheckContext): string {
   if (ctx.nextSalt !== undefined) return ctx.nextSalt();
   const made = ((ctx.memo.entity.get("bodiesMade") as number | undefined) ?? 0) + 1;
   ctx.memo.entity.set("bodiesMade", made);
+
   return `p${made}`;
 }
 
@@ -73,7 +80,7 @@ export function reserveClientIdentity(
   schema: JsonSchema,
   salt: string,
 ): Record<string, unknown> {
-  /* A client-chosen identity a record already holds would overwrite or collide with that record. */
+  // A client-chosen identity a record already holds would overwrite or collide with that record.
   return reserveIdentity(body, clientIdentityOf(ctx, schema, `i${salt}`));
 }
 
@@ -87,6 +94,7 @@ export function clientIdentityOf(
   token: string,
 ): ClientIdentity {
   const taken = ctx.takenIdentities;
+
   return {
     identity: taken !== undefined && choosesIdentity(ctx, schema) ? ctx.identity : null,
     schema,

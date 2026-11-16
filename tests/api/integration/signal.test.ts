@@ -12,11 +12,9 @@ import { PRINCIPALS, SECURITY } from "../../../src/api/conformance/matrix/princi
 import { createMemoryServer } from "../../../src/api/reference/http/engines.ts";
 import type { ReferenceServer } from "../../../src/api/reference/http/server.ts";
 
-/*
- * A first Ctrl-C or SIGTERM stops testing in whatever phase the run is in — a long scenario
- * included — removes what the run created, writes the report, and exits 130 or 143. Only a second
- * signal means "now". Runs the built CLI, as a user would.
- */
+// A first Ctrl-C or SIGTERM stops testing in whatever phase the run is in — a long scenario
+// included — removes what the run created, writes the report, and exits 130 or 143. Only a second
+// signal means "now". Runs the built CLI, as a user would.
 
 const CLI = resolve(import.meta.dirname, "..", "..", "..", "dist", "api", "cli.js");
 const servers: ReferenceServer[] = [];
@@ -29,7 +27,7 @@ afterAll(async () => {
   await Promise.all(dirs.map((dir) => rm(dir, { force: true, recursive: true })));
 });
 
-/* A scenario that polls for something that never appears keeps the run in its scenario phase. */
+// A scenario that polls for something that never appears keeps the run in its scenario phase.
 const SCENARIO = {
   covers: ["table.list"],
   id: "never-ready",
@@ -42,19 +40,20 @@ const SCENARIO = {
   ],
 };
 
-/*
- * In front of the backend. Once told to hold, a DELETE is kept waiting and `held` settles: the run
- * is then still removing what it made, the moment a second signal must cut short. A timer cannot
- * find that moment: on a fast machine the stop was over within 50 ms, and a signal sent as the
- * process exits kills it before any handler can run.
- */
+// In front of the backend. Once told to hold, a DELETE is kept waiting and `held` settles: the run
+// is then still removing what it made, the moment a second signal must cut short. A timer cannot
+// find that moment: on a fast machine the stop was over within 50 ms, and a signal sent as the
+// process exits kills it before any handler can run.
 async function holdingProxy(target: string) {
   let holding = false;
   let onHeld: () => void;
+
   const held = new Promise<void>((settle) => {
     onHeld = settle;
   });
+
   const waiting: ServerResponse[] = [];
+
   const server = createServer((req, res) => {
     const chunks: Buffer[] = [];
     req.on("data", (chunk: Buffer) => chunks.push(chunk));
@@ -62,28 +61,36 @@ async function holdingProxy(target: string) {
       if (holding && req.method === "DELETE") {
         waiting.push(res);
         onHeld();
+
         return;
       }
+
       const headers = Object.fromEntries(
         Object.entries(req.headers).filter(([name]) => name !== "host" && name !== "content-length"),
       ) as Record<string, string>;
+
       const upstream = await fetch(`${target}${req.url ?? "/"}`, {
         ...(chunks.length === 0 ? {} : { body: Buffer.concat(chunks) }),
         headers,
         ...(req.method === undefined ? {} : { method: req.method }),
       });
+
       const text = await upstream.text();
       res.writeHead(upstream.status, { "content-type": upstream.headers.get("content-type") ?? "text/plain" });
       res.end(text);
     });
   });
+
   await new Promise<void>((listening) => server.listen(0, "127.0.0.1", listening));
   const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+
   const close = (): Promise<void> => {
     for (const res of waiting) res.destroy();
     server.closeAllConnections();
+
     return new Promise<void>((closed) => server.close(() => closed()));
   };
+
   return {
     close,
     held,
@@ -97,8 +104,9 @@ async function holdingProxy(target: string) {
 async function interrupted(signal: NodeJS.Signals, phase: string, twice = false) {
   const server = await createMemoryServer({});
   servers.push(server);
-  /* A second signal goes out while the run is provably stopping: with a teardown delete held. */
+  // A second signal goes out while the run is provably stopping: with a teardown delete held.
   const proxy = twice ? await holdingProxy(server.url) : undefined;
+
   if (proxy !== undefined) proxies.push(proxy);
   const base = proxy?.url ?? server.url;
   const dir = await mkdtemp(join(tmpdir(), "testing-signal-"));
@@ -116,14 +124,17 @@ async function interrupted(signal: NodeJS.Signals, phase: string, twice = false)
     }),
   );
   const before = await server.snapshot();
+
   const child = spawn(process.execPath, [CLI, "run", "--config", config, "--out", dir], {
     stdio: ["ignore", "ignore", "pipe"],
   });
+
   let sent = false;
   let stderr = "";
   child.stderr.setEncoding("utf8");
   child.stderr.on("data", (chunk: string) => {
     stderr += chunk;
+
     if (!sent && stderr.includes(`phase=${phase}`)) {
       sent = true;
       proxy?.hold();
@@ -133,14 +144,17 @@ async function interrupted(signal: NodeJS.Signals, phase: string, twice = false)
   });
   const code = await new Promise<number | null>((done) => child.on("close", (exit) => done(exit)));
   const after = await server.snapshot();
+
   return { after, before, code, dir, sent };
 }
 
-/* The run writes into a stamped directory under --out, with a `latest` link beside it. */
+// The run writes into a stamped directory under --out, with a `latest` link beside it.
 async function reportOf(dir: string): Promise<{ interrupted?: boolean }> {
   const stamped = (await readdir(dir)).filter((name) => /^\d/.test(name));
   const [only] = stamped;
+
   if (only === undefined) throw new Error(`no run directory in ${dir}`);
+
   return JSON.parse(await readFile(join(dir, only, "report.json"), "utf8")) as { interrupted?: boolean };
 }
 

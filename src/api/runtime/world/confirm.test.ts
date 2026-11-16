@@ -5,10 +5,8 @@ import { type Answer, fakeClient, modelOf } from "../checks/__fixtures__/harness
 import { notes } from "./__fixtures__/documents.ts";
 import { confirmSubmitted } from "./confirm.ts";
 
-/*
- * An id the API tester only sent proves nothing: the server may have ignored it. `confirmSubmitted` trusts it
- * only once the entity's read, under that id, returns that id with every scalar field the API tester sent.
- */
+// An id the API tester only sent proves nothing: the server may have ignored it. `confirmSubmitted` trusts it
+// only once the entity's read, under that id, returns that id with every scalar field the API tester sent.
 
 const scope = { projectId: "p1" };
 
@@ -23,6 +21,7 @@ function confirm(
   } = {},
 ) {
   const fake = fakeClient(() => answer);
+
   const result = confirmSubmitted({
     client: fake.client,
     entity: "note",
@@ -35,6 +34,7 @@ function confirm(
     ...(extra.ignore === undefined ? {} : { ignore: extra.ignore }),
     ...(extra.readable === undefined ? {} : { readable: extra.readable }),
   });
+
   return { result, sent: fake.sent };
 }
 
@@ -68,6 +68,7 @@ describe("confirmSubmitted", () => {
         size: 3,
       },
     );
+
     expect(await result).toBeNull();
   });
 
@@ -101,6 +102,7 @@ describe("confirmSubmitted, without reading", () => {
       readOp: { "x-entity": { action: "read", name: "note" } },
       readPath: "/projects/{projectId}/folders/{folderId}/notes/{noteId}",
     };
+
     const { result, sent } = confirm({ status: 200 }, { id: "n1", name: "first" }, { document });
     expect(await result).toBeNull();
     expect(sent).toEqual([]);

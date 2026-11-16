@@ -2,10 +2,8 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 
 import { createHydrator, type HydrationRuntime, type ServerRendered } from "./hydration.ts";
 
-/*
- * Node has no DOM, so the page is a few objects that keep what happened to them: a container whose
- * elements a test chooses, and a MutationObserver that reports what the fake hydrate added.
- */
+// Node has no DOM, so the page is a few objects that keep what happened to them: a container whose
+// elements a test chooses, and a MutationObserver that reports what the fake hydrate added.
 class FakeElement {
   isConnected = true;
   constructor(
@@ -17,11 +15,11 @@ class FakeElement {
   }
 }
 
-interface Page {
+type Page = {
   container: { innerHTML: string; elements: FakeElement[]; removed: number };
   appended: unknown[];
   added: FakeElement[];
-}
+};
 
 function fakePage(elements: FakeElement[]): Page {
   const page: Page = {
@@ -33,12 +31,14 @@ function fakePage(elements: FakeElement[]): Page {
       removed: 0,
     },
   };
+
   const container = Object.assign(page.container, {
     querySelectorAll: () => page.container.elements,
     remove: () => {
       page.container.removed += 1;
     },
   });
+
   vi.stubGlobal("document", {
     body: { append: (node: unknown) => page.appended.push(node) },
     createElement: () => container,
@@ -55,21 +55,23 @@ function fakePage(elements: FakeElement[]): Page {
   );
   vi.stubGlobal("Element", FakeElement);
   vi.stubGlobal("window", globalThis);
+
   return page;
 }
 
 const SERVER: ServerRendered = { html: '<button data-slot="button">Save</button>', warnings: [] };
 
-interface Calls {
+type Calls = {
   hydrated: number;
   disposed: number;
   flushed: number;
   seen: unknown[];
-}
+};
 
-/* A runtime whose hydrate runs `during` and records what it was handed. */
-function runtime(during: () => void = () => undefined, server = SERVER): { runtime: HydrationRuntime; calls: Calls } {
+// A runtime whose hydrate runs `during` and records what it was handed.
+function runtime(during: () => void = () => {}, server = SERVER): { runtime: HydrationRuntime; calls: Calls } {
   const calls: Calls = { disposed: 0, flushed: 0, hydrated: 0, seen: [] };
+
   return {
     calls,
     runtime: {
@@ -83,6 +85,7 @@ function runtime(during: () => void = () => undefined, server = SERVER): { runti
         calls.hydrated += 1;
         calls.seen.push(code(), container);
         during();
+
         return () => {
           calls.disposed += 1;
         };
@@ -106,9 +109,11 @@ afterEach(() => {
 describe("createHydrator", () => {
   it("hydrates the server's HTML in a container on the page, and a clean hydration has no mismatches", async () => {
     const page = fakePage([new FakeElement("BUTTON", { "data-slot": "button" })]);
+
     const { calls, runtime: live } = runtime(() => {
       expect(Reflect.get(globalThis, "_$HY")).toMatchObject({ done: false, events: [], r: {} });
     });
+
     const view = await createHydrator(live, FIXTURE, fixtures)("ButtonFixture");
     expect(calls.seen).toEqual(["/tests/web/solid/button.fixture.tsx", "ButtonFixture", "button", view.container]);
     expect([calls.hydrated, calls.flushed]).toEqual([1, 1]);
@@ -124,6 +129,7 @@ describe("createHydrator", () => {
     const page = fakePage([kept, thrown]);
     const fresh = new FakeElement("SPAN");
     const gone = new FakeElement("I");
+
     const { runtime: live } = runtime(
       () => {
         thrown.isConnected = false;
@@ -134,7 +140,8 @@ describe("createHydrator", () => {
       },
       { html: "<div></div>", warnings: ["written on the server"] },
     );
-    const print = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    const print = vi.spyOn(console, "warn").mockImplementation(() => {});
     const view = await createHydrator(live, FIXTURE, fixtures)("ButtonFixture");
     print.mockRestore();
     expect({ mismatches: view.mismatches, serverWarnings: view.server.warnings }).toStrictEqual({
@@ -151,18 +158,22 @@ describe("createHydrator", () => {
 describe("a hydration that throws", () => {
   it("records a mismatch that hydration throws, and rethrows any other error after cleaning up", async () => {
     const page = fakePage([]);
+
     const mismatch = runtime(() => {
       throw new Error("Hydration Mismatch. Unable to find DOM nodes for hydration key: 0-0");
     });
+
     const view = await createHydrator(mismatch.runtime, FIXTURE, fixtures)("ButtonFixture");
     expect(view.mismatches).toEqual({
       warnings: ["Hydration Mismatch. Unable to find DOM nodes for hydration key: 0-0"],
     });
     view.dispose();
     expect(mismatch.calls.disposed).toBe(0);
+
     const broken = runtime(() => {
       throw new Error("render failed");
     });
+
     await expect(createHydrator(broken.runtime, FIXTURE, fixtures)("ButtonFixture")).rejects.toThrow("render failed");
     expect(page.container.removed).toBe(2);
     expect("_$HY" in globalThis).toBe(false);

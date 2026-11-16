@@ -13,9 +13,9 @@ import { ids } from "../../sets/list.ts";
 import type { SetRead } from "../../sets/read.ts";
 import { type Subset, subsetPlan } from "./plans.ts";
 
-/* One row per page, deliberately: the bug only shows once a window excludes matching rows, and a
- * one-row window that does not match comes back empty and ends the walk, so every later match is
- * lost. Any larger page leaves detection to how matches happen to fall. */
+// One row per page, deliberately: the bug only shows once a window excludes matching rows, and a
+// one-row window that does not match comes back empty and ends the walk, so every later match is
+// lost. Any larger page leaves detection to how matches happen to fall.
 const ROWS_PER_PAGE = 1;
 
 /** The collection walked unfiltered and walked with the filter pushed to the server. */
@@ -28,9 +28,10 @@ async function walkBothWays(
   const walkOrder = tiebreak === undefined ? undefined : sortTerm(conv(ctx), { direction: "asc", field: tiebreak });
   const everything = await collectSet(ctx, ROWS_PER_PAGE, {}, { order: walkOrder });
   const serverSide = await collectSet(ctx, ROWS_PER_PAGE, term, { order: walkOrder });
-  /* Rows that do not match mean the filter was not applied to this walk. A backend that drops
-   * the filter once a sort is present does exactly that to the sorted walk, and every row it
-   * skipped would hide among the extras — so walk again without the sort. */
+
+  // Rows that do not match mean the filter was not applied to this walk. A backend that drops
+  // the filter once a sort is present does exactly that to the sorted walk, and every row it
+  // skipped would hide among the extras — so walk again without the sort.
   if (walkOrder !== undefined && serverSide !== null && !serverSide.items.every(matches)) {
     return {
       everything: await collectSet(ctx, ROWS_PER_PAGE, {}),
@@ -38,6 +39,7 @@ async function walkBothWays(
       serverSide: await collectSet(ctx, ROWS_PER_PAGE, term),
     };
   }
+
   return { everything, order: walkOrder, serverSide };
 }
 
@@ -59,16 +61,14 @@ export const filterAndPagingCompose: Check<Subset & { value: unknown }> = define
     andThen(when(filterable(ctx) && ctx.records.length > 2), () =>
       andThen(subsetPlan(ctx), (subset) => ready({ ...subset, value: subset.target[subset.field] })),
     ),
-  /*
-   * A foundation, not a composition: every check that reads a filtered set relies on the filter
-   * applying to the whole collection, so they depend on this and not the other way round. A
-   * filter dropped once a sort is present is walked around without the sort; one ignored outright
-   * leaves this unresolved, and the check that owns that defect reports it.
-   */
+  // A foundation, not a composition: every check that reads a filtered set relies on the filter
+  // applying to the whole collection, so they depend on this and not the other way round. A
+  // filter dropped once a sort is present is walked around without the sort; one ignored outright
+  // leaves this unresolved, and the check that owns that defect reports it.
   dependsOn: [
     "list.read-after-write",
-    /* Both sides are walks, so a broken walk changes both for reasons that are not about
-     * where the predicate is applied. */
+    // Both sides are walks, so a broken walk changes both for reasons that are not about
+    // where the predicate is applied.
     "pagination.page-walk-covers-set",
   ],
   id: "query.filter-selects-from-whole-set",
@@ -78,6 +78,7 @@ export const filterAndPagingCompose: Check<Subset & { value: unknown }> = define
   async run(ctx, { field, term, value }): Promise<Outcome> {
     const matches = (row: Record_): boolean => JSON.stringify(row[field]) === JSON.stringify(value);
     const { everything, order, serverSide } = await walkBothWays(ctx, term, matches);
+
     if (everything === null || serverSide === null) {
       return ctx.findings.unresolved(
         this.id,
@@ -85,6 +86,7 @@ export const filterAndPagingCompose: Check<Subset & { value: unknown }> = define
         "the collection could not be walked in both filtered and unfiltered form",
       );
     }
+
     if (!everything.complete || !serverSide.complete) {
       return ctx.findings.unresolved(
         this.id,
@@ -101,16 +103,20 @@ export const filterAndPagingCompose: Check<Subset & { value: unknown }> = define
       );
     }
 
-    /* The predicate applied by the API tester, over everything the API served. */
+    // The predicate applied by the API tester, over everything the API served.
     const clientSide = new Set(everything.items.filter(matches).flatMap((row) => idOf(row, ctx.identity) ?? []));
     const returned = new Set(ids(serverSide.items, ctx.identity));
     const skipped = [...clientSide].filter((id) => !returned.has(id));
+
     if (skipped.length === 0) return ASSERTED;
+
     const terms = [
       { order, size: ROWS_PER_PAGE },
       { order, query: term, size: ROWS_PER_PAGE },
     ];
+
     const moved = await unlessMoved(ctx, this.id, { reads: [everything, serverSide], terms });
+
     if (moved !== null) return moved;
 
     return ctx.findings.backend(this.id, ctx.entityName, {

@@ -20,6 +20,7 @@ const TERM = "{conj}_{field}_{op}_{value}";
 
 function draft(raw: Record<string, unknown>, over: Partial<Draft> = {}): Draft {
   const term = typeof raw["term"] === "string" ? raw["term"] : TERM;
+
   return {
     and: "repeat",
     escape: {},
@@ -34,23 +35,26 @@ function draft(raw: Record<string, unknown>, over: Partial<Draft> = {}): Draft {
   };
 }
 
-/* What combine reads to, or the error it names. */
+// What combine reads to, or the error it names.
 function andOf(raw: Record<string, unknown>, param: Draft["param"] = "{filter}") {
   const at = draft(raw, { param });
+
   return readAnd(at) ?? at.and;
 }
 
 const andError = (raw: Record<string, unknown>, param: Draft["param"] = "{filter}") => readAnd(draft(raw, { param }));
 
-/* What or reads to, or the error it names. */
+// What or reads to, or the error it names.
 function orOf(raw: Record<string, unknown>, over: Partial<Draft> = {}) {
   const at = draft(raw, over);
+
   return readOr(at) ?? at.or;
 }
 
-/* What likeMatches reads to, or the error it names. */
+// What likeMatches reads to, or the error it names.
 function likeOf(raw: Record<string, unknown>) {
   const at = draft(raw);
+
   return readLikeMatches(at) ?? at.likeMatches;
 }
 

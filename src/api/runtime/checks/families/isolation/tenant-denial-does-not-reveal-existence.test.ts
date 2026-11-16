@@ -20,7 +20,7 @@ describe("tenant.denial-does-not-reveal-existence", () => {
       "/orgs/o2/notes/n1",
       expect.stringMatching(/^\/orgs\/o2\/notes\/testing-absent-/),
     ]);
-    /* Both as the peer, each named so the client sends the read's own credential. */
+    // Both as the peer, each named so the client sends the read's own credential.
     expect(sent.map((s) => s.options)).toEqual([
       { as: { principal: "other" }, operationId: "readNote" },
       { as: { principal: "other" }, operationId: "readNote" },
@@ -74,13 +74,13 @@ describe("tenant.denial-does-not-reveal-existence without a verdict", () => {
 
   it("stands down without a second tenant, a read, a record or a boundary", async () => {
     const shared = modelOf(notesDocument({ tenant: false }));
+
     for (const { ctx } of [
       notesContext(model, denying(404, 404), { peer: undefined }),
       notesContext(model, denying(404, 404), { readOp: undefined }),
       notesContext(model, denying(404, 404), { records: [] }),
       notesContext(shared, denying(404, 404)),
-    ]) {
+    ])
       expect((await runCheck(denialDoesNotRevealExistence, ctx)).kind).toBe("stood-down");
-    }
   });
 });

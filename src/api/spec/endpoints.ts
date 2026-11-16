@@ -6,10 +6,13 @@ import type { Endpoint, OpenApiDocument, OperationObject, ParameterObject } from
 
 export function listEndpoints(doc: OpenApiDocument): Endpoint[] {
   const out: Endpoint[] = [];
+
   for (const [path, item] of Object.entries(doc.paths ?? {})) {
     if (item === null || typeof item !== "object") continue;
+
     for (const method of PATH_ITEM_METHODS) {
       const op = (item as Record<string, unknown>)[method];
+
       if (op === null || typeof op !== "object") continue;
       const operation = withPathParameters(op as OperationObject, (item as { parameters?: unknown }).parameters);
       out.push({
@@ -20,6 +23,7 @@ export function listEndpoints(doc: OpenApiDocument): Endpoint[] {
       });
     }
   }
+
   return out;
 }
 
@@ -38,8 +42,10 @@ function withPathParameters(op: OperationObject, shared: unknown): OperationObje
   if (!Array.isArray(shared) || shared.length === 0) return op;
   const own = op.parameters ?? [];
   const overridden = new Set(own.map(key));
+
   const inherited = (shared as ParameterObject[]).filter(
     (parameter) => parameter !== null && typeof parameter === "object" && !overridden.has(key(parameter)),
   );
+
   return inherited.length === 0 ? op : { ...op, parameters: [...inherited, ...own] };
 }

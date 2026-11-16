@@ -17,11 +17,9 @@ import {
   schemaType,
 } from "./capabilities.ts";
 
-/*
- * The query helpers every family builds its requests from. A check names roles — a page size, a
- * page, an order — and these spell them the way this endpoint's document does, never past its
- * documented maximum, and answer what the endpoint can express at all.
- */
+// The query helpers every family builds its requests from. A check names roles — a page size, a
+// page, an order — and these spell them the way this endpoint's document does, never past its
+// documented maximum, and answer what the endpoint can express at all.
 
 const base = () => notesContext().ctx;
 
@@ -47,7 +45,7 @@ describe("q", () => {
     const ctx = withConventions(base(), { offset: "skip", page: undefined });
     expect(q(ctx, { limit: 2, page: 3 })).toEqual({ limit: 2, skip: 4 });
     expect(q(ctx, { page: 0 })).toEqual({ skip: 0 });
-    /* Without a stated size the walk assumes 20 a page, consistently. */
+    // Without a stated size the walk assumes 20 a page, consistently.
     expect(q(ctx, { page: 2 })).toEqual({ skip: 20 });
   });
 
@@ -138,6 +136,7 @@ describe("canUseOp", () => {
   it("needs the grammar to write the operator and the field to allow it", () => {
     const ctx = base();
     const [name] = resolvedCaps(ctx).filterable;
+
     if (name === undefined) throw new Error("the notes list filters by name");
     expect(canUseOp(ctx, name, "eq")).toBe(true);
     expect(canUseOp(withConventions(ctx, { filter: undefined, grammar: "equality" }), name, "neq")).toBe(false);
@@ -165,7 +164,9 @@ describe("asTermValue", () => {
 function withItem(properties: Record<string, unknown>) {
   const ctx = base();
   const collection = ctx.listOp.collection;
+
   if (collection === null) throw new Error("the notes list is a collection");
+
   return { ...ctx, listOp: { ...ctx.listOp, collection: { ...collection, itemSchema: { properties } } } };
 }
 

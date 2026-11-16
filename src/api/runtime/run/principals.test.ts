@@ -20,11 +20,9 @@ import {
 import type { RunPrincipals } from "./context.ts";
 import { createdByRun, resolvePrincipals } from "./principals.ts";
 
-/*
- * Who the run acts as: every login run before anything is planned, so what its claims bind is what
- * isolation is planned from; a principal that cannot sign in BLOCKED and left out; and each record
- * traced to the principal that made it.
- */
+// Who the run acts as: every login run before anything is planned, so what its claims bind is what
+// isolation is planned from; a principal that cannot sign in BLOCKED and left out; and each record
+// traced to the principal that made it.
 
 /** An id as a create returns it. */
 const id = (value: string) => createdId(value) as NonNullable<ReturnType<typeof createdId>>;
@@ -32,10 +30,13 @@ const id = (value: string) => createdId(value) as NonNullable<ReturnType<typeof 
 /** A login that issues a JWT naming the tenant and project of the key it is sent; `refused` keys answer 401. */
 function claimsLogin(refused: ReadonlySet<string> = new Set()): Responder {
   const notes = notesApi(loginDoc);
+
   return (method, path, request) => {
     if (path !== "/login") return notes(method, path, request);
     const key = String((request.body as { key?: unknown } | undefined)?.key);
+
     if (refused.has(key)) return { body: { error: "bad key" }, status: 401 };
+
     return { body: { token: jwtOf({ org_id: `org-${key}`, project: `p-${key}` }) }, status: 200 };
   };
 }
@@ -52,7 +53,9 @@ const CLAIMED: SecurityConfig = {
 
 async function signedIn(respond: Responder, extra: Parameters<typeof optionsFor>[1]): Promise<RunPrincipals> {
   const principals = await resolvePrincipals(await planned(optionsFor(respond, extra)));
+
   if (principals === null) throw new Error("nobody signed in");
+
   return principals;
 }
 
@@ -62,6 +65,7 @@ describe("resolvePrincipals", () => {
       principals: { alpha: { key: "a", rank: 2 }, beta: { inviteAs: "b@x.test", key: "b" }, gamma: { key: "a" } },
       security: CLAIMED,
     });
+
     const { alpha, all, byId } = principals;
     expect(alpha).toEqual({
       fresh: false,
@@ -81,6 +85,7 @@ describe("resolvePrincipals", () => {
     const principals = await signedIn(notesApi(), {
       principals: { alpha: { scope: { org_id: "o1" }, tenant: "t1" }, beta: { tenant: "t1" } },
     });
+
     expect(principals.alpha).toMatchObject({ scope: { org_id: "o1" }, tenant: "t1" });
     expect(principals.alpha).not.toHaveProperty("readOnly");
     expect(principals.peerOf(principals.alpha)).toBeUndefined();
@@ -91,6 +96,7 @@ describe("resolvePrincipals", () => {
       principals: { admin: {}, alpha: { tenant: "t1" }, beta: { tenant: "t2" } },
       writer: "alpha",
     });
+
     expect([principals.all.map((one) => one.id), principals.peerOf(principals.alpha)?.id]).toEqual([
       ["alpha", "admin", "beta"],
       "beta",
@@ -101,6 +107,7 @@ describe("resolvePrincipals", () => {
     const principals = await signedIn(notesApi(), {
       principals: { alpha: { tenant: "t1" }, viewer: { readOnly: true, tenant: "t1" } },
     });
+
     expect(principals.byId.get("viewer")).toMatchObject({ identity: {}, readOnly: true });
   });
 
@@ -119,11 +126,14 @@ describe("resolvePrincipals, when a login fails", () => {
         security: CLAIMED,
       }),
     );
+
     const principals = (await resolvePrincipals(run)) as RunPrincipals;
     expect(principals.all.map((principal) => principal.id)).toEqual(["alpha"]);
+
     const reason =
       'login for beta/bearer: testing api: principal "beta" failed at auth step 1 ' +
       '(POST /login): expected 2xx, got 401 — {"error":"bad key"}';
+
     expect(principals.blocked).toEqual([{ id: "beta", reason }]);
     expect(run.findings.findings).toEqual([
       expect.objectContaining({
@@ -148,6 +158,7 @@ describe("resolvePrincipals when the network goes away", () => {
   it("is null, with the outage noted, when a login never gets an answer", async () => {
     const served = optionsFor(withLogin(), { security: LOGIN });
     const serve = served.network?.fetch as typeof fetch;
+
     const run = await planned({
       ...served,
       network: {
@@ -155,6 +166,7 @@ describe("resolvePrincipals when the network goes away", () => {
         fetch: (input, init) => (String(input).endsWith("/login") ? unreachable(input, init) : serve(input, init)),
       },
     });
+
     expect(await resolvePrincipals(run)).toBeNull();
     expect(run.network.outcome?.kind).toBe("refused");
     expect(run.findings.findings[0]).toMatchObject({ check: "net.unreachable", entity: "auth" });
@@ -171,9 +183,11 @@ describe("resolvePrincipals when the network goes away", () => {
         },
       },
     };
+
     const doc = { ...loginDoc, paths: { ...loginDoc.paths, ...signup } };
     const served = optionsFor(notesApi(doc), { principals: { alpha: { fresh: true } } });
     const serve = served.network?.fetch as typeof fetch;
+
     const run = await planned({
       ...served,
       network: {
@@ -181,6 +195,7 @@ describe("resolvePrincipals when the network goes away", () => {
         fetch: (input, init) => (String(input).endsWith("/signup") ? unreachable(input, init) : serve(input, init)),
       },
     });
+
     expect(await resolvePrincipals(run)).toBeNull();
     expect(run.network.outcome?.kind).toBe("refused");
   });
@@ -195,6 +210,7 @@ describe("resolvePrincipals when the network goes away", () => {
         },
       ),
     );
+
     const failing = { ...run, client: { view: () => ({ request: () => Promise.reject(new Error("boom")) }) } } as never;
     await expect(resolvePrincipals(failing)).rejects.toThrow("boom");
   });
@@ -206,6 +222,7 @@ describe("resolvePrincipals: fresh principals", () => {
       withSignup(() => ({ status: 201 })),
       { principals: { alpha: { fresh: true, rank: 1 } }, security: EMAIL_LOGIN },
     );
+
     const { alpha } = principals;
     expect([alpha.fresh, alpha.rank, typeof alpha.identity["email"], alpha.tenant]).toEqual([
       true,
@@ -231,6 +248,7 @@ describe("resolvePrincipals: fresh principals", () => {
         },
       ),
     );
+
     const principals = (await resolvePrincipals(run)) as RunPrincipals;
     const reason = "signup for fresh by auth.signup: answered 409";
     expect([principals.all.map((principal) => principal.id), principals.blocked]).toEqual([
@@ -263,6 +281,7 @@ describe("RunPrincipals: the ledger", () => {
         },
       }),
     );
+
     const principals = (await resolvePrincipals(run)) as RunPrincipals;
     const owner = principals.ownerOf(principals.byId.get("alpha") as RunPrincipals["alpha"]);
     expect(owner).toEqual({ id: "alpha" });
@@ -280,6 +299,7 @@ describe("RunPrincipals: the ledger", () => {
 
 const signup = { body: { email: "{principal.email}", password: "p4ssw0rd!", tenant: "t1" } };
 const thenLogIn = { body: { email: "{principal.email}" }, operationId: "auth.login" };
+
 /** A login recipe whose steps start with `first`, then sign in by email. */
 const registering = (first: object): SecurityConfig => ({
   bearer: { login: { from: "$.access_token", steps: [first as never, thenLogIn] } },
@@ -302,6 +322,7 @@ describe("createdByRun", () => {
         },
       ),
     );
+
     const made = Object.keys(run.store.principals).filter((principal) => createdByRun(run, principal));
     expect(made).toEqual(["declared", "fresh", "raw", "registered"]);
   });
@@ -312,7 +333,9 @@ describe("createdByRun", () => {
         login: { from: "$.token", steps: [{ bind: { address: "{principal.email}" }, operationId: "auth.login" }] },
       },
     };
+
     const elsewhere = { method: "POST", origin: "app", path: "/signup", ...signup };
+
     const run = await planned(
       optionsFor(
         withSignup(() => ({ status: 201 })),
@@ -331,6 +354,7 @@ describe("createdByRun", () => {
         },
       ),
     );
+
     expect(Object.keys(run.store.principals).filter((principal) => createdByRun(run, principal))).toEqual([]);
   });
 
@@ -341,6 +365,7 @@ describe("createdByRun", () => {
         principals: { alpha: { email: "a@x.test", security: registering({ operationId: "auth.login" }) } },
       },
     );
+
     expect(createdByRun(await planned(options), "alpha")).toBe(false);
   });
 });
@@ -359,6 +384,7 @@ describe("createdByRun on a signup the document leaves unmarked", () => {
         },
       ),
     );
+
     const made = Object.keys(run.store.principals).filter((principal) => createdByRun(run, principal));
     expect(made).toEqual(["registered"]);
   });

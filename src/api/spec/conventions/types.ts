@@ -55,7 +55,7 @@ export type SelectGrammar =
   /** `fields[type]=id,name` — JSON:API's per-type bracket form. */
   | "bracketed";
 
-export interface QueryConventions {
+export type QueryConventions = {
   /** Parameter carrying a filter expression, when the endpoint has one. */
   filter?: string;
   /** Parameter selecting sort order. */
@@ -107,4 +107,4 @@ export interface QueryConventions {
     page?: string;
     limit?: string;
   };
-}
+};

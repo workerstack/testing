@@ -22,8 +22,10 @@ function send(res: ServerResponse, status: number, body?: unknown): void {
   if (body === undefined) {
     res.writeHead(status);
     res.end();
+
     return;
   }
+
   const text = JSON.stringify(body);
   res.writeHead(status, { "content-length": String(Buffer.byteLength(text)), "content-type": "application/json" });
   res.end(text);
@@ -38,6 +40,7 @@ async function listen(handler: (req: IncomingMessage, res: ServerResponse) => vo
     server.listen(0, "127.0.0.1", resolve);
   });
   const addr = server.address() as AddressInfo;
+
   return {
     close: () =>
       new Promise((resolve, reject) => {
@@ -112,18 +115,20 @@ const WAIT_SPEC = {
 
 type WaitOptions = Parameters<typeof driveWait>[0];
 
-/* A server answering every poll with `handler`, closed after the test. */
+// A server answering every poll with `handler`, closed after the test.
 async function pollServer(handler: (req: IncomingMessage, res: ServerResponse) => void): Promise<string> {
   const server = await listen(handler);
   closers.push(server.close);
+
   return server.url;
 }
 
-/* driveWait against `url`, polling `spec.operationId`, with no record or scope unless given. */
+// driveWait against `url`, polling `spec.operationId`, with no record or scope unless given.
 function waitOn(url: string, options: Pick<WaitOptions, "spec"> & Partial<WaitOptions>) {
   const model = buildModel(dereference(WAIT_SPEC).doc);
+
   return driveWait({
-    /* The document declares no security, so every actor sends nothing. */
+    // The document declares no security, so every actor sends nothing.
     client: new Client({
       baseUrl: url,
       credentials: { resolve: async () => ({ kind: "anonymous" }) },
@@ -141,15 +146,19 @@ function waitOn(url: string, options: Pick<WaitOptions, "spec"> & Partial<WaitOp
 describe("driveWait", () => {
   it("succeeds when the JSON path becomes occupied", async () => {
     let n = 0;
+
     const url = await pollServer((_req, res) => {
       n += 1;
       send(res, 200, n < 2 ? { items: [] } : { items: [{ id: "1" }] });
     });
+
     const pollOp = buildModel(dereference(WAIT_SPEC).doc).byOperationId.get("inbox.list");
     expect(pollOp).toBeDefined();
+
     const outcome = await waitOn(url, {
       spec: { operationId: "inbox.list", pollIntervalMs: 1, timeoutMs: 200, until: "$.items.0" },
     });
+
     expect(outcome.timedOut).toBe(false);
     expect(outcome.polls).toBeGreaterThanOrEqual(2);
     expect(outcome.matched).toEqual({ id: "1" });
@@ -157,24 +166,29 @@ describe("driveWait", () => {
 
   it("succeeds from awaitSideEffect even when until is still empty", async () => {
     const url = await pollServer((_req, res) => send(res, 200, { items: [] }));
+
     const outcome = await waitOn(url, {
       awaitSideEffect: async () => true,
       spec: { operationId: "inbox.list", pollIntervalMs: 1, timeoutMs: 100, until: "$.items.0" },
     });
+
     expect(outcome.timedOut).toBe(false);
   });
 
   it("succeeds from awaitSideEffect when until is omitted", async () => {
     const url = await pollServer((_req, res) => send(res, 200, { items: [] }));
     let calls = 0;
+
     const outcome = await waitOn(url, {
       awaitSideEffect: async () => {
         calls += 1;
+
         return calls >= 2 ? true : null;
       },
       record: { from: "write" },
       spec: { operationId: "inbox.list", pollIntervalMs: 1, timeoutMs: 200 },
     });
+
     expect(outcome.timedOut).toBe(false);
     expect(calls).toBeGreaterThanOrEqual(2);
   });
@@ -190,14 +204,17 @@ describe("driveWait", () => {
   it("keeps polling when the GET is not 2xx", async () => {
     const url = await pollServer((_req, res) => send(res, 404, { error: "empty" }));
     let hookRecord: unknown;
+
     const outcome = await waitOn(url, {
       awaitSideEffect: async ({ record }) => {
         hookRecord = record;
+
         return null;
       },
       record: { from: "write" },
       spec: { operationId: "inbox.list", pollIntervalMs: 1, timeoutMs: 25, until: "$.items.0" },
     });
+
     expect(outcome.timedOut).toBe(true);
     expect(hookRecord).toEqual({ from: "write" });
   });
@@ -209,10 +226,12 @@ describe("driveWait", () => {
         send(res, 200, { items: [] });
       })();
     });
+
     const outcome = await waitOn(url, {
       spec: { operationId: "inbox.list", pollIntervalMs: 50, timeoutMs: 15, until: "$.items.0" },
     });
-    /* Each poll alone outlasts the budget, so a missed delivery is concluded at the third and no later. */
+
+    // Each poll alone outlasts the budget, so a missed delivery is concluded at the third and no later.
     expect(outcome.timedOut).toBe(true);
     expect(outcome.polls).toBe(LEAST_POLLS);
   });
@@ -225,15 +244,18 @@ describe("driveWait", () => {
 
   it("times out and fails closed on an unresolvable poll path", async () => {
     const url = await pollServer((_req, res) => send(res, 200, { items: [] }));
+
     const empty = await waitOn(url, {
       spec: { operationId: "inbox.broken", pollIntervalMs: 1, timeoutMs: 30, until: "$.items.0" },
     });
+
     expect(empty.polls).toBe(0);
     expect(empty.timedOut).toBe(true);
 
     const timed = await waitOn(url, {
       spec: { operationId: "inbox.list", pollIntervalMs: 5, timeoutMs: 20, until: "$.items.0" },
     });
+
     expect(timed.timedOut).toBe(true);
     expect(timed.polls).toBeGreaterThan(0);
   });
@@ -291,25 +313,34 @@ const JOB_SPEC = {
   },
 } as OpenApiDocument;
 
-/* Jobs that are created, and an inbox that never receives anything. */
+// Jobs that are created, and an inbox that never receives anything.
 async function serveJobs(): Promise<string> {
   let jobs: Array<{ id: string; name: string }> = [];
+
   const server = await listen((req, res) => {
     void (async () => {
       const url = new URL(req.url ?? "/", "http://127.0.0.1");
       const method = (req.method ?? "GET").toUpperCase();
+
       if (url.pathname === "/openapi" && method === "GET") return send(res, 200, JOB_SPEC);
+
       if (url.pathname === "/jobs" && method === "GET") return send(res, 200, { jobs });
+
       if (url.pathname === "/jobs" && method === "POST") {
         const row = { id: `j${jobs.length + 1}`, name: "n" };
         jobs = [...jobs, row];
+
         return send(res, 201, row);
       }
+
       if (url.pathname === "/inbox" && method === "GET") return send(res, 200, { items: [] });
+
       return send(res, 404);
     })();
   });
+
   closers.push(server.close);
+
   return server.url;
 }
 
@@ -324,6 +355,7 @@ describe("effects.side-effect-arrives", () => {
       seed: 1,
       spec: `${url}/openapi`,
     });
+
     expect(result.checksRun).toContain("effects.side-effect-arrives");
     const finding = result.findings.find((f) => f.check === "effects.side-effect-arrives");
     expect(finding?.verdict).toBe("BACKEND_BUG");

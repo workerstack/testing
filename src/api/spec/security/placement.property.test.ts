@@ -6,10 +6,8 @@ import { credentialHeaderNames, stripCredentials } from "../../security/strip.ts
 import { placementOf } from "./placement.ts";
 import { readSchemes, type SecurityScheme } from "./schemes.ts";
 
-/*
- * Placement over every scheme kind: a scheme the API tester can send has one placement with one `{credential}`
- * slot, decided by its kind and location alone, and a declared name reaches the wire as written.
- */
+// Placement over every scheme kind: a scheme the API tester can send has one placement with one `{credential}`
+// slot, decided by its kind and location alone, and a declared name reaches the wire as written.
 
 const name = fc.stringMatching(/^[A-Za-z][\w-]{0,10}$/);
 const location = fc.constantFrom("header" as const, "query" as const, "cookie" as const);
@@ -27,15 +25,16 @@ const supported: fc.Arbitrary<SecurityScheme> = fc.oneof(
   fc.tuple(base, flow).map(([b, f]) => ({ ...b, flows: { clientCredentials: f }, kind: "oauth2" as const })),
   fc.tuple(base, fc.webUrl()).map(([b, url]) => ({ ...b, kind: "openIdConnect" as const, openIdConnectUrl: url })),
 );
+
 const unsupported = fc
   .tuple(base, fc.string())
   .map(([b, why]): SecurityScheme => ({ ...b, kind: "unsupported", unsupported: why }));
 
-/* Every casing of `text`, chosen letter by letter. */
+// Every casing of `text`, chosen letter by letter.
 const recased = (text: string) =>
   fc
     .array(fc.boolean(), { maxLength: text.length, minLength: text.length })
-    .map((upper) => [...text].map((char, i) => (upper[i] ? char.toUpperCase() : char.toLowerCase())).join(""));
+    .map((upper) => [...text].map((char, i) => (upper[i] === true ? char.toUpperCase() : char.toLowerCase())).join(""));
 
 describe("placementOf, by property", () => {
   it("gives a sendable scheme one placement with exactly one credential slot", () => {
@@ -75,6 +74,7 @@ describe("placementOf on declared names, by property", () => {
         const read = readSchemes({
           components: { securitySchemes: { [scheme]: { in: at, name: param, type: "apiKey" } } },
         });
+
         expect(placementOf(read.get(scheme) as SecurityScheme)).toEqual({
           in: at,
           name: param,
@@ -89,6 +89,7 @@ describe("placementOf on declared names, by property", () => {
       .map((scheme) => placementOf(scheme))
       .filter((placement) => placement?.in === "header")
       .chain((placement) => fc.tuple(fc.constant(placement?.name ?? ""), recased(placement?.name ?? "")));
+
     fc.assert(
       fc.property(header, ([placed, sent]) => {
         const headers = { [sent]: "value", accept: "json" };

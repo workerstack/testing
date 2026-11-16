@@ -7,6 +7,7 @@ import { declaredEverywhere, originProblems, originViews, scopedRecipes } from "
 
 const view = (doc: OpenApiDocument) => {
   const model = buildModel(doc);
+
   return { operations: model.operations, schemes: model.schemes };
 };
 

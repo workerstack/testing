@@ -19,21 +19,24 @@ afterAll(() => {
   for (const dir of made) rmSync(dir, { force: true, recursive: true });
 });
 
-/* A fresh folder holding `files` (path → JSON body, or text); returns the folder. */
+// A fresh folder holding `files` (path → JSON body, or text); returns the folder.
 function tree(files: Record<string, unknown>): string {
   const root = mkdtempSync(join(tmpdir(), "testing-bundle-"));
   made.push(root);
+
   for (const [path, body] of Object.entries(files)) {
     mkdirSync(dirname(join(root, path)), { recursive: true });
     writeFileSync(join(root, path), typeof body === "string" ? body : JSON.stringify(body));
   }
+
   return root;
 }
 
-/* A document whose one response schema is `$ref: ref`. */
+// A document whose one response schema is `$ref: ref`.
 function referring(ref: string): Record<string, unknown> {
   const schema = { $ref: ref };
   const content = { "application/json": { schema } };
+
   return {
     info: { title: "t", version: "1" },
     openapi: "3.1.0",
@@ -47,6 +50,7 @@ async function bundled(path: string): Promise<OpenApiDocument> {
 
 function schemaOf(doc: OpenApiDocument): JsonSchema {
   const paths = doc.paths as Record<string, any>;
+
   return paths["/x"].get.responses["200"].content["application/json"].schema;
 }
 
@@ -58,13 +62,13 @@ describe("bundleLocalRefs", () => {
     expect(doc["paths"]["/pets/{id}"].get.responses["200"].content["application/json"].schema).toEqual({
       $ref: `#/${EXTERNAL_KEY}/schemas~1pet.yaml/Pet`,
     });
-    /* The external file's own `#/` ref, its nested relative ref, and its ref back into the root. */
+    // The external file's own `#/` ref, its nested relative ref, and its ref back into the root.
     expect(pet.Pet.properties).toEqual({
       id: { $ref: `#/${EXTERNAL_KEY}/schemas~1pet.yaml/Id` },
       owner: { $ref: "#/components/schemas/Owner" },
       tag: { $ref: `#/${EXTERNAL_KEY}/schemas~1tag.yaml` },
     });
-    /* An example is data: a `$ref` inside it is not a reference. */
+    // An example is data: a `$ref` inside it is not a reference.
     expect(pet.Pet.example.note).toEqual({ $ref: "data.yaml" });
   });
 
@@ -86,6 +90,7 @@ describe("bundleLocalRefs", () => {
       "b.json": { B: { properties: { a: { $ref: "./a.json#/A" }, again: { $ref: "a.json#/A" } } } },
       "openapi.json": referring("a.json#/A"),
     });
+
     const doc = (await bundled(join(root, "openapi.json"))) as Record<string, any>;
     expect(Object.keys(doc[EXTERNAL_KEY])).toEqual(["a.json", "b.json"]);
     expect(doc[EXTERNAL_KEY]["b.json"].B.properties.a).toEqual({ $ref: `#/${EXTERNAL_KEY}/a.json/A` });
@@ -109,6 +114,7 @@ describe("bundleLocalRefs and a ref outside the document's folder", () => {
 
   it("refuses a ref by absolute path or file URL", async () => {
     const root = tree({ "s.json": { type: "string" } });
+
     for (const ref of [join(root, "s.json"), `file://${join(root, "s.json")}`]) {
       const path = join(tree({ "openapi.json": referring(ref) }), "openapi.json");
       await expect(bundled(path)).rejects.toThrow(
@@ -154,7 +160,7 @@ describe("bundleLocalRefs and what a ref names", () => {
     expect(schemaOf(doc)).toEqual({ $ref: `#/${EXTERNAL_KEY}/my file~0v%251.json` });
     expect(dereference(doc as OpenApiDocument).doc.paths).toBeDefined();
     expect(schemaOf(dereference(doc as OpenApiDocument).doc)).toEqual({ type: "string" });
-    /* A malformed escape is taken as written. */
+    // A malformed escape is taken as written.
     const raw = tree({ "a%zz.json": { type: "string" }, "openapi.json": referring("a%zz.json") });
     expect(schemaOf(await bundled(join(raw, "openapi.json")))).toEqual({ $ref: `#/${EXTERNAL_KEY}/a%25zz.json` });
   });
@@ -185,6 +191,7 @@ describe("bundleLocalRefs and a file it cannot use", () => {
       "s.yaml": "A: &a { $ref: t.json }\nB: *a\n",
       "t.json": {},
     });
+
     const doc = (await bundled(join(root, "openapi.json"))) as Record<string, any>;
     const ref = `#/${EXTERNAL_KEY}/t.json`;
     expect(doc[EXTERNAL_KEY]["s.yaml"]).toEqual({ A: { $ref: ref }, B: { $ref: ref } });
@@ -200,6 +207,7 @@ describe("bundleLocalRefs and a file it cannot use", () => {
       },
       description: "x",
     };
+
     const doc = { ...referring("#"), paths: { "/x": { get: { responses: { "200": response } } } } };
     const root = tree({ "ex.json": { value: { id: 1 } }, "openapi.json": doc });
     const out = (await bundled(join(root, "openapi.json"))) as Record<string, any>;

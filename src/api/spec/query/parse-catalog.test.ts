@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { parseQueryCatalog } from "./parse-catalog.ts";
 
-/* Every key a tag may hold, some entries of each malformed. */
+// Every key a tag may hold, some entries of each malformed.
 const FULL_TAG = {
   aliases: { eq: 1, ne: "neq", nope: "eq" },
   emptyIn: "match-none",
@@ -36,7 +36,7 @@ const FULL_TAG = {
   sortableFrom: { path: "$.s", route: "GET /v1/meta" },
 };
 
-/* What the catalog keeps of it. */
+// What the catalog keeps of it.
 const FULL_CATALOG = {
   aliases: { ne: "neq" },
   emptyIn: "match-none",
@@ -66,7 +66,7 @@ const FULL_CATALOG = {
   sortableFrom: { path: "$.s", route: "GET /v1/meta" },
 };
 
-/* The order the catalog lists its keys in. */
+// The order the catalog lists its keys in.
 const KEY_ORDER = [
   "filterable",
   "sortable",
@@ -116,6 +116,7 @@ describe("x-query catalog: flat keys and junk", () => {
       sortNulls: ["last"],
       stableTiebreak: "id",
     });
+
     expect(catalog.searchable).toBeNull();
     expect(catalog.emptyIn).toBe("reject");
     expect(catalog.limitOutOfRange).toBe("reject");

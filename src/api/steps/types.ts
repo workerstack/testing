@@ -1,13 +1,11 @@
-/*
- * What a caller tells the step builders about its API, so a scenario that names an operation, a
- * body field, a path parameter or an error key the API lacks fails to compile. Nothing here exists
- * at run time: the builders emit the API tester's plain step objects.
- */
+// What a caller tells the step builders about its API, so a scenario that names an operation, a
+// body field, a path parameter or an error key the API lacks fails to compile. Nothing here exists
+// at run time: the builders emit the API tester's plain step objects.
 
 import type { ScenarioStep } from "../config/types/steps.ts";
 
 /** One operation as a caller's types describe it. Every part is optional: a part left out takes nothing. */
-export interface OpShape {
+export type OpShape = {
   /** The JSON request body. */
   body?: unknown;
   /** The path parameters, filled through `bind`. */
@@ -16,13 +14,13 @@ export interface OpShape {
   query?: object;
   /** The error keys the operation declares, per status: `{ 403: "forbidden" | "email_not_verified" }`. */
   errors?: { readonly [status: number]: string };
-}
+};
 
 /** Operation id → its shape. */
 export type OpMap = { readonly [operationId: string]: OpShape };
 
 /** Everything the builders are typed over. Only `ops` is required. */
-export interface StepTypes {
+export type StepTypes = {
   /** The operations of the document the scenario runs against. */
   ops: OpMap;
   /** Configured `origins[]` name → that origin's operations, for a support step sent there. */
@@ -31,7 +29,7 @@ export interface StepTypes {
   externals?: { readonly [name: string]: object | undefined };
   /** The out-of-band kinds `hooks.resolveOutOfBand` answers. */
   mail?: string;
-}
+};
 
 /** A text holding a `{name}` placeholder, filled from the flow's scope when the step runs. */
 export type Placeholder = `${string}{${string}}${string}`;
@@ -48,14 +46,14 @@ export type Fillable<T> = T extends Bytes
       : T | Placeholder;
 
 /** A value written `unchecked(...)`: sent as it is, outside the operation's body type. */
-export interface Unchecked {
+export type Unchecked = {
   readonly "~unchecked": true;
-}
+};
 
 /** A builder `scenario()` turns into the plain step it stands for. */
-export interface BuiltStep {
+export type BuiltStep = {
   toStep(): ScenarioStep;
-}
+};
 
 /** What a scenario's steps may hold: builders, and plain steps such as a sign-up flow's. */
 export type StepItem = BuiltStep | ScenarioStep;
@@ -78,7 +76,7 @@ type Params<S extends OpShape, K extends "bind" | "query"> = K extends keyof S
 type BodyOf<S extends OpShape> = "body" extends keyof S ? Fillable<NonNullable<S["body"]>> | Unchecked : Unchecked;
 
 /** What an operation call sends besides the operation id. */
-export interface CallInit<S extends OpShape = OpShape> {
+export type CallInit<S extends OpShape = OpShape> = {
   body?: BodyOf<S>;
   bind?: Params<S, "bind">;
   query?: Params<S, "query">;
@@ -86,7 +84,7 @@ export interface CallInit<S extends OpShape = OpShape> {
   headers?: Record<string, string>;
   /** One of the request media types the operation documents. */
   mediaType?: string;
-}
+};
 
 /** A status `S` declares error keys for. */
 export type ErrorStatus<S extends OpShape> = "errors" extends keyof S ? keyof NonNullable<S["errors"]> & number : never;
@@ -98,9 +96,9 @@ export type Refusal<S extends OpShape, Status extends number> = CallInit<S> & {
 };
 
 /** What a raw request sends besides its method and path. */
-export interface RawInit {
+export type RawInit = {
   body?: unknown;
   headers?: Record<string, string>;
   query?: Record<string, string>;
   redirect?: "follow" | "manual";
-}
+};

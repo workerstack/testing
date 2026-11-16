@@ -30,6 +30,7 @@ const refused = (schema: JsonSchema, ctx: At = at()): string => {
     if (error instanceof Unconstructible) return `${error.pointer} ${error.reason}`;
     throw error;
   }
+
   return "made";
 };
 
@@ -88,6 +89,7 @@ describe("stringFor and the schema's examples", () => {
       maxLength: 64,
       pattern: "^[A-Za-z_]+(?:/[A-Za-z_]+){0,2}$",
     };
+
     expect(stringFor(zone, at({ index: 0 }))).toBe("Europe/Zagreb");
     expect(stringFor(zone, at({ index: 1 }))).toBe("Asia/Tokyo");
     expect(stringFor(zone, at({ index: 2, variant: "unicode" }))).toBe("Europe/Zagreb");

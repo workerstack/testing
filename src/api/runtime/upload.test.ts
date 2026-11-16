@@ -28,13 +28,15 @@ const request = (more: Partial<UploadRequest> = {}): UploadRequest => ({
   ...more,
 });
 
-/* A folder of files: `name → bytes`, nested by `/`. */
+// A folder of files: `name → bytes`, nested by `/`.
 function folder(files: Record<string, Uint8Array | string>): string {
   const root = mkdtempSync(join(tmpdir(), "testing-upload-"));
+
   for (const [name, bytes] of Object.entries(files)) {
     mkdirSync(join(root, name, ".."), { recursive: true });
     writeFileSync(join(root, name), bytes);
   }
+
   return root;
 }
 
@@ -103,11 +105,13 @@ describe("resolveUploadFile from the pool", () => {
 
   it("falls back to a dummy when nothing in the pool fits, or there is no pool", async () => {
     const root = folder({ "a.pdf": PDF });
+
     const csv = await resolveUploadFile(request({ contentMediaType: "text/csv" }), {
       configDir: root,
       seed: 1,
       uploads: { pool: ["."] },
     });
+
     expect([csv.filename, csv.mediaType]).toEqual(["doc-baseline-0.csv", "text/csv"]);
     const empty = await resolveUploadFile(request(), { seed: 1, uploads: { pool: [] } });
     expect(empty.filename).toBe("doc-baseline-0.bin");
@@ -159,6 +163,7 @@ describe("resolveUploadFile edges", () => {
     const root = folder({ "a.pdf": PDF, "locked.pdf": PDF });
     chmodSync(join(root, "locked.pdf"), 0);
     const warned: string[] = [];
+
     const context: UploadContext = {
       configDir: root,
       memory: uploadMemory(),
@@ -166,6 +171,7 @@ describe("resolveUploadFile edges", () => {
       uploads: { pool: ["."] },
       warn: (message) => warned.push(message),
     };
+
     expect((await resolveUploadFile(request({ contentMediaType: "application/pdf" }), context)).filename).toBe("a.pdf");
     writeFileSync(join(root, "b.png"), PNG);
     const png = await resolveUploadFile(request({ contentMediaType: "image/png" }), context);
@@ -205,6 +211,7 @@ describe("expandPattern over what is neither a file nor a folder", () => {
 describe("upload memory", () => {
   it("belongs to one run: another run in the same process reads the pool afresh and warns again", async () => {
     const root = folder({ "a.png": PNG });
+
     const runOf = (warned: string[]): UploadContext => ({
       configDir: root,
       memory: uploadMemory(),
@@ -212,6 +219,7 @@ describe("upload memory", () => {
       uploads: { pool: ["*.png", "missing.pdf"] },
       warn: (message) => warned.push(message),
     });
+
     const firstWarned: string[] = [];
     const first = runOf(firstWarned);
     expect((await resolveUploadFile(request(), first)).bytes).toEqual(PNG);

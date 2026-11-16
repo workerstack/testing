@@ -7,6 +7,7 @@ import { delegate, GATED, inviteBackend, inviteContext, inviteDocument, owner } 
 import { inviteGrantsThenRevokes } from "./auth-invite-grants-then-revokes.ts";
 
 const line = (s: Sent) => `${s.method} ${s.path} ${caller(s)}`;
+
 const FLOW = [
   "GET /orgs/o1/notes/n1 delegate",
   "POST /orgs/o1/notes/n1/invites owner",
@@ -23,7 +24,7 @@ describe("auth.invite-grants-then-revokes", () => {
     expect(await runCheck(inviteGrantsThenRevokes, ctx)).toEqual({ kind: "asserted" });
     expect(sent.map(line)).toEqual(FLOW);
     expect(sent[1]?.options.body).toEqual({ key: "bob" });
-    /* The owner's credential is the client's to place: the check sends only the body's type. */
+    // The owner's credential is the client's to place: the check sends only the body's type.
     expect(sent[1]?.options.headers).toEqual({ "content-type": "application/json" });
     expect(sent.map((s) => s.options.operationId)).toEqual([
       "readNote",
@@ -87,6 +88,7 @@ describe("auth.invite-grants-then-revokes: what the grant opens", () => {
       invitePath: "/orgs/{org_id}/invites",
       revokePath: "/orgs/{org_id}/invites/{grant_id}",
     });
+
     for (const fields of [{ readOp: undefined }, { records: [{ title: "first" }] }]) {
       const backend = inviteBackend({ neverGrants: true });
       const { ctx, findings, sent } = inviteContext(doc, backend, fields);
@@ -105,7 +107,7 @@ describe("auth.invite-grants-then-revokes when a step does not complete", () => 
   it("stands down when a documented feature gate refuses the invite, accept or revoke", async () => {
     for (const [request, count] of [
       ["POST /orgs/o1/notes/n1/invites", 2],
-      /* Refused at accept, the grant is still taken back. */
+      // Refused at accept, the grant is still taken back.
       ["POST /invites/t1/accept", 5],
       ["DELETE /orgs/o1/notes/n1/invites/g1", 6],
     ] as const) {
@@ -113,6 +115,7 @@ describe("auth.invite-grants-then-revokes when a step does not complete", () => 
         inviteDocument(),
         inviteBackend({ override: { [request]: GATED } }),
       );
+
       expect(await runCheck(inviteGrantsThenRevokes, ctx)).toEqual({
         kind: "stood-down",
         reason: "a documented feature gate refused the request",
@@ -159,10 +162,13 @@ describe("auth.invite-grants-then-revokes when the invite answer lacks a value",
 
   it("returns its finding even when the cleanup revoke fails to send", async () => {
     const backend = inviteBackend({ grantsBeforeAccept: true });
+
     const failing: Responder = (method, path, options) => {
       if (method === "DELETE") throw new Error("connection reset");
+
       return backend(method, path, options);
     };
+
     const { ctx } = inviteContext(inviteDocument(), failing);
     expect(await runCheck(inviteGrantsThenRevokes, ctx)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
   });
@@ -170,7 +176,7 @@ describe("auth.invite-grants-then-revokes when the invite answer lacks a value",
 
 describe("auth.invite-grants-then-revokes planning", () => {
   it("picks a delegate in another tenant, else a peer in the same one", () => {
-    /* Same tenant as the owner, though its scope names another org: tenant decides, not scope. */
+    // Same tenant as the owner, though its scope names another org: tenant decides, not scope.
     const peer = actor("peer", { inviteAs: "pat", rank: 1, scope: { org_id: "o3" }, tenant: "o1" });
     const plain = actor("plain", { rank: 1, scope: { org_id: "o2" }, tenant: "o2" });
     const across = inviteContext(inviteDocument(), inviteBackend(), { actors: [owner, peer, delegate] });
@@ -200,6 +206,7 @@ describe("auth.invite-grants-then-revokes planning", () => {
         ok: false,
       });
     }
+
     const { ctx } = inviteContext(inviteDocument({ tag: { grants: "nowhere" } }), inviteBackend());
     expect(inviteGrantsThenRevokes.plan(ctx)).toEqual({
       needs: "an x-invite.grants read that exists in the document",

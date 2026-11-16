@@ -6,14 +6,13 @@ import type { ReferenceServer } from "../../../src/api/reference/http/server.ts"
 import { run } from "../../../src/api/runtime/run/index.ts";
 import { sentTo, wireLog } from "../support/wire-log.ts";
 
-/*
- * A credential harvested from sign-in answers: one step saves the refresh token the reference
- * answered, the next spends it, and the credential is the last answer's access token. The token's
- * claim names alpha's tenant and the answer body's `project_id` its project, so a principal
- * configured with only its key reaches its project's records.
- */
+// A credential harvested from sign-in answers: one step saves the refresh token the reference
+// answered, the next spends it, and the credential is the last answer's access token. The token's
+// claim names alpha's tenant and the answer body's `project_id` its project, so a principal
+// configured with only its key reaches its project's records.
 
 let reference: ReferenceServer | undefined;
+
 afterEach(async () => {
   await reference?.close();
   reference = undefined;
@@ -32,7 +31,7 @@ const HARVEST: SecurityConfig = {
   },
 };
 
-/* The JSON answer of each logged request to `path` that the reference took. */
+// The JSON answer of each logged request to `path` that the reference took.
 function answers<T>(log: ReturnType<typeof wireLog>, path: string): T[] {
   return log.entries
     .filter((entry) => entry.path === path && entry.status === 200)
@@ -44,6 +43,7 @@ describe("a harvested credential", () => {
     reference = await createMemoryServer();
     const { url } = reference;
     const log = wireLog();
+
     const result = await run({
       baseUrl: url,
       network: { fetch: log.fetch },
@@ -53,6 +53,7 @@ describe("a harvested credential", () => {
       seed: 1,
       spec: `${url}/v1/openapi/spec`,
     });
+
     const [signedIn] = answers<{ access_token: string; refresh_token: string }>(log, "/v1/auth/token");
     const refreshes = log.entries.filter((entry) => entry.path === "/v1/auth/refresh");
     expect(refreshes[0]?.status).toBe(200);

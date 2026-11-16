@@ -5,5 +5,6 @@
  */
 export function declarationAnswer(status: number): "accepted" | "refused" | "unknown" {
   if (status > 0 && status < 400) return "accepted";
+
   return status === 400 || status === 422 ? "refused" : "unknown";
 }

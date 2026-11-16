@@ -16,6 +16,7 @@ export const enumValidated: Check<CreateBody & { target: ConstrainedField }> = d
   plan: (ctx) =>
     andThen(createBodyPlan(ctx), (create) => {
       const target = findConstrained(create.schema, (s) => Array.isArray(s.enum) && s.enum.length > 0);
+
       return target === null ? cannot("a request field that declares an enum") : ready({ ...create, target });
     }),
   mutates: true,
@@ -24,18 +25,23 @@ export const enumValidated: Check<CreateBody & { target: ConstrainedField }> = d
   subjects: subjectsOf.create,
   async run(ctx, { createOp, schema, target }): Promise<Outcome> {
     const outside = outsideEnum(target.schema);
+
     if (!outside.ok) return ctx.findings.unresolved(this.id, ctx.entityName, outside.reason);
     const body = { ...validBody(ctx, schema), [target.name]: outside.value };
+
     const exchange = await asProbe(ctx).client.request("POST", fillPath(createOp.path, ctx.scope), {
       ...(await encodeOpBody(ctx, createOp, body)),
       as: { principal: ctx.actor.id },
     });
+
     if (standDownForFeatureGate(ctx, createOp, exchange, this.id))
       return standDown("a documented feature gate refused the request");
     const refused = judgeRefusal(ctx, this.id, ["validation"], exchange);
+
     if (refused !== null) return refused;
 
     const declaredValues = (target.schema.enum as unknown[]).map((v) => JSON.stringify(v)).join(", ");
+
     return ctx.findings.backend(this.id, ctx.entityName, {
       summary: "a value outside the declared enum was accepted",
       detail:

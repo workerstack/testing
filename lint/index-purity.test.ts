@@ -12,6 +12,7 @@ describe("testing/index-purity", () => {
         'export { type A, b } from "./a.ts"',
       ].join("\n"),
     };
+
     expect(reportsOf(rule, fixture)).toEqual([]);
   });
 
@@ -27,6 +28,7 @@ describe("testing/index-purity", () => {
         "run()",
       ].join("\n"),
     };
+
     expect(reportsOf(rule, fixture).map(({ line }) => line)).toEqual([1, 2, 3, 4, 5, 6, 7]);
   });
 

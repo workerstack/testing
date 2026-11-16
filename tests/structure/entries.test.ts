@@ -5,10 +5,8 @@ import { describe, expect, it } from "vitest";
 
 import { ENTRY_POINTS } from "../api/support/coverage-scope.ts";
 
-/*
- * Coverage skips a process's entry points, so each must stay provably thin: imports, re-exports and
- * one statement that calls into tested code. Anything more belongs in the module it calls.
- */
+// Coverage skips a process's entry points, so each must stay provably thin: imports, re-exports and
+// one statement that calls into tested code. Anything more belongs in the module it calls.
 
 const ROOT = join(import.meta.dirname, "..", "..");
 const MAX_CODE_LINES = 5;

@@ -6,18 +6,23 @@ import { itemSchemaOf } from "./item-schema.ts";
 
 const record = { properties: { id: { type: "integer" }, name: { type: "string" } }, type: "object" };
 const read = { operationId: "pet.get", recordPath: null } as OperationModel;
+
 const rawOperations = new Map<string, OperationObject>([
   ["pet.get", { responses: { "200": { content: { "application/json": { schema: record } }, description: "ok" } } }],
   ["pet.bare", { responses: { "204": { description: "no content" } } }],
 ]);
+
 const wrapped = { properties: { data: { $ref: "#/x", ...record } }, type: "object" };
 const listed = { properties: { hits: { items: { properties: { doc: record }, type: "object" }, type: "array" } } };
+
 rawOperations.set("pet.wrapped", {
   responses: { "200": { content: { "application/json": { schema: wrapped } }, description: "ok" } },
 });
+
 rawOperations.set("pet.listed", {
   responses: { "200": { content: { "application/json": { schema: listed } }, description: "ok" } },
 });
+
 const model = { rawOperations };
 
 /** The record's schema from `operationId`'s answer, at `recordPath`. */
@@ -47,7 +52,7 @@ describe("itemSchemaOf", () => {
     expect(at("pet.wrapped", "/data")?.properties).toEqual(record.properties);
     expect(at("pet.listed", "$.hits[0].doc")).toEqual(record);
     expect(at("pet.listed", "$.hits[*].doc")).toEqual(record);
-    /* A path the schema does not hold, or one through a value with no properties, names no schema. */
+    // A path the schema does not hold, or one through a value with no properties, names no schema.
     expect(at("pet.wrapped", "$.missing.id")).toBeNull();
     expect(at("pet.listed", "$.hits.doc")).toBeNull();
   });

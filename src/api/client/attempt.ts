@@ -21,7 +21,7 @@ import type {
 } from "./types.ts";
 
 /** A request as every attempt sends it. */
-export interface Prepared {
+export type Prepared = {
   /** Upper-cased. */
   method: string;
   url: URL;
@@ -36,10 +36,10 @@ export interface Prepared {
   callerHeaders: () => Record<string, string>;
   /** What each attempt places, and the one renewal a 401 allows. */
   credential: RequestCredential;
-}
+};
 
 /** What the client lends each attempt. */
-export interface Wire {
+export type Wire = {
   baseUrl: string;
   headers: Record<string, string>;
   /** The config's `cache.bypass`: false sends no cache bypass on reads. */
@@ -60,10 +60,10 @@ export interface Wire {
   nextSeq: () => number;
   /** Hands the exchange to the run and keeps it, under the entity its operation names. */
   deliver: (exchange: Exchange, entity: string | undefined) => Promise<void>;
-}
+};
 
 /** What one attempt sent, for the exchange it leaves. */
-export interface Sent {
+export type Sent = {
   request: Prepared;
   attempt: number;
   /** The URL this attempt went to: the request's, with any query credential placed. */
@@ -72,18 +72,18 @@ export interface Sent {
   /** The credential the attempt carried, which names its principal and schemes on the exchange. */
   placement: Placement;
   body: EncodedBody;
-}
+};
 
 /** The rate-limit rule an attempt is paced by: a tagged route's, or the implicit one for its method. */
-export interface Pacing {
+export type Pacing = {
   rule: CompiledRateLimitRule;
   tagged: boolean;
-}
+};
 
 /** The last hop's answer, and when the attempt went out and came back. */
-export interface Timed extends Landed {
+export type Timed = Landed & {
   at: number;
   started: number;
   /** Whether the rate limit had room without waiting; `undefined` when nothing paced it. */
   room: boolean | undefined;
-}
+};

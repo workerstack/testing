@@ -10,7 +10,7 @@ import { runOperationCheck } from "./__fixtures__/run.ts";
 import { NOTE_TARGET, securedDoc, undeclaredDoc } from "./__fixtures__/secured-api.ts";
 import { privilegedFieldIgnored } from "./auth-privileged-field-ignored.ts";
 
-/* A write by anyone below the highest rank that sets an x-privileged property must not apply it. */
+// A write by anyone below the highest rank that sets an x-privileged property must not apply it.
 
 const model = modelOf(securedDoc());
 const alpha = actorOf("alpha", { rank: 2, scope: { project_id: "proj_a" }, tenant: "proj_a" });
@@ -25,16 +25,17 @@ const dedicatedFor = (request: ProbeRequest): DedicatedCredential => ({
   value: "probe",
 });
 
-interface Staging {
+type Staging = {
   respond?: SentResponder;
   principals?: [Actor, ...Actor[]];
   target?: WriteTarget | null;
   dedicated?: (request: ProbeRequest) => DedicatedCredential | { untested: string };
   doc?: ReturnType<typeof securedDoc>;
-}
+};
 
 function staged(operationId: string, staging: Staging = {}) {
   const { dedicated = dedicatedFor, doc, principals = TEAM, respond, target = NOTE_TARGET } = staging;
+
   return operationContextFor(doc === undefined ? model : modelOf(doc), operationId, {
     principals,
     probe: { dedicated },
@@ -43,28 +44,32 @@ function staged(operationId: string, staging: Staging = {}) {
   });
 }
 
-/* The member's probe draws `write` and its control write (no marked property) 200; a re-read shows `verified` as `shown`. */
+// The member's probe draws `write` and its control write (no marked property) 200; a re-read shows `verified` as `shown`.
 const scripted =
   (write: number, shown: unknown): SentResponder =>
   (sent: Sent) => {
     const probe =
       typeof sent.options.body === "object" && sent.options.body !== null && "verified" in sent.options.body;
+
     if (sender(sent) === "alpha_member#probe-1")
       return { body: { ...NOTE_TARGET.current, verified: shown }, status: probe ? write : 200 };
+
     if (sent.method === "GET") return { body: { ...NOTE_TARGET.current, verified: shown }, status: 200 };
-    return undefined;
+
+    return;
   };
 
-/*
- * A role lattice turned over for updates: every write of the ranks in `refused` draws 403, and any other
- * rank's write applies what it sends.
- */
+// A role lattice turned over for updates: every write of the ranks in `refused` draws 403, and any other
+// rank's write applies what it sends.
 function inverted(refused: readonly string[]): SentResponder {
   let record: Record<string, unknown> = { ...NOTE_TARGET.current };
+
   return (sent: Sent) => {
     if (sent.method === "GET") return { body: record, status: 200 };
+
     if (refused.includes(sender(sent) ?? "")) return { status: 403 };
     record = { ...record, ...(sent.options.body as Record<string, unknown>) };
+
     return { body: record, status: 200 };
   };
 }
@@ -154,9 +159,11 @@ describe("auth.privileged-field-ignored when a writer cannot update at all", () 
     const stage = staged("notes.update", {
       respond: (sent) => {
         if (sent.method === "GET") return { body: NOTE_TARGET.current, status: 200 };
+
         return { status: "verified" in (sent.options.body as object) ? 403 : 503 };
       },
     });
+
     expect(await runOperationCheck(privilegedFieldIgnored, stage.ctx)).toEqual({
       kind: "unresolved",
       reason: "alpha_member's harmless write drew 503, a server error",
@@ -191,16 +198,20 @@ describe("auth.privileged-field-ignored (2)", () => {
       reason: "alpha_member's write of verified drew 503, a server error",
     });
     expect(broken.sent).toHaveLength(1);
+
     const unread = staged("notes.update", {
       respond: (sent) => (sent.method === "GET" ? { status: 500 } : { status: 200 }),
     });
+
     expect(await runOperationCheck(privilegedFieldIgnored, unread.ctx)).toEqual({
       kind: "unresolved",
       reason: "the record could not be re-read after the write (500), so whether verified changed is unknown",
     });
+
     const empty = staged("notes.update", {
       respond: (sent) => ({ body: sent.method === "GET" ? "gone" : {}, status: 200 }),
     });
+
     expect(await runOperationCheck(privilegedFieldIgnored, empty.ctx)).toEqual({
       kind: "unresolved",
       reason: "the record could not be re-read after the write (200), so whether verified changed is unknown",
@@ -211,6 +222,7 @@ describe("auth.privileged-field-ignored (2)", () => {
     const stage = staged("notes.update", {
       dedicated: () => ({ untested: "static recipes cannot issue a dedicated credential" }),
     });
+
     expect(await runOperationCheck(privilegedFieldIgnored, stage.ctx)).toEqual({
       kind: "stood-down",
       reason:
@@ -225,6 +237,7 @@ describe("auth.privileged-field-ignored (3)", () => {
     const note = (unmarked as unknown as { paths: Record<string, Record<string, { requestBody: unknown }>> }).paths;
     const update = note["/projects/{project_id}/notes/{note_id}"]?.["patch"] as { requestBody: unknown };
     update.requestBody = { content: { "application/json": { schema: { type: "object" } } }, required: true };
+
     const outcomes = await Promise.all(
       [
         staged("notes.update", { doc: unmarked }),
@@ -236,6 +249,7 @@ describe("auth.privileged-field-ignored (3)", () => {
         operationContextFor(modelOf(undeclaredDoc()), "notes.update", { principals: TEAM, target: NOTE_TARGET }),
       ].map((stage) => runOperationCheck(privilegedFieldIgnored, stage.ctx)),
     );
+
     expect(outcomes.map((outcome) => ("reason" in outcome ? outcome.reason : outcome.kind))).toEqual([
       "no property is marked x-privileged",
       "a request body property marked x-privileged; notes.delete marks none",
@@ -249,31 +263,37 @@ describe("auth.privileged-field-ignored (3)", () => {
 
   it("sets a missing boolean as true, a number one up and a string suffixed", async () => {
     const bodies = [];
+
     for (const current of [{ id: "n1" }, { verified: 3 }, { verified: "x" }]) {
       const stage = staged("notes.update", { respond: scripted(403, false), target: { ...NOTE_TARGET, current } });
       await runOperationCheck(privilegedFieldIgnored, stage.ctx);
       bodies.push(stage.sent[0]?.options.body);
     }
+
     expect(bodies).toEqual([{ verified: true }, { verified: 4 }, { verified: "x-testing" }]);
   });
 });
 
-/* A notes API whose read wraps the record in `data`, as the stage's target holds it: already unwrapped. */
+// A notes API whose read wraps the record in `data`, as the stage's target holds it: already unwrapped.
 function wrappedDoc() {
   const doc = securedDoc();
   const paths = (doc as unknown as { paths: Record<string, Record<string, Record<string, unknown>>> }).paths;
   const read = paths["/projects/{project_id}/notes/{note_id}"]?.["get"] as Record<string, unknown>;
   read["x-entity"] = { action: "read", name: "note", recordPath: "$.data" };
+
   return doc;
 }
 
 describe("auth.privileged-field-ignored behind a record envelope", () => {
   it("fails when a backend that wraps its records applies the field: the target is the record itself", async () => {
     const backend = applyingBackend();
+
     const wrapping: SentResponder = (sent) => {
       const answer = backend.respond(sent);
+
       return answer === undefined ? undefined : { ...answer, body: { data: answer.body } };
     };
+
     const stage = staged("notes.update", { doc: wrappedDoc(), respond: wrapping });
     expect(await runOperationCheck(privilegedFieldIgnored, stage.ctx)).toEqual({
       kind: "finding",
@@ -303,11 +323,13 @@ describe("auth.privileged-field-ignored (4)", () => {
       verdict: "SECURITY",
     });
     expect(stage.sent[0]?.options.body).toEqual({ meta: { locked: true } });
+
     const absent = staged("notes.update", {
       doc,
       respond: scripted(403, false),
       target: { ...NOTE_TARGET, current: {} },
     });
+
     expect(await runOperationCheck(privilegedFieldIgnored, absent.ctx)).toEqual({
       kind: "stood-down",
       reason: "a value of meta.locked the API tester can change",
@@ -318,11 +340,13 @@ describe("auth.privileged-field-ignored (4)", () => {
     const paths = (doc as unknown as { paths: Record<string, Record<string, Record<string, unknown>>> }).paths;
     const patch = paths["/projects/{project_id}/notes/{note_id}"]?.["patch"] as Record<string, unknown>;
     patch["security"] = [{ apiKey: ["notes:write"], jwt: [] }, { jwt: [] }];
+
     const stage = staged("notes.update", {
       doc,
       respond: scripted(403, false),
       target: { ...NOTE_TARGET, owner: "gone" },
     });
+
     expect(await runOperationCheck(privilegedFieldIgnored, stage.ctx)).toEqual({ kind: "asserted" });
     expect(stage.calls.dedicated).toEqual([{ principal: "alpha_member", reusable: true, scheme: "jwt", scopes: [] }]);
   });
@@ -331,12 +355,15 @@ describe("auth.privileged-field-ignored (4)", () => {
 describe("auth.privileged-field-ignored: a re-read the run cannot send", () => {
   it("tries each alternative, and stands down untested with the reasons when the owner's credential is BLOCKED", async () => {
     const reason = "refresh for alpha/jwt: auth step 1 answered 401";
+
     const stage = staged("notes.update", {
       respond: (sent) => {
         if (sent.method === "GET") throw new UnsatisfiedSecurity("blocked", reason);
+
         return { status: 200 };
       },
     });
+
     const outcome = await runOperationCheck(privilegedFieldIgnored, stage.ctx);
     expect(outcome).toMatchObject({ kind: "stood-down", reason: expect.stringContaining(`: ${reason}`) });
     expect(stage.sent.filter((sent) => sent.method === "PATCH").length).toBeGreaterThan(0);
@@ -346,6 +373,7 @@ describe("auth.privileged-field-ignored: a re-read the run cannot send", () => {
 
 describe("auth.privileged-field-ignored on a sign-up", () => {
   const admin = { admin: { type: "boolean" } };
+
   const register = {
     "/register": {
       post: {
@@ -371,9 +399,11 @@ describe("auth.privileged-field-ignored on a sign-up", () => {
 
   it("signs an account up with the field set and judges the account, whatever security the document declares", async () => {
     const open = { info: { title: "open", version: "1" }, openapi: "3.1.0", paths: register };
+
     const stage = operationContextFor(modelOf(open as unknown as ReturnType<typeof securedDoc>), "auth.register", {
       respond: (sent) => (sent.method === "POST" ? { body: { admin: true }, status: 201 } : undefined),
     });
+
     expect(await runOperationCheck(privilegedFieldIgnored, stage.ctx)).toMatchObject({ kind: "finding" });
     expect(stage.sent.map((sent) => [sent.method, sent.path, sender(sent)])).toEqual([
       ["POST", "/register", "anonymous"],
@@ -388,6 +418,7 @@ describe("auth.privileged-field-ignored on a sign-up", () => {
       doc: securedDoc(register),
       respond: (sent) => (sent.method === "POST" ? { body: { admin: false }, status: 201 } : undefined),
     });
+
     expect(await runOperationCheck(privilegedFieldIgnored, stage.ctx)).toEqual({ kind: "asserted" });
     expect(stage.calls.dedicated).toEqual([]);
   });

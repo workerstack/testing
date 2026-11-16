@@ -11,6 +11,7 @@ import { validateTags } from "./validate.ts";
 const gapsOf = (op: Record<string, unknown>): string[] => {
   const gaps = new GapCollector();
   validateTags(op as OperationObject, "op", gaps);
+
   return gaps.gaps.map((gap) => `${gap.tag}: ${gap.detail}`);
 };
 
@@ -95,11 +96,13 @@ describe("validateTags malformed tags", () => {
     expect(
       gapsOf({ "x-invite": { accept: "POST /a", acceptFrom: "email", invite: "POST /i", revoke: "DELETE /i" } }),
     ).toEqual(['x-invite: x-invite "acceptFrom" must be one of "token", "link"; the API tester cannot use it']);
+
     for (const revokeStaleness of [0, 1.5, "300s"]) {
       expect(
         gapsOf({ "x-invite": { accept: "POST /a", invite: "POST /i", revoke: "DELETE /i", revokeStaleness } }),
       ).toEqual(['x-invite: x-invite "revokeStaleness" must be a positive integer; the API tester cannot use it']);
     }
+
     expect(
       gapsOf({ "x-invite": { accept: "POST /a", invite: "POST /i", revoke: "DELETE /i", revokeStaleness: 300 } }),
     ).toEqual([]);
@@ -131,15 +134,16 @@ describe("validateTags x-entity and x-root", () => {
   });
 
   it("takes a recordPath the API tester can read, and names one it cannot", () => {
-    for (const recordPath of ["$.data", "data.item", "/data", "$.data[*]", "$.hits[*].document", "$.hits[*].a.b"]) {
+    for (const recordPath of ["$.data", "data.item", "/data", "$.data[*]", "$.hits[*].document", "$.hits[*].a.b"])
       expect(gapsOf({ "x-entity": { recordPath } })).toEqual([]);
-    }
+
     const cannot =
       'x-entity: x-entity "recordPath" may hold [*] only right after a top-level key, as in ' +
       '"$.hits[*].document"; the API tester cannot use it';
-    for (const recordPath of ["$.a.b[*].c", "$.hits[*]document", "$.hits[*].", "$[*].document", "$.a[*][*]"]) {
+
+    for (const recordPath of ["$.a.b[*].c", "$.hits[*]document", "$.hits[*].", "$[*].document", "$.a[*][*]"])
       expect(gapsOf({ "x-entity": { recordPath } })).toEqual([cannot]);
-    }
+
     expect(gapsOf({ "x-entity": { recordPath: "" } })).toEqual([
       'x-entity: x-entity "recordPath" must be a non-empty string; the API tester cannot use it',
     ]);
@@ -167,22 +171,26 @@ describe("validateTags x-consistency", () => {
   });
 });
 
-/* Every tag block docs/api/tags.md shows, and every value its comments list (`a | b | c`), is one the
- * validator accepts: a documented value that `doctor` reports as malformed fails here, not in a user's CI. */
+// Every tag block docs/api/tags.md shows, and every value its comments list (`a | b | c`), is one the
+// validator accepts: a documented value that `doctor` reports as malformed fails here, not in a user's CI.
 const TAGS_DOC = readFileSync(join(import.meta.dirname, "..", "..", "..", "..", "docs", "api", "tags.md"), "utf8");
+
 const DOC_BLOCKS = [...TAGS_DOC.matchAll(/^```yaml\n([\s\S]*?)^```/gm)]
   .map((match) => match[1] ?? "")
   .filter((block) => /^x-[a-z-]+:/m.test(block));
 
-/* The bare values a comment lists as `a | b (default) | c`, up to its first `;`, each line a variant of the block. */
+// The bare values a comment lists as `a | b (default) | c`, up to its first `;`, each line a variant of the block.
 function variants(block: string): string[] {
   const lines = block.split("\n");
+
   return lines.flatMap((line, index) => {
     const match = /^(\s*[\w-]+:\s*)\S+(\s*)#\s*([^;]*)/.exec(line);
     const listed = match?.[3]?.split("|") ?? [];
+
     if (match === null || listed.length < 2) return [];
+
     return listed
-      .map((value) => value.replace(/\(.*?\)/g, "").trim())
+      .map((value) => value.replaceAll(/\(.*?\)/g, "").trim())
       .filter((value) => /^[a-z][\w-]*$/i.test(value))
       .map((value) => lines.with(index, `${match[1]}${value}`).join("\n"));
   });

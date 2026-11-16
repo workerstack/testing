@@ -36,18 +36,19 @@ const BASE = "http://api.test";
 const COLUMN = "col_amount_2";
 const ROW = "row_abc123";
 
-interface Shape {
+type Shape = {
   body?: unknown;
   sent?: unknown;
   op?: string;
   status?: number;
   purpose?: string;
   url?: string;
-}
+};
 
 /** The `seq`th exchange, for `request` written as its request line: "GET /v1/rows". */
 function exchange(seq: number, request: string, shape: Shape = {}): Exchange {
   const [method, path] = request.split(" ") as [string, string];
+
   return {
     at: seq,
     method,
@@ -66,12 +67,16 @@ const table = (columns: string[]) => ({ columns_json: columns.map((id) => ({ id 
 async function evidenceFor(operation: string, transcript: Exchange[], grades = new GradeLedger()) {
   grades.graded([operation], "some.check");
   let hydrations = 0;
+
   const hydrate = async (e: Exchange) => {
     hydrations += 1;
+
     return e;
   };
+
   const client = { hydrate, transcript } as unknown as Client;
   await proveFromTranscript({ client, grades, model: buildModel(dereference(spec).doc) });
+
   return { evidence: grades.evidence.get(operation), hydrations };
 }
 
@@ -82,6 +87,7 @@ describe("delete evidence through an ancestor read", () => {
       exchange(2, `DELETE /v1/tables/tbl_1/columns/${COLUMN}`, { op: "column.remove" }),
       exchange(3, "GET /v1/tables/tbl_1", { body: table(["col_amount"]), op: "table.get" }),
     ]);
+
     expect(evidence).toEqual({ call: 2, observation: { absent: true, path: "$", seq: 3, value: COLUMN } });
   });
 
@@ -96,6 +102,7 @@ describe("delete evidence through an ancestor read", () => {
       exchange(7, "GET /v1/tables/tbl_1", { body: table([COLUMN]) }),
       exchange(8, "GET /v1/tables/tbl_1", { body: table(["col_amount"]), op: "table.get" }),
     ]);
+
     expect(evidence).toEqual({ call: 4 });
   });
 });
@@ -107,6 +114,7 @@ describe("delete evidence through its own route", () => {
         exchange(1, `DELETE /v1/rows/${ROW}`, { op: "row.remove" }),
         exchange(2, `GET /v1/rows/${ROW}`, { status }),
       ]);
+
       expect(evidence).toEqual({ call: 1, observation: { seq: 2, status } });
     }
   });
@@ -117,6 +125,7 @@ describe("delete evidence through its own route", () => {
       exchange(2, "QUERY /v1/rows", { body: { items: [{ id: ROW }] } }),
       exchange(3, "QUERY /v1/rows", { body: { items: [] } }),
     ]);
+
     expect(evidence).toEqual({ call: 1, observation: { absent: true, path: "$", seq: 3, value: ROW } });
   });
 
@@ -126,6 +135,7 @@ describe("delete evidence through its own route", () => {
       exchange(2, "GET /v1/rows", { body: { items: [{ id: ROW }] } }),
       exchange(3, "GET /v1/rows", { body: { items: [] } }),
     ]);
+
     expect(evidence).toEqual({ call: 1, observation: { absent: true, path: "$", seq: 3, value: ROW } });
   });
 
@@ -135,6 +145,7 @@ describe("delete evidence through its own route", () => {
       exchange(2, `DELETE /v1/rows/${ROW}`, { op: "row.remove" }),
       exchange(3, "GET /v1/rows", { body: { items: [{ id: "row_first_1" }, { id: ROW }] } }),
     ]);
+
     expect(evidence).toEqual({ call: 2 });
     expect(hydrations).toBe(3);
   });
@@ -144,11 +155,14 @@ describe("delete evidence through its own route", () => {
       exchange(1, "DELETE /v1/rows/", { op: "row.remove" }),
       exchange(2, "GET /v1/rows", { body: { items: [] } }),
     ]);
+
     expect(trailing.evidence).toEqual({ call: 1 });
+
     const bare = await evidenceFor("row.remove", [
       exchange(1, "DELETE ", { op: "row.remove", url: "rows" }),
       exchange(2, "GET ", { body: { items: [] }, url: "" }),
     ]);
+
     expect(bare.evidence).toEqual({ call: 1, observation: { absent: true, path: "$", seq: 2, value: "rows" } });
   });
 });
@@ -161,6 +175,7 @@ describe("read evidence", () => {
       exchange(3, "POST /v1/rows", { body: { id: ROW } }),
       exchange(4, `GET /v1/rows/${ROW}`, { body: { data: { id: ROW } }, op: "row.get" }),
     ]);
+
     expect(evidence).toEqual({ call: 4, observation: { path: "$.data.id", seq: 4, value: ROW } });
   });
 
@@ -171,6 +186,7 @@ describe("read evidence", () => {
       exchange(3, "POST /v1/rows", { body: { id: "row_third_3" } }),
       exchange(4, `GET /v1/rows/${ROW}`, { body: { a: ROW, b: "row_first_1", c: "row_third_3" }, op: "row.get" }),
     ]);
+
     expect(evidence).toEqual({ call: 4, observation: { path: "$.b", seq: 4, value: "row_first_1" } });
   });
 
@@ -179,6 +195,7 @@ describe("read evidence", () => {
       exchange(1, "POST /v1/rows", { body: { id: ROW } }),
       exchange(2, `GET /v1/rows/${ROW}`, { body: { id: "row_other" }, op: "row.get" }),
     ]);
+
     expect(evidence).toEqual({ call: 2 });
   });
 });
@@ -186,6 +203,7 @@ describe("read evidence", () => {
 describe("write evidence", () => {
   it("is a later read holding an id the call returned or a string it sent", async () => {
     const sent = { meta: { note: "a long note" }, tags: ["tag"] };
+
     const { evidence } = await evidenceFor("row.create", [
       exchange(1, "POST /v1/rows", {
         body: { id: ROW, name: "short", owner_id: "usr_123456", title: "not an id" },
@@ -195,6 +213,7 @@ describe("write evidence", () => {
       exchange(2, "GET /v1/rows", { body: [ROW], status: 503 }),
       exchange(3, "GET /v1/rows", { body: [{ x: 1 }, ["a long note"]] }),
     ]);
+
     expect(evidence).toEqual({ call: 1, observation: { path: "$[*][*]", seq: 3, value: "a long note" } });
   });
 
@@ -203,6 +222,7 @@ describe("write evidence", () => {
       exchange(1, "POST /v1/rows", { body: { a: { b: { c: { d: { e: { id: ROW } } } } } }, op: "row.create" }),
       exchange(2, "GET /v1/rows", { body: [ROW] }),
     ]);
+
     expect(evidence).toEqual({ call: 1 });
   });
 
@@ -213,12 +233,13 @@ describe("write evidence", () => {
       exchange(3, "GET /v1/rows", { body: [{ id: "row_none" }] }),
       exchange(4, "GET /v1/rows", { body: [{ id: ROW }], purpose: "teardown" }),
     ]);
+
     expect(evidence).toEqual({ call: 2 });
     expect(hydrations).toBe(3);
   });
 });
 
-/* Another lane's traffic, as much as ran while this lane waited: its own writes and reads. */
+// Another lane's traffic, as much as ran while this lane waited: its own writes and reads.
 const otherLane = (from: number) =>
   Array.from({ length: 450 }, (_, i) =>
     i % 2 === 0
@@ -233,6 +254,7 @@ describe("evidence across concurrent lanes", () => {
       ...otherLane(2),
       exchange(452, `GET /v1/rows/${ROW}`, { body: { data: { id: ROW } }, op: "row.get" }),
     ]);
+
     expect(evidence).toEqual({ call: 452, observation: { path: "$.data.id", seq: 452, value: ROW } });
   });
 
@@ -242,6 +264,7 @@ describe("evidence across concurrent lanes", () => {
       ...otherLane(2),
       exchange(452, "GET /v1/rows", { body: [{ id: ROW }] }),
     ]);
+
     expect(evidence).toEqual({ call: 1, observation: { path: "$[*].id", seq: 452, value: ROW } });
   });
 
@@ -253,6 +276,7 @@ describe("evidence across concurrent lanes", () => {
       ...otherLane(453),
       exchange(903, "GET /v1/tables/tbl_1", { body: table(["col_amount"]), op: "table.get" }),
     ]);
+
     expect(evidence).toEqual({ call: 452, observation: { absent: true, path: "$", seq: 903, value: COLUMN } });
   });
 
@@ -260,10 +284,13 @@ describe("evidence across concurrent lanes", () => {
     const grades = new GradeLedger();
     grades.graded(["row.create", "row.remove"], "some.check");
     const hydrated: number[] = [];
+
     const hydrate = async (e: Exchange) => {
       hydrated.push(e.seq);
+
       return e;
     };
+
     const transcript = [
       exchange(1, "POST /v1/rows", { body: { id: ROW }, op: "row.create" }),
       exchange(2, "GET /v1/rows", { body: { items: [{ id: ROW }] } }),
@@ -273,6 +300,7 @@ describe("evidence across concurrent lanes", () => {
       exchange(904, "GET /v1/rows", { body: { items: [{ id: ROW }] } }),
       exchange(905, "GET /v1/rows", { body: { items: [] } }),
     ];
+
     const client = { hydrate, transcript } as unknown as Client;
     await proveFromTranscript({ client, grades, model: buildModel(dereference(spec).doc) });
     expect(grades.evidence.get("row.remove")).toEqual({
@@ -288,6 +316,7 @@ describe("which operations are proven", () => {
     const grades = new GradeLedger();
     grades.prove("row.list", { call: 9, observation: { seq: 9, status: 404 } });
     grades.graded(["row.list"], "some.check");
+
     const { evidence } = await evidenceFor(
       "row.get",
       [
@@ -296,6 +325,7 @@ describe("which operations are proven", () => {
       ],
       grades,
     );
+
     expect(evidence).toBeUndefined();
     expect(grades.evidence.get("row.list")).toEqual({ call: 9, observation: { seq: 9, status: 404 } });
     expect(grades.evidence.has("row.create")).toBe(false);
@@ -304,10 +334,12 @@ describe("which operations are proven", () => {
   it("takes no evidence for an operation only a security probe graded", async () => {
     const grades = new GradeLedger();
     grades.probedBy(["row.create"], "auth.anonymous-operation-open");
+
     const client = {
       hydrate: async (e: Exchange) => e,
       transcript: [exchange(1, "POST /v1/rows", { op: "row.create" })],
     };
+
     await proveFromTranscript({
       client: client as unknown as Client,
       grades,

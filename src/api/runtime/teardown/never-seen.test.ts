@@ -12,16 +12,20 @@ describe("markNeverSeen", () => {
     const earlier = disposable("note", "n3");
     const kept = disposable("note", "n4");
     const items = [unseen, seen, unreadable, earlier, kept];
+
     const state = unwindOf(store(), items, {
       model: notesModel(),
       deletedEarlier: (path) => path === "/notes/n3",
-      ledger: { movedAway: () => undefined, seenByCreator: (item) => item === seen, sighted: () => undefined },
+      ledger: { movedAway: () => {}, seenByCreator: (item) => item === seen, sighted: () => {} },
     });
+
     for (const item of [unseen, seen, unreadable, earlier]) {
       const record = state.records.get(item);
+
       if (record !== undefined) record.removed = true;
       state.paths.set(item, `/notes/${item.id}`);
     }
+
     state.report.removed = 4;
     const neverSeen = markNeverSeen(state, items);
     expect([...neverSeen]).toEqual([unseen]);

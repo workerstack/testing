@@ -23,7 +23,7 @@ export const serverErrorCheck: Check = {
   needs: "a response from the backend",
   plan: () => ({ ok: false }),
   run: (): Promise<Outcome> => Promise.resolve(ASSERTED),
-  /* Runs after every check, scenario, contract call and teardown. `reportServerErrors` does. */
+  // Runs after every check, scenario, contract call and teardown. `reportServerErrors` does.
   subjects: () => [],
 };
 
@@ -35,21 +35,22 @@ function exchangeKey(exchange: Exchange): string {
 const EVIDENCE_PER_OPERATION = 3;
 
 /** What judging the run's server errors needs. */
-export interface ServerErrorInput {
+export type ServerErrorInput = {
   checksRun: Set<string>;
   findings: FindingCollector;
   grades: GradeLedger;
-  /* A targeted run grades its targets only; a support call that crashed blocks them, and says so. */
+  // A targeted run grades its targets only; a support call that crashed blocks them, and says so.
   inScope: (operationId: string) => boolean;
   mode: "full" | "targeted";
   model: SpecModel;
-  /* Set when the host itself stopped answering: then a timeout is the outage, not the operation. */
+  // Set when the host itself stopped answering: then a timeout is the outage, not the operation.
   networkDown: boolean;
   transcripts: ReadonlyArray<readonly Exchange[]>;
-}
+};
 
 export function reportServerErrors(input: ServerErrorInput): void {
   input.checksRun.add(SERVER_ERROR_CHECK_ID);
+
   for (const [key, exchanges] of unreported(input)) reportOperation(input, key, exchanges);
 }
 
@@ -60,22 +61,28 @@ function unreported(input: ServerErrorInput): Map<string, Exchange[]> {
       .filter((finding) => finding.verdict === "BACKEND_BUG" || finding.verdict === "SECURITY")
       .flatMap((finding) => finding.evidence.map(exchangeKey)),
   );
+
   const byOperation = new Map<string, Exchange[]>();
+
   for (const exchange of input.transcripts.flat()) {
     if (!isServerError(exchange, input.networkDown) || reported.has(exchangeKey(exchange))) continue;
+
     if (exchange.operationId === undefined ? input.mode !== "full" : !input.inScope(exchange.operationId)) continue;
     const key = exchange.operationId ?? `${exchange.method} ${new URL(exchange.url).pathname}`;
     const seen = byOperation.get(key) ?? [];
     seen.push(exchange);
     byOperation.set(key, seen);
   }
+
   return byOperation;
 }
 
 /** A 5xx, or a timeout on a host that went on answering, outside the version read and not superseded. */
 function isServerError(exchange: Exchange, networkDown: boolean): boolean {
   const timedOut = exchange.status === 0 && exchange.network?.kind === "timeout" && !networkDown;
+
   if ((exchange.status < 500 && !timedOut) || exchange.superseded === true) return false;
+
   return exchange.check !== TARGET_VERSION_READ;
 }
 
@@ -84,6 +91,7 @@ function reportOperation(input: ServerErrorInput, key: string, exchanges: Exchan
   const operations = op === undefined ? [] : [op.operationId];
   const statuses = [...new Set(exchanges.map((exchange) => exchange.status))].join(", ");
   const last = exchanges.at(-1) as Exchange;
+
   if (op !== undefined) input.grades.graded(operations, SERVER_ERROR_CHECK_ID);
   input.findings
     .attributed(operations)

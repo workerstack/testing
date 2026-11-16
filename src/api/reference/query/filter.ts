@@ -26,55 +26,68 @@ type Group = Extract<FilterNode, { kind: "and" | "or" }>;
 /** Parses a canonical filter expression. Throws `SqlError` for anything a correct backend rejects. */
 export function parseFilter(expression: string, ctx: ParseContext): FilterNode {
   const catalog = ctx.entity.filterCatalog;
+
   if (
     catalog?.maxFilterConditions !== undefined &&
     countTerms(expression) > catalog.maxFilterConditions &&
     !ctx.defects.has("FILTER_CONDITION_CAP_IGNORED")
-  ) {
+  )
     throw new SqlError("invalid_filter", `more than ${catalog.maxFilterConditions} filter conditions`);
-  }
+
   return parseNode(expression, ctx);
 }
 
 function parseNode(expression: string, ctx: ParseContext): FilterNode {
   const trimmed = expression.trim();
   const group = GROUP.exec(trimmed);
+
   if (group !== null) return parseGroup(group[1] as Group["kind"], group[2] as string, ctx);
+
   return parseTerm(trimmed, ctx);
 }
 
 function parseGroup(named: Group["kind"], inner: string, ctx: ParseContext): FilterNode {
   const { defects } = ctx;
   const children = splitTopLevel(inner).map((part) => parseNode(part, ctx));
+
   if (children.length === 0) throw new SqlError("invalid_filter", `empty ${named}() group`);
-  /* The joiner is swapped, not the parse: the expression is read correctly and evaluated with
-   * the other combinator's semantics. */
+  // The joiner is swapped, not the parse: the expression is read correctly and evaluated with
+  // the other combinator's semantics.
   let kind: Group["kind"] = defects.has("FILTER_GROUP_COMBINATOR_SWAPPED") ? (named === "and" ? "or" : "and") : named;
-  /* One shared "current joiner": the last nested group to set it decides how this group joins. */
+
+  // One shared "current joiner": the last nested group to set it decides how this group joins.
   if (defects.has("FILTER_NESTED_COMBINATOR_LEAKS")) {
     const nested = children.filter((child): child is Group => child.kind === "and" || child.kind === "or").at(-1);
+
     if (nested !== undefined) kind = nested.kind;
   }
+
   return { children, kind };
 }
 
 function parseTerm(trimmed: string, ctx: ParseContext): FilterNode {
   const { defects, entity } = ctx;
   const segments = trimmed.split(".");
+
   if (segments.length < 3) {
     if (defects.has("IGNORES_MALFORMED_FILTER")) return { kind: "const", value: true };
     throw new SqlError("invalid_filter", `malformed filter term "${trimmed}"`);
   }
+
   const [name, rawOp] = segments as [string, string];
   const raw = segments.slice(2).join(".");
   const op = operatorFor(name, rawOp, ctx);
+
   if (op === null) return { kind: "const", value: true };
+
   if (!filterableFields(entity, defects).includes(name)) {
-    /* Correct behavior is to reject. The defect drops the term instead — the single most
-     * common real-world filter bug, and invisible to schema validation. */
+    // Correct behavior is to reject. The defect drops the term instead — the single most
+    // common real-world filter bug, and invisible to schema validation.
     if (defects.has("FILTER_IGNORED")) return { kind: "const", value: true };
     throw new SqlError("invalid_filter", `field "${name}" is not filterable`);
   }
+
   const field = fieldOf(entity, name) as FieldDef;
+
   return buildTerm({ ctx, field, op, raw });
 }

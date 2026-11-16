@@ -29,6 +29,7 @@ export function renderPoster(graph: MatrixGraph): string {
 function posterHead(graph: MatrixGraph): string {
   const names =
     graph.entities.length <= 8 ? graph.entities.map((e) => e.name).join(", ") : `${graph.entities.length} entities`;
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -49,6 +50,7 @@ function posterBody(graph: MatrixGraph): string {
   const crowded = graph.entities.length > 24;
   const focus = focusOf(graph.entities, graph.invalidate);
   const surface = focus.readSurface.map((r) => `<code>${esc(r)}</code>`).join("<span> · </span>");
+
   return `<body>
 <article class="poster">
   ${headerHtml(graph, multi)}
@@ -110,5 +112,6 @@ function headerTitle(graph: MatrixGraph): string {
   if (graph.entities.length <= 1)
     return `${esc((graph.entities[0] as EntityMatrix).name)} was asked<br>through independent projections`;
   const cross = graph.invalidate.filter((l) => l.cross).length;
+
   return `${graph.entities.length} entities, ${cross} cross-entity claim${cross === 1 ? "" : "s"}`;
 }

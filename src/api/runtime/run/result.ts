@@ -23,10 +23,10 @@ export function scopeReport({ authCreates, options, findings, grades, model, sco
 }
 
 /** The principals as the run leaves them, and with `keepCredentials` the values they held. */
-export interface Settled {
+export type Settled = {
   principals: PersistedPrincipal[];
   credentials?: KeptCredential[];
-}
+};
 
 /**
  * The run's last writes, once its closing calls are sent: the journal flushed. Returns the principals as they stand for
@@ -34,11 +34,12 @@ export interface Settled {
  * value; the values come back only when the run was asked to keep them.
  */
 export async function settle(ctx: RunContext): Promise<Settled> {
-  await ctx.journal?.flush().catch(() => undefined);
+  await ctx.journal?.flush().catch(() => {});
   const { principals, store, client } = ctx;
   const held = await store.snapshot();
-  /* A BLOCKED principal is kept too, with why: a persisted run says who it went on without. */
+  // A BLOCKED principal is kept too, with why: a persisted run says who it went on without.
   const blocked = principals.blocked.map(({ id, reason }) => ({ ...runPrincipal(store, id), blocked: reason }));
+
   return {
     principals: [...principals.all, ...blocked].map((principal) =>
       snapshotPrincipal(principal, { held, redactor: client.redactor }),
@@ -49,12 +50,13 @@ export async function settle(ctx: RunContext): Promise<Settled> {
 
 /** The result of a run the network cut short before any principal could act. */
 export async function earlyResult(planned: Planned): Promise<RunResult> {
-  await planned.journal?.flush().catch(() => undefined);
-  /* Accounts its principals' sign-ups made before it stopped: nothing removes them now. */
+  await planned.journal?.flush().catch(() => {});
+  // Accounts its principals' sign-ups made before it stopped: nothing removes them now.
   const accounts = planned.accounts.owed();
-  for (const entry of accounts) {
+
+  for (const entry of accounts)
     planned.accounts.settle(entry, { note: "the run stopped before teardown", status: "left" });
-  }
+
   return {
     ...resultOf(planned),
     created: accounts.length,
@@ -68,6 +70,7 @@ export async function earlyResult(planned: Planned): Promise<RunResult> {
 export function finalResult(ctx: RunContext, settled: Settled, coverage: ScopeReport): RunResult {
   const { options, findings, state, ledger, targetVersion } = ctx;
   const baselined = options.baseline === undefined ? undefined : applyBaseline(findings.findings, options.baseline);
+
   return {
     ...resultOf(ctx),
     ...(baselined === undefined ? {} : { baseline: baselined }),
@@ -106,11 +109,12 @@ function resultOf({ state, findings, client, model, profile, fence, options, jou
   };
 }
 
-/* Creates the API tester could not identify belong in the teardown report even when nothing else was ledgered. */
+// Creates the API tester could not identify belong in the teardown report even when nothing else was ledgered.
 function withUnidentified(
   teardown: TeardownReport | null,
   unidentified: TeardownReport["unidentified"],
 ): TeardownReport | null {
   if (unidentified.length === 0) return teardown;
+
   return { ...(teardown ?? { failed: [], records: [], removed: 0, unidentified: [], unsupported: [] }), unidentified };
 }

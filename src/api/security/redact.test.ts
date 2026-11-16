@@ -153,6 +153,7 @@ describe("Redactor, placed credentials", () => {
       "x-api-key": "Bearer looks-like-a-scheme",
       authorization: "bare-token-value",
     });
+
     expect(headers).toEqual({
       Authorization: `ApiKey ${REDACTED}`,
       authorization: REDACTED,
@@ -210,7 +211,7 @@ describe("Redactor, placed credentials in bodies", () => {
 });
 
 describe("Redactor, a secret the backend issues", () => {
-  /* The RFC 6238 example secret, spaced and lowercase as a setup answer may show it. */
+  // The RFC 6238 example secret, spaced and lowercase as a setup answer may show it.
   const SECRET = "JBSWY3DPEHPK3PXP";
   const shown = "jbsw y3dp ehpk 3pxp";
 

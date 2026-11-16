@@ -7,6 +7,7 @@ import { run } from "../../../src/api/runtime/run/index.ts";
 import { type Api, serveNotes } from "../support/scenario-api.ts";
 
 let open: Array<{ close: () => Promise<void> }> = [];
+
 afterEach(async () => {
   for (const server of open) await server.close();
   open = [];
@@ -15,6 +16,7 @@ afterEach(async () => {
 async function serve(options: { brokenRename?: boolean; statsLagMs?: number } = {}): Promise<Api> {
   const api = await serveNotes(options);
   open.push(api);
+
   return api;
 }
 
@@ -35,15 +37,15 @@ const RENAME: Scenario = {
   ],
 };
 
-/* Each principal's bearer token is its `token`: the notes API admits only alpha's. */
+// Each principal's bearer token is its `token`: the notes API admits only alpha's.
 const SECURITY: SecurityConfig = { bearer: { static: "{principal.token}" } };
 
-/* The scenarios a run plays, the operations it covers, and the hooks it calls out to. */
-interface ScenarioRun {
+// The scenarios a run plays, the operations it covers, and the hooks it calls out to.
+type ScenarioRun = {
   scenarios: Scenario[];
   ops: string[];
   hooks?: Hooks;
-}
+};
 
 async function runWith(api: Api, { hooks = {}, ops, scenarios }: ScenarioRun) {
   return run({
@@ -65,6 +67,7 @@ function row(result: Awaited<ReturnType<typeof runWith>>, operationId: string) {
 async function gradesVerified(): Promise<void> {
   const api = await serve();
   const result = await runWith(api, { ops: ["notes.write", "notes.rename"], scenarios: [RENAME] });
+
   for (const id of ["notes.write", "notes.rename"]) {
     const graded = row(result, id);
     expect(graded?.status).toBe("passed");
@@ -75,6 +78,7 @@ async function gradesVerified(): Promise<void> {
     expect(seen?.operationId).toBe("notes.list");
     expect(seen?.seq).toBeGreaterThan(call?.seq ?? Number.POSITIVE_INFINITY);
   }
+
   expect(row(result, "notes.rename")?.evidence?.observation).toMatchObject({
     path: "$.items[*].text",
     value: "second",
@@ -83,11 +87,13 @@ async function gradesVerified(): Promise<void> {
 
 async function failsUnshownAndBlocksUnreached(): Promise<void> {
   const api = await serve({ brokenRename: true });
+
   const extended: Scenario = {
     ...RENAME,
     covers: [...RENAME.covers, "stats.get"],
     steps: [...RENAME.steps, { assert: { contains: "first", from: "$.texts[*]" }, operationId: "stats.get" }],
   };
+
   const result = await runWith(api, { ops: ["notes.write", "notes.rename", "stats.get"], scenarios: [extended] });
   expect(row(result, "notes.write")?.status).toBe("passed");
   expect(row(result, "notes.rename")?.status).toBe("failed");
@@ -100,6 +106,7 @@ async function failsUnshownAndBlocksUnreached(): Promise<void> {
 
 async function pollsLaggingRead(): Promise<void> {
   const api = await serve({ statsLagMs: 400 });
+
   const scenario: Scenario = {
     covers: ["notes.write", "stats.get"],
     id: "lagging",
@@ -112,6 +119,7 @@ async function pollsLaggingRead(): Promise<void> {
       },
     ],
   };
+
   const result = await runWith(api, { ops: ["notes.write", "stats.get"], scenarios: [scenario] });
   expect(row(result, "stats.get")?.status).toBe("passed");
   expect(row(result, "notes.write")?.tier).toBe("verified");
@@ -119,6 +127,7 @@ async function pollsLaggingRead(): Promise<void> {
 
 async function failsLaggingReadWithoutPoll(): Promise<void> {
   const api = await serve({ statsLagMs: 2_000 });
+
   const scenario: Scenario = {
     covers: ["notes.write", "stats.get"],
     id: "impatient",
@@ -130,6 +139,7 @@ async function failsLaggingReadWithoutPoll(): Promise<void> {
       },
     ],
   };
+
   const result = await runWith(api, { ops: ["notes.write", "stats.get"], scenarios: [scenario] });
   expect(row(result, "stats.get")?.status).toBe("failed");
 }
@@ -137,6 +147,7 @@ async function failsLaggingReadWithoutPoll(): Promise<void> {
 async function handsBrowserStepToHook(): Promise<void> {
   const api = await serve();
   const seen: Array<{ input: unknown; name: string }> = [];
+
   const scenario: Scenario = {
     covers: ["checkout.open", "checkout.confirm"],
     id: "pay",
@@ -150,15 +161,19 @@ async function handsBrowserStepToHook(): Promise<void> {
       },
     ],
   };
+
   const external = async (name: string, input: Record<string, unknown>) => {
     seen.push({ input, name });
+
     return "cs_1-paid";
   };
+
   const result = await runWith(api, {
     hooks: { external },
     ops: ["checkout.open", "checkout.confirm"],
     scenarios: [scenario],
   });
+
   expect(seen).toEqual([{ input: { url: "https://pay.example/session/cs_1" }, name: "pay-with-test-card" }]);
   expect(row(result, "checkout.open")?.tier).toBe("verified");
   expect(row(result, "checkout.confirm")?.status).toBe("passed");
@@ -167,6 +182,7 @@ async function handsBrowserStepToHook(): Promise<void> {
 async function keepsObjectsWhole(): Promise<void> {
   const api = await serve();
   const seen: unknown[] = [];
+
   const scenario: Scenario = {
     covers: ["ceremony.options", "ceremony.verify"],
     id: "ceremony",
@@ -180,16 +196,20 @@ async function keepsObjectsWhole(): Promise<void> {
       },
     ],
   };
+
   const external = async (_name: string, input: Record<string, unknown>) => {
     seen.push(input);
     const options = input["options"] as { challenge: string };
+
     return JSON.stringify({ signed: options.challenge });
   };
+
   const result = await runWith(api, {
     hooks: { external },
     ops: ["ceremony.options", "ceremony.verify"],
     scenarios: [scenario],
   });
+
   expect(seen).toEqual([{ options: { challenge: "ch_1", rp: { id: "example.test" } } }]);
   expect(row(result, "ceremony.verify")?.status).toBe("passed");
   const sent = result.client.transcript.find((exchange) => exchange.operationId === "ceremony.verify");
@@ -198,6 +218,7 @@ async function keepsObjectsWhole(): Promise<void> {
 
 async function provesRemoval(): Promise<void> {
   const api = await serve();
+
   const scenario: Scenario = {
     covers: ["notes.write", "stats.get"],
     id: "gone",
@@ -209,9 +230,11 @@ async function provesRemoval(): Promise<void> {
       },
     ],
   };
+
   const result = await runWith(api, { ops: ["notes.write", "stats.get"], scenarios: [scenario] });
   expect(row(result, "notes.write")?.tier).toBe("verified");
   expect(row(result, "notes.write")?.evidence?.observation).toMatchObject({ absent: true, value: "never-written" });
+
   const failing: Scenario = {
     ...scenario,
     id: "still-there",
@@ -220,12 +243,14 @@ async function provesRemoval(): Promise<void> {
       { assert: { excludes: "keep-me", from: "$.texts[*]", observes: ["notes.write"] }, operationId: "stats.get" },
     ],
   };
+
   const refused = await runWith(await serve(), { ops: ["notes.write", "stats.get"], scenarios: [failing] });
   expect(row(refused, "notes.write")?.status).toBe("failed");
 }
 
 async function bindsTokenClaims(): Promise<void> {
   const api = await serve();
+
   const scenario: Scenario = {
     covers: ["token.mint", "user.get"],
     id: "claims",
@@ -242,6 +267,7 @@ async function bindsTokenClaims(): Promise<void> {
       },
     ],
   };
+
   const result = await runWith(api, { ops: ["token.mint", "user.get"], scenarios: [scenario] });
   expect(row(result, "user.get")?.status).toBe("passed");
   expect(row(result, "token.mint")?.tier).toBe("verified");
@@ -249,6 +275,7 @@ async function bindsTokenClaims(): Promise<void> {
 
 async function keepsObservationWithItsCall(): Promise<void> {
   const api = await serve();
+
   const scenario: Scenario = {
     covers: ["notes.write"],
     id: "twice",
@@ -258,6 +285,7 @@ async function keepsObservationWithItsCall(): Promise<void> {
       { body: { text: "twice" }, operationId: "notes.write" },
     ],
   };
+
   const result = await runWith(api, { ops: ["notes.write"], scenarios: [scenario] });
   const evidence = row(result, "notes.write")?.evidence;
   const call = result.client.transcript.find((exchange) => exchange.seq === evidence?.call);
@@ -267,11 +295,13 @@ async function keepsObservationWithItsCall(): Promise<void> {
 
 async function refusesSelfProof(): Promise<void> {
   const api = await serve();
+
   const scenario: Scenario = {
     covers: ["checkout.open"],
     id: "self-proof",
     steps: [{ assert: { contains: "cs_1", from: "$.url" }, operationId: "checkout.open" }],
   };
+
   const result = await runWith(api, { ops: ["checkout.open"], scenarios: [scenario] });
   expect(row(result, "checkout.open")?.status).toBe("passed");
   expect(row(result, "checkout.open")?.tier).toBe("contract");
@@ -279,6 +309,7 @@ async function refusesSelfProof(): Promise<void> {
 
 async function startsWithPrincipalScope(): Promise<void> {
   const api = await serve();
+
   const scenario: Scenario = {
     covers: ["user.get"],
     id: "scope",
@@ -287,6 +318,7 @@ async function startsWithPrincipalScope(): Promise<void> {
       { assert: { equals: "usr_42", from: "$.id" }, bind: { user_id: "{owner_id}" }, operationId: "user.get" },
     ],
   };
+
   const result = await run({
     baseUrl: api.url,
     ops: ["user.get"],
@@ -296,16 +328,20 @@ async function startsWithPrincipalScope(): Promise<void> {
     seed: 1,
     spec: `${api.url}/openapi.json`,
   });
+
   expect(row(result, "user.get")?.status).toBe("passed");
+
   const refused = result.client.transcript.find(
     (exchange) => exchange.operationId === "notes.list" && exchange.status === 401,
   );
+
   expect(refused?.principal).toBe("nobody");
   expect(refused?.schemes).toEqual(["bearer"]);
 }
 
 async function sendsNamedMediaType(): Promise<void> {
   const api = await serve();
+
   const scenario: Scenario = {
     covers: ["form.send"],
     id: "form",
@@ -318,6 +354,7 @@ async function sendsNamedMediaType(): Promise<void> {
       },
     ],
   };
+
   const result = await runWith(api, { ops: ["form.send"], scenarios: [scenario] });
   expect(row(result, "form.send")?.status).toBe("passed");
   const sent = result.client.transcript.find((exchange) => exchange.operationId === "form.send");

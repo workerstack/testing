@@ -32,16 +32,18 @@ import { liveRecord } from "./records.ts";
 
 async function teardownCreatedId(ctx: WriteContext, id: string): Promise<void> {
   const deleteOp = ctx.deleteOp ?? ctx.model.byOperationId.get(ctx.model.entities.get(ctx.entityName)?.delete ?? "");
+
   if (deleteOp === undefined) return;
+
   try {
     await ctx.client.request("DELETE", fillPath(deleteOp.path, { ...ctx.scope, ...itemParamFor(ctx, id) }), {
       as: { principal: ctx.actor.id },
     });
   } catch (error) {
-    /* A fenced delete, or one no credential could be sent for, is reported, not skipped: the
-     * global teardown lists it as a leftover. */
+    // A fenced delete, or one no credential could be sent for, is reported, not skipped: the
+    // global teardown lists it as a leftover.
     if (error instanceof FencedError || error instanceof UnsatisfiedSecurity) throw error;
-    /* A leftover row is worse than a teardown 404. */
+    // A leftover row is worse than a teardown 404.
   }
 }
 
@@ -59,14 +61,17 @@ export const uniqueConflictCreate: Check<{
   plan: (ctx) => {
     const createOp = ctx.uniqueCreateOp;
     const [first] = ctx.records;
+
     if (createOp === undefined || ctx.uniqueSets.length === 0 || first === undefined) return cannot();
-    /* A create with no documented body has no column to collide on. */
+    // A create with no documented body has no column to collide on.
     const schema = requestSchemaOf(ctx, createOp);
+
     if (schema === null) return cannot();
     const sets = probeableUniqueSets(createOp, ctx.model, { phase: "create", sets: ctx.uniqueSets });
+
     return sets.length === 0 ? cannot() : ready({ createOp, first, schema, sets });
   },
-  /* Reads whole sets across pages, so a walk that skips or repeats records corrupts them. */
+  // Reads whole sets across pages, so a walk that skips or repeats records corrupts them.
   dependsOn: ["pagination.page-walk-covers-set"],
   id: "create.unique-conflict-rejected",
   lists: true,
@@ -79,10 +84,11 @@ export const uniqueConflictCreate: Check<{
     const required = idempotencyHeaderRequired(createOp, ctx.model);
     const listLimit = pageSize(ctx);
     const before = await listAll(ctx, q(ctx, { limit: listLimit }));
-    /* A growth in the collection is only visible when both reads cover all of it. */
+    // A growth in the collection is only visible when both reads cover all of it.
     const listResolved = before.exchange.status < 400 && before.complete;
     const evidence: Exchange[] = listResolved ? [before.exchange] : [];
     const known = (await liveRecord(ctx, idOf(first, ctx.identity))) ?? first;
+
     const probe = {
       before,
       bodyCols,
@@ -96,13 +102,15 @@ export const uniqueConflictCreate: Check<{
       required,
       schema,
     };
+
     for (const [index, set] of sets.entries()) await probeCreateSet(ctx, probe, set, index);
+
     return ASSERTED;
   },
 });
 
 /** What every unique probe on one create shares; `evidence` gathers across the sets. */
-interface CreateProbe {
+type CreateProbe = {
   check: string;
   createOp: OperationModel;
   schema: JsonSchema;
@@ -114,7 +122,7 @@ interface CreateProbe {
   listResolved: boolean;
   evidence: Exchange[];
   known: Record_;
-}
+};
 
 /** A create colliding with `known` on `set` alone, or `null` when no such body can be made. */
 async function sendCollision(
@@ -125,26 +133,32 @@ async function sendCollision(
 ): Promise<Exchange | null> {
   const { createOp, schema } = probe;
   const salt = `u${ctx.nonce}${index}${saltOf(ctx)}`;
-  /* Distinct unique columns, then an identity no record holds: only `set` may collide. */
+
+  // Distinct unique columns, then an identity no record holds: only `set` may collide.
   const base = reserveClientIdentity(
     ctx,
     uniquifyProbeBody(validBody(ctx, schema), ctx.uniqueSets, { schema, token: salt }),
     schema,
     salt,
   );
+
   const body = collisionCreateBody(base, probe.known, {
     bodyColumns: probe.bodyCols,
     generated: createOp.generated,
     scope: ctx.scope,
     set,
   });
+
   if (body === null) return null;
+
   const headers = uniqueProbeHeaders({
     header: createOp.idempotencyHeader,
     required: probe.required,
     fresh: `testing-unique-${ctx.entityName}-${ctx.seed}-${index}`,
   });
+
   const encoded = await encodeOpBody(ctx, createOp, body);
+
   return ctx.client.request("POST", probe.path, {
     ...encoded,
     as: { principal: ctx.actor.id },
@@ -156,9 +170,12 @@ async function sendCollision(
 async function probeCreateSet(ctx: Listed<Client>, probe: CreateProbe, set: string[], index: number): Promise<void> {
   const { check, createOp } = probe;
   const sent = await sendCollision(ctx, probe, set, index);
+
   if (sent === null) return;
   probe.evidence.push(sent);
+
   if (standDownForFeatureGate(ctx, createOp, sent, check)) return;
+
   if (isPlanLimitResponse(sent.status, sent.responseBody)) {
     ctx.findings.gap(check, ctx.entityName, {
       summary: `${createOp.operationId} did not apply`,
@@ -166,9 +183,12 @@ async function probeCreateSet(ctx: Listed<Client>, probe: CreateProbe, set: stri
         `${createOp.operationId} returned ${sent.status} (plan limit) on a unique-conflict ` +
         "probe, so uniqueness was not observed.",
     });
+
     return;
   }
+
   const after = await listAll(ctx, q(ctx, { limit: probe.listLimit }));
+
   if (after.exchange.status < 400 && after.complete) probe.evidence.push(after.exchange);
   await judgeCreateProbe(ctx, probe, set, { after, sent });
 }
@@ -180,10 +200,12 @@ async function judgeCreateProbe(
   { after, sent }: { after: Listing; sent: Exchange },
 ): Promise<void> {
   const { before, check, createOp } = probe;
+
   if (sent.status === 409) {
     if (!probe.listResolved || after.exchange.status >= 400 || !after.complete) return;
     const around = { after: after.items, before: before.items, identity: ctx.identity, scope: ctx.scope };
     const leaked = leakedCollisions(set, probe.known, around);
+
     if (leaked.length > 0) {
       ctx.findings.backend(check, ctx.entityName, {
         summary: "a unique-conflict 409 still grew the collection",
@@ -194,10 +216,13 @@ async function judgeCreateProbe(
         evidence: [before.exchange, sent, after.exchange],
       });
     }
+
     return;
   }
+
   if (sent.status >= 200 && sent.status < 300) {
     const id = idOf(ctx.createOp === undefined ? undefined : readRecord(ctx.createOp, sent), ctx.identity);
+
     if (id !== undefined) await teardownCreatedId(ctx, id);
     ctx.findings.backend(check, ctx.entityName, {
       summary: "a duplicate unique-set create was accepted",
@@ -206,8 +231,10 @@ async function judgeCreateProbe(
         `${set.join(", ")}. A documented unique constraint must be 409, not 2xx.`,
       evidence: probe.evidence.slice(-3),
     });
+
     return;
   }
+
   if (sent.status >= 500) {
     ctx.findings.backend(check, ctx.entityName, {
       summary: "a duplicate unique-set create drew a server error",
@@ -216,8 +243,10 @@ async function judgeCreateProbe(
         `${set.join(", ")}. A documented unique constraint must be refused with 409, not crash.`,
       evidence: [sent],
     });
+
     return;
   }
+
   ctx.findings.unresolved(
     check,
     ctx.entityName,

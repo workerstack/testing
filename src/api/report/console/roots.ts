@@ -3,43 +3,43 @@ import { prefixRoots } from "../../spec/graph/roots.ts";
 import type { SpecModel } from "../../spec/graph/types.ts";
 import type { SecurityCredentials } from "./security.ts";
 
-/*
- * Roots are path parameters no create operation makes. A prefix root (`/projects/{project_id}/…`)
- * scopes whole routes and only the config can supply it: through every principal's `scope`, a
- * login's `scope.<parameter>` claim, or `hooks.resolvePathValue`; one it leaves unsupplied blocks.
- * Any other is an id a flow yields (an invite's token, an effect's record), which a run picks up
- * as it goes: listed, never blocking.
- */
+// Roots are path parameters no create operation makes. A prefix root (`/projects/{project_id}/…`)
+// scopes whole routes and only the config can supply it: through every principal's `scope`, a
+// login's `scope.<parameter>` claim, or `hooks.resolvePathValue`; one it leaves unsupplied blocks.
+// Any other is an id a flow yields (an invite's token, an effect's record), which a run picks up
+// as it goes: listed, never blocking.
 
 /** A root the config supplies, and how. */
-interface SuppliedRoot {
+type SuppliedRoot = {
   root: string;
   by: string;
-}
+};
 
-export interface Roots {
+export type Roots = {
   /** Prefix roots nothing in the config supplies: a run cannot seed below them. */
   required: string[];
   supplied: SuppliedRoot[];
   /** Ids no operation creates, which only a flow or `hooks.resolvePathValue` yields. */
   unmade: string[];
-}
+};
 
 /** What of the config can supply a root. */
-export interface RootsConfig {
+export type RootsConfig = {
   credentials?: SecurityCredentials;
   hooks?: Pick<Hooks, "resolvePathValue">;
-}
+};
 
-/* Who supplies `root`: a hook for every root, else a login claim, else every principal's own scope. */
+// Who supplies `root`: a hook for every root, else a login claim, else every principal's own scope.
 function supplierOf(root: string, config: RootsConfig): string | undefined {
   if (config.hooks?.resolvePathValue !== undefined) return "hooks.resolvePathValue";
   const { principals = {}, security = {} } = config.credentials ?? {};
-  for (const [scheme, recipe] of Object.entries(security)) {
+
+  for (const [scheme, recipe] of Object.entries(security))
     if (recipe.login?.claims?.[`scope.${root}`] !== undefined) return `login claims (${scheme})`;
-  }
+
   const entries = Object.values(principals);
   const scoped = entries.length > 0 && entries.every((principal) => principal.scope?.[root] !== undefined);
+
   return scoped ? "principal scope" : undefined;
 }
 
@@ -47,12 +47,15 @@ function supplierOf(root: string, config: RootsConfig): string | undefined {
 export function rootsOf(model: Pick<SpecModel, "operations" | "entities" | "roots">, config: RootsConfig = {}): Roots {
   const prefix = prefixRoots(model);
   const result: Roots = { required: [], supplied: [], unmade: [] };
+
   for (const root of model.roots) {
     const by = supplierOf(root, config);
+
     if (by !== undefined) result.supplied.push({ by, root });
     else if (prefix.has(root)) result.required.push(root);
     else result.unmade.push(root);
   }
+
   return result;
 }
 

@@ -3,10 +3,11 @@ import { describe, expect, it } from "vitest";
 import { SHAPE_NAMES } from "./shapes.ts";
 import { conformanceShards, SHARD_DIALECTS } from "./shards.ts";
 
-/* The self-test as shards: together they run every leg, backend, dialect and shape, each once. */
+// The self-test as shards: together they run every leg, backend, dialect and shape, each once.
 
 const flag = (flags: readonly string[], name: string): string | undefined => {
   const at = flags.indexOf(name);
+
   return at === -1 ? undefined : flags[at + 1];
 };
 

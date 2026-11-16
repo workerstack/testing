@@ -1,19 +1,17 @@
 import { defineConfig, env } from "../../../../src/api/index.ts";
 
-/*
- * Typesense 30.2 (spec vendored from typesense/typesense-api-spec openapi.yml at 9963d6c, the last
- * commit before the v30.2 release). Every operation takes the api_key_header scheme
- * (X-TYPESENSE-API-KEY), one key per principal: alpha the bootstrap key, beta a key scoped to
- * beta_.* collections, the viewer a scoped search key (target.ts).
- *
- * Scope: documents in a tenant's collection, API keys, and the collections a tenant can read.
- * The search route is the documents' list; each row wraps its document, which `recordPath`
- * points inside (`$.hits[*].document`). No alias the API tester knows names Typesense's filter parameter, so
- * `x-query.params` does: the filter checks run through `filter_by`. Collection writes stay out of
- * the document (`allow`): the run works inside the collections target.ts made.
- */
+// Typesense 30.2 (spec vendored from typesense/typesense-api-spec openapi.yml at 9963d6c, the last
+// commit before the v30.2 release). Every operation takes the api_key_header scheme
+// (X-TYPESENSE-API-KEY), one key per principal: alpha the bootstrap key, beta a key scoped to
+// beta_.* collections, the viewer a scoped search key (target.ts).
+//
+// Scope: documents in a tenant's collection, API keys, and the collections a tenant can read.
+// The search route is the documents' list; each row wraps its document, which `recordPath`
+// points inside (`$.hits[*].document`). No alias the API tester knows names Typesense's filter parameter, so
+// `x-query.params` does: the filter checks run through `filter_by`. Collection writes stay out of
+// the document (`allow`): the run works inside the collections target.ts made.
 
-/* What alpha_books and beta_books index (target.ts): the document a create sends and a read answers. */
+// What alpha_books and beta_books index (target.ts): the document a create sends and a read answers.
 const BOOK = {
   type: "object",
   required: ["title", "author", "year", "rating", "in_stock"],
@@ -26,8 +24,10 @@ const BOOK = {
     in_stock: { type: "boolean" },
   },
 };
+
 const json = (schema: unknown) => ({ content: { "application/json": { schema } } });
-/* A tenant's documents live in its own collection, which its key is scoped to. */
+
+// A tenant's documents live in its own collection, which its key is scoped to.
 const TENANT = { "x-tenant": "collectionName" };
 
 const GRADED = [
@@ -48,9 +48,9 @@ export default defineConfig({
   spec: "./openapi.yml",
   baseUrl: env("TYPESENSE_URL"),
   overlay: {
-    /* Typesense answers a key's value only when it creates it (getKey: "Only the key prefix is
-     * returned when you retrieve a key"), a secret by design. The document should mark it writeOnly
-     * and does not; this says what it should. */
+    // Typesense answers a key's value only when it creates it (getKey: "Only the key prefix is
+    // returned when you retrieve a key"), a secret by design. The document should mark it writeOnly
+    // and does not; this says what it should.
     schemas: { ApiKeySchema: { properties: { value: { type: "string", writeOnly: true } } } },
     operations: {
       indexDocument: { ...TENANT, requestBody: json(BOOK), responses: { "201": json(BOOK) } },
@@ -69,7 +69,7 @@ export default defineConfig({
           { name: "sort_by", in: "query", schema: { type: "string" } },
           { name: "page", in: "query", schema: { type: "integer", minimum: 1 } },
           { name: "per_page", in: "query", schema: { type: "integer", minimum: 0, maximum: 250, default: 10 } },
-          /* By default Typesense drops tokens until something matches; the run asks for every token. */
+          // By default Typesense drops tokens until something matches; the run asks for every token.
           { name: "drop_tokens_threshold", in: "query", required: true, schema: { type: "integer", const: 0 } },
         ],
         "x-entity": { name: "document", action: "list", recordPath: "$.hits[*].document" },

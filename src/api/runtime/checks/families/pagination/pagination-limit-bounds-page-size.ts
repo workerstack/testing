@@ -15,9 +15,12 @@ export const limitBoundsPageSize: Check = defineCheck({
   subjects: subjectsOf.list,
   async run(ctx): Promise<Outcome> {
     const result = await list(ctx, q(ctx, { limit: 2 }));
+
     if (result.exchange.status >= 400)
       return ctx.findings.unresolved(this.id, ctx.entityName, "the listing was rejected");
+
     if (result.items.length <= 2) return ASSERTED;
+
     return ctx.findings.backend(this.id, ctx.entityName, {
       summary: "limit does not bound the number of records returned",
       detail:

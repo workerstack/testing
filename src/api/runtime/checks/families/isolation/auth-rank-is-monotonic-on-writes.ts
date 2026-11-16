@@ -29,9 +29,12 @@ const judgeWrite = (exchange: Exchange): WriteVerdict => ({
 export const rankIsMonotonicOnWrites: Check<{ home: Actor[] }> = defineCheck<{ home: Actor[] }>({
   plan: (ctx) => {
     const primary = ctx.actors[0];
+
     if (primary === undefined || ctx.createOp === undefined) return cannot();
     const home = ctx.actors.filter((actor) => actor.tenant === primary.tenant);
+
     if (new Set(home.map((actor) => actor.rank)).size < 2) return cannot();
+
     return ready({ home });
   },
   dependsOn: ["list.read-after-write", "auth.rank-is-monotonic"],
@@ -42,19 +45,24 @@ export const rankIsMonotonicOnWrites: Check<{ home: Actor[] }> = defineCheck<{ h
   async run(ctx, { home }): Promise<Outcome> {
     const writes = new Map<string, Map<string, WriteVerdict>>();
     const untested: string[] = [];
+
     for (const actor of home) {
       const tried = await tryWrites(ctx, this.id, actor);
+
       if ("outcome" in tried) return tried.outcome;
+
       if (tried.withheld !== undefined) untested.push(`${tried.withheld}, so its create is untested`);
-      for (const [kind, verdict] of tried.verdicts) {
+
+      for (const [kind, verdict] of tried.verdicts)
         writes.set(kind, (writes.get(kind) ?? new Map<string, WriteVerdict>()).set(actor.id, verdict));
-      }
     }
 
     for (const [kind, verdicts] of writes) {
       const inverted = inversion(home, verdicts);
+
       if (inverted === null) continue;
       const { hi, higher, lo, lower } = inverted;
+
       return ctx.findings.backend(this.id, ctx.entityName, {
         summary: `a lower-ranked role can ${kind} where a higher-ranked role cannot`,
         detail:
@@ -64,11 +72,12 @@ export const rankIsMonotonicOnWrites: Check<{ home: Actor[] }> = defineCheck<{ h
         evidence: [lo.exchange, hi.exchange],
       });
     }
+
     return untested.length === 0 ? ASSERTED : asserted(untested.join("; "));
   },
 });
 
-/* Each verdict, and why a create was never sent, when it was not. */
+// Each verdict, and why a create was never sent, when it was not.
 type Tried = { verdicts: Array<[string, WriteVerdict]>; withheld?: string } | { outcome: Outcome };
 
 /** Each write `actor` tries once — a create, then an update and a delete on a scratch record each. */
@@ -77,24 +86,34 @@ async function tryWrites(ctx: WriteContext, check: string, actor: Actor): Promis
   const createOp = ctx.createOp as OperationModel;
   const schema = requestSchemaOf(ctx, createOp);
   const fresh = schema === null ? undefined : await createFresh(ctx, createOp, schema, actor.id);
+
   if (fresh !== undefined && "exchange" in fresh) verdicts.push(["create", judgeWrite(fresh.exchange)]);
   const updateOp = ctx.updateOp;
+
   if (updateOp !== undefined) {
     const updated = await tryUpdate(ctx, check, actor, updateOp);
+
     if ("outcome" in updated) return updated;
+
     if (updated.verdict !== undefined) verdicts.push(["update", updated.verdict]);
   }
+
   const deleteOp = ctx.deleteOp;
+
   if (deleteOp !== undefined) {
     const made = await scratchRecord(ctx, check);
+
     if ("outcome" in made) return made;
     const params = { ...ctx.scope, ...itemParamFor(ctx, made.scratch.id) };
+
     const deleted = await ctx.client.request("DELETE", fillPath(deleteOp.path, params), {
       as: { principal: actor.id },
       operationId: deleteOp.operationId,
     });
+
     verdicts.push(["delete", judgeWrite(deleted)]);
   }
+
   return fresh !== undefined && "withheld" in fresh ? { verdicts, withheld: fresh.withheld } : { verdicts };
 }
 
@@ -106,17 +125,21 @@ async function tryUpdate(
   updateOp: OperationModel,
 ): Promise<{ verdict?: WriteVerdict } | { outcome: Outcome }> {
   const made = await scratchRecord(ctx, check);
+
   if ("outcome" in made) return made;
   const field = pickWritableStringField(ctx, made.scratch.record);
   const value = field === null ? undefined : changedValue(ctx, field, made.scratch.record[field], updateOp);
+
   if (field === null || value === undefined) return {};
   const update = await updateRequest(ctx, updateOp, made.scratch.record, { [field]: value });
   const params = { ...ctx.scope, ...itemParamFor(ctx, made.scratch.id) };
+
   const updated = await ctx.client.request(update.method, fillPath(updateOp.path, params), {
     ...update.options,
     as: { principal: actor.id },
     operationId: updateOp.operationId,
   });
+
   return { verdict: judgeWrite(updated) };
 }
 
@@ -130,8 +153,10 @@ function inversion(
       if (lower.rank >= higher.rank) continue;
       const lo = verdicts.get(lower.id);
       const hi = verdicts.get(higher.id);
+
       if (lo?.allowed === true && hi?.allowed === false) return { hi, higher, lo, lower };
     }
   }
+
   return null;
 }

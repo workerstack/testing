@@ -20,6 +20,7 @@ describe("acquireRecipe", () => {
       post: () => Promise.resolve(answerOf({ access_token: "granted" })),
       run: () => Promise.resolve({ answer: answerOf({ t: "signed" }), scope: {} }),
     });
+
     const recipes: Array<Partial<Recipe>> = [
       { login: { from: "$.t", steps: [{ operationId: "login" }] } },
       { mint: { from: "$.key", operationId: "mint", with: "jwt" } },
@@ -27,7 +28,9 @@ describe("acquireRecipe", () => {
       { hook: true },
       { oauth2: { clientId: "c", flow: "clientCredentials" } },
     ];
+
     const values = [];
+
     for (const recipe of recipes) values.push((await acquireRecipe(ctxOf(ports, { scheme: OAUTH }), recipe)).value);
     expect(values).toEqual(["signed", "minted", "fixed", "hooked", "granted"]);
     expect([recorded.runs.length, recorded.calls.length, recorded.hooks.length, recorded.posts.length]).toEqual([
@@ -53,6 +56,7 @@ describe("recipeKind", () => {
       { oauth2: { clientId: "c", flow: "clientCredentials" } },
       { format: "{credential}" },
     ];
+
     expect(recipes.map(recipeKind)).toEqual(["login", "mint", "static", "hook", "oauth2", undefined]);
   });
 });

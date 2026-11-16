@@ -5,7 +5,7 @@
  * be introduced deliberately (as a defect) rather than by accident.
  */
 
-export interface FieldDef {
+export type FieldDef = {
   name: string;
   type: "string" | "number" | "integer" | "boolean" | "object" | "array";
   /** For an array field: the values its elements may take. */
@@ -38,9 +38,9 @@ export interface FieldDef {
   filterable?: boolean;
   sortable?: boolean;
   searchable?: boolean;
-}
+};
 
-export interface EntityDef {
+export type EntityDef = {
   name: string;
   plural: string;
   /** Path template relative to the API root, with `{param}` placeholders. */
@@ -71,10 +71,10 @@ export interface EntityDef {
   defaultOrder: string;
   /** Related records a sparse fieldset may embed: `table(name)` on a row. */
   relations?: Record<string, { entity: string; via: string; fields: readonly string[] }>;
-}
+};
 
 /** What a shape changes about the records themselves; see `ReferenceShape`. */
-export interface EntityShape {
+export type EntityShape = {
   ids?: "uuid" | "integer";
   writeOnlyField?: boolean;
   richSchema?: boolean;
@@ -84,4 +84,4 @@ export interface EntityShape {
   identityField?: string;
   tableKey?: "slug";
   stringGuard?: boolean;
-}
+};

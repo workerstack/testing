@@ -17,6 +17,7 @@ afterEach(() => {
 /** A sleep that moves the clock on, and the waits it was asked for. */
 function clock(): { sleep: (ms: number) => Promise<void>; waits: number[] } {
   const waits: number[] = [];
+
   return {
     sleep: async (ms) => {
       waits.push(ms);
@@ -28,10 +29,12 @@ function clock(): { sleep: (ms: number) => Promise<void>; waits: number[] } {
 
 const failure = async (pending: Promise<unknown>): Promise<StepFailure> => {
   const error = await pending.then(
-    () => undefined,
+    () => {},
     (thrown: unknown) => thrown,
   );
+
   if (!(error instanceof StepFailure)) throw new Error("the step did not fail");
+
   return error;
 };
 
@@ -51,7 +54,7 @@ describe("requestStep: credentials", () => {
       { principal: "alpha", scheme: "apiKey" },
       { principal: "beta", scheme: "apiKey" },
     ]);
-    /* The client places the credential: a step's own headers never carry one. */
+    // The client places the credential: a step's own headers never carry one.
     expect(run.requests.map((request) => request.options.headers)).toEqual([{}, {}, {}, {}, {}]);
     expect(run.requests[0]?.options.body).toEqual({ text: "kept whole" });
     expect(run.calls.get("notes.create")?.status).toBe(201);
@@ -84,6 +87,7 @@ describe("requestStep: on another origin", () => {
       openapi: "3.1.0",
       paths: { "/files": { post: { operationId: "cdn.upload", responses: { "201": { description: "stored" } } } } },
     } as unknown as OpenApiDocument;
+
     const cdn = fakeClient(() => ({ status: 201 }));
     const originClients = new Map([["cdn", { client: cdn.client, model: modelOf(cdnDoc) }]]);
     const run = runOf(notes(), { originClients });
@@ -118,6 +122,7 @@ describe("requestStep: failures", () => {
   it("fails an assert it never saw, blaming what it would have proved", async () => {
     const run = runOf(notes());
     await requestStep(run, { body: { text: "first" }, operationId: "notes.create" }, 0);
+
     const unmet = await failure(
       requestStep(
         run,
@@ -128,6 +133,7 @@ describe("requestStep: failures", () => {
         1,
       ),
     );
+
     expect(unmet.message).toBe('GET /notes did not show equals "second" at $.items[*].text');
     expect(unmet.blames).toEqual(["notes.create", "notes.rename", "notes.list"]);
     expect(unmet.evidence.map((exchange) => exchange.method)).toEqual(["POST", "GET"]);
@@ -142,8 +148,10 @@ describe("requestStep: polling", () => {
     let reads = 0;
     held.answers["GET /notes"] = () => {
       reads += 1;
+
       return { body: { total: reads }, status: 200 };
     };
+
     await requestStep(
       run,
       { assert: { atLeast: 4, from: "$.total" }, operationId: "notes.list", poll: { within: "30s" } },
@@ -156,6 +164,7 @@ describe("requestStep: polling", () => {
   it("fails once the window runs out, at the interval it asked for", async () => {
     const { sleep, waits } = clock();
     const run = runOf(notes(), { sleep });
+
     const late = await failure(
       requestStep(
         run,
@@ -163,6 +172,7 @@ describe("requestStep: polling", () => {
         0,
       ),
     );
+
     expect(waits).toEqual([6_000, 6_000]);
     expect(late.message).toBe('GET /notes did not show atLeast "1" at $.total');
   });
@@ -172,12 +182,15 @@ describe("requestStep: polling", () => {
     const before = runOf(notes(), { stopped: () => true });
     await expect(requestStep(before, step, 0)).rejects.toBeInstanceOf(ScenarioStopped);
     let asked = 0;
+
     const after = runOf(notes(), {
       stopped: () => {
         asked += 1;
+
         return asked > 1;
       },
     });
+
     await expect(requestStep(after, step, 0)).rejects.toBeInstanceOf(ScenarioStopped);
     expect(after.requests).toHaveLength(1);
   });

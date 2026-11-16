@@ -13,15 +13,17 @@ const columns = (cols: string[]): string[] => cols.filter((col) => col !== "");
 const allStrings = (items: unknown[]): items is string[] => items.every((item) => typeof item === "string");
 
 /** The object form of one `x-unique` set. */
-interface UniqueSetTag {
+type UniqueSetTag = {
   columns: string[];
-}
+};
 
 /** `null` means the item is malformed, not an empty set. */
 function parseUniqueSet(item: unknown): string[] | null {
   if (Array.isArray(item)) return allStrings(item) ? columns(item) : null;
+
   if (!isObject(item)) return null;
   const set: RawOf<UniqueSetTag> = item;
+
   return Array.isArray(set.columns) && allStrings(set.columns) ? columns(set.columns) : null;
 }
 
@@ -41,32 +43,44 @@ function parseUniqueSet(item: unknown): string[] | null {
  */
 export function readUnique(op: OperationObject, operationId?: string, gaps?: GapCollector): string[][] | null {
   const raw = ext(op, "x-unique");
+
   if (raw === undefined) return null;
+
   if (!Array.isArray(raw)) {
     gaps?.record(operationId ?? "", "x-unique", MALFORMED);
+
     return null;
   }
+
   if (raw.length === 0) return [];
 
   if (allStrings(raw)) {
     const cols = columns(raw);
+
     return cols.length === 0 ? [] : [cols];
   }
 
   const sets: string[][] = [];
+
   for (const item of raw) {
     const parsed = parseUniqueSet(item);
+
     if (parsed === null) {
       gaps?.record(operationId ?? "", "x-unique", MALFORMED);
+
       return null;
     }
+
     if (parsed.length > 0) sets.push(parsed);
   }
+
   return sets;
 }
 
 export function formatUniqueSets(sets: string[][] | null): string {
   if (sets === null) return "—";
+
   if (sets.length === 0) return "(none)";
+
   return sets.map((set) => `[${set.join(", ")}]`).join("; ");
 }

@@ -8,23 +8,23 @@ import { unknownParameterConsistent } from "./query-unknown-parameter-consistent
 const PLAIN = "testing_unknown_parameter";
 const TYPO = "limit_testing_typo";
 
-/* A backend that accepts, and ignores, both invented names. */
+// A backend that accepts, and ignores, both invented names.
 const lenient = backend(NOTES, { params: [...PARAMS, "page", PLAIN, TYPO] });
 
-/* An invented name answered with `answer`; the plain listing is answered correctly. */
+// An invented name answered with `answer`; the plain listing is answered correctly.
 const answering = (answer: Answer): Responder =>
   rewriting((query) => (PLAIN in query || TYPO in query ? answer : query));
 
-/* The defect UNKNOWN_PARAM_EMPTIES_LIST: an unknown name empties the listing, with a 200. */
+// The defect UNKNOWN_PARAM_EMPTIES_LIST: an unknown name empties the listing, with a 200.
 const emptying = answering({ body: [], status: 200 });
 
-/* The plain name refused, the typo ignored. */
+// The plain name refused, the typo ignored.
 const inconsistent = rewriting((query) => (PLAIN in query ? REJECT : without(query, TYPO)));
 
-/* The typo refused with 422, the plain name ignored. */
+// The typo refused with 422, the plain name ignored.
 const refusingTypo = rewriting((query) => (TYPO in query ? { status: 422 } : without(query, PLAIN)));
 
-/* Both names refused, one with 400 and one with 422. */
+// Both names refused, one with 400 and one with 422.
 const refusingBoth = rewriting((query) => (PLAIN in query ? REJECT : TYPO in query ? { status: 422 } : query));
 
 describe("query.unknown-parameter-consistent passes", () => {
@@ -83,6 +83,7 @@ describe("query.unknown-parameter-consistent fails", () => {
       expect(staged.findings.findings[0]?.summary).toBe("unknown query parameters are handled inconsistently");
       expect(staged.findings.findings[0]?.evidence).toHaveLength(2);
     }
+
     const staged = stage(unknownParameterConsistent, { respond: inconsistent });
     await staged.run();
     expect(staged.findings.findings[0]?.detail).toContain(
@@ -117,7 +118,7 @@ describe("query.unknown-parameter-consistent gives up", () => {
   });
 });
 
-/* The plan for a listing that declares `params`. */
+// The plan for a listing that declares `params`.
 const typo = (params: string[]) => stage(unknownParameterConsistent, { doc: queryDoc({}, params) }).plan();
 
 describe("query.unknown-parameter-consistent plans", () => {

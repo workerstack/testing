@@ -6,12 +6,10 @@ import { describe, expect, it } from "vitest";
 
 import { wallClockExpectations } from "../api/support/wall-clock.ts";
 
-/*
- * A unit test's verdict never depends on how fast the host runs. An expectation that reads the
- * real clock, or bounds an elapsed time with a number, passes on an idle machine and fails on a
- * loaded one; a file that fakes its timers is exempt, because its clock only moves when the test
- * moves it.
- */
+// A unit test's verdict never depends on how fast the host runs. An expectation that reads the
+// real clock, or bounds an elapsed time with a number, passes on an idle machine and fails on a
+// loaded one; a file that fakes its timers is exempt, because its clock only moves when the test
+// moves it.
 
 const ROOT = join(import.meta.dirname, "..", "..");
 
@@ -24,6 +22,7 @@ describe("wall-clock expectations", () => {
       "expect(result.polls).toBe(3)",
       "expect(timer.durationMs).toEqual(0)",
     ].join("\n");
+
     expect(wallClockExpectations(seeded)).toEqual([1, 2, 3]);
   });
 
@@ -39,9 +38,11 @@ describe("wall-clock expectations", () => {
     })
       .split("\n")
       .filter(Boolean);
+
     const found = files.flatMap((file) =>
       wallClockExpectations(readFileSync(join(ROOT, file), "utf8")).map((line) => `${file}:${line}`),
     );
+
     expect(found).toEqual([]);
   });
 });

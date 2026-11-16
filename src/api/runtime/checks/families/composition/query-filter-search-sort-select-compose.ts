@@ -14,14 +14,19 @@ export const queryFilterSearchSortSelectCompose: Check<
   {
     plan: (ctx) => {
       const c = conv(ctx);
+
       if (!filterable(ctx) || c.search === undefined || c.order === undefined || c.select === undefined)
         return cannot();
+
       if ((ctx.query?.selectable.length ?? 0) === 0 || ctx.records.length <= 2) return cannot();
       const sortField = ctx.query?.sortable.find((name) => name !== ctx.identity) ?? ctx.query?.sortable[0];
+
       if (sortField === undefined) return cannot();
+
       return andThen(overlapPlan(ctx), (overlap) => {
         const extra = ctx.query?.selectable.find((name) => name !== ctx.identity);
         const requested = extra === undefined ? [ctx.identity] : [ctx.identity, extra];
+
         return andThen(selectionPlan(ctx, requested), (projection) =>
           ready({ ...overlap, projection, requested, sortField }),
         );
@@ -46,6 +51,7 @@ export const queryFilterSearchSortSelectCompose: Check<
       const conventions = conv(ctx);
       const searched = q(ctx, { search: token });
       const readBase = (fresh = false) => collectSet(ctx, pageSize(ctx), { ...term, ...searched }, { fresh });
+
       const readCombined = (fresh = false) =>
         collectSet(
           ctx,
@@ -53,11 +59,13 @@ export const queryFilterSearchSortSelectCompose: Check<
           { ...term, ...projection, ...searched },
           { order: sortTerm(conventions, { direction: "asc", field: sortField }), fresh },
         );
+
       const firstBase = await readBase();
       const firstCombined = await readCombined();
-      if (firstBase === null || firstCombined === null) {
+
+      if (firstBase === null || firstCombined === null)
         return ctx.findings.unresolved(this.id, ctx.entityName, "four-axis probe was rejected");
-      }
+
       if (!firstBase.complete || !firstCombined.complete) {
         return ctx.findings.unresolved(
           this.id,
@@ -65,7 +73,8 @@ export const queryFilterSearchSortSelectCompose: Check<
           "a side of the comparison is larger than the walk covers",
         );
       }
-      /* A disagreement is read again: a collection another writer moved is no defect of composition. */
+
+      // A disagreement is read again: a collection another writer moved is no defect of composition.
       const pair = await settlePair(
         ctx.identity,
         { first: firstBase, second: firstCombined },
@@ -74,13 +83,17 @@ export const queryFilterSearchSortSelectCompose: Check<
           second: () => readCombined(true),
         },
       );
+
       if (pair === null) return ctx.findings.unresolved(this.id, ctx.entityName, "four-axis probe was rejected");
+
       if (pair === "moving") return ctx.findings.unresolved(this.id, ctx.entityName, MOVING_COLLECTION);
       const { first: base, second: combined } = pair;
-      if (combined.items.some((item) => item[ctx.identity] === undefined)) {
+
+      if (combined.items.some((item) => item[ctx.identity] === undefined))
         return ctx.findings.unresolved(this.id, ctx.entityName, "projection omitted the identity");
-      }
+
       if (sameSet(setOf(base.items, ctx.identity), setOf(combined.items, ctx.identity))) return ASSERTED;
+
       return ctx.findings.backend(this.id, ctx.entityName, {
         summary: "filter ∩ search membership changes when sort and select join",
         detail: `the four-axis listing returned ${combined.items.length}; filter+search alone returned ${base.items.length}.`,

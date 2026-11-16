@@ -5,11 +5,11 @@ import { PARAMS, queryDoc, queryOf, REJECT, stage } from "../composition/__fixtu
 import { answering } from "./__fixtures__/responders.ts";
 import { searchModeAccepted } from "./search-mode-accepted.ts";
 
-/* Refuses the plain mode as unsupported and turns every other request away unread. */
+// Refuses the plain mode as unsupported and turns every other request away unread.
 const refusesPlainTurnsAwayRest: Responder = (_method, _path, options) =>
   queryOf(options)["search_mode"] === "plain" ? { status: 422 } : { status: 401 };
 
-/* Whether the check plans with modes declared and `param` missing from the document. */
+// Whether the check plans with modes declared and `param` missing from the document.
 const plansWithout = (param: string): boolean =>
   stage(searchModeAccepted, {
     doc: queryDoc(

@@ -11,12 +11,10 @@ import { parseFilterGrammar } from "../../../src/api/spec/render/filter-parse.ts
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 import { checkContext } from "../support/check-context.ts";
 
-/*
- * What a `like` value means is declared, not assumed. Under `pattern`, `%` and `_` are wildcards,
- * so a bare `%` matching everything is the grammar working; under `contains` the value is a plain
- * substring and a bare `%` must match only values holding one. The escaping check sends exactly
- * that `%`, so it can only judge a grammar that reads it literally.
- */
+// What a `like` value means is declared, not assumed. Under `pattern`, `%` and `_` are wildcards,
+// so a bare `%` matching everything is the grammar working; under `contains` the value is a plain
+// substring and a bare `%` must match only values holding one. The escaping check sends exactly
+// that `%`, so it can only judge a grammar that reads it literally.
 
 const TEMPLATE = { conj: { and: "and" }, ops: { eq: "eq", like: "like" }, term: "{conj}_{field}_{op}_{value}" };
 
@@ -48,10 +46,13 @@ function planFor(grammar: Record<string, unknown>) {
       },
     },
   } as unknown as OpenApiDocument;
+
   const model = buildModel(dereference(doc).doc);
   const listOp = model.byOperationId.get("notes.list");
   const check = entityChecks(CHECKS).find((candidate) => candidate.id === "filter.like-metacharacters-escaped");
+
   if (listOp === undefined || check === undefined || listOp.query === null) throw new Error("fixture incomplete");
+
   const ctx = checkContext({
     client: new Client({ baseUrl: "http://127.0.0.1:1", redactor: new Redactor() }),
     entityName: "note",
@@ -64,12 +65,15 @@ function planFor(grammar: Record<string, unknown>) {
       { id: "2", name: "b" },
     ],
   });
+
   return check.plan(ctx);
 }
 
 function wildcardOf(raw: Record<string, unknown>) {
   const parsed = parseFilterGrammar(raw);
+
   if (!parsed.ok) throw new Error(parsed.error);
+
   return parsed.spec.likeWildcard;
 }
 

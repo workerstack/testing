@@ -8,26 +8,27 @@ import type { OpenApiDocument } from "../spec/types.ts";
 import type { Exchange } from "./exchange.ts";
 import { createRecordAdopter } from "./record-credential.ts";
 
-/*
- * A create that declares `x-entity.credentialFrom` hands its creator a credential for the record it
- * made: held in the store under a principal of its own, and named for the record's path, so only
- * what the creator sends there or below it carries it.
- */
+// A create that declares `x-entity.credentialFrom` hands its creator a credential for the record it
+// made: held in the store under a principal of its own, and named for the record's path, so only
+// what the creator sends there or below it carries it.
 
 const json = (schema: unknown) => ({ content: { "application/json": { schema } } });
 const ROW = { properties: { id: { type: "string" }, name: { type: "string" } }, type: "object" };
 const param = (name: string) => ({ in: "path", name, required: true, schema: { type: "string" } });
+
 const create = (operationId: string, more: Record<string, unknown> = {}) => ({
   operationId,
   requestBody: { ...json(ROW), required: true },
   responses: { "201": { ...json(ROW), description: "made" } },
   ...more,
 });
+
 const read = (operationId: string, params: string[]) => ({
   operationId,
   parameters: params.map(param),
   responses: { "200": { ...json(ROW), description: "ok" } },
 });
+
 const adopts = (name: string) => ({ "x-entity": { action: "create", credentialFrom: "$.access_token", name } });
 
 const DOCUMENT = {
@@ -54,6 +55,7 @@ function adopterOf(mapping?: Record<string, string>) {
   const { store } = harness();
   const records = createRecordScopes();
   const model = buildModel(DOCUMENT);
+
   const adopter = createRecordAdopter({
     model,
     records,
@@ -61,10 +63,11 @@ function adopterOf(mapping?: Record<string, string>) {
     store,
     mapping,
   });
+
   return { adopter, records, store };
 }
 
-/* A create cy sent with its jwt, answered 201 with a token for what it made, less any field `drop` names. */
+// A create cy sent with its jwt, answered 201 with a token for what it made, less any field `drop` names.
 function answered(over: Partial<Exchange> = {}, drop?: keyof Exchange): Exchange {
   const exchange = {
     method: "POST",
@@ -79,7 +82,9 @@ function answered(over: Partial<Exchange> = {}, drop?: keyof Exchange): Exchange
     url: `${BASE}/orgs`,
     ...over,
   } as Record<string, unknown>;
+
   if (drop !== undefined) delete exchange[drop];
+
   return exchange as unknown as Exchange;
 }
 
@@ -151,6 +156,7 @@ describe("createRecordAdopter: what adopts nothing", () => {
     ["an answer with no id", { responseBody: { access_token: "org-token" } }],
     ["a scheme the store cannot hold it under", { schemes: ["digest"] }],
   ];
+
   for (const [name, over, drop] of cases) {
     it(`ignores ${name}`, async () => {
       const { adopter, records } = adopterOf();

@@ -8,11 +8,11 @@ import { PRINCIPALS, SECURITY } from "../matrix/principals.ts";
 import { publicCatalog } from "./public-catalog.ts";
 
 /** One case: what it is called, why it matters, and what it found. */
-interface TenantCase {
+type TenantCase = {
   name: string;
   why: string;
   probe: (via: Via) => Promise<{ ok: boolean; detail: string }>;
-}
+};
 
 /** One principal per workspace, each with the token the catalog knows it by. */
 const CATALOG_PRINCIPALS: PrincipalsConfig = {
@@ -23,6 +23,7 @@ const CATALOG_PRINCIPALS: PrincipalsConfig = {
 /** testing api run once against a fresh public catalog. */
 async function catalogRun(via: Via): Promise<RunResult> {
   const hosted = await via.host(publicCatalog());
+
   try {
     return await run({
       baseUrl: hosted.url,
@@ -37,12 +38,13 @@ async function catalogRun(via: Via): Promise<RunResult> {
   }
 }
 
-/* A check that must not apply to the catalog: skipped, not run, and no finding from any of `checks`. */
+// A check that must not apply to the catalog: skipped, not run, and no finding from any of `checks`.
 function standsDown(result: RunResult, check: string, checks: readonly string[]): { ok: boolean; detail: string } {
   const hits = result.findings.filter((f) => checks.includes(f.check));
   const skipped = result.checksSkipped.some((s) => s.check === check);
   const ran = result.checksRun.includes(check);
   const ok = hits.length === 0 && skipped && !ran;
+
   return {
     detail: ok
       ? "check did not apply; no finding"
@@ -61,6 +63,7 @@ async function leakVerdict(
     { backend: "memory", dialect: "postgrest", via },
     { defects: [leak.defect], untagged: leak.untagged },
   );
+
   try {
     const result = await run({
       baseUrl: backend.url,
@@ -71,6 +74,7 @@ async function leakVerdict(
       spec: `${backend.url}/v1/openapi/spec`,
       ...reach(backend),
     });
+
     return result.findings.find((f) => f.check === leak.check)?.verdict ?? null;
   } finally {
     await backend.close();
@@ -79,10 +83,12 @@ async function leakVerdict(
 
 function leakCase(name: string, why: string, leak: { defect: string; check: string; untagged: boolean }): TenantCase {
   const want = leak.untagged ? "AMBIGUITY" : "SECURITY";
+
   return {
     name,
     probe: async (via) => {
       const verdict = await leakVerdict(via, leak);
+
       return {
         detail: verdict === want ? want : `expected ${want}, got ${verdict ?? "no finding"}`,
         ok: verdict === want,
@@ -138,6 +144,7 @@ const CASES: readonly TenantCase[] = [
 
 export async function runTenantScopeSuite(via: Via): Promise<ParserResult[]> {
   const results: ParserResult[] = [];
+
   for (const { name, why, probe } of CASES) {
     try {
       results.push({ ...(await probe(via)), name, why });
@@ -145,5 +152,6 @@ export async function runTenantScopeSuite(via: Via): Promise<ParserResult[]> {
       results.push({ detail: messageOf(error), name, ok: false, why });
     }
   }
+
   return results;
 }

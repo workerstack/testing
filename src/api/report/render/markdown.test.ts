@@ -34,6 +34,7 @@ describe("renderMarkdown", () => {
         },
       }),
     );
+
     const headings = [
       "# The API tester report",
       "## Leftovers",
@@ -46,10 +47,11 @@ describe("renderMarkdown", () => {
       "## Backend defects",
       "## Did not apply anywhere",
     ];
+
     const at = order(text, headings);
     expect(at.every((index) => index >= 0)).toBe(true);
     expect(at).toEqual([...at].sort((a, b) => a - b));
-    /* A known finding is reported under Known, not counted among the defects. */
+    // A known finding is reported under Known, not counted among the defects.
     expect(text).toContain("| Backend defects | 1 |");
     expect(text).toContain("_(known: TICKET-2)_");
     expect(text.endsWith("\n")).toBe(true);
@@ -65,9 +67,11 @@ describe("renderMarkdown", () => {
 describe("renderMarkdown on a real run", () => {
   it("renders a real run against the reference: a stale list is a backend defect with its repro", async () => {
     const ref = await createMemoryReference({ defects: ["STALE_LIST"] });
+
     try {
       const network = { fetch: ref.fetch };
       const startedAt = new Date(0);
+
       const result = await run({
         baseUrl: ref.url,
         network,
@@ -76,6 +80,7 @@ describe("renderMarkdown on a real run", () => {
         seed: 42,
         spec: `${ref.url}/v1/openapi/spec`,
       });
+
       const text = renderMarkdown(reportInput({ baseUrl: ref.url, durationMs: 1, outDir: "", result, startedAt }));
       expect(text).toContain("## Backend defects");
       expect(text).toMatch(/Reproduce: `issue-repro\/[a-z0-9-]+\.sh`/);

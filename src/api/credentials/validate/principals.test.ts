@@ -65,6 +65,7 @@ describe("principalProblems", () => {
       { id: "bare", principal: "alpha" },
       "raw",
     ];
+
     expect(principalProblems({ principals: { alpha: { tenant: "t" } }, scenarios }, schemes)).toEqual([
       'scenarios.peer.principal names "beta", which principals does not declare',
       'scenarios.peer.steps[1].principal names "gamma", which principals does not declare',
@@ -123,6 +124,7 @@ describe("principalMapProblems, entry by entry", () => {
       readOnly: false,
       tenant: 2,
     };
+
     expect(principalMapProblems({ principals: { alpha } })).toEqual([
       "principals.alpha.auth was removed in 0.25.0: put the flow in security.<scheme>: { login: { steps, from } }",
       "principals.alpha.headers was removed in 0.25.0: a fixed credential is security.<scheme>: { static: … }",
@@ -164,6 +166,7 @@ describe("fresh principals, against the document's signup", () => {
   const security = {
     jwt: { login: { from: "$.t", steps: [{ body: { email: "{principal.email}", code: "{principal.code}" } }] } },
   };
+
   const signup = { operationId: "auth.signup", properties: ["email", "password"] };
 
   it("take a placeholder from the signup body's properties or the config entry", () => {

@@ -10,17 +10,22 @@ import type { OperationModel, SpecModel } from "./types.ts";
  */
 export function documentedPage(model: SpecModel, op: OperationModel): { param: string | undefined; size: number } {
   const param = op.conventions.limit;
+
   if (op.query?.maxLimit !== undefined) return { param, size: op.query.maxLimit };
   const raw = model.rawOperations.get(op.operationId);
+
   const declared = (raw?.parameters ?? []).find(
     (candidate) => "name" in candidate && candidate.in === "query" && candidate.name === param,
   ) as { schema?: { maximum?: unknown } } | undefined;
+
   const max = declared?.schema?.maximum;
+
   return { param, size: typeof max === "number" && max >= 1 ? max : 100 };
 }
 
 /** The query that asks an operation for its largest documented page. */
 export function largestPageQuery(model: SpecModel, op: OperationModel): Record<string, number> {
   const { param, size } = documentedPage(model, op);
+
   return param === undefined ? {} : { [param]: size };
 }

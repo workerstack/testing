@@ -6,12 +6,10 @@ import { teardownAccounts } from "./accounts.ts";
 import { checkAccounts } from "./check-accounts.ts";
 import type { RunOptions } from "./types.ts";
 
-/*
- * A check that signs an account up reads it back as that account: held as teardown holds it, so
- * teardown removes it as the same principal, and never with a credential that is not its own.
- */
+// A check that signs an account up reads it back as that account: held as teardown holds it, so
+// teardown removes it as the same principal, and never with a credential that is not its own.
 
-/* A signup whose answer names nothing. */
+// A signup whose answer names nothing.
 const QUIET = { "x-quiet": "1" };
 
 /** A run of alpha that sent `body` to the signup as a check would, what it answered, and the self read. */
@@ -20,6 +18,7 @@ async function signedUp(
   { headers = {}, options = {} }: { headers?: Record<string, string>; options?: Partial<RunOptions> } = {},
 ) {
   const state = accountsState();
+
   const ctx = await contextOf(
     optionsFor(accountsApi(state), {
       principals: { alpha: { email: "alpha@x.test" } },
@@ -27,14 +26,18 @@ async function signedUp(
       ...options,
     }),
   );
+
   const answer = await ctx.client.request("POST", "/signup", {
     as: { anonymous: true },
     body,
     headers,
     operationId: "auth.signup",
   });
+
   const read = ctx.model.byOperationId.get("me.read");
+
   if (read === undefined) throw new Error("the accounts document has a self read");
+
   return { answer, ctx, read, state };
 }
 
@@ -79,6 +82,7 @@ describe("checkAccounts: an account it may not read as", () => {
     const { answer, ctx, read } = await signedUp(PROBE, {
       options: { security: { bearer: { static: "login-alpha@x.test" } } },
     });
+
     expect(await checkAccounts(ctx).signIn(answer, read)).toEqual({
       untested:
         "me.read is not sent as the account: its bearer credential comes from a static recipe, the configured principals' own",

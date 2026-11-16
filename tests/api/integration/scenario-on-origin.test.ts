@@ -10,11 +10,9 @@ import type { Scenario } from "../../../src/api/config/define/types.ts";
 import { run } from "../../../src/api/runtime/run/index.ts";
 import type { JsonSchema, OpenApiDocument } from "../../../src/api/spec/types.ts";
 
-/*
- * A scenario can belong to a secondary origin: a file store beside the API. Its steps and what it
- * covers are that origin's operations, so it runs where that origin is graded and its passes are
- * that origin's rows.
- */
+// A scenario can belong to a secondary origin: a file store beside the API. Its steps and what it
+// covers are that origin's operations, so it runs where that origin is graded and its passes are
+// that origin's rows.
 
 const closers: Array<() => Promise<void>> = [];
 
@@ -38,6 +36,7 @@ const mainSpec: OpenApiDocument = {
 } as OpenApiDocument;
 
 const tag = { properties: { tag: { type: "string" } }, required: ["tag"], type: "object" };
+
 const fileSpec: OpenApiDocument = {
   info: { title: "files", version: "1" },
   openapi: "3.1.0",
@@ -61,6 +60,7 @@ async function serve(handler: (req: IncomingMessage, res: ServerResponse) => voi
   const server = createServer(handler);
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   closers.push(() => new Promise((resolve) => server.close(() => resolve())));
+
   return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 }
 
@@ -73,17 +73,24 @@ async function servers() {
   const main = await serve((req, res) =>
     req.url === "/openapi.json" ? send(res, 200, mainSpec) : send(res, 200, { status: "ok" }),
   );
+
   const stored = new Map<string, string>();
+
   const files = await serve((req, res) => {
     if (req.url === "/openapi.json") return send(res, 200, fileSpec);
     const name = decodeURIComponent((req.url ?? "").replace(/^\/files\//, ""));
+
     if (req.method === "PUT") {
       stored.set(name, `t-${stored.size + 1}`);
+
       return send(res, 201, { tag: stored.get(name) });
     }
+
     const found = stored.get(name);
+
     return found === undefined ? send(res, 404, {}) : send(res, 200, { tag: found });
   });
+
   return { files, main };
 }
 
@@ -105,6 +112,7 @@ describe("a scenario on a secondary origin", () => {
   for (const ops of [undefined, ["files:file.put"]]) {
     it(`grades that origin's operation${ops === undefined ? "" : " when it is the target"}`, async () => {
       const { files, main } = await servers();
+
       const result = await run({
         baseUrl: main,
         ...(ops === undefined ? {} : { ops }),
@@ -114,13 +122,14 @@ describe("a scenario on a secondary origin", () => {
         seed: 1,
         spec: `${main}/openapi.json`,
       });
+
       const row = result.scope.operations.find((op) => op.origin === "files" && op.operationId === "file.put");
       expect(row).toMatchObject({ status: "passed", tier: "verified" });
     });
   }
 });
 
-/* A main-origin scenario whose support steps reach the file store through the run's origin client. */
+// A main-origin scenario whose support steps reach the file store through the run's origin client.
 const supported: Scenario = {
   covers: ["health.get"],
   id: "health-beside-files",
@@ -139,13 +148,17 @@ describe("a run over two origins, its transcript spooled", () => {
       const spools = () => readdirSync(dir).filter((name) => name.startsWith("testing-transcript-"));
       const stop = new AbortController();
       let most = 0;
-      /* Watches the spool, and stops the run once the file store has answered its support steps. */
+
+      // Watches the spool, and stops the run once the file store has answered its support steps.
       const watched: typeof fetch = async (input, init) => {
         const answer = await fetch(input, init);
         most = Math.max(most, spools().length);
+
         if (interrupted && String(input).startsWith(`${files}/files/`) && init?.method === "GET") stop.abort();
+
         return answer;
       };
+
       try {
         const result = await run({
           baseUrl: main,
@@ -158,7 +171,8 @@ describe("a run over two origins, its transcript spooled", () => {
           spec: `${main}/openapi.json`,
           transcript: { dir, memoryBytes: 1 },
         });
-        /* The run spooled along the way, so there was something to leave behind. */
+
+        // The run spooled along the way, so there was something to leave behind.
         expect([result.interrupted === true, most >= 1]).toEqual([interrupted, true]);
         expect(spools()).toEqual([]);
       } finally {

@@ -4,13 +4,14 @@ import type { RunContext } from "./context.ts";
 import { ownRecordsOf } from "./own-records.ts";
 import { emptyState } from "./state.ts";
 
-/* The run's guard over its principals' own records: one per run, built from its recipes and principals. */
+// The run's guard over its principals' own records: one per run, built from its recipes and principals.
 
 const enrolled = vi.hoisted(() => ({ asked: [] as string[], blocked: undefined as string | undefined }));
 
 vi.mock("./disposable.ts", () => ({
   enrollerOf: () => async (label: string) => {
     enrolled.asked.push(label);
+
     return enrolled.blocked === undefined ? { id: `disposable-${label}` } : { blocked: enrolled.blocked };
   },
 }));
@@ -22,6 +23,7 @@ const LOGIN = {
 
 function contextOf(): RunContext {
   const principals = { alpha: { email: "ann@x.io", password: "p" } };
+
   return {
     options: { security: { jwt: { login: LOGIN } } },
     principals: { byId: new Map([["alpha", { identity: principals.alpha }]]) },
@@ -61,6 +63,7 @@ describe("ownRecordsOf", () => {
 describe("ownRecordsOf and the credentials the run holds", () => {
   it("knows each record a mint recipe made, from what the credential store sent", () => {
     const create = { createdIdFrom: null, entity: "api-key", operationId: "apiKey.create", recordPath: null };
+
     const minted = {
       issuedBy: "credentials",
       operationId: "apiKey.create",
@@ -69,6 +72,7 @@ describe("ownRecordsOf and the credentials the run holds", () => {
       status: 201,
       url: "http://api.test/keys",
     };
+
     const ctx = {
       ...contextOf(),
       client: { exchangesFor: (id: string) => (id === "apiKey.create" ? [minted] : []) },
@@ -83,6 +87,7 @@ describe("ownRecordsOf and the credentials the run holds", () => {
         },
       },
     } as unknown as RunContext;
+
     expect(ownRecordsOf(ctx).credentials?.()).toEqual([{ entity: "api-key", id: "k-1", operationId: "apiKey.create" }]);
   });
 });

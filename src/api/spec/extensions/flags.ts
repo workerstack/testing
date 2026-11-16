@@ -5,6 +5,7 @@ import { ext, extObject, strArray } from "./tag.ts";
 
 export function readSoftDelete(op: OperationObject): string | null {
   const value = ext(op, "x-soft-delete");
+
   return typeof value === "string" ? value : null;
 }
 
@@ -14,11 +15,15 @@ export function readImmutable(op: OperationObject): string[] {
 
 export function readGenerated(op: OperationObject, bodySchema: unknown): string[] {
   const declared = strArray(ext(op, "x-generated"));
+
   if (declared.length > 0) return declared;
-  /* `readOnly: true` carries the same meaning and is standard OpenAPI. */
+
+  // `readOnly: true` carries the same meaning and is standard OpenAPI.
   if (bodySchema === null || typeof bodySchema !== "object") return [];
   const props = (bodySchema as JsonSchema).properties;
+
   if (props === null || typeof props !== "object") return [];
+
   return Object.entries(props as Record<string, unknown>)
     .filter(([, v]) => v !== null && typeof v === "object" && (v as { readOnly?: unknown }).readOnly === true)
     .map(([k]) => k);
@@ -26,6 +31,7 @@ export function readGenerated(op: OperationObject, bodySchema: unknown): string[
 
 export function readCost(op: OperationObject): "low" | "medium" | "high" {
   const value = ext(op, "x-cost");
+
   return value === "high" || value === "medium" ? value : "low";
 }
 
@@ -37,6 +43,7 @@ export function readCost(op: OperationObject): "low" | "medium" | "high" {
  */
 export function readFeatureGate(op: OperationObject): string | null {
   const value = ext(op, "x-feature-gate");
+
   return typeof value === "string" && value !== "" ? value : null;
 }
 
@@ -46,15 +53,17 @@ export function readFeatureGate(op: OperationObject): string | null {
  */
 export function readFlag(op: OperationObject, key: string, whenMalformed = false): boolean {
   const value = ext(op, key);
+
   if (value === undefined || typeof value === "boolean") return value === true;
+
   return whenMalformed;
 }
 
-export interface RateLimitTag {
+export type RateLimitTag = {
   category: string;
   /** `null` when the tag names a category without a rate — still useful for grouping. */
   rps: number | null;
-}
+};
 
 /**
  * `x-rate-limit: { category: string, rps?: number }` — read defensively, like every other tag,
@@ -63,6 +72,8 @@ export interface RateLimitTag {
  */
 export function readRateLimit(op: OperationObject): RateLimitTag | null {
   const tag = extObject<RateLimitTag>(op, "x-rate-limit");
+
   if (typeof tag?.category !== "string" || tag.category === "") return null;
+
   return { category: tag.category, rps: typeof tag.rps === "number" && tag.rps > 0 ? tag.rps : null };
 }

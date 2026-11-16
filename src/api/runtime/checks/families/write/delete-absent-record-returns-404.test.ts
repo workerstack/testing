@@ -5,14 +5,13 @@ import { runCheck } from "../../core/run.ts";
 import { GATED, notesContext, notesModel } from "./__fixtures__/notes.ts";
 import { deleteMissingIs404 } from "./delete-absent-record-returns-404.ts";
 
-/*
- * A DELETE of an id that was never created must say so: 404 (or 410, or a 400 for the shape). A
- * 2xx hides broken client state; a 5xx is a crash. Defect: delete-absent-200.
- */
+// A DELETE of an id that was never created must say so: 404 (or 410, or a 400 for the shape). A
+// 2xx hides broken client state; a 5xx is a crash. Defect: delete-absent-200.
 
 async function deleteAnswered(answer: Answer) {
   const stage = notesContext(notesModel(), (method) => (method === "DELETE" ? answer : undefined));
   const outcome = await runCheck(deleteMissingIs404, stage.ctx);
+
   return { ...stage, outcome };
 }
 
@@ -52,12 +51,12 @@ describe("delete.absent-record-returns-404", () => {
   });
 
   it("does not plan without a delete operation", () => {
-    const { ctx } = notesContext(notesModel(), () => undefined, { deleteOp: undefined });
+    const { ctx } = notesContext(notesModel(), () => {}, { deleteOp: undefined });
     expect(deleteMissingIs404.plan(ctx).ok).toBe(false);
   });
 
   it("does not plan when the identifier admits no absent value", () => {
-    const { ctx } = notesContext(notesModel({ idSchema: { enum: ["only"], type: "string" } }), () => undefined);
+    const { ctx } = notesContext(notesModel({ idSchema: { enum: ["only"], type: "string" } }), () => {});
     const planned = deleteMissingIs404.plan(ctx);
     expect(planned.ok).toBe(false);
     expect(planned.ok ? undefined : planned.needs).toBe("an identifier of the documented shape that names no record");

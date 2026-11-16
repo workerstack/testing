@@ -39,6 +39,7 @@ describe("renderTeardown", () => {
       principal: "alpha",
       reason: "403",
     }));
+
     const lines = renderTeardown(report({ failed, removed: 1, unsupported: ["tag", "pin"] }), 9);
     expect(lines[0]).toBe("  cleanup: removed 1/9 created record(s)");
     expect(lines[1]).toMatch(/^ {4}tag, pin — no delete operation in the document/);
@@ -64,6 +65,7 @@ describe("renderTeardown", () => {
       { entity: "job", id: "j1", inferred: true as const, principal: "alpha", removed: true },
       { entity: "job", id: "j2", inferred: true as const, principal: "beta", removed: false },
     ];
+
     expect(renderTeardown(report({ records, removed: 2 }), 3)).toEqual([
       "  cleaned up 2/3 created record(s)",
       "  inferred: 2 record(s) ledgered from an answer that named a new id, not from a declared create",

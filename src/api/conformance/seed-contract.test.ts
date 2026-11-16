@@ -5,31 +5,35 @@ import { inProcess, type Via } from "./harness/launch.ts";
 import { answer } from "./harness/serve.ts";
 import { runSeedContractSuite } from "./seed-contract.ts";
 
-/* A transport that hosts `allowed` handlers, then cannot reach anything. */
+// A transport that hosts `allowed` handlers, then cannot reach anything.
 function hostsOnly(allowed: number): Via {
   let hosted = 0;
+
   return {
     host: (handle) => {
       hosted += 1;
+
       return hosted <= allowed ? inProcess.host(handle) : Promise.reject(new Error("no host"));
     },
     launch: () => Promise.reject(new Error("unused")),
   };
 }
 
-/* In process, with every hosted backend seen through `wrap`. */
+// In process, with every hosted backend seen through `wrap`.
 function wrapped(wrap: (handle: Handle) => Handle): Via {
   return { ...inProcess, host: (handle) => inProcess.host(wrap(handle)) };
 }
 
-/* The paid extract no longer says it is costly, so the cheap profile has no reason to skip it. */
+// The paid extract no longer says it is costly, so the cheap profile has no reason to skip it.
 const uncosted = wrapped((handle) => async (request) => {
   const response = await handle(request);
+
   if (request.url.pathname !== "/v1/openapi/spec") return response;
+
   return answer(200, JSON.parse(response.body.replace('"x-cost":"high",', "")));
 });
 
-/* Something in front of the backend answers register itself: the backend never sees one. */
+// Something in front of the backend answers register itself: the backend never sees one.
 const intercepted = wrapped(
   (handle) => async (request) =>
     request.url.pathname === "/v1/auth/register" ? answer(201, { email: "alpha@x.test", id: "u1" }) : handle(request),

@@ -21,8 +21,10 @@ export const immutableRejected: Check<{
 }>({
   plan: (ctx) => {
     const { updateOp, readOp } = ctx;
+
     if (updateOp === undefined || readOp === undefined || ctx.createOp === undefined) return cannot();
     const field = updateOp.immutable.find((f) => f !== ctx.identity) ?? updateOp.immutable[0];
+
     return field === undefined ? cannot() : ready({ field, readOp, updateOp });
   },
   mutates: true,
@@ -30,42 +32,48 @@ export const immutableRejected: Check<{
   needs: "fields declared immutable via x-immutable",
   subjects: subjectsOf.update,
   async run(ctx, { field, readOp, updateOp }): Promise<Outcome> {
-    /* Its own record: an immutable field is very often the tenant or parent key, and a backend
-     * that accepts the write moves the record out of the scope every later check reads. */
+    // Its own record: an immutable field is very often the tenant or parent key, and a backend
+    // that accepts the write moves the record out of the scope every later check reads.
     const made = await scratchRecord(ctx, this.id);
+
     if ("outcome" in made) return made.outcome;
     const { id, record: target } = made.scratch;
     const params = { ...ctx.scope, ...itemParamFor(ctx, id) };
 
     const probe = changedValue(ctx, field, target[field]);
-    if (probe === undefined) {
+
+    if (probe === undefined)
       return ctx.findings.unresolved(this.id, ctx.entityName, `no other valid value for "${field}" can be made`);
-    }
+
     const update = await updateRequest(ctx, updateOp, target, { [field]: probe });
+
     const patched = await ctx.client.request(update.method, fillPath(updateOp.path, params), {
       ...update.options,
       as: { principal: ctx.actor.id },
       operationId: updateOp.operationId,
     });
+
     if (standDownForFeatureGate(ctx, updateOp, patched, this.id))
       return standDown("a documented feature gate refused the request");
     const refused = judgeRefusal(ctx, this.id, ["validation", "conflict"], patched);
+
     if (refused !== null) return refused;
-    /* An accepted write to a key — a tenant, a parent — can move the record outside every scope the API tester
-     * can reach, whether or not the echo shows it. */
+    // An accepted write to a key — a tenant, a parent — can move the record outside every scope the API tester
+    // can reach, whether or not the echo shows it.
     ctx.recordMoved?.(
       ctx.entityName,
       id,
       `moved by a write to "${field}" the backend accepted (${updateOp.operationId})`,
     );
 
-    /* Read the echoed record first. Re-reading can itself fail once the write lands — writing
-     * a tenant key, for instance, moves the record out of the caller's scope — and that
-     * failure would otherwise mask the very defect being probed. */
+    // Read the echoed record first. Re-reading can itself fail once the write lands — writing
+    // a tenant key, for instance, moves the record out of the caller's scope — and that
+    // failure would otherwise mask the very defect being probed.
     const echoed = readRecord(updateOp, patched) ?? {};
     const after = await ctx.client.get(fillPath(readOp.path, params), { as: { principal: ctx.actor.id } });
     const current = readRecord(readOp, after) ?? {};
     const accepted = echoed[field] === probe || current[field] === probe;
+
     if (!accepted) return ASSERTED;
 
     return ctx.findings.backend(this.id, ctx.entityName, {

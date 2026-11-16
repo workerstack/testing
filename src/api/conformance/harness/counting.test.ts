@@ -6,19 +6,21 @@ import { PRINCIPALS, SECURITY } from "../matrix/principals.ts";
 import { counting, marker, requestLines, run, type Sent, sourcesOf, sumRequests } from "./counting.ts";
 import { inProcess, reach, type Via } from "./launch.ts";
 
-/* A transport behind no socket that answers every request 204, and the URLs it was sent. */
+// A transport behind no socket that answers every request 204, and the URLs it was sent.
 function recording(sent: string[]): typeof fetch {
   return async (input) => {
     sent.push(new Request(input).url);
+
     return new Response(null, { status: 204 });
   };
 }
 
-/* A Via whose hosted things have no transport of their own: what a socket gives. */
+// A Via whose hosted things have no transport of their own: what a socket gives.
 const SOCKETED: Via = {
   host: async () => ({ close: async () => {}, url: "http://socket.test" }),
   launch: async (backend, options) => {
     const launched = await inProcess.launch(backend, options);
+
     return { ...launched, fetch: undefined, url: "http://socket.test" };
   },
 };
@@ -68,9 +70,10 @@ describe("counting", () => {
   });
 });
 
-/* The API tester's run against the reference `reached` launched, as every conformance leg runs it. */
+// The API tester's run against the reference `reached` launched, as every conformance leg runs it.
 async function testerAgainst(reached: Via, onProgress?: () => void) {
   const reference = await reached.launch("memory", { dialect: "postgrest" });
+
   try {
     return await run({
       baseUrl: reference.url,
@@ -96,14 +99,14 @@ describe("run, counted by source", () => {
     const sent = Object.values(sources).reduce((sum, count) => sum + count, 0);
     expect(sent).toBe(total);
     expect(total - (sources["unattributed"] ?? 0)).toBe(result.client.transcript.length);
-    /* The document, fetched once before the run has a client to record it. */
+    // The document, fetched once before the run has a client to record it.
     expect(sources["unattributed"]).toBe(1);
     expect(sources).toMatchObject({
       "check list.read-after-write": expect.any(Number),
       seed: expect.any(Number),
       teardown: expect.any(Number),
     });
-    /* The caller's own progress listener still hears every move. */
+    // The caller's own progress listener still hears every move.
     expect(moves).toBeGreaterThan(0);
   }, 120_000);
 
@@ -119,6 +122,7 @@ describe("sumRequests and requestLines", () => {
       { sources: { seed: 2, "check b": 1 }, total: 3 },
       { sources: { seed: 1, unattributed: 1 }, total: 2 },
     ]);
+
     expect(summed).toEqual({ sources: { "check b": 1, seed: 3, unattributed: 1 }, total: 5 });
     expect(requestLines(summed)).toBe(
       "  requests: 5\n  requests by source:\n    check b: 1\n    seed: 3\n    unattributed: 1\n",
@@ -130,7 +134,7 @@ describe("sumRequests and requestLines", () => {
   });
 });
 
-/* A progress move as the run publishes it: its phase, the transcript's length, and the check it is on. */
+// A progress move as the run publishes it: its phase, the transcript's length, and the check it is on.
 function snap(phase: ProgressSnapshot["phase"], requests: number, check?: string): ProgressSnapshot {
   return { elapsedMs: 0, findings: 0, phase, requests, ...(check === undefined ? {} : { check }) };
 }
@@ -146,6 +150,7 @@ describe("sourcesOf", () => {
       { method: "HEAD", purpose: "probe" },
       { method: "QUERY", purpose: "probe" },
     ];
+
     expect(sourcesOf(sent, [])).toEqual({
       "check auth.scope-enforced": 1,
       "check list.read-after-write": 1,
@@ -162,6 +167,7 @@ describe("sourcesOf", () => {
       { method: "POST", purpose: "auth" },
       { method: "GET", purpose: "assertion" },
     ];
+
     expect(sourcesOf(sent, [])).toEqual({ auth: 1, lanes: 1, seed: 1, teardown: 1 });
   });
 
@@ -177,6 +183,7 @@ describe("sourcesOf", () => {
 describe("sourcesOf, by stage", () => {
   it("names an untagged request by the stage it was sent in", () => {
     const progress = marker();
+
     for (const move of [
       snap("auth", 0),
       snap("test", 1, "list.read-after-write"),
@@ -205,6 +212,7 @@ describe("sourcesOf, by stage", () => {
 describe("marker", () => {
   it("keeps a mark only where the stage changes", () => {
     const progress = marker();
+
     for (const move of [snap("auth", 0), snap("auth", 2), snap("test", 2, "a"), snap("test", 5, "b")])
       progress.onProgress(move);
     expect(progress.marks).toEqual([

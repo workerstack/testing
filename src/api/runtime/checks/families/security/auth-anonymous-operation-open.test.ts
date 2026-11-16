@@ -7,6 +7,7 @@ import { securedDoc, undeclaredDoc } from "./__fixtures__/secured-api.ts";
 import { anonymousOperationOpen, MALFORMED } from "./auth-anonymous-operation-open.ts";
 
 const project = { in: "path", name: "project_id", required: true, schema: { type: "string" } };
+
 const model = modelOf(
   securedDoc({
     "/projects/{project_id}/board": {
@@ -19,7 +20,9 @@ const model = modelOf(
     },
   }),
 );
+
 const principals = [actorOf("alpha", { scope: { project_id: "proj_a" } })] as [ReturnType<typeof actorOf>];
+
 const answering =
   (status: number): SentResponder =>
   () => ({ status });
@@ -31,6 +34,7 @@ describe("auth.anonymous-operation-open", () => {
         principals,
         respond: answering(status),
       });
+
       expect(await runOperationCheck(anonymousOperationOpen, ctx)).toEqual({ kind: "asserted" });
       expect(sent.map((s) => [s.method, s.path, s.options])).toEqual([
         ["GET", "/projects/proj_a/board", { as: { anonymous: true }, operationId: "board.read", probe: true }],

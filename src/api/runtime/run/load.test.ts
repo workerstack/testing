@@ -10,22 +10,23 @@ import type { ProgressSnapshot } from "../progress/types.ts";
 import { connected, fetchOf, notesApi, notesDoc, optionsFor, unreachable } from "./__fixtures__/api.ts";
 import { load } from "./load.ts";
 
-/*
- * The document read and modeled before anything else: served or on disk, through the fence when
- * served, with the status line saying when the network is being waited for.
- */
+// The document read and modeled before anything else: served or on disk, through the fence when
+// served, with the status line saying when the network is being waited for.
 
 describe("load", () => {
   it("fetches a served document through the fence and models it", async () => {
     const asked: string[] = [];
+
     const options = optionsFor(notesApi(), {
       hooks: {
         beforeRequest: (request) => {
           asked.push(`${request.phase} ${request.method} ${request.url}`);
+
           return { allow: true };
         },
       },
     });
+
     const loaded = await load(options);
     expect(asked).toEqual(["load GET http://api.test/openapi.json"]);
     expect([...loaded.model.entities.keys()]).toEqual(["note"]);
@@ -38,8 +39,8 @@ describe("load", () => {
     const dir = mkdtempSync(join(tmpdir(), "testing-load-"));
     const spec = join(dir, "openapi.json");
     writeFileSync(spec, JSON.stringify(notesDoc()));
-    /* No network options at all: a document on disk needs none. */
-    const loaded = await load({ ...optionsFor(() => undefined, { spec }), network: {} });
+    // No network options at all: a document on disk needs none.
+    const loaded = await load({ ...optionsFor(() => {}, { spec }), network: {} });
     expect(loaded.fence).toBeUndefined();
     expect(loaded.hooks).toEqual({});
     expect(loaded.model.byOperationId.has("notes.create")).toBe(true);
@@ -55,18 +56,23 @@ describe("load", () => {
     const snaps: ProgressSnapshot[] = [];
     const served = optionsFor(notesApi());
     let first = true;
+
     const flaky: typeof fetch = (input, init) => {
       if (first && init?.method !== "HEAD") {
         first = false;
+
         return unreachable(input, init);
       }
+
       return fetchOf(served)(input, init);
     };
+
     const loaded = await load({
       ...served,
       network: { fetch: flaky, requestTimeoutMs: 5_000, retries: 0, waitMs: 5_000 },
       onProgress: (snap) => snaps.push(snap),
     });
+
     expect(loaded.model.entities.has("note")).toBe(true);
     expect(snaps.map((snap) => snap.message)).toContain("waiting for network (refused, 5s left)");
     expect(snaps.every((snap) => snap.phase === "load" && snap.requests === 0)).toBe(true);
@@ -92,12 +98,14 @@ describe("load, the secondary origins and the credentials config", () => {
 
   it("reads each origin's document once, with its overlay, and carries it modeled", async () => {
     const overlay = { operations: { "notes.list": { operationId: "cdn.notes.list" } } };
+
     const options = optionsFor(notesApi(), {
       origins: [
         { ...cdn, overlay },
         { ...cdn, id: "plain" },
       ],
     });
+
     const loaded = await load(options);
     expect(options.seen.filter((seen) => seen.host === "cdn.test").map((seen) => seen.path)).toEqual([
       "/openapi.json",
@@ -117,9 +125,11 @@ describe("load, the secondary origins and the credentials config", () => {
   it("leaves a secondary origin's run unchecked: the primary checked the config against its document", async () => {
     const primary = await connected(optionsFor(notesApi()));
     const shared = { mapping: {}, originOnly: new Set<string>(), store: primary.store };
+
     const loaded = await load(
       optionsFor(notesApi(), { security: { nope: { static: "x" } }, sharedCredentials: shared }),
     );
+
     expect(loaded.model.entities.has("note")).toBe(true);
   });
 });
@@ -129,7 +139,7 @@ describe("load and the config's folder", () => {
     const dir = mkdtempSync(join(tmpdir(), "testing-load-"));
     writeFileSync(join(dir, "openapi.json"), JSON.stringify(notesDoc()));
     const origins = [{ baseUrl: "http://cdn.test", id: "cdn", security: { bearer: "bearer" }, spec: "openapi.json" }];
-    const options = optionsFor(() => undefined, { configDir: dir, origins, spec: "openapi.json" });
+    const options = optionsFor(() => {}, { configDir: dir, origins, spec: "openapi.json" });
     const loaded = await load({ ...options, network: {} });
     expect(loaded.model.byOperationId.has("notes.create")).toBe(true);
     expect(loaded.origins.get("cdn")?.model.byOperationId.has("notes.create")).toBe(true);
@@ -146,27 +156,31 @@ const searchable = (): OpenApiDocument =>
       },
     },
   });
+
 const onDisk = (doc: OpenApiDocument) => {
   const spec = join(mkdtempSync(join(tmpdir(), "testing-load-")), "openapi.json");
   writeFileSync(spec, JSON.stringify(doc));
+
   return spec;
 };
 
 describe("load and config query.params", () => {
   it("sends a role in the parameter config names", async () => {
-    const options = optionsFor(() => undefined, {
+    const options = optionsFor(() => {}, {
       query: { params: { filter: "filter_by" } },
       spec: onDisk(searchable()),
     });
+
     const loaded = await load({ ...options, network: {} });
     expect(loaded.model.byOperationId.get("notes.search")?.conventions.filter).toBe("filter_by");
   });
 
   it("refuses a name no operation declares", async () => {
-    const options = optionsFor(() => undefined, {
+    const options = optionsFor(() => {}, {
       query: { params: { filter: "filtr_by" } },
       spec: onDisk(searchable()),
     });
+
     const loading = load({ ...options, network: {} });
     await expect(loading).rejects.toThrow(UsageError);
     await expect(loading).rejects.toThrow('query.params.filter names "filtr_by", which no operation declares');
@@ -176,11 +190,13 @@ describe("load and config query.params", () => {
     const origins = [
       { baseUrl: "http://search.test", id: "search", security: { bearer: "bearer" }, spec: onDisk(searchable()) },
     ];
-    const options = optionsFor(() => undefined, {
+
+    const options = optionsFor(() => {}, {
       origins,
       query: { params: { filter: "filter_by" } },
       spec: onDisk(notesDoc()),
     });
+
     const loaded = await load({ ...options, network: {} });
     expect(loaded.model.byOperationId.has("notes.list")).toBe(true);
   });
@@ -188,10 +204,12 @@ describe("load and config query.params", () => {
   it("leaves a secondary origin's run unchecked: the primary checked the names against every document", async () => {
     const primary = await connected(optionsFor(notesApi()));
     const shared = { mapping: {}, originOnly: new Set<string>(), store: primary.store };
+
     const options = optionsFor(notesApi(), {
       query: { envelope: { nextCursor: "next_before" }, params: { cursor: "before" } },
       sharedCredentials: shared,
     });
+
     const loaded = await load(options);
     expect(loaded.model.entities.has("note")).toBe(true);
   });

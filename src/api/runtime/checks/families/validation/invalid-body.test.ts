@@ -9,6 +9,7 @@ describe("invalidChoice", () => {
       required: ["size", "name"],
       type: "object",
     };
+
     expect(invalidChoice(schema)).toEqual({ field: "size", kind: "missing" });
   });
 
@@ -30,15 +31,18 @@ describe("invalidChoice: what it never breaks", () => {
       required: ["id", "project_id", "title"],
       type: "object",
     };
+
     const kept = new Set(["id", "project_id"]);
     expect(invalidChoice(schema, { kept })).toEqual({ field: "title", kind: "missing" });
     const identityOnly = { ...schema, required: ["id"] };
     expect(invalidChoice(identityOnly, { kept })).toEqual({ field: "title", kind: "wrong-type", value: 7 });
     expect(invalidChoice({ properties: { id: { type: "string" } }, required: ["id"] }, { kept })).toBeNull();
+
     const serverSet = {
       properties: { stamp: { readOnly: true, type: "string" }, title: { type: "string" } },
       required: ["stamp"],
     };
+
     expect(invalidChoice(serverSet, { kept })).toEqual({ field: "title", kind: "wrong-type", value: 7 });
   });
 
@@ -52,6 +56,7 @@ describe("invalidChoice: what it never breaks", () => {
       required: ["id"],
       type: "object",
     };
+
     expect(invalidChoice(schema)).toEqual({ field: "name", kind: "wrong-type", value: 7 });
   });
 
@@ -60,6 +65,7 @@ describe("invalidChoice: what it never breaks", () => {
       properties: { anything: {}, count: { type: "integer" }, name: { type: "string" } },
       type: "object",
     };
+
     expect(invalidChoice(schema)).toEqual({ field: "count", kind: "wrong-type", value: "testing-invalid" });
   });
 

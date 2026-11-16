@@ -63,6 +63,7 @@ describe("buildMatrixGraphFromReport", () => {
         tested: ["table", "row", "cell", "ghost"],
       }),
     );
+
     expect(graph.entities.map((e) => [e.name, e.identity, e.readSurface])).toEqual([
       ["table", "id", ["GET /table"]],
       ["row", null, ["GET /row"]],
@@ -85,8 +86,10 @@ describe("buildMatrixGraphFromReport", () => {
 
   it("draws a real run: a stale list fails each listing's read-after-write, and what depends on it stands down", async () => {
     const reference = await createMemoryReference({ defects: ["STALE_LIST"] });
+
     try {
       const transport = reference.fetch;
+
       const result = await run({
         baseUrl: reference.url,
         network: { fetch: transport },
@@ -95,13 +98,16 @@ describe("buildMatrixGraphFromReport", () => {
         seed: 42,
         spec: `${reference.url}/v1/openapi/spec`,
       });
+
       const graph = buildMatrixGraphFromReport({ ...result, baseUrl: reference.url, startedAt: new Date(0) });
       expect(graph.index.failed).toEqual(["job", "row", "table"]);
+
       for (const name of graph.index.failed) {
         const entity = graph.entities.find((e) => e.name === name);
         expect(entity?.roots).toEqual(["list.read-after-write"]);
         expect(entity?.counts.blocked).toBeGreaterThan(0);
       }
+
       expect(graph.index.parents).toEqual(["table"]);
     } finally {
       await reference.close();
@@ -117,6 +123,7 @@ describe("compactMatrixGraph", () => {
 
   it("drops clean entities' nodes, the dependsOn edges, and repeated or same-entity claims", () => {
     const names = Array.from({ length: 81 }, (_, i) => `e${i}`);
+
     const graph = buildMatrixGraphFromReport(
       report({
         cells: { e1: { "list.read-after-write": "failed" }, e2: { "query.axes-compose": "blocked" } },
@@ -127,6 +134,7 @@ describe("compactMatrixGraph", () => {
         ],
       }),
     );
+
     const compact = compactMatrixGraph(graph);
     expect(compact.entities.filter((e) => e.nodes.length > 0).map((e) => e.name)).toEqual(["e1", "e2"]);
     expect(compact.edges.every((e) => e.kind === "uses")).toBe(true);

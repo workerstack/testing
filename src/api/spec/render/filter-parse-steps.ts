@@ -10,7 +10,7 @@ import { PLACEHOLDER } from "./filter-term.ts";
 import type { FilterGrammarSpec, TermGroup } from "./filter-types.ts";
 
 /** A declared filter grammar's fields, as `docs/api/tags.md` documents them. */
-interface FilterGrammarTag {
+type FilterGrammarTag = {
   term: string;
   param: "{filter}" | "{field}";
   conj: NonNullable<FilterGrammarSpec["conj"]>;
@@ -23,12 +23,12 @@ interface FilterGrammarTag {
   mixed: false;
   escape: Record<string, string>;
   likeMatches: "pattern" | "contains";
-}
+};
 
 export type Raw = RawOf<FilterGrammarTag>;
 
 /** The grammar as read so far. `term`, `param` and `names` are known before any step runs. */
-export interface Draft {
+export type Draft = {
   raw: Raw;
   term: string;
   param: "{filter}" | "{field}";
@@ -42,7 +42,7 @@ export interface Draft {
   or: FilterGrammarSpec["or"];
   escape: Record<string, string>;
   likeMatches: "pattern" | "contains";
-}
+};
 
 export type Step = (draft: Draft) => string | undefined;
 
@@ -57,78 +57,106 @@ export function placeholders(template: string): Set<string> {
 
 function readGroup(value: unknown, key: string): TermGroup | string {
   const raw: RawOf<TermGroup> = isRecord(value) ? value : {};
+
   if (!nonEmpty(raw.group)) return `${key} must be a group: { group: "…{terms}…", join?: "," }`;
   const names = placeholders(raw.group);
+
   if (!names.has("terms") || names.size !== 1) return `${key}.group must hold {terms} and no other placeholder`;
   const join = raw.join ?? ",";
+
   if (!nonEmpty(join)) return `${key}.join must be a non-empty string`;
+
   return { group: raw.group, join };
 }
 
 export const readOps: Step = (draft) => {
   const { raw, names } = draft;
+
   if (!isRecord(raw.ops)) return "ops must map the API tester operators to the grammar's tokens";
+
   for (const [op, token] of Object.entries(raw.ops)) {
-    if (!(FILTER_OPS as readonly string[]).includes(op) || op === "is") {
+    if (!(FILTER_OPS as readonly string[]).includes(op) || op === "is")
       return `ops.${op} is not an operator the API tester writes (null tests go under null)`;
-    }
+
     if (!nonEmpty(token)) return `ops.${op} must be a non-empty token`;
     draft.ops[op as FilterOp] = token;
   }
+
   const count = Object.keys(draft.ops).length;
+
   if (count === 0) return "ops must list at least one operator";
+
   if (!names.has("op") && count > 1) return "term must hold {op} when ops lists several";
-  return undefined;
+
+  return;
 };
 
 export const readConj: Step = (draft) => {
   if (draft.raw.conj !== undefined) {
     const conj: RawOf<FilterGrammarTag["conj"]> = isRecord(draft.raw.conj) ? draft.raw.conj : {};
+
     if (!nonEmpty(conj.and)) return "conj must be { and: token, or?: token }";
+
     if (conj.or !== undefined && !nonEmpty(conj.or)) return "conj.or must be a non-empty token";
     draft.conj = { and: conj.and, ...(conj.or === undefined ? {} : { or: conj.or as string }) };
   }
+
   if (draft.names.has("conj") && draft.conj === undefined) return "conj must be declared when term holds {conj}";
-  return undefined;
+
+  return;
 };
 
 export const readNull: Step = (draft) => {
-  if (draft.raw.null === undefined) return undefined;
+  if (draft.raw.null === undefined) return;
   const terms: RawOf<FilterGrammarTag["null"]> = isRecord(draft.raw.null) ? draft.raw.null : {};
-  if (!nonEmpty(terms.is) || !nonEmpty(terms.not)) {
-    return "null must be { is: template, not: template }";
-  }
+
+  if (!nonEmpty(terms.is) || !nonEmpty(terms.not)) return "null must be { is: template, not: template }";
+
   for (const key of ["is", "not"] as const) {
     const held = placeholders(terms[key] as string);
+
     if (held.has("value") || held.has("op") || held.has("terms")) return `null.${key} may hold only {conj} and {field}`;
+
     if (held.has("conj") && draft.conj === undefined) return `conj must be declared when null.${key} holds {conj}`;
   }
+
   draft.nullTerms = { is: terms.is as string, not: terms.not as string };
-  return undefined;
+
+  return;
 };
 
 export const readList: Step = (draft) => {
   const list = draft.raw.list;
-  if (list === undefined) return undefined;
+
+  if (list === undefined) return;
+
   if (!nonEmpty(list)) return 'list must be the joiner for in and nin values, such as ","';
   draft.list = { close: "", join: list, open: "" };
-  return undefined;
+
+  return;
 };
 
 export const readAnd: Step = (draft) => {
   const combine = draft.raw.combine;
+
   if (draft.param === "{field}") {
     if (combine !== undefined) return "combine does not apply when param is {field}: each field is its own parameter";
     draft.and = "params";
-    return undefined;
+
+    return;
   }
+
   if (combine === undefined || combine === "repeat") {
     draft.and = "repeat";
-    return undefined;
+
+    return;
   }
+
   const written: RawOf<TermGroup> = isRecord(combine) ? combine : {};
+
   if (written.group !== undefined) {
     const group = readGroup(written, "combine");
+
     if (typeof group === "string") return group;
     draft.and = group;
   } else if (nonEmpty(written.join)) {
@@ -136,24 +164,29 @@ export const readAnd: Step = (draft) => {
   } else {
     return 'combine must be "repeat", { join: "," } or { group: "…{terms}…" }';
   }
-  return undefined;
+
+  return;
 };
 
 export const readOr: Step = (draft) => {
   const or = draft.raw.or;
+
   if (or === undefined || or === "none") {
     draft.or = "none";
   } else if (or === "terms") {
     if (draft.conj?.or === undefined || !draft.names.has("conj")) return "or: terms needs conj.or and {conj} in term";
+
     if (draft.and === "params") return "or: terms needs param {filter}";
     draft.or = "terms";
   } else {
     if (draft.param === "{field}") return "or needs param {filter}";
     const group = readGroup(or, "or");
+
     if (typeof group === "string") return group;
     draft.or = group;
   }
-  return undefined;
+
+  return;
 };
 
 export const readMixed: Step = (draft) =>
@@ -163,20 +196,26 @@ export const readMixed: Step = (draft) =>
 
 export const readEscape: Step = (draft) => {
   const escape = draft.raw.escape;
-  if (escape === undefined) return undefined;
+
+  if (escape === undefined) return;
+
   if (!isRecord(escape)) return "escape must map single characters to replacements";
+
   for (const [char, replacement] of Object.entries(escape)) {
-    if (Array.from(char).length !== 1 || !nonEmpty(replacement)) {
+    if (Array.from(char).length !== 1 || !nonEmpty(replacement))
       return `escape["${char}"] must map one character to a non-empty replacement`;
-    }
+
     draft.escape[char] = replacement;
   }
-  return undefined;
+
+  return;
 };
 
 export const readLikeMatches: Step = (draft) => {
   const likeMatches = draft.raw.likeMatches ?? "pattern";
+
   if (likeMatches !== "pattern" && likeMatches !== "contains") return 'likeMatches must be "pattern" or "contains"';
   draft.likeMatches = likeMatches;
-  return undefined;
+
+  return;
 };

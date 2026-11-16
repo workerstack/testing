@@ -7,28 +7,27 @@ import { EXIT, exitCode } from "../../../src/api/runtime/exit.ts";
 import { run } from "../../../src/api/runtime/run/index.ts";
 import type { JsonSchema, OpenApiDocument } from "../../../src/api/spec/types.ts";
 
-/*
- * A create the API tester cannot read an id from leaves a record the API tester cannot remove. Behind a records API
- * whose identity is an upper-case integer `ID` and whose create answers an envelope
- * `{ success, id, message, data: { ID, ... } }`, records made by checks went unrecorded and stayed
- * behind with nobody told. Every create's id is resolved, or the create is reported as a leftover
- * and fails the run. A related record nested in the answer (`Status: { ID, Name }`) carries an id
- * too: it never names the record that was made, so it never enters the delete list unconfirmed.
- */
+// A create the API tester cannot read an id from leaves a record the API tester cannot remove. Behind a records API
+// whose identity is an upper-case integer `ID` and whose create answers an envelope
+// `{ success, id, message, data: { ID, ... } }`, records made by checks went unrecorded and stayed
+// behind with nobody told. Every create's id is resolved, or the create is reported as a leftover
+// and fails the run. A related record nested in the answer (`Status: { ID, Name }`) carries an id
+// too: it never names the record that was made, so it never enters the delete list unconfirmed.
 
 type Mode =
-  /* `{ success, id, message, data: { ID, ... } }` */
+  // `{ success, id, message, data: { ID, ... } }`
   | "envelope"
-  /* the top-level `ID` names something else; `x-entity.createdIdFrom: $.data.ID` says where the id is */
+  // the top-level `ID` names something else; `x-entity.createdIdFrom: $.data.ID` says where the id is
   | "decoy"
-  /* no id anywhere but the nested related record's */
+  // no id anywhere but the nested related record's
   | "nested-only"
-  /* `{ success: true }` and nothing else */
+  // `{ success: true }` and nothing else
   | "ack";
 
-/* The related record's id, apart from any note's, so a delete by it is unmistakably a guess. */
+// The related record's id, apart from any note's, so a delete by it is unmistakably a guess.
 const STATUS_ID = 500;
 const STATUS = { properties: { ID: { type: "integer" }, Name: { type: "string" } }, type: "object" };
+
 const ITEM = {
   properties: {
     ID: { readOnly: true, type: "integer" },
@@ -39,11 +38,13 @@ const ITEM = {
   required: ["ID", "name"],
   type: "object",
 };
+
 const WRITE = {
   properties: { name: { type: "string" }, note: { type: "string" } },
   required: ["name"],
   type: "object",
 };
+
 const ID_PARAM = [{ in: "path", name: "ID", required: true, schema: { type: "integer" } }];
 const REFUSED = { default: { description: "refused" } };
 
@@ -55,6 +56,7 @@ const entityTag = (action: string, extra: Record<string, unknown> = {}) => ({
 
 function createdSchema(mode: Mode): JsonSchema {
   if (mode === "ack") return { properties: { success: { type: "boolean" } }, type: "object" };
+
   return {
     properties: {
       ID: { type: "integer" },
@@ -69,6 +71,7 @@ function createdSchema(mode: Mode): JsonSchema {
 
 function spec(mode: Mode): OpenApiDocument {
   const created = createdSchema(mode);
+
   return {
     info: { title: "created-id", version: "1" },
     openapi: "3.1.0",
@@ -138,55 +141,69 @@ function readJson(req: IncomingMessage): Promise<Record<string, unknown> | null>
 }
 
 const servers: Array<() => Promise<void>> = [];
+
 afterEach(async () => {
   await Promise.all(servers.splice(0).map((close) => close()));
 });
 
 type Store = Map<number, Record<string, unknown>>;
+
 type World = { deleted: string[]; mode: Mode; seq: number; store: Store };
 
-/* What each mode's create answers for the row it just stored. */
+// What each mode's create answers for the row it just stored.
 function createdAnswer(mode: Mode, row: Record<string, unknown> & { ID: number }, seq: number): unknown {
   if (mode === "ack") return { success: true };
   const { ID: _id, ...withoutId } = row;
+
   if (mode === "nested-only") return { data: withoutId, message: "created", success: true };
   const answer = { data: row, id: row.ID, message: "created", success: true };
+
   return mode === "decoy" ? { ...answer, ID: 9000 + seq, id: 9000 + seq } : answer;
 }
 
 async function createNote(world: World, req: IncomingMessage, res: ServerResponse): Promise<void> {
   const body = await readJson(req);
+
   if (body === null || typeof body["name"] !== "string") return send(res, 400, { error: "name is required" });
+
   if (body["note"] !== undefined && typeof body["note"] !== "string") return send(res, 400, { error: "note is text" });
   world.seq += 1;
+
   const row = {
     ID: world.seq,
     Status: { ID: STATUS_ID, Name: "open" },
     name: body["name"],
     note: String(body["note"] ?? ""),
   };
+
   world.store.set(row.ID, row);
   send(res, 201, createdAnswer(world.mode, row, world.seq));
 }
 
-/* One request and the response that answers it. */
-interface Exchange {
+// One request and the response that answers it.
+type Exchange = {
   req: IncomingMessage;
   res: ServerResponse;
-}
+};
 
 async function patchNote(world: World, id: number, { req, res }: Exchange): Promise<void> {
   const row = world.store.get(id);
+
   if (row === undefined) return send(res, 404, {});
   const body = await readJson(req);
+
   if (body === null) return send(res, 400, { error: "json" });
+
   if (body["name"] !== undefined && typeof body["name"] !== "string") return send(res, 400, { error: "name is text" });
+
   if (body["note"] !== undefined && typeof body["note"] !== "string") return send(res, 400, { error: "note is text" });
+
   const next = {
     ...row,
     ...(body["name"] === undefined ? {} : { name: body["name"] }),
     ...(body["note"] === undefined ? {} : { note: body["note"] }),
   };
+
   world.store.set(id, next);
   send(res, 200, next);
 }
@@ -194,36 +211,50 @@ async function patchNote(world: World, id: number, { req, res }: Exchange): Prom
 async function noteItem(world: World, raw: string | undefined, { req, res }: Exchange): Promise<void> {
   const method = req.method ?? "GET";
   const id = Number(raw);
+
   if (!Number.isInteger(id)) return send(res, 400, { error: "ID is an integer" });
+
   if (method === "GET") {
     const row = world.store.get(id);
+
     return row === undefined ? send(res, 404, {}) : send(res, 200, row);
   }
+
   if (method === "PATCH") return patchNote(world, id, { req, res });
+
   if (method !== "DELETE") return send(res, 405);
   world.deleted.push(raw ?? "");
+
   return world.store.delete(id) ? send(res, 204) : send(res, 404, {});
 }
 
 async function route(world: World, req: IncomingMessage, res: ServerResponse): Promise<void> {
   const at = new URL(req.url ?? "/", "http://x");
   const method = req.method ?? "GET";
+
   if (at.pathname === "/v1/openapi/spec") return send(res, 200, spec(world.mode));
   const match = /^\/v1\/notes(?:\/([^/]+))?$/.exec(at.pathname);
+
   if (match === null) return send(res, 404, { error: "missing" });
   const raw = match[1] === undefined ? undefined : decodeURIComponent(match[1]);
+
   if (raw === undefined && method === "GET") return send(res, 200, { items: [...world.store.values()] });
+
   if (raw === undefined && method === "POST") return createNote(world, req, res);
+
   return noteItem(world, raw, { req, res });
 }
 
 async function serve(mode: Mode) {
   const world: World = { deleted: [], mode, seq: 0, store: new Map() };
+
   const server = createServer((req, res) => {
     void route(world, req, res);
   });
+
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   servers.push(() => new Promise((resolve) => server.close(() => resolve())));
+
   return {
     deleted: world.deleted,
     store: world.store,
@@ -233,16 +264,18 @@ async function serve(mode: Mode) {
 
 async function runAgainst(mode: Mode) {
   const backend = await serve(mode);
+
   const result = await run({
     baseUrl: backend.url,
     principals: { alpha: {} },
     seed: 1,
     spec: `${backend.url}/v1/openapi/spec`,
   });
+
   return { ...backend, result };
 }
 
-/* A value the API tester did not have, sent as text: never, whatever the answer looked like. */
+// A value the API tester did not have, sent as text: never, whatever the answer looked like.
 function sentUndefined(result: Awaited<ReturnType<typeof run>>): string[] {
   return result.client.transcript
     .map((exchange) => decodeURIComponent(exchange.url))

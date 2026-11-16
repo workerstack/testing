@@ -15,9 +15,9 @@ describe("locateProbe", () => {
       where: "nested",
     });
     expect(locateProbe({ x: { other: 1 } }, "name")).toEqual({ current: undefined, values: [], where: "missing" });
-    for (const body of [null, "text", [{ name: "a" }]]) {
+
+    for (const body of [null, "text", [{ name: "a" }]])
       expect(locateProbe(body, "name")).toEqual({ current: undefined, values: [], where: "missing" });
-    }
   });
 });
 

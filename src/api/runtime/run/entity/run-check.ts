@@ -20,33 +20,33 @@ import type { EntityRun } from "./state.ts";
 export type { Check };
 
 /** One entity's check run: what each check grades, what its plan gathered, how each ended. */
-export interface CheckLoop {
+export type CheckLoop = {
   run: EntityRun;
   context: WriteContext;
   plans: Map<string, unknown>;
   outcomes: Map<string, Outcome>;
-}
+};
 
 /** A check whose plan applies, with the subjects it grades: in scope, and not excluded by the profile. */
-export interface PlannedCheck {
+export type PlannedCheck = {
   check: Check;
   graded: string[];
-}
+};
 
 /** One check under way: the check, the view its findings are attributed through, and where they begin. */
-interface Running {
+type Running = {
   check: Check;
   attributed: FindingCollector;
   /** How many findings the run held when the check began. */
   start: number;
-}
+};
 
 /** How a check ended, and the subjects it grades and those it judged. */
-interface Ended {
+type Ended = {
   outcome: Outcome;
   graded: string[];
   judged: string[];
-}
+};
 
 /** Runs one check, records how it ended, and grades its subjects by that. */
 export async function runCheck(loop: CheckLoop, { check, graded }: PlannedCheck): Promise<void> {
@@ -55,10 +55,13 @@ export async function runCheck(loop: CheckLoop, { check, graded }: PlannedCheck)
   const attributed = graded.length === 0 ? ctx.findings : ctx.findings.attributed(graded);
   const running: Running = { attributed, check, start: ctx.findings.findings.length };
   let judged: Set<string> | undefined;
+
   const view = viewFor(loop, running, (operationIds) => {
     judged ??= new Set();
+
     for (const id of operationIds) judged.add(id);
   });
+
   ctx.state.checksRun.add(check.id);
   ctx.progress.tick({
     check: check.id,
@@ -70,6 +73,7 @@ export async function runCheck(loop: CheckLoop, { check, graded }: PlannedCheck)
   });
   const began = performance.now();
   const ran = await outcomeOf(loop, running, view);
+
   if (ran === undefined) return;
   ctx.state.checkTimings.push({ check: check.id, entity: entity.name, ms: Math.round(performance.now() - began) });
   const outcome = reported(run, running, ran);
@@ -94,6 +98,7 @@ function viewFor(
   const { client, model } = loop.run.ctx;
   const stamp = { check: check.id, purpose: "assertion", subject: loop.run.entity.name } as const;
   const writes = (): Client => guardedClient(client.view(stamp), ownRecordsOf(loop.run.ctx), model);
+
   return {
     ...loop.context,
     client: check.mutates === true ? writes() : (client.readOnlyView(stamp) as Client),
@@ -116,32 +121,38 @@ async function outcomeOf(
   try {
     return await runOn(check, view, loop.plans.get(check.id));
   } catch (error) {
-    /* A record the run depends on was never the check's to change: nothing to judge, not a failure. */
+    // A record the run depends on was never the check's to change: nothing to judge, not a failure.
     if (error instanceof HeldRecordError) {
       loop.outcomes.set(check.id, standDown(error.message));
+
       return undefined;
     }
+
     const unresolved = await unresolvedBy(
       { attributed, checkId: check.id, ctx: loop.run.ctx, entity: loop.run.entity.name },
       error,
     );
+
     if (unresolved !== undefined) {
       loop.outcomes.set(check.id, { kind: "unresolved", reason: unresolved });
+
       return undefined;
     }
+
     const name = loop.run.entity.name;
     const detail = messageOf(error);
+
     return view.findings.gap(check.id, name, { summary: `check "${check.id}" could not complete`, detail });
   }
 }
 
 /** Where an error met a check: which check, on which entity, reported under whose attribution. */
-export interface Stopped {
+export type Stopped = {
   ctx: RunContext;
   checkId: string;
   entity: string;
   attributed: FindingCollector;
-}
+};
 
 /**
  * Why an error left a check unresolved, reported where it is a cause: the network down, a fenced
@@ -152,25 +163,33 @@ export interface Stopped {
 export async function unresolvedBy(stopped: Stopped, error: unknown): Promise<string | undefined> {
   const { attributed, checkId, ctx } = stopped;
   const name = stopped.entity;
+
   if (isNetworkError(error)) {
     await ctx.network.note(error, name);
+
     return "the network failed";
   }
+
   if (error instanceof FencedError) {
     attributed.blocked("fence", name, {
       summary: `${checkId} was fenced: ${error.request.reason}`,
       cause: `${error.message}. The request was never sent, so ${checkId} could not complete.`,
     });
+
     return "a request was fenced";
   }
+
   if (error instanceof MissingValueError || error instanceof ProtectedWriteError) return error.message;
+
   if (!(error instanceof UnsatisfiedSecurity)) return undefined;
-  /* No credential meets the operation's security: untested, with the reason. */
+
+  // No credential meets the operation's security: untested, with the reason.
   if (error.kind === "unsatisfied") return error.reason;
   attributed.blocked("auth.blocked" satisfies RunFindingId, name, {
     summary: blockedCheckSummary(checkId),
     cause: `${error.reason}. ${checkId} could not complete.`,
   });
+
   return "a credential is BLOCKED";
 }
 
@@ -180,10 +199,13 @@ export async function unresolvedBy(stopped: Stopped, error: unknown): Promise<st
  */
 function reported(run: EntityRun, { check, start }: Running, outcome: Outcome): Outcome {
   if (outcome.kind !== "asserted") return outcome;
+
   const found = run.ctx.findings.findings
     .slice(start)
     .find((finding) => finding.check === check.id && finding.entity === run.entity.name && isRootCause(finding));
+
   if (found === undefined) return outcome;
+
   return { kind: "finding", verdict: found.verdict, ...(outcome.note === undefined ? {} : { note: outcome.note }) };
 }
 
@@ -195,13 +217,16 @@ function judge(run: EntityRun, check: Check, subjects: Ended): void {
   const { outcome } = subjects;
   const { state, grades } = run.ctx;
   const entity = run.entity.name;
-  if ((outcome.kind === "asserted" || outcome.kind === "finding") && outcome.note !== undefined) {
+
+  if ((outcome.kind === "asserted" || outcome.kind === "finding") && outcome.note !== undefined)
     state.checkNotes.push({ check: check.id, entity, note: outcome.note });
-  }
+
   if (outcome.kind !== "stood-down") {
     grades.graded(subjects.judged, check.id);
+
     return;
   }
+
   const needs = withLostVariants(run, outcome.reason);
   state.checksSkipped.push({ check: check.id, entity, needs });
   grades.skipped(subjects.graded, needs);
@@ -221,7 +246,9 @@ export function saltIndex(check: Check): number {
 
 export function withLostVariants(run: EntityRun, needs: string): string {
   const lost = run.lostVariants;
+
   if (lost.length === 0 || !/cohort|record/.test(needs)) return needs;
   const named = lost.map((variant) => `"${variant}"`).join(", ");
+
   return `${needs} (the cohort is missing its ${named} variant${lost.length === 1 ? "" : "s"}, which failed to seed)`;
 }

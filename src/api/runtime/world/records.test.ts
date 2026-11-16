@@ -27,7 +27,7 @@ describe("reading records", () => {
     expect(idOf(undefined, "id")).toBeUndefined();
   });
 
-  /* A missing identity used to become the text "undefined" in a path, a filter or a tenant probe. */
+  // A missing identity used to become the text "undefined" in a path, a filter or a tenant probe.
   it("reads a scalar identity as text, and anything else as missing", () => {
     expect(idOf({ ID: 7 }, "ID")).toBe("7");
     expect(idOf({ ID: "a-1" }, "ID")).toBe("a-1");

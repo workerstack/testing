@@ -15,13 +15,14 @@ import type {
 type Axis<Row> = (string | Row)[];
 
 type SortBlock = NonNullable<QueryCapabilities["sort"]>;
+
 type SelectBlock = NonNullable<QueryCapabilities["select"]>;
 
 /**
  * The catalog's own keys, with the field lists in their written form, plus the keys the tag adds:
  * the grammars, the parameter and envelope names, the list's caps and order, and the flat spellings of the `sort` and `select` blocks.
  */
-export interface QueryTag extends Omit<QueryCapabilities, "filterable" | "sortable" | "searchable" | "selectable"> {
+export type QueryTag = Omit<QueryCapabilities, "filterable" | "sortable" | "searchable" | "selectable"> & {
   filterable: Axis<FilterableField>;
   sortable: Axis<SortableField>;
   /** `null` is an explicit claim of none. */
@@ -40,4 +41,4 @@ export interface QueryTag extends Omit<QueryCapabilities, "filterable" | "sortab
   sortDefaultNulls: Nulls;
   selectNested: boolean;
   selectUnknown: SelectBlock["unknown"];
-}
+};

@@ -11,7 +11,8 @@ import { GradeLedger } from "./grades.ts";
 import { documentsSuccess, isPublicGet, PUBLIC_GET_CHECK_ID, publicGetCheck, runPublicGets } from "./one-shot.ts";
 
 const ok = (code = "200") => ({ [code]: { description: "ok" } });
-/* Declared open with `security: []`: the document says no token is needed. */
+
+// Declared open with `security: []`: the document says no token is needed.
 const get = (operationId: string, more: Record<string, unknown> = {}) => ({
   get: { operationId, responses: ok(), security: [], ...more },
 });
@@ -30,9 +31,9 @@ const DOCUMENT = {
     "/items": get("item.list", { "x-entity": { action: "list", name: "item" } }),
     "/moved": get("moved.get"),
     "/ping": { head: { operationId: "ping.head", responses: ok("2XX"), security: [] } },
-    /* No requirement here or at the root: the document says nothing about a token. */
+    // No requirement here or at the root: the document says nothing about a token.
     "/undeclared": { get: { operationId: "undeclared.get", responses: ok() } },
-    /* A parameter mid-segment names no entity, so only the path rule keeps it out. */
+    // A parameter mid-segment names no entity, so only the path rule keeps it out.
     "/download/{token}.zip": get("download.get", {
       parameters: [{ in: "path", name: "token", required: true, schema: { type: "string" } }],
     }),
@@ -47,14 +48,17 @@ const ANSWERS: Record<string, number> = { "/broken": 404, "/moved": 202 };
 function setup() {
   const model = buildModel(dereference(DOCUMENT).doc);
   const wire = transport((sent) => json({}, ANSWERS[new URL(sent.url).pathname] ?? 200));
+
   const client = new Client({
     baseUrl: "http://api.test",
     network: { fetchImpl: wire.fetch },
     redactor: new Redactor(),
   });
+
   const findings = new FindingCollector();
   const grades = new GradeLedger();
   const checksRun = new Set<string>();
+
   return { checksRun, client, findings, grades, model, sent: wire.sent };
 }
 

@@ -20,18 +20,21 @@ export const contentTypeEnforced: Check<CreateBody> = defineCheck<CreateBody>({
   needs: "a documented 415 response",
   subjects: subjectsOf.create,
   async run(ctx, { createOp, schema }): Promise<Outcome> {
-    /* The body the endpoint would parse, under a label it does not accept: a server that skips
-     * the check must then process it, rather than refuse it for some unrelated reason. */
+    // The body the endpoint would parse, under a label it does not accept: a server that skips
+    // the check must then process it, rather than refuse it for some unrelated reason.
     const encoded = await encodeOpBody(ctx, createOp, validBody(ctx, schema));
     const declaredMediaType = declaredMediaTypeOf(ctx.model.rawOperations.get(createOp.operationId));
+
     const exchange = await asProbe(ctx).client.request("POST", fillPath(createOp.path, ctx.scope), {
       body: asText(encoded.body),
       contentType: "text/plain",
       as: { principal: ctx.actor.id },
     });
+
     if (standDownForFeatureGate(ctx, createOp, exchange, this.id))
       return standDown("a documented feature gate refused the request");
     const refused = judgeRefusal(ctx, this.id, ["content-type"], exchange);
+
     if (refused !== null) return refused;
 
     return ctx.findings.backend(this.id, ctx.entityName, {

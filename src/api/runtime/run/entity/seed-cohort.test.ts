@@ -7,11 +7,9 @@ import { contextOf, entityRunOf, notesApi, notesDoc, optionsFor, overriding } fr
 import type { RunOptions } from "../types.ts";
 import { seedCreated, unverifiedNote } from "./seed-cohort.ts";
 
-/*
- * A cohort seeded through the entity's create: the API tester's own records; a variant the backend refused,
- * reported; a row adopted after a plan limit or a unique conflict; a documented feature gate read
- * as coverage, not a defect.
- */
+// A cohort seeded through the entity's create: the API tester's own records; a variant the backend refused,
+// reported; a row adopted after a plan limit or a unique conflict; a documented feature gate read
+// as coverage, not a defect.
 
 type Json = Record<string, unknown>;
 
@@ -21,15 +19,18 @@ function docWith(edit: (create: Json, note: JsonSchema) => void): OpenApiDocumen
   const create = doc.paths["/notes"]?.["post"] as Json;
   const body = create["requestBody"] as { content: Record<string, { schema: JsonSchema }> };
   edit(create, body.content["application/json"]?.schema as JsonSchema);
+
   return doc as unknown as OpenApiDocument;
 }
 
 /** Answers each create in turn with `answers`, then as the notes API would. */
 function createsAnswered(...answers: Answer[]): Responder {
   let creates = 0;
+
   return (method, path) => {
-    if (method !== "POST" || path !== "/notes") return undefined;
+    if (method !== "POST" || path !== "/notes") return;
     creates += 1;
+
     return answers[creates - 1];
   };
 }
@@ -39,11 +40,13 @@ async function seeded(backend: Responder, override: Responder, extra: Partial<Ru
   const ctx = await contextOf(optionsFor(overriding(backend, override), extra));
   const run = entityRunOf(ctx);
   const createOp = ctx.model.byOperationId.get("notes.create");
+
   if (createOp === undefined) throw new Error("no create");
+
   return { ctx, run, world: await seedCreated(run, createOp) };
 }
 
-const none: Responder = () => undefined;
+const none: Responder = () => {};
 
 describe("seedCreated", () => {
   it("seeds the API tester's own records, and marks every identity the collection holds as taken", async () => {
@@ -59,6 +62,7 @@ describe("seedCreated", () => {
       notesApi(notesDoc(), []),
       createsAnswered(undefined as never, { status: 500 }, { body: { e: 1 }, status: 422 }),
     );
+
     expect(world?.records.length).toBeGreaterThan(0);
     expect(run.lostVariants).toHaveLength(2);
     const [crashed, refused] = ctx.findings.findings;
@@ -72,11 +76,13 @@ describe("seedCreated", () => {
       note.properties = { ...(note.properties as Json), kind: { enum: ["only"], type: "string" } };
       note.required = ["title", "kind"];
     });
+
     const { ctx } = await seeded(notesApi(doc, []), (method, path, request) =>
       method === "POST" && path === "/notes"
         ? { body: { ...(request.body as Json), id: "k1" }, status: 201 }
         : undefined,
     );
+
     expect(ctx.findings.findings[0]).toMatchObject({ check: "world.seed", verdict: "COVERAGE_GAP" });
   });
 });
@@ -87,6 +93,7 @@ describe("seedCreated adopting", () => {
       notesApi(notesDoc(), [{ id: "n0", title: "old" }]),
       createsAnswered({ body: { error: "plan_limit" }, status: 402 }),
     );
+
     expect(world).toMatchObject({ degraded: true, records: [{ id: "n0" }], uniqueAdopted: false });
     expect(ctx.findings.findings[0]?.summary).toBe(
       'seeding "note" hit a plan limit; using an existing same-tenant record',
@@ -97,6 +104,7 @@ describe("seedCreated adopting", () => {
     const doc = docWith((create) => {
       create["x-unique"] = ["title"];
     });
+
     const { world, ctx } = await seeded(notesApi(doc, [{ id: "n0", title: "old" }]), createsAnswered({ status: 409 }));
     expect(world).toMatchObject({ degraded: true, uniqueAdopted: true });
     expect(ctx.findings.findings[0]?.summary).toBe('seeding "note" could not insert because of x-unique');
@@ -106,6 +114,7 @@ describe("seedCreated adopting", () => {
     const doc = docWith((create) => {
       create["x-feature-gate"] = "pro";
     });
+
     const gate = { body: { vars: { key: "pro", type: "feature_gate" } }, status: 403 };
     const withRows = await seeded(notesApi(doc, [{ id: "n0", title: "old" }]), createsAnswered(gate));
     expect(withRows.world).toMatchObject({ degraded: true, records: [{ id: "n0" }] });
@@ -122,12 +131,16 @@ describe("seedCreated identities", () => {
       note.properties = { ...(note.properties as Json), id: { type: "string" } };
       note.required = ["id", "title"];
     });
+
     const rows: Record_[] = [];
+
     const { world } = await seeded(notesApi(doc, rows), (method, path, request) => {
-      if (method !== "POST" || path !== "/notes") return undefined;
+      if (method !== "POST" || path !== "/notes") return;
       rows.push(request.body as Record_);
+
       return { body: { status: "accepted" }, status: 202 };
     });
+
     expect(world?.createAcknowledged).toBe(true);
   });
 
@@ -135,6 +148,7 @@ describe("seedCreated identities", () => {
     const { world, ctx } = await seeded(notesApi(notesDoc(), []), (method) =>
       method === "POST" ? { status: 500 } : undefined,
     );
+
     expect(world).toBeNull();
     expect(ctx.findings.findings.map((finding) => finding.check)).toEqual(["create.does-not-error", "world.seed"]);
   });
@@ -148,21 +162,26 @@ describe("seedCreated identities", () => {
     const doc = docWith((_, note) => {
       note.properties = { ...(note.properties as Json), id: { readOnly: true, type: "integer" } };
     });
+
     let next = 0;
+
     const { run } = await seeded(notesApi(doc, []), (method, path, request) => {
-      if (method !== "POST" || path !== "/notes") return undefined;
+      if (method !== "POST" || path !== "/notes") return;
       next += 1;
+
       return { body: { ...(request.body as Json), id: next }, status: 201 };
     });
+
     expect(run.taken.has("1")).toBe(true);
   });
 
   it("takes no identity for an entity nothing identifies", async () => {
-    /* No item route and no id-like field in the schema: the answers' ids track the records, but the
-     * entity names no identity a later create could collide on. */
+    // No item route and no id-like field in the schema: the answers' ids track the records, but the
+    // entity names no identity a later create could collide on.
     const doc = docWith((_, note) => {
       note.properties = { title: { type: "string" } };
     }) as unknown as { paths: Record<string, unknown> };
+
     delete doc.paths["/notes/{note_id}"];
     const { world, run } = await seeded(notesApi(doc as unknown as OpenApiDocument, []), none);
     expect(run.entity.identity).toBeNull();
@@ -173,15 +192,19 @@ describe("seedCreated identities", () => {
 
 describe("seedCreated, from creates that answer without the record", () => {
   it("seeds what the read returns for an acknowledged create, and the bodies sent, unverified, with no read", async () => {
-    /* The notes API, answering each create with only its id and a message. */
+    // The notes API, answering each create with only its id and a message.
     const acknowledging = (doc: OpenApiDocument): Responder => {
       const api = notesApi(doc, []);
+
       return (method, path, request) => {
         const answer = api(method, path, request);
+
         if (method !== "POST" || path !== "/notes" || answer?.status !== 201) return answer;
+
         return { body: { id: (answer.body as Json)["id"], message: "created" }, status: 201 };
       };
     };
+
     const read = await seeded(acknowledging(notesDoc()), none);
     expect(read.world?.records[0]).toMatchObject({ id: "n1", title: expect.any(String) });
     expect(read.world).not.toHaveProperty("recordsUnverified");
@@ -194,16 +217,21 @@ describe("seedCreated, from creates that answer without the record", () => {
   });
 
   it("notes, once per entity, that its records are the bodies the API tester sent, and why", async () => {
-    /* The notes API, acknowledging each create, and a read that does not find it yet. */
+    // The notes API, acknowledging each create, and a read that does not find it yet.
     const lagging = (doc: OpenApiDocument): Responder => {
       const api = notesApi(doc, []);
+
       return (method, path, request) => {
         const answer = api(method, path, request);
+
         if (method === "GET" && path.startsWith("/notes/")) return { body: { error: "not yet" }, status: 404 };
+
         if (method !== "POST" || path !== "/notes" || answer?.status !== 201) return answer;
+
         return { body: { id: (answer.body as Json)["id"], message: "created" }, status: 201 };
       };
     };
+
     const notFound = await seeded(lagging(notesDoc()), none);
     expect(notFound.world).toMatchObject({ recordsUnverified: true });
     expect(notFound.ctx.state.checkNotes).toEqual([

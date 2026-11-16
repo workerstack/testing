@@ -14,6 +14,7 @@ afterEach(() => {
 async function settle<T>(pending: Promise<T>, ms: number): Promise<{ value: T; waited: number }> {
   const began = performance.now();
   await vi.advanceTimersByTimeAsync(ms);
+
   return { value: await pending, waited: performance.now() - began };
 }
 

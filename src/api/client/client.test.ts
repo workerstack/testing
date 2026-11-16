@@ -26,16 +26,16 @@ function clientOf(
 ): { client: Client; sent: ReturnType<typeof transport>["sent"] } {
   const wire = transport(answer);
   const client = new Client({ baseUrl: BASE, network: { fetchImpl: wire.fetch }, redactor: new Redactor(), ...more });
+
   return { client, sent: wire.sent };
 }
 
-/*
- * Read-only checks run together, through a client that cannot write: one that changed server
- * state would move the cohort under every other check in its batch.
- */
+// Read-only checks run together, through a client that cannot write: one that changed server
+// state would move the cohort under every other check in its batch.
 describe("a client's transcript spool", () => {
   it("moves bodies past the memory it is given into the folder it is given, and removes them on dispose", async () => {
     const dir = mkdtempSync(join(tmpdir(), "testing-client-spool-"));
+
     try {
       const { client } = clientOf(() => json({ rows: "r".repeat(64) }), { transcript: { dir, memoryBytes: 1 } });
       await client.get("/rows", { as: ANON });
@@ -108,6 +108,7 @@ describe("a client", () => {
       operationResolver: (method) =>
         method === "POST" ? null : { entity: "row", operationId: "row.list", template: "/rows" },
     });
+
     await client.get("/rows", { as: ANON });
     await client.request("POST", "/rows", { as: ANON, body: {} });
     await client.request("HEAD", "/rows", { as: ANON });
@@ -122,10 +123,12 @@ describe("a client", () => {
   it("hands each answer to onExchange and afterExchange, and scrubs with its redactor", async () => {
     const redactor = new Redactor();
     const seen: string[] = [];
+
     const { client } = clientOf(() => json({}), {
       onExchange: (exchange) => void seen.push(`on ${exchange.seq}`),
       redactor,
     });
+
     client.setAfterExchange(async (exchange) => void seen.push(`after ${exchange.seq}`));
     await client.get("/rows", { as: ANON });
     expect(seen).toEqual(["on 1", "after 1"]);
@@ -134,12 +137,15 @@ describe("a client", () => {
 
   it("tells setBeforeSend of each request before it goes, and what it hands back of the answer", async () => {
     const seen: string[] = [];
+
     const { client } = clientOf(() => json({}), {
       operationResolver: () => ({ entity: "row", operationId: "row.create", template: "/rows" }),
     });
+
     client.setAfterExchange(async (exchange) => void seen.push(`after ${exchange.seq}`));
     client.setBeforeSend((sending) => {
       seen.push(`before ${sending.method} ${sending.operationId} ${JSON.stringify(sending.body)}`);
+
       return sending.method === "POST" ? (exchange) => void seen.push(`answered ${exchange.status}`) : undefined;
     });
     await client.request("POST", "/rows", { as: ANON, body: { a: 1 } });
@@ -156,7 +162,7 @@ describe("a client", () => {
   it("reads paths below its base, wherever the base sits", () => {
     const { client } = clientOf(() => json({}));
     expect(client.relativePath(`${BASE}/rows/1`)).toBe("/rows/1");
-    expect(client.relativePath(new URL(`${BASE}`))).toBe("/");
+    expect(client.relativePath(new URL(BASE))).toBe("/");
     expect(client.relativePath("http://api.test/v2/rows")).toBe("/v2/rows");
     const root = new Client({ baseUrl: "http://api.test", redactor: new Redactor() });
     expect(root.relativePath("http://api.test/rows")).toBe("/rows");
@@ -167,10 +173,12 @@ describe("a request with a credential", () => {
   it("renews it once after a 401, and sends the renewal", async () => {
     const renewed = sendingHeaders({ authorization: "Bearer fresh" });
     const source = fixedSource(sendingHeaders({ authorization: "Bearer stale" }, { refresh: async () => renewed }));
+
     const { client, sent } = clientOf(
       (request) => json({}, request.headers["authorization"] === "Bearer fresh" ? 200 : 401),
       { credentials: source },
     );
+
     const exchange = await client.get("/rows", { as: { principal: "alpha" } });
     expect(exchange).toMatchObject({ principal: "alpha", status: 200 });
     expect(sent.map((request) => request.headers["authorization"])).toEqual(["Bearer stale", "Bearer fresh"]);
@@ -180,9 +188,11 @@ describe("a request with a credential", () => {
   it("sends the control read again when a renewal is refused too, as any request", async () => {
     const renewed = sendingHeaders({ authorization: "Bearer fresh" });
     const source = fixedSource(sendingHeaders({ authorization: "Bearer stale" }, { refresh: async () => renewed }));
+
     const { client, sent } = clientOf((request) => json({}, request.url.endsWith("/rows") ? 200 : 401), {
       credentials: source,
     });
+
     await client.get("/rows", { as: { principal: "alpha" } });
     expect((await client.get("/x", { as: { principal: "alpha" } })).status).toBe(401);
     expect(sent.map((request) => `${request.url.slice(BASE.length)} ${request.headers["authorization"]}`)).toEqual([
@@ -204,6 +214,7 @@ describe("a request with a credential", () => {
 describe("a request the backend pushes back on", () => {
   it("tells the rate limiter about a 429 and asks again", async () => {
     const limiter = new RateLimiter([]);
+
     const { client } = clientOf(
       sequence(
         () => json({}, 429, { "retry-after": "0" }),
@@ -213,34 +224,37 @@ describe("a request the backend pushes back on", () => {
         rateLimiter: limiter,
       },
     );
+
     expect((await client.request("DELETE", "/rows/1", { as: ANON })).status).toBe(200);
     expect(limiter.implicitRule("DELETE")).toMatchObject({ source: "implicit" });
+
     const unpaced = clientOf(
       sequence(
         () => json({}, 429, { "retry-after": "0" }),
         () => json({}),
       ),
     );
+
     expect((await unpaced.client.get("/rows", { as: ANON })).status).toBe(200);
   });
 
   it("resends a read after a network failure within its deadline", async () => {
     const flaky = transport((_sent, index) => (index === 0 ? Promise.reject(refused()) : json({})));
+
     const client = new Client({
       baseUrl: BASE,
       network: { deadlineMs: 60_000, fetchImpl: flaky.fetch, retries: 1 },
       redactor: new Redactor(),
     });
+
     expect((await client.get("/rows", { as: ANON })).status).toBe(200);
     expect(client.transcript.map((exchange) => exchange.status)).toEqual([0, 200]);
   });
 });
 
-/*
- * What the API tester learns from an answer, a record a create made, is learned before the request returns,
- * from every view alike. The callback runs once the in-flight slot is free, so a callback that
- * reads back what it saw does not wait on the slot its own request holds.
- */
+// What the API tester learns from an answer, a record a create made, is learned before the request returns,
+// from every view alike. The callback runs once the in-flight slot is free, so a callback that
+// reads back what it saw does not wait on the slot its own request holds.
 const echo: Answer = (request) => json({ path: new URL(request.url).pathname });
 
 describe("afterExchange", () => {
@@ -249,6 +263,7 @@ describe("afterExchange", () => {
     const seen: string[] = [];
     client.setAfterExchange(async (exchange) => {
       seen.push(client.relativePath(exchange.url));
+
       if (client.relativePath(exchange.url) === "/made") await client.get("/read-back", { as: ANON });
     });
     await client.request("POST", "/made", { as: ANON, body: {} });
@@ -281,6 +296,7 @@ describe("an exchange's path parameters", () => {
       "/projects/{project_id}/tables": { get: { operationId: "table.list", responses: ok(member) } },
       "/projects/{project_id}/tables/{table_id}": { get: { operationId: "table.read", responses: ok(member) } },
     });
+
     const { client } = clientOf(() => json({}), { operationResolver: operationResolver(model) });
     const exchange = await client.get("/projects/b/tables/t%209", { as: ANON });
     expect(exchange.pathParams).toEqual({ project_id: "b", table_id: "t 9" });

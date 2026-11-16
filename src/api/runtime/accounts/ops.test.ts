@@ -7,7 +7,7 @@ import { makesAccount } from "../../spec/sign-up.ts";
 import { accountsDoc } from "../run/__fixtures__/accounts.ts";
 import { accountOps } from "./ops.ts";
 
-/* Which operations make an account, and which remove one: as itself, or by an admin, by id. */
+// Which operations make an account, and which remove one: as itself, or by an admin, by id.
 
 describe("accountOps", () => {
   it("knows the signup makes an account, the delete-self removes one, and the member delete removes one by id", () => {
@@ -37,6 +37,7 @@ describe("accountOps", () => {
   it("takes `id` as the identity of an entity that names none", () => {
     const model = buildModel(accountsDoc({ adminDelete: true }));
     const member = model.entities.get("member");
+
     if (member !== undefined) model.entities.set("member", { ...member, identity: null });
     expect(accountOps(model).adminDelete("auth.signup")?.identity).toBe("id");
   });

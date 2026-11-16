@@ -6,10 +6,8 @@ import { join } from "node:path";
 
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 
-/*
- * Servers and specs for the transcript integration tests. A server is returned with its own close,
- * so the test that started it owns its teardown.
- */
+// Servers and specs for the transcript integration tests. A server is returned with its own close,
+// so the test that started it owns its teardown.
 
 export type Listening = { close: () => Promise<void>; url: string };
 
@@ -19,6 +17,7 @@ export async function listen(handler: (req: IncomingMessage, res: ServerResponse
     server.listen(0, "127.0.0.1", resolve);
   });
   const addr = server.address() as AddressInfo;
+
   return {
     close: () =>
       new Promise((resolve, reject) => {
@@ -32,7 +31,7 @@ export async function scratch(): Promise<string> {
   return mkdtemp(join(tmpdir(), "testing-tr-"));
 }
 
-/* Drains the request, then answers 201 with the body `created()` returns; a read error is a 500. */
+// Drains the request, then answers 201 with the body `created()` returns; a read error is a 500.
 export function drainThenCreate(req: IncomingMessage, res: ServerResponse, created: () => unknown): void {
   void (async () => {
     req.resume();
@@ -50,12 +49,13 @@ export function drainThenCreate(req: IncomingMessage, res: ServerResponse, creat
 
 const idSchema = { properties: { id: { type: "string" } }, type: "object" };
 
-/* An upload entity: a list, and a multipart create that takes one binary file. */
+// An upload entity: a list, and a multipart create that takes one binary file.
 function uploadSpec(): OpenApiDocument {
   const listSchema = {
     properties: { uploads: { items: idSchema, type: "array" } },
     type: "object",
   };
+
   const fileSchema = {
     properties: {
       file: { contentMediaType: "application/octet-stream", format: "binary", type: "string" },
@@ -63,6 +63,7 @@ function uploadSpec(): OpenApiDocument {
     required: ["file"],
     type: "object",
   };
+
   return {
     info: { title: "upload", version: "1" },
     openapi: "3.1.0",
@@ -86,22 +87,28 @@ function uploadSpec(): OpenApiDocument {
   } as OpenApiDocument;
 }
 
-/* Serves the upload spec, an empty list, and a fresh id for every create. */
+// Serves the upload spec, an empty list, and a fresh id for every create.
 export function serveUploads(): Promise<Listening> {
   const spec = uploadSpec();
   let seq = 0;
+
   return listen((req, res) => {
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
+
     if (url.pathname === "/openapi.json") {
       res.writeHead(200, { "content-type": "application/json" });
       res.end(JSON.stringify(spec));
+
       return;
     }
+
     if ((req.method ?? "").toUpperCase() === "GET" && url.pathname === "/uploads") {
       res.writeHead(200, { "content-type": "application/json" });
       res.end(JSON.stringify({ uploads: [] }));
+
       return;
     }
+
     drainThenCreate(req, res, () => ({ id: `u_${(seq += 1)}` }));
   });
 }
@@ -130,21 +137,27 @@ function hangSpec(): OpenApiDocument {
   } as OpenApiDocument;
 }
 
-/* A host that answers the create but never ends the list's event stream. */
+// A host that answers the create but never ends the list's event stream.
 export function serveHungList(): Promise<Listening> {
   const spec = hangSpec();
+
   return listen((req, res) => {
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
+
     if (url.pathname === "/openapi.json") {
       res.writeHead(200, { "content-type": "application/json" });
       res.end(JSON.stringify(spec));
+
       return;
     }
+
     if (url.pathname === "/v1/items" && (req.method ?? "") === "GET") {
       res.writeHead(200, { "content-type": "text/event-stream" });
       res.write(`:${"y".repeat(1024)}\n`);
+
       return;
     }
+
     res.writeHead(201, { "content-type": "application/json" });
     res.end(JSON.stringify({ id: "1", name: "n" }));
   });

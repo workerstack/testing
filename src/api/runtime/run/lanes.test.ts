@@ -7,17 +7,17 @@ import { ASCII_PAYLOAD_PROBE, plannedWritePath } from "../checks/families/write/
 import { contextOf, notesApi, notesDoc, optionsFor, transport } from "./__fixtures__/api.ts";
 import { entityLanes, runLanes } from "./lanes.ts";
 
-/*
- * Entities that can observe each other's writes share a lane and run in series; lanes run side by
- * side. However the lanes finish, the result reads in plan order.
- */
+// Entities that can observe each other's writes share a lane and run in series; lanes run side by
+// side. However the lanes finish, the result reads in plan order.
 
 const item = { properties: { id: { type: "string" } }, type: "object" };
 const json = (schema: unknown) => ({ content: { "application/json": { schema } } });
 const ok = (schema: unknown) => ({ "200": { description: "ok", ...json(schema) } });
+
 const list = (operationId: string, extra: Record<string, unknown> = {}) => ({
   get: { operationId, responses: ok({ items: item, type: "array" }), ...extra },
 });
+
 const param = (name: string) => ({ in: "path", name, required: true, schema: { type: "string" } });
 
 /** A document of `paths`, each a collection. */
@@ -40,6 +40,7 @@ describe("entityLanes", () => {
         "/tags": list("tag.list"),
       }),
     );
+
     expect(names(entityLanes(model, [...model.entities.values()]))).toEqual([["board", "card"], ["tag"]]);
   });
 
@@ -63,6 +64,7 @@ describe("entityLanes", () => {
         "/k": list("k.list", { "x-invalidate": ["GET /nowhere"] }),
       }),
     );
+
     expect(names(entityLanes(model, [...model.entities.values()]))).toEqual([
       ["a", "b"],
       ["c", "d"],
@@ -84,9 +86,11 @@ describe("entityLanes without a list", () => {
         },
       }),
     );
+
     const a = model.entities.get("a");
+
     if (a === undefined) throw new Error("the document has an a");
-    /* Entities as the model could make them: one created only, under a; one with no route at all. */
+    // Entities as the model could make them: one created only, under a; one with no route at all.
     const { create: _create, list: _list, ...routeless } = a;
     const b = { ...routeless, create: "b.create", name: "b" };
     const ghost = { ...routeless, name: "ghost" };
@@ -119,6 +123,7 @@ describe("runLanes", () => {
         },
       }),
     );
+
     await runLanes(ctx);
     expect(ctx.findings.findings).toEqual([
       expect.objectContaining({
@@ -131,10 +136,12 @@ describe("runLanes", () => {
 
   it("reads entities and findings in plan order, a stop's own finding after them", async () => {
     const controller = new AbortController();
+
     const nested = notesDoc({
       "/notes/{note_id}/tags": { get: { ...list("tag.list").get, parameters: [param("note_id")] } },
       "/zeta": list("zeta.list"),
     });
+
     const ctx = await contextOf(
       optionsFor(notesApi(nested), {
         hooks: {
@@ -146,6 +153,7 @@ describe("runLanes", () => {
         signal: controller.signal,
       }),
     );
+
     await runLanes(ctx);
     expect(ctx.findings.findings.map((finding) => finding.entity)).toEqual(["note", "zeta", "run"]);
   });
@@ -155,9 +163,11 @@ describe("runLanes stopping", () => {
   it("stops before the next entity when the run is interrupted, saying how many were left", async () => {
     const controller = new AbortController();
     controller.abort();
+
     const ctx = await contextOf(
       optionsFor(notesApi(notesDoc({ "/tags": list("tag.list") })), { signal: controller.signal }),
     );
+
     await runLanes(ctx);
     expect(ctx.state.interrupted).toBe(true);
     expect(ctx.findings.findings).toEqual([
@@ -175,12 +185,13 @@ describe("runLanes stopping", () => {
   });
 });
 
-/* Notes and memos: two collections alike in every route, each in a lane of its own, one write path. */
+// Notes and memos: two collections alike in every route, each in a lane of its own, one write path.
 const twins = (): ReturnType<typeof notesApi> => {
   const { paths } = notesDoc() as unknown as { paths: unknown };
   const doc = notesDoc(JSON.parse(JSON.stringify(paths).replaceAll("note", "memo")) as Record<string, unknown>);
   const notes = notesApi(doc);
   const memos = notesApi(doc);
+
   return (method, path, options) =>
     path.startsWith("/memos")
       ? memos(method, path.replace(/^\/memos/, "/notes"), options)
@@ -193,28 +204,36 @@ const collection = (name: string | undefined): string => (name === "note" ? "/no
 describe("runLanes and the payload catalog", () => {
   it("runs the whole catalog on the first entity in plan order, however late its lane reaches it", async () => {
     const respond = twins();
-    /* Each entity's collection, by its plan position: set once the plan is known. */
+    // Each entity's collection, by its plan position: set once the plan is known.
     const lane = { first: "", second: "" };
     let release = nothing;
+
     const released = new Promise<void>((resolve) => {
       release = resolve;
     });
+
     let armed = false;
     let controlWritten = false;
     const { fetch: inner } = transport(respond);
-    /* The plan's first entity waits until the second has read back its ASCII control write: the
-     * moment before the second asks whether the write path has had the whole catalog. */
+
+    // The plan's first entity waits until the second has read back its ASCII control write: the
+    // moment before the second asks whether the write path has had the whole catalog.
     const gated = async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
       const { pathname } = new URL(String(input));
+
       if (armed && pathname.startsWith(lane.first)) await released;
       const response = await inner(input, init);
+
       if (armed && pathname.startsWith(`${lane.second}/`)) {
         const method = init?.method ?? "GET";
+
         if (method === "PATCH" && String(init?.body).includes(ASCII_PAYLOAD_PROBE)) controlWritten = true;
         else if (method === "GET" && controlWritten) release();
       }
+
       return response;
     };
+
     const ctx = await contextOf(optionsFor(respond, { network: { fetch: gated as typeof fetch } }));
     const [first, second] = ctx.scope.entities.map((entity) => entity.name);
     expect([first, second].toSorted()).toEqual(["memos", "note"]);
@@ -222,7 +241,7 @@ describe("runLanes and the payload catalog", () => {
     lane.second = collection(second);
     armed = true;
     await runLanes(ctx);
-    /* The path had the whole catalog, so the second's narrowing is a note on the run, not a finding. */
+    // The path had the whole catalog, so the second's narrowing is a note on the run, not a finding.
     expect(ctx.findings.findings.filter((finding) => finding.check === "payload.string-survives")).toEqual([]);
     expect(ctx.state.checkNotes.filter((note) => note.check === "payload.string-survives")).toEqual([
       expect.objectContaining({
@@ -234,7 +253,7 @@ describe("runLanes and the payload catalog", () => {
 });
 
 describe("runLanes when the plan's first entity never reaches the payload path", () => {
-  /* The timeout is the hang detector: an entity waiting on a claim that never settles would stop here. */
+  // The timeout is the hang detector: an entity waiting on a claim that never settles would stop here.
   it(
     "gives the whole catalog to the next entity when the plan's first one never reaches the path",
     { timeout: 15_000 },
@@ -244,13 +263,18 @@ describe("runLanes when the plan's first entity never reaches the payload path",
       let armed = false;
       const writes: string[] = [];
       const { fetch: inner } = transport(respond);
-      /* Every request of the plan's first entity fails, so its lane ends without claiming the path. */
+
+      // Every request of the plan's first entity fails, so its lane ends without claiming the path.
       const failing = async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
         const { pathname } = new URL(String(input));
+
         if (armed && pathname.startsWith(lane.first)) throw new TypeError("fetch failed");
+
         if (armed && pathname.startsWith(`${lane.second}/`) && init?.method === "PATCH") writes.push(String(init.body));
+
         return inner(input, init);
       };
+
       const ctx = await contextOf(optionsFor(respond, { network: { fetch: failing as typeof fetch } }));
       const [first, second] = ctx.scope.entities.map((entity) => entity.name);
       lane.first = collection(first);
@@ -263,12 +287,12 @@ describe("runLanes when the plan's first entity never reaches the payload path",
     },
   );
 
-  /* The timeout is the hang detector: a later entity's claim resolves only once the first is settled. */
+  // The timeout is the hang detector: a later entity's claim resolves only once the first is settled.
   it("settles a lane's entities when something outside an entity's own test throws", { timeout: 15_000 }, async () => {
     const respond = twins();
     const ctx = await contextOf(optionsFor(respond));
     const [first, second] = ctx.scope.entities;
-    /* The progress write before the plan's first entity starts throws: it escapes the lane's loop. */
+    // The progress write before the plan's first entity starts throws: it escapes the lane's loop.
     let index = 0;
     Object.defineProperty(ctx.progress, "entityIndex", {
       get: () => index,

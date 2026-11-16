@@ -69,7 +69,7 @@ describe("readEffects", () => {
   });
 });
 
-/* The table routes around `extractRoute`; `echo` and `onPoll` as patchTable and listRows take them. */
+// The table routes around `extractRoute`; `echo` and `onPoll` as patchTable and listRows take them.
 function extractServer(world: TableWorld, extractRoute: Route, extra: { echo: boolean; onPoll?: () => void }) {
   return [
     listTables(world),
@@ -91,10 +91,11 @@ async function runWithRows(rowCount: number) {
   const rows = Array.from({ length: rowCount }, (_, i) => ({ id: `r_${String(i + 1)}` }));
   const routes = extractServer(world, extract(world, rows, extractedTable), { echo: true });
   const server = await serve(listeners, nestedSpec(), routes);
+
   return runTable(server.url);
 }
 
-/* The extract action crashes; every other table route works, and the row list is always empty. */
+// The extract action crashes; every other table route works, and the row list is always empty.
 function crashingExtractRoutes(world: TableWorld): Route[] {
   return [
     ({ res, url }) => url.pathname.endsWith("/extract") && reply(res, 500, { error: "upstream unavailable" }),
@@ -120,13 +121,15 @@ describe("declared effects bind the nested list", () => {
     expect(full.findings.filter((finding) => finding.check === "effects.declared-effect-occurs")).toEqual([]);
   });
 
-  /* The check could not see the effect, so it reports a gap; the 500 itself is still a failure. */
+  // The check could not see the effect, so it reports a gap; the 500 itself is still a failure.
   it("fails an action that answers with a server error, not only leaves its effect unverified", async () => {
     const server = await serve(listeners, nestedSpec(), crashingExtractRoutes(new TableWorld()));
     const result = await runTable(server.url);
+
     const crashed = result.findings.filter(
       (f) => f.verdict === "BACKEND_BUG" && f.evidence.some((e) => e.url.endsWith("/extract") && e.status === 500),
     );
+
     expect(crashed.map((f) => f.check)).toContain("response.no-server-error");
     expect(result.scope.operations.find((op) => op.operationId === "extract.once")?.status).toBe("failed");
   });
@@ -157,20 +160,27 @@ describe("declared effects bind the nested list", () => {
 describe("driveWait with a bound scope", () => {
   it("fills the poll path from the bound parent id", async () => {
     const spec = nestedSpec();
+
     const server = await listeners.listen((req, res) => {
       const url = new URL(req.url ?? "/", "http://127.0.0.1");
+
       if (url.pathname.endsWith("/rows")) return send(res, 200, { rows: [{ id: "r1" }] });
+
       return send(res, 404);
     });
+
     const model = buildModel(spec);
     const pollOp = model.byOperationId.get("row.list");
+
     if (pollOp === undefined) throw new Error("missing row.list");
-    /* The document declares no security, so every actor sends nothing. */
+
+    // The document declares no security, so every actor sends nothing.
     const client = new Client({
       baseUrl: server.url,
       credentials: { resolve: async () => ({ kind: "anonymous" }) },
       redactor: new Redactor(),
     });
+
     const unbound = await driveWait({
       client,
       pollOp,
@@ -180,6 +190,7 @@ describe("driveWait with a bound scope", () => {
       spec: { operationId: "row.list", pollIntervalMs: 10, timeoutMs: 30 },
       writeOpId: "extract.once",
     });
+
     expect(unbound.timedOut).toBe(true);
     expect(unbound.polls).toBe(0);
 
@@ -192,6 +203,7 @@ describe("driveWait with a bound scope", () => {
       spec: { operationId: "row.list", pollIntervalMs: 10, timeoutMs: 200, until: "$.rows.0" },
       writeOpId: "extract.once",
     });
+
     expect(bound.timedOut).toBe(false);
   });
 });

@@ -13,7 +13,7 @@ import type { QueryConventions } from "./types.ts";
  * What the document and config say beside the parameters: the `x-query` grammars, the parameter
  * each role is sent in, the field each paging fact is read from, and the response headers.
  */
-export interface ConventionSources {
+export type ConventionSources = {
   declared?: { grammar?: unknown; sortGrammar?: unknown } | undefined;
   /** The parameter each role is sent in, where a name outranks the aliases. */
   params?: QueryParamNames | undefined;
@@ -25,16 +25,18 @@ export interface ConventionSources {
   onGuess?: (message: string) => void;
   /** Response headers the success response declares, by name. */
   responseHeaders?: readonly string[];
-}
+};
 
 type FilterConventions = Pick<QueryConventions, "grammar" | "filterGrammar" | "grammarDeclared">;
+
 type SortConventions = Pick<QueryConventions, "sortGrammar" | "sortSpec" | "sortDeclared">;
+
 type RoleConventions = Pick<
   QueryConventions,
   "filter" | "order" | "select" | "search" | "searchMode" | "cursor" | "limit" | "page" | "offset"
 >;
 
-/* Where each envelope role is read from the collection's pagination. */
+// Where each envelope role is read from the collection's pagination.
 const ENVELOPE = [
   ["total", "countKey"],
   ["hasMore", "hasMoreKey"],
@@ -52,14 +54,18 @@ export function deriveQueryConventions(
   const resolved = resolveRoles(query, toNamedRoles(sources.params ?? {}));
   reportUnmatched(resolved.unmatched, sources.onUnmatched);
   const found = resolved.roles;
+
   const conventions: QueryConventions = {
     envelope: envelopeOf(collection, sources),
     ...filterConventions(parameterNamed(query, found.filter), sources),
     selectGrammar: inferSelectGrammar(parameterNamed(query, found.select)),
     ...declaredSort(sources.declared?.sortGrammar, parameterNamed(query, found.order)),
   };
+
   const link = (sources.responseHeaders ?? []).find((name) => name.toLowerCase() === "link");
+
   if (link !== undefined) conventions.linkHeader = link;
+
   return Object.assign(conventions, roles(found));
 }
 
@@ -76,23 +82,27 @@ function reportUnmatched(unmatched: ResolvedRoles["unmatched"], tell: Convention
 function filterConventions(filterParam: ParameterObject | undefined, sources: ConventionSources): FilterConventions {
   const declared = sources.declared?.grammar;
   const stated = statedGrammar(declared);
+
   if (stated !== undefined) return stated;
   const inferred = inferGrammar(filterParam);
-  /* A single free-text `filter` parameter almost never means equality-per-field; it means a grammar
-   * The API tester could not recognize. Writing `?name=value` anyway would send parameters the document never
-   * declared and read the shrug that comes back as a defect, so no filter term is written at all. */
+  // A single free-text `filter` parameter almost never means equality-per-field; it means a grammar
+  // The API tester could not recognize. Writing `?name=value` anyway would send parameters the document never
+  // declared and read the shrug that comes back as a defect, so no filter term is written at all.
   const unrecognized = inferred === "equality" && filterParam?.schema?.type === "string";
+
   if (unrecognized && declared === undefined) sources.onGuess?.(unrecognizedMessage(filterParam.name));
+
   return { grammar: unrecognized ? "unrecognized" : inferred };
 }
 
 /** The filter grammar `x-query` names or describes as a template, when it does so readably. */
 function statedGrammar(declared: unknown): FilterConventions | undefined {
-  if (declared === "postgrest" || declared === "colon" || declared === "equality") {
+  if (declared === "postgrest" || declared === "colon" || declared === "equality")
     return { grammar: declared, grammarDeclared: true };
-  }
-  /* An object that cannot be read is a gap `x-query`'s validation records; the API tester infers instead. */
+
+  // An object that cannot be read is a gap `x-query`'s validation records; the API tester infers instead.
   const template = typeof declared === "object" ? parseFilterGrammar(declared) : null;
+
   return template?.ok === true
     ? { grammar: "template", filterGrammar: template.spec, grammarDeclared: true }
     : undefined;
@@ -109,12 +119,14 @@ function unrecognizedMessage(name: string): string {
 
 /** A declared sort grammar, or the inferred one when none was declared or it cannot be read. */
 function declaredSort(declared: unknown, order: ParameterObject | undefined): SortConventions {
-  if (typeof declared === "string" && Object.hasOwn(SORT_PRESETS, declared)) {
+  if (typeof declared === "string" && Object.hasOwn(SORT_PRESETS, declared))
     return { sortDeclared: true, sortGrammar: declared as keyof typeof SORT_PRESETS };
-  }
-  /* An object that cannot be read is a gap `x-query`'s validation records; the API tester infers instead. */
+
+  // An object that cannot be read is a gap `x-query`'s validation records; the API tester infers instead.
   const parsed = typeof declared === "object" ? parseSortGrammar(declared) : null;
+
   if (parsed?.ok === true) return { sortDeclared: true, sortGrammar: "template", sortSpec: parsed.spec };
+
   return { sortGrammar: inferSortGrammar(order) };
 }
 
@@ -131,38 +143,44 @@ function roles(found: ResolvedRoles["roles"]): RoleConventions {
     page: found.page,
     offset: found.offset,
   };
+
   return Object.fromEntries(Object.entries(ordered).filter(([, name]) => name !== undefined)) as RoleConventions;
 }
 
-/*
- * The envelope is already derived from the 200 schema when the shape was resolved — reuse it
- * rather than matching on literal key names a second time. A named field the envelope holds wins,
- * and no alias keeps a field a name claimed for another fact.
- */
+// The envelope is already derived from the 200 schema when the shape was resolved — reuse it
+// rather than matching on literal key names a second time. A named field the envelope holds wins,
+// and no alias keeps a field a name claimed for another fact.
 function envelopeOf(collection: CollectionShape | null, sources: ConventionSources): QueryConventions["envelope"] {
   const named = namedEnvelope(collection, sources);
   const claimed = new Set(Object.values(named));
   const envelope: QueryConventions["envelope"] = {};
+
   for (const [role, key] of ENVELOPE) {
     const alias = collection?.pagination[key];
+
     const name =
       named[role as keyof QueryEnvelopeNames] ?? (alias !== undefined && !claimed.has(alias) ? alias : undefined);
+
     if (name !== undefined) envelope[role] = name;
   }
+
   return envelope;
 }
 
-/* The names the envelope holds; each other name is told and its fact read by its aliases. */
+// The names the envelope holds; each other name is told and its fact read by its aliases.
 function namedEnvelope(collection: CollectionShape | null, sources: ConventionSources): QueryEnvelopeNames {
   const held: QueryEnvelopeNames = {};
+
   for (const [role, name] of Object.entries(sources.envelope ?? {}) as [keyof QueryEnvelopeNames, string][]) {
-    if (collection?.envelopeKeys.includes(name) === true) held[role] = name;
-    else {
+    if (collection?.envelopeKeys.includes(name) === true) {
+      held[role] = name;
+    } else {
       sources.onUnmatched?.(
         `envelope.${role} names "${name}", which the response envelope does not declare; ` +
           `the API tester finds the ${role} field by its aliases`,
       );
     }
   }
+
   return held;
 }

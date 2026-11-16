@@ -12,11 +12,11 @@ export async function parseDocument(text: string, source: string): Promise<OpenA
 
 /** Parses JSON or YAML text read from `source`, whatever it holds: a file another one refers to. */
 export async function parseText(text: string, source: string): Promise<unknown> {
-  /* A byte-order mark is not part of the document; JSON.parse rejects it outright. */
+  // A byte-order mark is not part of the document; JSON.parse rejects it outright.
   const body = text.replace(/^\uFEFF/, "");
-  if (body.trim() === "") {
-    throw new Error(`testing api: ${source} is empty`);
-  }
+
+  if (body.trim() === "") throw new Error(`testing api: ${source} is empty`);
+
   return looksLikeJson(body) ? parseJson(body, source) : parseYaml(body, source);
 }
 
@@ -36,6 +36,7 @@ function parseJson(text: string, source: string): unknown {
 async function parseYaml(text: string, source: string): Promise<unknown> {
   try {
     const { parse } = await import("yaml");
+
     return parse(text);
   } catch (error) {
     throw new Error(`testing api: could not parse ${source} as JSON or YAML: ${messageOf(error)}`, { cause: error });
@@ -55,16 +56,19 @@ export function assertOpenApi(parsed: unknown, source: string): OpenApiDocument 
     const shown = typeof parsed === "string" ? JSON.stringify(parsed.slice(0, 60)) : String(parsed);
     throw new Error(`testing api: ${source} is not an OpenAPI document — it parsed as ${shown}`);
   }
+
   const doc: RawDocument = parsed;
   assertVersion(doc, source);
-  if (doc.paths === null || typeof doc.paths !== "object" || Array.isArray(doc.paths)) {
+
+  if (doc.paths === null || typeof doc.paths !== "object" || Array.isArray(doc.paths))
     throw new Error(`testing api: ${source} has no "paths" object, so there is nothing to test`);
-  }
+
   return doc as OpenApiDocument;
 }
 
 function looksLikeJson(text: string): boolean {
   const first = text.trimStart()[0];
+
   return first === "{" || first === "[";
 }
 
@@ -76,6 +80,7 @@ function looksLikeJson(text: string): boolean {
 function diagnoseJson(text: string): string {
   const opens = (text.match(/[[{]/g) as RegExpMatchArray).length;
   const closes = (text.match(/[\]}]/g) ?? []).length;
+
   if (opens > closes) {
     return (
       `The document has ${opens - closes} more opening than closing brackets, so it is most ` +
@@ -83,5 +88,6 @@ function diagnoseJson(text: string): string {
       "size limit."
     );
   }
+
   return "The document appears complete, so this is a syntax error rather than truncation.";
 }

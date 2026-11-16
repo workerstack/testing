@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { UNICODE_COHORT_STRING } from "../payloads.ts";
 import { admits, stringConstraints } from "./string-constraints.ts";
 
-/* The write guard comb 0.13 publishes on every written string: no NUL, no unpaired surrogate. */
+// The write guard comb 0.13 publishes on every written string: no NUL, no unpaired surrogate.
 const GUARD = "^[^\\u0000\\uD800-\\uDFFF]*$";
 const PHONE = "^\\+[1-9]\\d{7,14}$";
 
@@ -29,10 +29,11 @@ describe("stringConstraints", () => {
         { type: "null" },
       ],
     };
+
     expect(stringConstraints(phone)).toEqual({ maxLength: 15, minLength: 7, patterns: [PHONE, GUARD] });
     expect(stringConstraints({ pattern: GUARD, type: ["string", "null"] }).patterns).toEqual([GUARD]);
     expect(stringConstraints({ oneOf: [{ type: "null" }, { maxLength: 5, type: "string" }] }).maxLength).toBe(5);
-    /* Two branches that are not null are no nullable union: neither is folded in. */
+    // Two branches that are not null are no nullable union: neither is folded in.
     expect(stringConstraints({ anyOf: [{ pattern: GUARD, type: "string" }, { type: "integer" }] })).toEqual({
       maxLength: Number.POSITIVE_INFINITY,
       minLength: 0,

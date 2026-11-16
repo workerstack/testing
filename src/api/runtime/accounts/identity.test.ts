@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { accountIdentity, accountLabel, identityNames } from "./identity.ts";
 
-/* An account is named by what it signs in or is found by, never by what it signs in with. */
+// An account is named by what it signs in or is found by, never by what it signs in with.
 
 describe("accountIdentity", () => {
   it("keeps the naming strings a sign-up sent, under each convention, and nothing else", () => {
@@ -20,6 +20,7 @@ describe("accountIdentity", () => {
       user_name: "u",
       username: "",
     };
+
     expect(accountIdentity(body)).toEqual({
       address: "d@x.test",
       email: "a@x.test",

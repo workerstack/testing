@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { serializeParam, unencodedPairs } from "./param-style.ts";
 
-/* OAS 3.1 §4.8.12.4, the style examples: color = "blue", ["blue","black","brown"], {R:100,G:200,B:150}. */
+// OAS 3.1 §4.8.12.4, the style examples: color = "blue", ["blue","black","brown"], {R:100,G:200,B:150}.
 const VALUES = ["blue", ["blue", "black", "brown"], { R: 100, G: 200, B: 150 }] as const;
 
 const query = (style: string, explode: boolean) => (value: unknown) =>

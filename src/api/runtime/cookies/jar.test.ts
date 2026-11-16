@@ -68,7 +68,7 @@ describe("CookieJar scoping", () => {
     jar.absorb(new URL("urn:app"), ["opaque=1"]);
     expect(jar.cookieHeader(new URL("https://app.example.com/account/settings/view"))).toBe("pref=dark; root=1");
     expect(jar.cookieHeader(new URL("https://app.example.com/account/other"))).toBe("root=1");
-    /* An opaque URL's path is no directory; its cookie is sent under "/", which an empty path reads as. */
+    // An opaque URL's path is no directory; its cookie is sent under "/", which an empty path reads as.
     expect(jar.cookieHeader(new URL("urn:app"))).toBeUndefined();
     expect(jar.cookieHeader(new URL("urn:"))).toBe("opaque=1");
   });
@@ -81,7 +81,7 @@ describe("applyJarToHeaders", () => {
     const headers: Record<string, string> = { authorization: "Bearer x", cookie: "pre=1" };
     applyJarToHeaders(headers, { callerCookie: "pre=1", jar, url: new URL("https://app.example.com/") });
     expect(headers["cookie"]).toBe("pre=1; session=new");
-    /* Rebuilt per hop, never appended to: a second hop does not repeat the first. */
+    // Rebuilt per hop, never appended to: a second hop does not repeat the first.
     applyJarToHeaders(headers, { callerCookie: "pre=1", jar, url: new URL("https://app.example.com/") });
     expect(headers["cookie"]).toBe("pre=1; session=new");
     const empty: Record<string, string> = {};

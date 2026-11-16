@@ -28,23 +28,28 @@ export function pruneToAllow(
   const slots = operationSlots(paths);
   const kept = new Set<string>();
   const unknown: string[] = [];
+
   for (const ref of allow) {
     const name = resolveOperationName(ref, slots);
+
     if (name === undefined) unknown.push(ref);
     else kept.add(name);
   }
-  if (unknown.length > 0) {
+
+  if (unknown.length > 0)
     throw new UsageError(`allow names ${unknown.map((id) => `"${id}"`).join(", ")}, which the document does not have`);
-  }
+
   const removed: string[] = [];
+
   for (const [name, { item, method }] of slots) {
     if (kept.has(name)) continue;
     removed.push(name);
     delete item[method];
   }
-  for (const [route, item] of Object.entries(paths)) {
+
+  for (const [route, item] of Object.entries(paths))
     if (isRecord(item) && !METHODS.some((method) => isRecord(item[method]))) delete paths[route];
-  }
+
   return { doc: out, kept, removed: removed.sort() };
 }
 
@@ -59,10 +64,11 @@ function removedCalls(kept: ReadonlySet<string>, steps: readonly object[]): stri
 /** Recipes by scheme name: the config's `security`, or one principal's overrides of it. */
 type Recipes = Readonly<Record<string, Partial<Recipe>>>;
 
-/* The removed operations one recipe calls by name: its login and refresh steps, its mint and that mint's revoke. */
+// The removed operations one recipe calls by name: its login and refresh steps, its mint and that mint's revoke.
 function recipeCalls(kept: ReadonlySet<string>, path: string, recipe: Partial<Recipe>): string[] {
   const named = (operationId: string | undefined): string[] =>
     operationId === undefined || kept.has(operationId) ? [] : [operationId];
+
   return [
     ...removedCalls(kept, recipe.login?.steps ?? []).map((id) => `${path} login step "${id}"`),
     ...removedCalls(kept, recipe.refresh?.steps ?? []).map((id) => `${path} refresh step "${id}"`),
@@ -77,6 +83,7 @@ function recipesCalls(kept: ReadonlySet<string>, path: string, recipes: Recipes 
 
 function scenarioProblems(kept: ReadonlySet<string>, scenario: Scenario): string[] {
   if (scenario.origin !== undefined) return [];
+
   return [
     ...removedCalls(kept, scenario.steps).map((id) => `scenario "${scenario.id}" step "${id}"`),
     ...scenario.covers.filter((id) => !kept.has(id)).map((id) => `scenario "${scenario.id}" covers "${id}"`),
@@ -99,7 +106,7 @@ export function assertAllowedReferences(
     ),
     ...(config.scenarios ?? []).flatMap((scenario) => scenarioProblems(kept, scenario)),
   ];
-  if (problems.length > 0) {
+
+  if (problems.length > 0)
     throw new UsageError(`allow removes operations the config still calls: ${[...new Set(problems)].join("; ")}`);
-  }
 }

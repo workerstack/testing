@@ -132,7 +132,9 @@ function requestSchema(doc: OpenApiDocument): JsonSchema {
   const item = (doc.paths?.["/things"] ?? {}) as unknown as {
     post: { requestBody: { content: Record<string, { schema: unknown }> } };
   };
+
   const post = item.post;
+
   return post.requestBody.content["application/json"]?.schema as Record<string, unknown>;
 }
 
@@ -143,12 +145,14 @@ describe("generated values validate against the schema they came from", () => {
         const { doc } = dereference(documentFor(schema, version));
         const defs = documentDefs(doc);
         const normalized = normalizeSchema(requestSchema(doc), { direction: "request" });
-        /* The control: an empty body is invalid, so the validator must say so. */
+        // The control: an empty body is invalid, so the validator must say so.
         expect(instanceErrors(normalized, {}, defs).length, "validator is live").toBeGreaterThan(0);
+
         for (const variant of VARIANTS) {
           for (let index = 0; index < 12; index++) {
             const result = generate(normalized, { defs, index, nonce: "n0nce", variant });
             expect(result, `${variant} #${index}`).toMatchObject({ ok: true });
+
             if (!result.ok) continue;
             expect(instanceErrors(normalized, result.value, defs), `${variant} #${index}`).toEqual([]);
           }
@@ -161,6 +165,7 @@ describe("generated values validate against the schema they came from", () => {
     const { doc } = dereference(
       documentFor(SCHEMAS["read-only fields are not sent"] as Record<string, unknown>, "3.1.0"),
     );
+
     const normalized = normalizeSchema(requestSchema(doc), { direction: "request" });
     const result = generate(normalized);
     expect(result.ok && Object.hasOwn(result.value as object, "id")).toBe(false);
@@ -172,8 +177,8 @@ describe("generated values validate against the schema they came from", () => {
   });
 });
 
-/* A property test: random schemas, each satisfiable by construction, and every value generated
- * from one must validate against it. Seeded, so a failure names a schema that replays. */
+// A property test: random schemas, each satisfiable by construction, and every value generated
+// from one must validate against it. Seeded, so a failure names a schema that replays.
 /** A seeded linear congruential generator, and the property names drawn so far. */
 class Draw {
   #state: number;
@@ -185,6 +190,7 @@ class Draw {
 
   next(): number {
     this.#state = (Math.imul(this.#state, 1664525) + 1013904223) >>> 0;
+
     return this.#state / 2 ** 32;
   }
 
@@ -201,63 +207,87 @@ function scalar(d: Draw): Record<string, unknown> {
   switch (d.pick(["string", "format", "integer", "number", "boolean", "enum", "const"] as const)) {
     case "string": {
       const min = d.int(0, 5);
+
       return { maxLength: min + d.int(0, 20), minLength: min, type: "string" };
     }
-    case "format":
+
+    case "format": {
       return {
         format: d.pick(["date", "date-time", "time", "uuid", "email", "uri", "hostname", "ipv4"]),
         type: "string",
       };
+    }
+
     case "integer": {
       const lo = d.int(-50, 50);
       const step = d.pick([undefined, 2, 3, 5]);
       const schema: JsonSchema = { maximum: lo + d.int(10, 100), minimum: lo, type: "integer" };
+
       if (step !== undefined) schema.multipleOf = step;
+
       return schema;
     }
+
     case "number": {
       const lo = d.int(-10, 10);
+
       return d.next() < 0.5
         ? { maximum: lo + d.int(1, 20), minimum: lo, type: "number" }
         : { exclusiveMaximum: lo + d.int(2, 20), exclusiveMinimum: lo, type: "number" };
     }
-    case "boolean":
+
+    case "boolean": {
       return { type: "boolean" };
-    case "enum":
+    }
+
+    case "enum": {
       return { enum: ["a", "b", "c"].slice(0, d.int(1, 3)), type: "string" };
-    default:
+    }
+
+    default: {
       return { const: d.pick(["fixed", 7, true]) };
+    }
   }
 }
 
 function node(d: Draw, depth: number): Record<string, unknown> {
   const roll = d.next();
+
   if (depth >= 2 || roll < 0.5) {
     const base = scalar(d);
+
     return d.next() < 0.2 ? { anyOf: [base, { type: "null" }] } : base;
   }
+
   if (roll < 0.7) {
     const lo = d.int(0, 2);
+
     return { items: node(d, depth + 1), maxItems: lo + d.int(0, 3), minItems: lo, type: "array" };
   }
+
   if (roll < 0.85) return object(d, depth + 1);
+
   return { allOf: [object(d, depth + 1), object(d, depth + 1)] };
 }
 
 function object(d: Draw, depth: number): Record<string, unknown> {
   const properties: Record<string, unknown> = {};
   const required: string[] = [];
+
   for (let i = 0; i < d.int(1, 4); i++) {
-    /* Unique, so allOf branches never declare one property two incompatible ways. */
+    // Unique, so allOf branches never declare one property two incompatible ways.
     const name = `p${depth}_${i}_${(d.names += 1)}`;
     properties[name] = node(d, depth);
+
     if (d.next() < 0.6) required.push(name);
   }
+
   return { properties, required, type: "object" };
 }
 
 function randomSchemas(seed: number, count: number): Array<Record<string, unknown>> {
   const d = new Draw(seed);
+
   return Array.from({ length: count }, () => object(d, 0));
 }
 
@@ -267,11 +297,13 @@ describe("every generated value validates against a random schema it came from",
       const { doc } = dereference(documentFor(schema, "3.1.0"));
       const defs = documentDefs(doc);
       const normalized = normalizeSchema(requestSchema(doc), { direction: "request" });
+
       for (const variant of VARIANTS) {
         for (let index = 0; index < 3; index++) {
           const result = generate(normalized, { defs, index, nonce: "n0nce", variant });
           const where = `schema #${n} ${variant} #${index}: ${JSON.stringify(schema)}`;
           expect({ result, where }).toMatchObject({ result: { ok: true } });
+
           if (!result.ok) continue;
           expect({ errors: instanceErrors(normalized, result.value, defs), where }).toEqual({ errors: [], where });
         }
@@ -292,6 +324,7 @@ describe("generate", () => {
 
   it("reports a schema nested past the stack as too deep, not a crash", () => {
     let schema: JsonSchema = { type: "string" };
+
     for (let level = 0; level < 20_000; level++) schema = { oneOf: [schema] };
     expect(generate(schema)).toEqual({ ok: false, pointer: "/", reason: "the schema nests too deeply to generate" });
   });
@@ -324,6 +357,7 @@ describe("generate on a schema whose reading fails", () => {
         throw new Error("boom");
       },
     });
+
     expect(generate(schema)).toEqual({ ok: false, pointer: "/", reason: "generation failed: boom" });
   });
 });
@@ -331,6 +365,7 @@ describe("generate on a schema whose reading fails", () => {
 /** The value made at cohort index 1, or why none could be. */
 function guarded(schema: unknown, variant: Variant = "baseline"): unknown {
   const made = generate(schema, { index: 1, variant });
+
   return made.ok ? made.value : made.reason;
 }
 
@@ -350,6 +385,7 @@ describe("generate under a guard pattern on every string", () => {
         { type: "null" },
       ],
     };
+
     const made = guarded({ properties: { phone_number: schema }, required: ["phone_number"], type: "object" });
     const number = (made as { phone_number: unknown }).phone_number;
     expect(number).toMatch(new RegExp(phone, "u"));

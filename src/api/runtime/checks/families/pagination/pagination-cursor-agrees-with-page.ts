@@ -20,6 +20,7 @@ async function walkCursor(ctx: Listed, perPage: number, order?: SortValue, maxPa
     {},
     { byCursor: true, fresh: true, keepRepeats: true, maxPages, order, size: perPage },
   );
+
   return {
     exchanges: read.pages.map((page) => page.exchange),
     ids: ids(read.items, ctx.identity),
@@ -37,6 +38,7 @@ function textSortField(ctx: CheckContext): string | undefined {
   return (
     ctx.query?.sortable.find((f) => {
       if (f === ctx.identity) return false;
+
       return ctx.records.some((r) => typeof r[f] === "string" && r[f] !== "");
     }) ?? undefined
   );
@@ -70,11 +72,14 @@ function comparablePrefixes(
   sortField: string | undefined,
 ): { pageItems: Record_[]; cursorItems: Record_[] } | null {
   if (!pageWalk.truncated && !cursorWalk.truncated) return { cursorItems: cursorWalk.items, pageItems: pageWalk.items };
+
   if (sortField === undefined) return null;
   const length = Math.min(pageWalk.items.length, cursorWalk.items.length);
   const atCut = JSON.stringify(pageWalk.items[length - 1]?.[sortField]);
+
   const clear = (items: Record_[]): Record_[] =>
     items.slice(0, length).filter((item) => JSON.stringify(item[sortField]) !== atCut);
+
   return { cursorItems: clear(cursorWalk.items), pageItems: clear(pageWalk.items) };
 }
 
@@ -82,11 +87,11 @@ export const cursorAgreesWithPage: Check = defineCheck({
   plan: (ctx) => when(conv(ctx).cursor !== undefined && pageable(ctx) && ctx.records.length > 2),
   dependsOn: [
     "pagination.page-walk-covers-set",
-    /* Sorting by a field whose value never persisted is degenerate, so a pagination
-     * disagreement there describes a consequence rather than a pagination defect. */
+    // Sorting by a field whose value never persisted is degenerate, so a pagination
+    // disagreement there describes a consequence rather than a pagination defect.
     "create.persists-submitted-fields",
-    /* Both walks are taken at a requested page size. If the backend serves a different size
-     * than asked for, the two walks step differently and disagree for that reason alone. */
+    // Both walks are taken at a requested page size. If the backend serves a different size
+    // than asked for, the two walks step differently and disagree for that reason alone.
     "pagination.limit-respects-documented-max",
   ],
   id: "pagination.cursor-agrees-with-page",
@@ -94,7 +99,7 @@ export const cursorAgreesWithPage: Check = defineCheck({
   needs: "both `cursor` and `page` parameters",
   subjects: subjectsOf.list,
   async run(ctx): Promise<Outcome> {
-    /* Walk under an explicit text sort. */
+    // Walk under an explicit text sort.
     const sortField = textSortField(ctx);
     const order = sortField === undefined ? undefined : sortTerm(conv(ctx), { direction: "asc", field: sortField });
 
@@ -103,9 +108,10 @@ export const cursorAgreesWithPage: Check = defineCheck({
     const byPage = pageWalk.ids;
     const byCursor = cursorWalk.ids;
 
-    /* Repeats are their own defect: a cursor that resolves to the wrong boundary re-serves the
-     * previous page's tail, which set comparison alone would hide. */
+    // Repeats are their own defect: a cursor that resolves to the wrong boundary re-serves the
+    // previous page's tail, which set comparison alone would hide.
     const repeated = duplicates(byCursor).filter((id) => !duplicates(byPage).includes(id));
+
     if (repeated.length > 0) {
       return ctx.findings.backend(this.id, ctx.entityName, {
         summary: "cursor pagination re-serves records the previous page already returned",
@@ -118,16 +124,18 @@ export const cursorAgreesWithPage: Check = defineCheck({
     }
 
     const prefixes = comparablePrefixes(pageWalk, cursorWalk, sortField);
-    if (prefixes === null) {
+
+    if (prefixes === null)
       return ctx.findings.unresolved(this.id, ctx.entityName, "a walk was cut short, so the two cannot be compared");
-    }
 
     const pageSet = [...new Set(ids(prefixes.pageItems, ctx.identity))].sort();
     const cursorSet = [...new Set(ids(prefixes.cursorItems, ctx.identity))].sort();
+
     if (pageSet.join(",") === cursorSet.join(",")) return ASSERTED;
 
     const onlyPage = pageSet.filter((id) => !cursorSet.includes(id));
     const onlyCursor = cursorSet.filter((id) => !pageSet.includes(id));
+
     return ctx.findings.backend(this.id, ctx.entityName, {
       summary: "cursor pagination and offset pagination disagree",
       detail:

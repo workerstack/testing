@@ -7,18 +7,19 @@ import { extractSpec } from "./effects/spec.ts";
 import { inProcess, type Via } from "./harness/launch.ts";
 import { answer } from "./harness/serve.ts";
 
-/* Every case's backend, changed by `change` before it is hosted. */
+// Every case's backend, changed by `change` before it is hosted.
 const changed = (change: (backend: Handle) => Handle): Via => ({
   ...inProcess,
   host: (backend) => inProcess.host(change(backend)),
 });
 
-/* Every case run against an extract that makes `rowCount` rows, whatever the case asked for. */
+// Every case run against an extract that makes `rowCount` rows, whatever the case asked for.
 const always = (rowCount: number) => changed(() => extractBackend(rowCount));
 
 const isRows = (path: string) => path.endsWith("/rows");
 
 const DECLARED = 'x-effects declares append ≥ 1 on "row", but the collection went from';
+
 const WAITED =
   /wait=x-wait polls row\.list until \$\.rows\.0 is non-empty and the path was still empty after \d+ poll\(s\) \/ \d+ms\./;
 
@@ -54,21 +55,26 @@ describe("runEffectsSuite against a changed backend", () => {
   it("says there were no findings at all when a document leaves nothing to find", async () => {
     const tables = "/v1/projects/{project_id}/tables";
     const listOnly = { ...extractSpec(), paths: { [tables]: { get: extractSpec().paths?.[tables]?.["get"] } } };
+
     const results = await runEffectsSuite(
       changed(
         (backend) => async (request) =>
           request.url.pathname === "/v1/openapi/spec" ? answer(200, listOnly) : backend(request),
       ),
     );
+
     expect(results[1]?.detail).toBe("no effect finding; findings=none");
   }, 120_000);
 
   it("names the wait alone when rows arrive but never at the head of the list", async () => {
     const nullFirst = changed((backend) => async (request) => {
       const answered = await backend(request);
+
       if (!isRows(request.url.pathname) || answered.status !== 200) return answered;
+
       return answer(200, { rows: [null, ...(JSON.parse(answered.body) as { rows: unknown[] }).rows] });
     });
+
     const detail = (await runEffectsSuite(nullFirst))[2]?.detail;
     expect(detail).toMatch(/^effects=none; /);
     expect(detail).toMatch(WAITED);
@@ -79,6 +85,7 @@ describe("runEffectsSuite against a changed backend", () => {
       (backend) => async (request) =>
         isRows(request.url.pathname) ? answer(200, { rows: [{ id: "r_x", table_id: "t_1" }] }) : backend(request),
     );
+
     const detail = (await runEffectsSuite(staticRow))[2]?.detail;
     expect(detail).toMatch(new RegExp(`^effects=${DECLARED} 1 to 1 .*; wait=none$`));
   }, 120_000);

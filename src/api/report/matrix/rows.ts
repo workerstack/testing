@@ -9,13 +9,13 @@ import type { CheckRow, MatrixFinding, MatrixReport, MatrixRows } from "./types.
 export type RowIndex<T> = ReadonlyMap<string, ReadonlyMap<string, ReadonlyArray<{ at: number; row: T }>>>;
 
 /** Every list of a report, indexed, and the set of checks that ran. */
-export interface ReportRows {
+export type ReportRows = {
   findings: RowIndex<MatrixFinding>;
   suppressed: RowIndex<CheckRow & { because: string }>;
   skipped: RowIndex<CheckRow>;
   outOfScope: RowIndex<CheckRow>;
   ran: ReadonlySet<string>;
-}
+};
 
 /** A report's lists as the matrix reads them: a list the report left out is empty. */
 export function rowsOfReport(report: MatrixReport): Required<MatrixRows> {
@@ -41,6 +41,7 @@ export function reportRows(rows: MatrixRows): ReportRows {
 /** The text before the first `separator`, or all of it. */
 function head(value: string, separator: string): string {
   const at = value.indexOf(separator);
+
   return at === -1 ? value : value.slice(0, at);
 }
 
@@ -51,6 +52,7 @@ function entityKey(value: string): string {
 
 export function indexRows<T extends CheckRow>(rows: readonly T[]): RowIndex<T> {
   const index = new Map<string, Map<string, Array<{ at: number; row: T }>>>();
+
   for (const [at, row] of rows.entries()) {
     const byEntity = index.get(row.check) ?? new Map<string, Array<{ at: number; row: T }>>();
     index.set(row.check, byEntity);
@@ -59,16 +61,19 @@ export function indexRows<T extends CheckRow>(rows: readonly T[]): RowIndex<T> {
     list.push({ at, row });
     byEntity.set(key, list);
   }
+
   return index;
 }
 
 /** The rows about `check` on `entity`, in report order. A row naming no entity applies to every entity. */
 export function rowsFor<T extends CheckRow>(index: RowIndex<T>, check: string, entity: string): readonly T[] {
   const byEntity = index.get(check);
+
   if (byEntity === undefined) return [];
   const own = byEntity.get(entityKey(entity)) ?? [];
   const everyone = byEntity.get("*") ?? [];
   const merged = everyone.length === 0 ? own : [...own, ...everyone].sort((a, b) => a.at - b.at);
+
   return merged.map((entry) => entry.row).filter((row) => matchesEntity(row.entity, entity));
 }
 
@@ -83,5 +88,6 @@ export function onPrimary(finding: { origin?: string }): boolean {
 function matchesEntity(value: string | undefined, entity: string): boolean {
   if (value === undefined || value === entity) return true;
   const lead = head(value, " · ");
+
   return lead === entity || lead.startsWith(`${entity}.`);
 }

@@ -48,7 +48,7 @@ describe("excludedByProfile", () => {
   });
 });
 
-/* A scenario that calls one operation, then each named external in order. */
+// A scenario that calls one operation, then each named external in order.
 const scenario = (...externals: string[]) => ({
   covers: [],
   id: "flow",

@@ -7,10 +7,8 @@ import type { Scenario } from "../../../src/api/config/define/types.ts";
 import { run } from "../../../src/api/runtime/run/index.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 
-/*
- * A count read from a sampled or eventually consistent store promises a floor, not an exact
- * number: a usage chart may weigh one kept event for the two it dropped.
- */
+// A count read from a sampled or eventually consistent store promises a floor, not an exact
+// number: a usage chart may weigh one kept event for the two it dropped.
 
 const closers: Array<() => Promise<void>> = [];
 
@@ -19,6 +17,7 @@ afterEach(async () => {
 });
 
 const json = (schema: unknown) => ({ "application/json": { schema } });
+
 const spec = {
   info: { title: "usage", version: "1" },
   openapi: "3.1.0",
@@ -40,25 +39,32 @@ const spec = {
   },
 } as unknown as OpenApiDocument;
 
-/* Keeps every other ping and counts each kept one twice, as a sampled store estimates. */
+// Keeps every other ping and counts each kept one twice, as a sampled store estimates.
 async function serve(): Promise<string> {
   let pings = 0;
+
   const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     const send = (value: unknown) => {
       res.writeHead(200, { "content-type": "application/json" });
       res.end(JSON.stringify(value));
     };
+
     if (req.url === "/openapi.json") return send(spec);
+
     if (req.url === "/v1/ping") {
       pings += 1;
+
       return send({ ok: true });
     }
+
     if (req.url === "/v1/usage") return send({ total: Math.floor(pings / 2) * 2 });
     res.writeHead(404);
     res.end();
   });
+
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   closers.push(() => new Promise((resolve) => server.close(() => resolve())));
+
   return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 }
 
@@ -77,6 +83,7 @@ function scenario(atLeast: number): Scenario {
 
 async function runScenario(atLeast: number) {
   const url = await serve();
+
   return run({
     baseUrl: url,
     ops: ["ping.send", "usage.get"],

@@ -11,6 +11,7 @@ const COHORT = [
   { id: "w-3", name: "alpha", status: "shut" },
   { id: "w-4", name: "gamma", status: "held" },
 ];
+
 const DOC = { xQuery: { filterable: ["id", "status", "name"] } };
 const OR = "or(status.eq.open,name.eq.alpha)";
 
@@ -34,12 +35,14 @@ describe("filter.or-composes-as-union", () => {
 
   it("reports or() that adds a record neither term matches", async () => {
     const correct = backend(COHORT);
+
     const { ctx, findings } = stage({
       doc: DOC,
       records: COHORT,
       respond: (method, path, options) =>
         options.query?.["filter"] === OR ? { body: { widgets: COHORT }, status: 200 } : correct(method, path, options),
     });
+
     await runCheck(check, ctx);
     expect(only(findings).detail).toContain(
       "whose union is 3. Present but matches neither term individually: w-4. A disjunction",

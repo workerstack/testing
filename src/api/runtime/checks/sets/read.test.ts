@@ -5,12 +5,10 @@ import { BARE, notesContext, withConventions } from "../query/__fixtures__/notes
 import { cursored, rows, served } from "./__fixtures__/serve.ts";
 import { memoTable, readSet } from "./read.ts";
 
-/*
- * `readSet` walks a whole result set however the list pages, and calls it complete only on
- * evidence the API gave: an empty page, a page shorter than a full one, a total reached, no next
- * cursor. A refused page leaves the set unresolved, never ended; a wrong "no more" on a full page
- * is checked by reading one more page.
- */
+// `readSet` walks a whole result set however the list pages, and calls it complete only on
+// evidence the API gave: an empty page, a page shorter than a full one, a total reached, no next
+// cursor. A refused page leaves the set unresolved, never ended; a wrong "no more" on a full page
+// is checked by reading one more page.
 
 const asked = (sent: Sent[], name: string) => sent.map((request) => request.options.query?.[name]);
 const idsOf = (items: Array<Record<string, unknown>>) => items.map((item) => item["id"]);
@@ -25,7 +23,7 @@ describe("readSet by page number", () => {
     expect(idsOf(read.items)).toEqual(["n1", "n2", "n3", "n4", "n5", "n6", "n7"]);
     expect(read.pages).toHaveLength(3);
     expect(read.last).toBe(read.pages[2]);
-    /* Pages 2–5 go out together after page 1, and page 6 once page 3 is reached. */
+    // Pages 2–5 go out together after page 1, and page 6 once page 3 is reached.
     expect(asked(sent, "page")).toEqual([1, 2, 3, 4, 5, 6]);
     expect(new Set(asked(sent, "limit"))).toEqual(new Set([3]));
   });
@@ -39,6 +37,7 @@ describe("readSet by page number", () => {
     const { ctx } = notesContext((method, path, options) =>
       options.query?.["page"] === 2 ? { status: 500 } : served(rows(7))(method, path, options),
     );
+
     const read = await readSet(ctx);
     expect(read).toMatchObject({ complete: false, reason: "page 2 was answered with 500", status: "unresolved" });
     expect(read.items).toHaveLength(3);
@@ -68,8 +67,10 @@ describe("readSet by page number", () => {
   it("never lets a page fetched past the end surface its failure", async () => {
     const { ctx } = notesContext((method, path, options) => {
       if (Number(options.query?.["page"]) > 2) throw new Error("past the end");
+
       return served(rows(4))(method, path, options);
     });
+
     expect(await readSet(ctx)).toMatchObject({ complete: true, status: "ok" });
   });
 });
@@ -123,10 +124,11 @@ describe("readSet by offset", () => {
   });
 });
 
-/* Five notes, two to a page, each page's next cursor given as a number and the last's as null. */
+// Five notes, two to a page, each page's next cursor given as a number and the last's as null.
 const numbered: Responder = (_method, _path, options) => {
   const start = Number(options.query?.["cursor"] ?? 0);
   const next = start + 2 < 5 ? start + 2 : null;
+
   return { body: { items: rows(5).slice(start, start + 2), next }, status: 200 };
 };
 
@@ -193,7 +195,7 @@ describe("readSet's memo", () => {
   it("shares an identical read until something is written", async () => {
     const { ctx, sent } = notesContext(served(rows(2)));
     await Promise.all([readSet(ctx), readSet(ctx)]);
-    /* One walk's worth: page 1, then pages 2–5 together, the first of them empty. */
+    // One walk's worth: page 1, then pages 2–5 together, the first of them empty.
     const before = sent.length;
     expect(before).toBe(5);
     await readSet(ctx);
@@ -201,7 +203,7 @@ describe("readSet's memo", () => {
     await readSet(ctx, { filter: "x" });
     expect(sent.length).toBeGreaterThan(before);
     const afterFilter = sent.length;
-    /* Another principal may see another set: its read is its own. */
+    // Another principal may see another set: its read is its own.
     await readSet(ctx, {}, { principal: "beta" });
     expect(sent.length).toBeGreaterThan(afterFilter);
     expect(sent.at(-1)?.options.as).toEqual({ principal: "beta" });
@@ -224,7 +226,7 @@ describe("readSet's memo", () => {
 
 describe("memoTable", () => {
   it("makes a named table on first use and hands back the same one after", () => {
-    const store = new Map<string, unknown>();
+    const store = new Map<string>();
     const table = memoTable<number>(store, "t");
     table.set("a", 1);
     expect(memoTable<number>(store, "t")).toBe(table);

@@ -14,43 +14,49 @@ export function block(title: string, rows: string[]): string[] {
 export function summaryLines(facts: DoctorFacts, config?: DoctorConfig): string[] {
   const { entities, testable, listable } = facts;
   const lines = [""];
+
   if (config?.allowRemoved !== undefined) {
     const removed = config.allowRemoved;
     lines.push(
-      `  allow      ${removed.length} operation${removed.length === 1 ? "" : "s"} removed` +
-        (removed.length === 0 ? "" : `: ${removed.join(", ")}`),
+      `  allow      ${removed.length} operation${removed.length === 1 ? "" : "s"} removed${
+        removed.length === 0 ? "" : `: ${removed.join(", ")}`
+      }`,
     );
   }
+
   lines.push(
     `  testable   ${bar(testable.length, entities.length)}  ${testable.length}/${entities.length} ` +
       "entities a run can seed and check",
   );
   lines.push(
-    `  listable   ${bar(listable.length, entities.length)}  ${listable.length}/${entities.length} ` +
-      (listable.length === 0
+    `  listable   ${bar(listable.length, entities.length)}  ${listable.length}/${entities.length} ${
+      listable.length === 0
         ? "entities have a list — query checks will not run"
-        : "entities have a list, so query checks can run"),
+        : "entities have a list, so query checks can run"
+    }`,
   );
   lines.push("");
+
   return lines;
 }
 
-/*
- * What the missing tags cost, in checks. A gap list tells an author what the API tester could not read;
- * this tells them what they get for fixing it, which is the only form of the message anyone
- * acts on.
- */
+// What the missing tags cost, in checks. A gap list tells an author what the API tester could not read;
+// this tells them what they get for fixing it, which is the only form of the message anyone
+// acts on.
 export function tagLines(model: SpecModel, facts: DoctorFacts): string[] {
   const declared = declaredTags(model);
   const locked = Object.entries(TAG_UNLOCKS).filter(([tag]) => !declared.has(tag));
   const lockedChecks = locked.reduce((sum, [, checks]) => sum + checks.length, 0);
+
   const applies: Record<keyof typeof TAG_SHARPENS, boolean> = {
     "x-query": facts.listable.length > 0,
     "x-tenant": model.operations.some((op) => op.tenantSource !== null),
   };
+
   const vague = (Object.entries(TAG_SHARPENS) as Array<[keyof typeof TAG_SHARPENS, string]>).filter(
     ([tag]) => !declared.has(tag) && applies[tag],
   );
+
   return [
     ...block(
       `  ${lockedChecks} check(s) cannot run against this document`,
@@ -66,12 +72,13 @@ export function tagLines(model: SpecModel, facts: DoctorFacts): string[] {
 /** Entities a run cannot test or list, and the roots it needs supplied. */
 export function entityLines(facts: DoctorFacts): string[] {
   const itemOnly = facts.testable.filter((e) => e.list === undefined);
+
   return [
     ...block(
       "  not testable",
       facts.untestable.map(({ entity, reason }) => `    ${entity.padEnd(20)} ${reason}`),
     ),
-    /* A testable entity with no list is read by its item route, its root read, or as the caller. */
+    // A testable entity with no list is read by its item route, its root read, or as the caller.
     ...block(
       "  no list — query, pagination and count checks will not run",
       itemOnly.map((entity) => `    ${entity.name.padEnd(20)} ${entity.read ?? (entity.readSurface[0] as string)}`),

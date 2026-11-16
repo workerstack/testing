@@ -9,12 +9,10 @@ import type { Exchange } from "./exchange.ts";
 import { FencedError } from "./fence.ts";
 import { Ledger } from "./teardown/ledger.ts";
 
-/*
- * A POST that is not its entity's create can still make a record: an untagged document files
- * `job.start` under job as an action, and its answer names the job it started. The tracker ledgers
- * such a record, marked inferred, only when the answer names a new `<entity>_id` and a read of that
- * id answers 2xx as the principal that sent it.
- */
+// A POST that is not its entity's create can still make a record: an untagged document files
+// `job.start` under job as an action, and its answer names the job it started. The tracker ledgers
+// such a record, marked inferred, only when the answer names a new `<entity>_id` and a read of that
+// id answers 2xx as the principal that sent it.
 
 const json = (schema: unknown) => ({ content: { "application/json": { schema } } });
 const OBJECT = { type: "object" };
@@ -22,6 +20,7 @@ const ok = { "202": { ...json(OBJECT), description: "accepted" } };
 const PROJECT = { in: "path", name: "project_id", required: true, schema: { type: "string" } };
 const JOB = { in: "path", name: "job_id", required: true, schema: { type: "string" } };
 const on = (name: string, action: string) => ({ "x-entity": { action, name } });
+
 const action = (operationId: string, name = "job", more: object = {}) => ({
   operationId,
   parameters: [PROJECT],
@@ -73,11 +72,11 @@ const DOCUMENT = {
 const BASE = "http://api.test";
 
 /** What a POST answered, with what it sent, and where it sits in the transcript. */
-interface Reply {
+type Reply = {
   body: unknown;
   seq: number;
   sent?: unknown;
-}
+};
 
 /** A 2xx POST alpha sent to `path` as `operationId`. */
 function post(operationId: string, path: string, { body, seq, sent }: Reply): Exchange {
@@ -102,22 +101,27 @@ function setup(reads: Record<string, ReadAnswer> = {}, transcript: Exchange[] = 
   const ledger = new Ledger();
   const recorded: string[] = [];
   const sent: string[] = [];
+
   const client = {
     get: async (path: string, options: { as: { principal: string } }) => {
       sent.push(`GET ${path} as ${options.as.principal}`);
       const answer = reads[path] ?? 404;
+
       if (answer instanceof Error) throw answer;
+
       return { status: answer };
     },
     hydrate: async (exchange: Exchange) => exchange,
     relativePath: (url: string) => new URL(url).pathname,
     request: async (method: string, path: string) => {
       sent.push(`${method} ${path}`);
+
       return { status: 204 };
     },
     transcript,
     view: () => client,
   } as unknown as Client;
+
   const tracker = createTracker({
     client,
     ledger,
@@ -126,6 +130,7 @@ function setup(reads: Record<string, ReadAnswer> = {}, transcript: Exchange[] = 
     owners: new Map([["alpha", { owner: { id: "alpha" }, roots: { project_id: "a" } }]]),
     readable: () => readable,
   });
+
   return { client, ledger, model, observe: tracker.observe, recorded, sent };
 }
 
@@ -138,6 +143,7 @@ describe("an inferred create", () => {
       seq: 3,
       sent: { m: "hi" },
     });
+
     const { client, ledger, model, observe, recorded, sent } = setup({ [STARTED]: 200 }, [unrelated]);
     await observe(
       post("job.start", "/projects/a/jobs/start", { body: { accepted: true, job_id: "job_000071" }, seq: 7 }),
@@ -186,12 +192,14 @@ describe("an inferred create: what it never ledgers", () => {
 describe("an inferred create: the evidence it needs", () => {
   it("does not ledger an id the read does not answer 2xx, or cannot send", async () => {
     const fenced = new FencedError({ method: "GET", phase: "assertion", reason: "no reads", url: STARTED });
+
     for (const answer of [404, fenced]) {
       const { ledger, observe, sent } = setup({ [STARTED]: answer });
       await observe(post("job.start", "/projects/a/jobs/start", { body: { job_id: "job_000071" }, seq: 1 }));
       expect(sent).toEqual([`GET ${STARTED} as alpha`]);
       expect(ledger.entries()).toEqual([]);
     }
+
     const unreadable = setup({ [STARTED]: 200 }, [], false);
     await unreadable.observe(post("job.start", "/projects/a/jobs/start", { body: { job_id: "job_000071" }, seq: 1 }));
     expect(unreadable.sent).toEqual([]);
@@ -204,17 +212,20 @@ describe("an inferred create: the evidence it needs", () => {
 
   it("does not ledger an id the run already saw, in an earlier exchange or this request, or already ledgered", async () => {
     const answer = { job_id: "job_000071" };
+
     const earlier = [
       post("job.notify", "/projects/a/jobs/notify", { body: { note: "job_000071" }, seq: 1 }),
       post("job.notify", "/projects/a/jobs/notify", { body: {}, seq: 1, sent: { about: ["job_000071"] } }),
       post("job.notify", "/projects/a/jobs/job_000071/notify?x=1", { body: {}, seq: 1 }),
     ];
+
     for (const seen of earlier) {
       const { ledger, observe, sent } = setup({ [STARTED]: 200 }, [seen]);
       await observe(post("job.start", "/projects/a/jobs/start", { body: answer, seq: 2 }));
       expect(sent).toEqual([]);
       expect(ledger.entries()).toEqual([]);
     }
+
     const self = setup({ [STARTED]: 200 });
     await self.observe(
       post("job.start", "/projects/a/jobs/start", { body: answer, seq: 2, sent: { job_id: "job_000071" } }),

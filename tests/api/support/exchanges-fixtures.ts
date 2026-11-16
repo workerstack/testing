@@ -6,7 +6,7 @@ import { join } from "node:path";
 import type { Exchange } from "../../../src/api/runtime/exchange.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 
-/* Shared by the exchanges*.test.ts files: exchange rows, scratch dirs, saved files, a widget world. */
+// Shared by the exchanges*.test.ts files: exchange rows, scratch dirs, saved files, a widget world.
 
 export function exchange(partial: Partial<Exchange> = {}): Exchange {
   return {
@@ -40,7 +40,9 @@ export async function listen(
     server.listen(0, "127.0.0.1", resolve);
   });
   const addr = server.address();
+
   if (addr === null || typeof addr === "string") throw new Error("no addr");
+
   return {
     close: () =>
       new Promise((resolve, reject) => {
@@ -108,6 +110,7 @@ function widgetSpec(): OpenApiDocument {
 }
 
 type Widget = { id: string; name: string };
+
 type Write = (status: number, body?: unknown) => void;
 
 /** An in-memory widget store; `seq` numbers both the ids and the x-request-id. */
@@ -129,8 +132,10 @@ export class WidgetWorld {
       if (body === undefined) {
         res.writeHead(status);
         res.end();
+
         return;
       }
+
       const text = JSON.stringify(body);
       res.writeHead(status, {
         "content-length": String(Buffer.byteLength(text)),
@@ -144,33 +149,44 @@ export class WidgetWorld {
   async #route(req: IncomingMessage, write: Write): Promise<void> {
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
     const method = (req.method ?? "GET").toUpperCase();
+
     if (url.pathname === "/v1/openapi/spec") return write(200, this.#spec);
+
     if (url.pathname === "/v1/widgets" && method === "GET") return write(200, { widgets: [...this.#widgets.values()] });
+
     if (url.pathname === "/v1/widgets" && method === "POST") return write(201, await this.#create(req));
     const item = /^\/v1\/widgets\/([^/]+)$/.exec(url.pathname);
+
     if (item === null) return write(404);
+
     return this.#item(method, item[1] ?? "", write);
   }
 
   async #create(req: IncomingMessage): Promise<Widget> {
     const chunks: Buffer[] = [];
+
     for await (const chunk of req) chunks.push(chunk as Buffer);
     const body = JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}") as { name?: string };
     const id = `w_${String((this.#seq += 1))}`;
     const row = { id, name: body.name ?? "n" };
     this.#widgets.set(id, row);
+
     return row;
   }
 
   #item(method: string, id: string, write: Write): void {
     if (method === "GET") {
       const row = this.#widgets.get(id);
+
       return row === undefined ? write(404) : write(200, row);
     }
+
     if (method === "DELETE") {
       this.#widgets.delete(id);
+
       return write(204);
     }
+
     return write(404);
   }
 }

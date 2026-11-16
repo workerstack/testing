@@ -7,12 +7,15 @@ import { bundleLocalRefs } from "./bundle.ts";
 import { parseDocument } from "./parse.ts";
 
 /** Where a document is read from, and how a URL is fetched; the caller owns the network. */
-export interface SpecSourceOptions {
+export type SpecSourceOptions = {
   baseUrl?: string | undefined;
   fetchText?: (url: string) => Promise<string>;
-  /** The folder a relative path is read from: the config's, for a document a config names. Default the working directory. */
+  /**
+   * The folder a relative path is read from: the config's, for a document a config names. Default the working
+   * directory.
+   */
   dir?: string | undefined;
-}
+};
 
 /**
  * Loads a specification from wherever it lives, in JSON or YAML.
@@ -34,16 +37,17 @@ export interface SpecSourceOptions {
 export async function loadSpec(source: string, options: SpecSourceOptions = {}): Promise<OpenApiDocument> {
   const { path, text } = await readSpecSource(source, options);
   const doc = await parseDocument(text, source);
+
   return path === undefined ? doc : bundleLocalRefs(doc, path);
 }
 
 /** A document's text, and the file it was read from; no path when it was fetched. */
-interface SpecText {
+type SpecText = {
   text: string;
   path?: string;
-}
+};
 
-/* A URL with nothing to fetch it is a caller's mistake: the API tester's network policy lives in the runtime. */
+// A URL with nothing to fetch it is a caller's mistake: the API tester's network policy lives in the runtime.
 function fetcher(options: SpecSourceOptions): (url: string) => Promise<string> {
   return (
     options.fetchText ??
@@ -53,12 +57,15 @@ function fetcher(options: SpecSourceOptions): (url: string) => Promise<string> {
 
 async function readSpecSource(source: string, options: SpecSourceOptions): Promise<SpecText> {
   const { baseUrl } = options;
+
   if (/^https?:\/\//.test(source)) return { text: await fetcher(options)(source) };
+
   if (source.startsWith("file://")) return readPath(fileURLToPath(source));
 
-  /* A real file wins over a route: a spec checked into the repository is the more specific
-   * intent, and silently fetching instead would hide a typo in the path. */
+  // A real file wins over a route: a spec checked into the repository is the more specific
+  // intent, and silently fetching instead would hide a typo in the path.
   const asPath = resolve(options.dir ?? process.cwd(), source);
+
   try {
     return await readPath(asPath);
   } catch (error) {
@@ -72,8 +79,7 @@ async function readSpecSource(source: string, options: SpecSourceOptions): Promi
   }
 
   throw new Error(
-    `testing api: could not find a specification at "${source}". Tried:\n  ${asPath}` +
-      (baseUrl === undefined ? "\nPass --base-url (or set baseUrl in the config) to resolve it as a route." : ""),
+    `testing api: could not find a specification at "${source}". Tried:\n  ${asPath}${baseUrl === undefined ? "\nPass --base-url (or set baseUrl in the config) to resolve it as a route." : ""}`,
   );
 }
 

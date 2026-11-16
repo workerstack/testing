@@ -17,10 +17,12 @@ describe("resolveInput", () => {
 
   it("replaces a named field and keeps the rest", async () => {
     const asked: InputRequest[] = [];
+
     const out = await applyResolveInput(
       { name: "plan", payment_method_id: "generated" },
       async (request) => {
         asked.push(request);
+
         return request.field === "payment_method_id" ? "pm_test_123" : null;
       },
       {
@@ -33,6 +35,7 @@ describe("resolveInput", () => {
         },
       },
     );
+
     expect(out).toEqual({ name: "plan", payment_method_id: "pm_test_123" });
     expect(asked.map(({ field, operationId, pointer, value }) => [field, operationId, pointer, value])).toEqual([
       ["name", "billing.subscribe", "$.name", "plan"],
@@ -54,6 +57,7 @@ describe("resolveInput", () => {
         },
       },
     );
+
     expect(out).toEqual({ card: { brand: "amex" }, tags: ["a"] });
   });
 });
@@ -64,29 +68,35 @@ describe("resolveInput on fields the body lacks or keeps", () => {
       {},
       async ({ field, value }) => {
         expect(value).toBeUndefined();
+
         return field === "payment_method_id" ? "pm_only_schema" : null;
       },
       { operationId: "billing.subscribe", schema: { properties: { payment_method_id: { type: "string" } } } },
     );
+
     expect(out["payment_method_id"]).toBe("pm_only_schema");
   });
 
   it("passes an oversized value through when the hook returns null", async () => {
     const over = "x".repeat(65);
+
     const out = await applyResolveInput(
       { category: over },
       async ({ value }) => (value === undefined || (typeof value === "string" && value.length > 64) ? null : "general"),
       { operationId: "tableTemplate.create", schema: { properties: { category: { maxLength: 64, type: "string" } } } },
     );
+
     expect(out["category"]).toBe(over);
   });
 
   it("leaves an omitted field omitted when the hook returns null", async () => {
     const asked: InputRequest[] = [];
+
     const out = await applyResolveInput(
       { name: "Quarterly Report 0" },
       async (request) => {
         asked.push(request);
+
         return null;
       },
       {
@@ -94,6 +104,7 @@ describe("resolveInput on fields the body lacks or keeps", () => {
         schema: { properties: { columns_json: { type: "array" }, name: { type: "string" } } },
       },
     );
+
     expect(out).toEqual({ name: "Quarterly Report 0" });
     expect(asked.map(({ field, value }) => [field, value])).toEqual([
       ["name", "Quarterly Report 0"],
@@ -117,6 +128,7 @@ describe("resolveInput through encode and odd schemas", () => {
       },
       variant: "baseline",
     });
+
     expect(encoded.body).toEqual({ payment_method_id: "pm_enc" });
   });
 
@@ -133,6 +145,7 @@ describe("resolveInput through encode and odd schemas", () => {
       operationId: "op",
       schema: { properties: { n: { type: "number" } } },
     });
+
     expect(out).toEqual({ n: 3 });
   });
 
@@ -141,6 +154,7 @@ describe("resolveInput through encode and odd schemas", () => {
       operationId: "op",
       schema: { properties: { nested: null } } as never,
     });
+
     expect(out).toEqual({ nested: { a: 1 } });
   });
 

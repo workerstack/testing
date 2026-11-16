@@ -12,34 +12,35 @@ import { DEFER_ENV, MissingEnvError } from "./env.ts";
 import type { ApiConfig } from "./types/config.ts";
 
 /** How a config is loaded: `doctor` and `plan` defer an unset `env()` instead of stopping. */
-export interface LoadOptions {
+export type LoadOptions = {
   deferEnv?: boolean;
-}
+};
 
 export async function loadConfig(path: string, options: LoadOptions = {}): Promise<ApiConfig> {
   const absolute = isAbsolute(path) ? path : resolve(process.cwd(), path);
 
-  if (absolute.endsWith(".json")) {
-    return JSON.parse(await readFile(absolute, "utf8")) as ApiConfig;
-  }
+  if (absolute.endsWith(".json")) return JSON.parse(await readFile(absolute, "utf8")) as ApiConfig;
 
   const deferEnv = options.deferEnv === true;
   const previous = process.env[DEFER_ENV];
-  /* Set for doctor and plan, cleared for a run: a run never inherits deferral from the shell. */
+
+  // Set for doctor and plan, cleared for a run: a run never inherits deferral from the shell.
   if (deferEnv) process.env[DEFER_ENV] = "1";
   else delete process.env[DEFER_ENV];
+
   try {
-    /* Each mode is its own module instance: a load in one mode never hands back the other's values. */
+    // Each mode is its own module instance: a load in one mode never hands back the other's values.
     const url = `${pathToFileURL(absolute).href}${deferEnv ? "?testing-defer-env" : ""}`;
     const module = (await import(url)) as { default?: ApiConfig } & ApiConfig;
     const config = module.default ?? module;
-    if (typeof config !== "object") {
-      throw new Error("config module has no default export");
-    }
+
+    if (typeof config !== "object") throw new Error("config module has no default export");
+
     return config;
   } catch (error) {
     if (error instanceof MissingEnvError) throw new Error(`${error.message} (${path})`, { cause: error });
     const message = error instanceof Error ? error.message : String(error);
+
     if (absolute.endsWith(".ts") && /Unknown file extension|strip-types/.test(message)) {
       throw new Error(
         `testing api: cannot load ${path} — this Node cannot import TypeScript ` +
@@ -47,6 +48,7 @@ export async function loadConfig(path: string, options: LoadOptions = {}): Promi
         { cause: error },
       );
     }
+
     throw new Error(`testing api: failed to load config ${path}: ${message}`, { cause: error });
   } finally {
     if (previous === undefined) delete process.env[DEFER_ENV];
@@ -56,14 +58,15 @@ export async function loadConfig(path: string, options: LoadOptions = {}): Promi
 
 function isPlainObject(value: object): boolean {
   const proto = Object.getPrototypeOf(value) as unknown;
+
   return proto === Object.prototype || proto === null;
 }
 
 /** How `interpolate` treats a name the environment lacks. */
-export interface InterpolateOptions {
+export type InterpolateOptions = {
   /** When given, an unset `${NAME}` is left as written and its name added here, instead of stopping. */
   unset?: Set<string>;
-}
+};
 
 /** Env-var interpolation so configs can carry `${API_TOKEN}` without embedding secrets. */
 export function interpolate<T>(
@@ -72,24 +75,31 @@ export function interpolate<T>(
   options: InterpolateOptions = {},
 ): T {
   if (typeof value === "string") {
-    return value.replace(/\$\{([A-Z0-9_]+)\}/gi, (match, name: string) => {
+    return value.replaceAll(/\$\{([A-Z0-9_]+)\}/gi, (match, name: string) => {
       const resolved = env[name];
+
       if (resolved !== undefined) return resolved;
-      if (options.unset === undefined) {
+
+      if (options.unset === undefined)
         throw new Error(`testing api: config references \${${name}}, which is not set in the environment`);
-      }
+
       options.unset.add(name);
+
       return match;
     }) as T;
   }
+
   if (Array.isArray(value)) return value.map((item) => interpolate(item, env, options)) as T;
-  /* Only plain data is walked. Anything else — an upload's bytes, a date — is the author's object. */
+
+  // Only plain data is walked. Anything else — an upload's bytes, a date — is the author's object.
   if (value !== null && typeof value === "object" && isPlainObject(value)) {
     const out: Record<string, unknown> = {};
-    for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+
+    for (const [key, item] of Object.entries(value as Record<string, unknown>))
       out[key] = interpolate(item, env, options);
-    }
+
     return out as T;
   }
+
   return value;
 }

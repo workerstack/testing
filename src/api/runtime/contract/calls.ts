@@ -16,6 +16,7 @@ import type { ContractCall, ContractInput } from "./types.ts";
 
 export async function runContractCalls(input: ContractInput): Promise<void> {
   const { model, grades } = input;
+
   const pending = model.operations.filter(
     (op) =>
       !op.destructive &&
@@ -24,19 +25,23 @@ export async function runContractCalls(input: ContractInput): Promise<void> {
       !grades.judged(op.operationId) &&
       !grades.evidence.has(op.operationId),
   );
+
   if (pending.length === 0) return;
   input.checksRun.add(CONTRACT_CHECK_ID);
+
   for (const op of pending) {
     if (input.stopped()) return;
-    /* Listed, never sent: fetch cannot send it. */
+
+    // Listed, never sent: fetch cannot send it.
     if (op.unsendable !== null) {
       grades.skipped([op.operationId], op.unsendable);
       continue;
     }
+
     try {
       await callOnce(input, op);
     } catch (error) {
-      /* A refused credential or a dropped connection is not this operation's verdict. */
+      // A refused credential or a dropped connection is not this operation's verdict.
       grades.skipped(
         [op.operationId],
         `contract call could not be sent: ${error instanceof Error ? error.message : String(error)}`,
@@ -46,10 +51,11 @@ export async function runContractCalls(input: ContractInput): Promise<void> {
 }
 
 async function callOnce(input: ContractInput, op: OperationModel): Promise<void> {
-  /* Every operation of a built model has its raw operation. */
+  // Every operation of a built model has its raw operation.
   const raw = input.model.rawOperations.get(op.operationId) as OperationObject;
-  /* Already called on the way to something else — signup, a scenario's support step. Grade
-   * that exchange; calling again would only repeat a side effect. */
+
+  // Already called on the way to something else — signup, a scenario's support step. Grade
+  // that exchange; calling again would only repeat a side effect.
   const earlier = input.client.transcript.findLast(
     (exchange) =>
       exchange.operationId === op.operationId &&
@@ -57,39 +63,53 @@ async function callOnce(input: ContractInput, op: OperationModel): Promise<void>
       exchange.status < 300 &&
       judges("response.contract-call", exchange),
   );
+
   if (earlier !== undefined) {
-    /* The transcript may have moved the body to disk; judge the body the server sent. */
+    // The transcript may have moved the body to disk; judge the body the server sent.
     judge(input, { op, raw }, await input.client.hydrate(earlier));
+
     return;
   }
+
   const call: ContractCall = {
     bind: readActionBind((raw as unknown as Record<string, unknown>)["x-bind"]),
     op,
     params: parametersOf(raw),
     raw,
   };
+
   const values = await pathValues(input, call);
+
   if (values === null) return;
   const query = queryValues(input.grades, call);
+
   if (query === null) return;
   const built = bodyOf(input, call);
+
   if (built === null) return;
-  /* A credential operation could end, rotate or spend the principal's own session: never sent with it. */
+
+  // A credential operation could end, rotate or spend the principal's own session: never sent with it.
   const actor = input.credentials.operations.has(op.operationId)
     ? await input.credentials.actorFor(op)
     : { as: { principal: input.principal } };
+
   if ("untested" in actor) {
     input.grades.skipped([op.operationId], actor.untested);
+
     return;
   }
+
   const sending = await guardedSend(input, call, { as: actor.as, body: built.body, values });
+
   if (sending === null) return;
   const { as, body } = sending;
+
   const exchange = await input.client.request(op.method, fillPath(op.path, values, op.paramStyles.path), {
     ...(body === undefined ? {} : { body }),
     as,
     operationId: op.operationId,
     ...(Object.keys(query).length === 0 ? {} : { query }),
   });
+
   judge(input, call, exchange);
 }

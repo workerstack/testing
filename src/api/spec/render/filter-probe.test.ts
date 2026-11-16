@@ -7,7 +7,9 @@ import type { FilterGrammarSpec } from "./filter-types.ts";
 
 function parsed(raw: unknown): FilterGrammarSpec {
   const result = parseFilterGrammar(raw);
+
   if (!result.ok) throw new Error(result.error);
+
   return result.spec;
 }
 
@@ -16,6 +18,7 @@ const conjoined = parsed({
   ops: { eq: "eq", gt: "gt" },
   term: "{conj}_{field}_{op}_{value}",
 });
+
 const postgrest: FilterGrammarSpec = FILTER_PRESETS.postgrest;
 const probe = (spec: FilterGrammarSpec, value = "x") => ({ field: "name", filterParam: "filter", spec, value });
 const unparametered = (spec: FilterGrammarSpec) => ({ field: "name", filterParam: undefined, spec, value: "x" });
@@ -42,11 +45,11 @@ describe("a malformed term", () => {
   it("drops the operator otherwise, with the literal that joined it", () => {
     expect(renderMalformed(probe(postgrest))).toEqual({ filter: "name.x" });
     expect(renderMalformed(probe(FILTER_PRESETS.colon))).toEqual({ filter: "name=x" });
-    /* At the end of the term, the literal before the piece goes with it. */
+    // At the end of the term, the literal before the piece goes with it.
     expect(renderMalformed(probe(parsed({ ops: { eq: "eq" }, term: "{field}:{value}~{op}" })))).toEqual({
       filter: "name:x",
     });
-    /* At the start, nothing precedes it. */
+    // At the start, nothing precedes it.
     expect(renderMalformed(probe(parsed({ ops: { eq: "eq" }, term: "{op}:{field}={value}" })))).toEqual({
       filter: "name=x",
     });

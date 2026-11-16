@@ -7,16 +7,14 @@ import { EXIT } from "../../runtime/exit.ts";
 import type { Writer } from "../writer.ts";
 import type { Toolkit } from "./conformance-toolkit.ts";
 
-/*
- * A sharded self-test: each leg writes the checks its defects proved, and `--aggregate` judges
- * their union, so a gate split into short legs still fails on a check no defect proves.
- */
+// A sharded self-test: each leg writes the checks its defects proved, and `--aggregate` judges
+// their union, so a gate split into short legs still fails on a check no defect proves.
 
 /** What one leg proved, as `--proven-out` writes it. */
-interface ProvenFile {
+type ProvenFile = {
   legs: string[];
   proven: string[];
-}
+};
 
 /** Writes the checks a leg proved to `path`, making its folder. */
 export function writeProven(path: string, legs: readonly string[], proven: ReadonlySet<string>): void {
@@ -31,26 +29,36 @@ export function writeProven(path: string, legs: readonly string[], proven: Reado
  */
 export function aggregate(writer: Writer, toolkit: Toolkit, dir: string): number {
   let files: string[];
+
   try {
     files = readdirSync(dir)
       .filter((name) => name.endsWith(".json"))
       .toSorted();
   } catch (error) {
     writer.err(`testing api: cannot read ${dir}: ${messageOf(error)}\n`);
+
     return EXIT.usage;
   }
+
   if (files.length === 0) {
     writer.err(`testing api: ${dir} holds no proven-check files; write them with --proven-out\n`);
+
     return EXIT.usage;
   }
+
   const proven = new Set<string>();
+
   for (const name of files) {
     const read = JSON.parse(readFileSync(join(dir, name), "utf8")) as RawOf<ProvenFile>;
+
     if (!Array.isArray(read.proven)) continue;
+
     for (const id of read.proven) if (typeof id === "string") proven.add(id);
   }
+
   writer.out(`  ${files.length} leg file(s) · ${proven.size} check(s) proven\n`);
   const unproven = toolkit.suite.renderUnproven(proven);
   writer.out(unproven.text);
+
   return unproven.failures > 0 ? 1 : 0;
 }

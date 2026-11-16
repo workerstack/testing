@@ -45,6 +45,7 @@ describe("scopeSections on a full run", () => {
         ],
       }),
     );
+
     expect(lines).toContain("## Operations");
     expect(lines).toContain(
       "> Every operation in the document and whether any check graded it. `untested` names why not.",
@@ -65,6 +66,7 @@ describe("scopeSections on a full run", () => {
         originsSkipped: ["billing", "search"],
       }),
     );
+
     expect(lines).toContain("Origins not run — no target named them: billing, search.");
     expect(lines).toContain("Excluded by the profile: row.delete (x-destructive), row.export (x-cost: high).");
   });
@@ -84,6 +86,7 @@ describe("scopeSections on a targeted run", () => {
       "None.",
       "",
     ]);
+
     const some = scopeSections(
       scopeOf({
         mode: "targeted",
@@ -94,6 +97,7 @@ describe("scopeSections on a targeted run", () => {
         ],
       }),
     );
+
     expect(some).toContain("| auth.token | 3 | 0 |  |");
     expect(some).toContain("| b:row.create | 2 | 1 | 500 |");
     expect(some).toContain("| row.get | 1 | 1 | 404 (req-9) |");
@@ -120,6 +124,7 @@ describe("scopeConsole", () => {
         support: [{ calls: 1, non2xx: 0, operationId: "auth.token" }],
       }),
     );
+
     const width = "a-very-long-operation.identifier".length + 2;
     expect(lines).toEqual([
       "  scope: targeted · 5 operations (--ops row.list) · 1 support op(s)",

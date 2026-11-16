@@ -1,15 +1,13 @@
 import { ASSERTED } from "../../../finding.ts";
-/*
- * An operation whose security lets anonymous callers in must not demand a credential. A read is sent
- * with none, where `addressOf` puts it by placement. A write is never really sent anonymously: it
- * carries a body that is not JSON, so a server that lets the request in refuses the body instead, and
- * only one that checks for a credential first answers 401 or 403. Anything but those passes: a 2xx to
- * that body shows the route open, as declared, and whether it validates what it accepts is
- * request.invalid-body-refused's to judge. The create tracker takes such a write as applied (ledgered
- * on evidence, else reported as a record that may remain). A param-free public read is left to
- * response.public-get-returns-success, which already sends it with no credential and asks more of the
- * answer, so one guarded route is one finding. Mutating, since it sends writes, if only unreadable ones.
- */
+// An operation whose security lets anonymous callers in must not demand a credential. A read is sent
+// with none, where `addressOf` puts it by placement. A write is never really sent anonymously: it
+// carries a body that is not JSON, so a server that lets the request in refuses the body instead, and
+// only one that checks for a credential first answers 401 or 403. Anything but those passes: a 2xx to
+// that body shows the route open, as declared, and whether it validates what it accepts is
+// request.invalid-body-refused's to judge. The create tracker takes such a write as applied (ledgered
+// on evidence, else reported as a record that may remain). A param-free public read is left to
+// response.public-get-returns-success, which already sends it with no credential and asks more of the
+// answer, so one guarded route is one finding. Mutating, since it sends writes, if only unreadable ones.
 import { documentsSuccess, isPublicGet } from "../../../one-shot.ts";
 import type { OperationCheck } from "../../core/check.ts";
 import { defineCheck } from "../../core/define.ts";
@@ -30,12 +28,15 @@ export const anonymousOperationOpen: OperationCheck<Address> = defineCheck<Addre
     andThen(declaredPlan(ctx), () =>
       andThen(when(allowsAnonymous(ctx.security), "an operation whose security lets anonymous callers in"), () => {
         const { operation } = ctx;
+
         if (isPublicGet(operation) && documentsSuccess(operation)) {
           return cannot(
             `an open operation response.public-get-returns-success does not already read; it grades ${ctx.subject}`,
           );
         }
+
         if (isReadMethod(operation)) return addressOf(ctx);
+
         return andThen(scopedAddress(ctx), ({ path }) =>
           ready({ body: MALFORMED, contentType: "application/json", path }),
         );
@@ -43,9 +44,12 @@ export const anonymousOperationOpen: OperationCheck<Address> = defineCheck<Addre
     ),
   async run(ctx, address) {
     const exchange = await send(ctx, address, { anonymous: true });
+
     if (!refused(exchange.status)) return ASSERTED;
+
     const unread =
       address.body === undefined ? "" : " The body was malformed JSON, so the refusal came before the body was read.";
+
     return ctx.findings.backend(ID, ctx.subject, {
       detail: `${ctx.subject} answered ${exchange.status} to a request with no credential, though the document declares it open.${unread}`,
       evidence: [exchange],

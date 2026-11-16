@@ -13,6 +13,7 @@ describe("expiresAtOf", () => {
   it("reads seconds from the issuing answer, as a number or a numeric string", () => {
     const read = (expires: unknown): number | null =>
       expiresAtOf({ body: { expires }, expiresIn: { from: "$.expires" }, now: NOW, value: "opaque" });
+
     expect([read(30), read("45")]).toEqual([NOW + 30_000, NOW + 45_000]);
   });
 

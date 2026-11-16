@@ -12,9 +12,10 @@ const paths = { "/nodes": { get: { operationId: "nodes.get", responses: ok({ $re
 
 const sorted = (value: unknown) => JSON.stringify(value, Object.keys(value as object).sort());
 
-/* The success schema of `GET /nodes` in a dereferenced document. */
+// The success schema of `GET /nodes` in a dereferenced document.
 const nodesSchema = (out: OpenApiDocument): unknown => {
   const item = out.paths?.["/nodes"] as { get: { responses: Record<string, any> } };
+
   return item.get.responses["200"].content["application/json"].schema;
 };
 
@@ -23,6 +24,7 @@ describe("dereference", () => {
     const source = doc(paths, {
       components: { schemas: { Ext: { $ref: "other.yaml#/X" }, Node: node } },
     });
+
     const { doc: out, externalRefs } = dereference(source);
     const schema = nodesSchema(out);
     expect(schema).toEqual({
@@ -49,12 +51,14 @@ describe("dereference", () => {
   it("drops the files bundled beside the document once their refs are inlined, keeping their recursion", () => {
     const pet = { properties: { parent: { $ref: "#/x-testing-external/pet.yaml/Pet" } }, type: "object" };
     const refs = { $ref: "#/x-testing-external/pet.yaml/Pet" };
+
     const source = doc(
       { "/pets": { get: { operationId: "pets.get", responses: ok(refs) } } },
       {
         [EXTERNAL_KEY]: { "pet.yaml": { Pet: pet } },
       },
     );
+
     const { doc: out } = dereference(source);
     expect(EXTERNAL_KEY in out).toBe(false);
     expect(documentDefs(out)).toEqual({
@@ -81,10 +85,12 @@ describe("dereference and a ref to nothing", () => {
   it("reads a schema that points at nothing as unconstrained, and reports its pointer once", () => {
     const fee = { $ref: "#/components/schemas/AppFeeAllocation" };
     const order = { properties: { fee, fees: { items: fee, type: "array" } }, type: "object" };
+
     const source = doc(
       { "/nodes": { get: { operationId: "nodes.get", responses: ok({ $ref: "#/components/schemas/Order" }) } } },
       { components: { schemas: { Order: order } } },
     );
+
     const { doc: out, danglingRefs, externalRefs } = dereference(source);
     const missing = { [DANGLING_KEY]: "#/components/schemas/AppFeeAllocation" };
     expect(nodesSchema(out)).toEqual({

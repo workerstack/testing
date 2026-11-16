@@ -12,6 +12,7 @@ import { driveWait, pointerIsOccupied, type WaitDrive } from "./wait.ts";
 describe("pointerIsOccupied", () => {
   it("is anything but undefined, null, an empty string, or an empty list", () => {
     for (const empty of [undefined, null, "", []]) expect(pointerIsOccupied(empty)).toBe(false);
+
     for (const present of [0, false, "x", [1], {}]) expect(pointerIsOccupied(present)).toBe(true);
   });
 });
@@ -22,19 +23,23 @@ const answers =
   (...replies: Array<[number, unknown]>): Answer =>
   (_sent, index) => {
     const [status, body] = replies[Math.min(index, replies.length - 1)] as [number, unknown];
+
     return json(body, status);
   };
 
 function wait(answer: Answer, more: Partial<Omit<WaitDrive, "spec">> & { spec?: Partial<WaitSpec> } = {}) {
   const wire = transport(answer);
   const source = fixedSource(sendingHeaders({ authorization: "Bearer t" }));
+
   const client = new Client({
     baseUrl: "http://api.test",
     credentials: source,
     network: { fetchImpl: wire.fetch },
     redactor: new Redactor(),
   });
+
   const { spec, ...rest } = more;
+
   const outcome = driveWait({
     client,
     principal: "alpha",
@@ -45,15 +50,16 @@ function wait(answer: Answer, more: Partial<Omit<WaitDrive, "spec">> & { spec?: 
     writeOpId: "row.create",
     ...rest,
   });
+
   return { outcome, sent: wire.sent, source };
 }
 
-/* An answer that arrives after a 5ms wait has run out. */
+// An answer that arrives after a 5ms wait has run out.
 const slow: Answer = () => new Promise((done) => setTimeout(() => done(json([], 200)), 30));
 const always = (): Promise<true | null> => Promise.resolve(true);
 const never = (): Promise<true | null> => Promise.resolve(null);
 
-/* A slow server whose first answer is empty and whose second carries the effect. */
+// A slow server whose first answer is empty and whose second carries the effect.
 const late: Answer = (_sent, index) =>
   new Promise((done) => setTimeout(() => done(json(index === 0 ? [] : [1], 200)), 30));
 
@@ -91,10 +97,13 @@ describe("driveWait, with until or a hook", () => {
 
   it("asks the hook every poll, with the answer or else the written record", async () => {
     const asked: SideEffectRequest[] = [];
+
     const awaitSideEffect = (request: SideEffectRequest): Promise<true | null> => {
       asked.push(request);
+
       return Promise.resolve(request.attempt === 2 ? true : null);
     };
+
     const { outcome } = wait(answers([500, {}], [200, { seen: 1 }]), { awaitSideEffect });
     expect(await outcome).toMatchObject({ matched: { seen: 1 }, polls: 2, timedOut: false });
     expect(asked).toEqual([

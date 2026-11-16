@@ -11,6 +11,7 @@ type Paths = Record<string, Record<string, Json & { responses: Json }>>;
 const paths = authPaths(CTX) as Paths;
 const op = (path: string, method: string) => paths[path]?.[method] as Json & { responses: Json };
 const statuses = (path: string, method: string) => Object.keys(op(path, method).responses);
+
 const bodyOf = (path: string, method: string) =>
   (op(path, method)["requestBody"] as { content: Record<string, { schema: Json }> }).content["application/json"]
     ?.schema;
@@ -44,6 +45,7 @@ describe("authPaths", () => {
       expect(statuses(path, "post")).toEqual(["200", "400", "401", "415", "429"]);
       expect(op(path, "post").responses["429"]).toHaveProperty("headers.Retry-After.schema", { type: "integer" });
     }
+
     expect(op("/v1/auth/refresh", "post")["security"]).toEqual([]);
     const session = op("/v1/auth/token", "post").responses["200"] as Json;
     expect(session).toHaveProperty("content.application/json.schema.required", [
@@ -70,9 +72,9 @@ describe("the API key operations", () => {
       ["/v1/api-keys", "post"],
       ["/v1/api-keys/{id}", "delete"],
       ["/v1/api-keys/{id}", "get"],
-    ] as const) {
+    ] as const)
       expect(op(path, method)).not.toHaveProperty("security");
-    }
+
     expect(statuses("/v1/api-keys", "post")).toEqual(["201", "400", "401", "415"]);
     expect(statuses("/v1/api-keys/{id}", "delete")).toEqual(["200", "401", "403", "404"]);
     expect(statuses("/v1/api-keys/{id}", "get")).toEqual(["200", "401", "404"]);
@@ -112,6 +114,7 @@ describe("the API key operations behind key-lifecycle", () => {
   it("lists and renames keys, each named, as the api-key entity's own lifecycle", () => {
     expect(at("/v1/api-keys", "get")).toMatchObject({ operationId: "apiKey.list" });
     expect(at("/v1/api-keys/{id}", "patch")).toMatchObject({ operationId: "apiKey.update" });
+
     const actions = [
       ["/v1/api-keys", "post", "create"],
       ["/v1/api-keys", "get", "list"],
@@ -119,9 +122,10 @@ describe("the API key operations behind key-lifecycle", () => {
       ["/v1/api-keys/{id}", "patch", "update"],
       ["/v1/api-keys/{id}", "delete", "delete"],
     ] as const;
-    for (const [path, method, action] of actions) {
+
+    for (const [path, method, action] of actions)
       expect(at(path, method)["x-entity"]).toEqual({ action, identity: "id", name: "api-key" });
-    }
+
     expect(JSON.stringify(at("/v1/api-keys", "post")["requestBody"])).toContain('"name"');
     expect(JSON.stringify(at("/v1/api-keys/{id}", "get").responses)).toContain('"name"');
   });

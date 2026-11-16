@@ -18,19 +18,24 @@ export function describeUndeclared(
 ): { lines: string[]; evidence: Exchange[] } {
   const lines: string[] = [];
   const evidence: Exchange[] = [];
+
   for (const [operationId, exchanges] of byOp) {
     const raw = ctx.model.rawOperations.get(operationId);
+
     const declaredStatuses = Object.keys(raw?.responses ?? {})
       .filter((key) => key !== "default")
       .sort()
       .join(", ");
+
     const seen = [...new Set(exchanges.map((item) => item.status))].sort((a, b) => a - b);
     lines.push(
       `${operationId} returned ${seen.join(", ")}; the document declares ${declaredStatuses || "no concrete status"}`,
     );
     const first = exchanges[0];
+
     if (first !== undefined && evidence.length < 6) evidence.push(first);
   }
+
   return { evidence, lines };
 }
 
@@ -40,15 +45,20 @@ function statusIsDeclared(raw: OperationObject | undefined, status: number): boo
 
 function declaresConcreteStatuses(raw: OperationObject | undefined): boolean {
   const statuses = readStatuses(raw?.responses);
+
   return statuses.exact.length > 0 || statuses.ranges.length > 0;
 }
 
 /** The operation an exchange judges: this entity's, graded by this run, and not its create. */
 function judgedOperation(ctx: CheckContext, exchange: Exchange): OperationModel | undefined {
   const op = exchange.operationId === undefined ? undefined : ctx.model.byOperationId.get(exchange.operationId);
+
   if (op === undefined || op.entity !== ctx.entityName) return undefined;
+
   if (!graded(ctx, op)) return undefined;
+
   if (op.operationId === ctx.createOp?.operationId || op.action === "create") return undefined;
+
   return op;
 }
 
@@ -60,22 +70,27 @@ async function readExchange(
   ctx: CheckContext,
   listed: Exchange,
 ): Promise<{ operationId: string; exchange: Exchange; undeclared: "probe" | "ordinary" | null } | null> {
-  /* A documented feature-gate denial is told apart by its body. */
+  // A documented feature-gate denial is told apart by its body.
   const exchange = listed.status === 403 ? await ctx.client.hydrate(listed) : listed;
-  /* A status-0 network failure has no status to judge, and an answer that was asked again
-   * after a refresh or a wait is not the backend's verdict on the request. */
+
+  // A status-0 network failure has no status to judge, and an answer that was asked again
+  // after a refresh or a wait is not the backend's verdict on the request.
   if (exchange.status === 0 || exchange.superseded === true) return null;
   const op = judgedOperation(ctx, exchange);
+
   if (op === undefined || exchange.status === 429) return null;
   const raw = ctx.model.rawOperations.get(op.operationId);
+
   if (!declaresConcreteStatuses(raw)) return null;
   const operationId = op.operationId;
-  if (isDocumentedFeatureGateDenial(op, exchange.status, exchange.responseBody)) {
+
+  if (isDocumentedFeatureGateDenial(op, exchange.status, exchange.responseBody))
     return { exchange, operationId, undeclared: null };
-  }
+
   if (statusIsDeclared(raw, exchange.status)) return { exchange, operationId, undeclared: null };
-  /* A deliberately invalid request may draw a status the document never needed to name
-   * for real traffic. It is reported, but apart from what ordinary requests got. */
+
+  // A deliberately invalid request may draw a status the document never needed to name
+  // for real traffic. It is reported, but apart from what ordinary requests got.
   return { exchange, operationId, undeclared: exchange.purpose === "probe" ? "probe" : "ordinary" };
 }
 
@@ -89,19 +104,24 @@ export const documentedStatusHonored: Check = defineCheck({
     const byOp = new Map<string, Exchange[]>();
     const probes = new Map<string, Exchange[]>();
     const observed = new Set<string>();
+
     for (const listed of ctx.client.exchangesForEntity(ctx.entityName)) {
-      /* A security probe's answer is the security checks' to judge; see probe-judging.ts. */
+      // A security probe's answer is the security checks' to judge; see probe-judging.ts.
       if (!judges(this.id, listed)) continue;
       const reading = await readExchange(ctx, listed);
+
       if (reading === null) continue;
       observed.add(reading.operationId);
+
       if (reading.undeclared === null) continue;
       const bucket = reading.undeclared === "probe" ? probes : byOp;
       const seen = bucket.get(reading.operationId) ?? [];
       seen.push(reading.exchange);
       bucket.set(reading.operationId, seen);
     }
+
     ctx.judged?.([...observed]);
+
     if (probes.size > 0) {
       const { lines, evidence } = describeUndeclared(ctx, probes);
       ctx.findings.attributed([...probes.keys()]).spec(this.id, ctx.entityName, {
@@ -112,10 +132,12 @@ export const documentedStatusHonored: Check = defineCheck({
         evidence,
       });
     }
-    /* Every operation in the map has a line, so an empty map is the only clean answer. */
+
+    // Every operation in the map has a line, so an empty map is the only clean answer.
     if (byOp.size === 0) return ASSERTED;
 
     const { lines, evidence } = describeUndeclared(ctx, byOp);
+
     return ctx.findings.attributed([...byOp.keys()]).spec(this.id, ctx.entityName, {
       summary: "an operation returned a status the document does not declare",
       detail: `${lines.join(". ")}. Clients generated from this document will not recognize the response.`,

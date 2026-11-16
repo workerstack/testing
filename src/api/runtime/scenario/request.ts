@@ -22,22 +22,28 @@ export async function requestStep(run: ScenarioRun, step: ScenarioRequestStep, i
   const stepOp = stepOperation(step);
   const deadline = step.poll === undefined ? 0 : Date.now() + durationMs(step.poll.within);
   let waitMs = step.poll?.everyMs ?? 500;
+
   for (;;) {
     const { exchange, request } = await send(run, { index, step, stepOp });
     const ok = succeeded(step, exchange);
     const wants = wantsOf(step, run.scope);
     const unmet = wants.find(({ want }) => !holds(exchange, want.from, want))?.want;
+
     if (ok && unmet === undefined) {
       record(run, { exchange, step, stepOp, wants });
+
       return;
     }
+
     if (Date.now() < deadline) {
       if (run.input.stopped?.() === true) throw new ScenarioStopped();
       await run.sleep(waitMs);
+
       if (run.input.stopped?.() === true) throw new ScenarioStopped();
       waitMs = nextPollWait(waitMs, step.poll?.everyMs ?? 500);
       continue;
     }
+
     throw unshown(run, { exchange, ok, request, stepOp, unmet, wants });
   }
 }
@@ -49,6 +55,7 @@ async function send(
 ): Promise<{ exchange: Exchange; request: Resolved }> {
   const { step, stepOp } = at;
   const request = await resolveRequest(run.context, step, run.scope, at.index);
+
   const exchange = await request.client.request(request.method, request.path, {
     ...(request.body === undefined ? {} : { body: request.body }),
     ...(request.contentType === undefined ? {} : { contentType: request.contentType }),
@@ -58,9 +65,11 @@ async function send(
     ...(stepOp === undefined ? {} : { operationId: stepOp }),
     ...(request.redirect === undefined ? {} : { redirect: request.redirect }),
   });
+
   run.sent.push(exchange);
-  /* An accepted delete removed the account, whatever the step then asserts of its answer. */
+  // An accepted delete removed the account, whatever the step then asserts of its answer.
   selfDeleted(run.lineage, { accounts: run.input.accounts, exchange, step });
+
   return { exchange, request };
 }
 
@@ -68,14 +77,17 @@ async function send(
 function actorOf(run: ScenarioRun, step: ScenarioRequestStep): Actor {
   if (step.anonymous === true) return { anonymous: true };
   const principal = step.principal ?? run.principal;
-  /* Refuses a principal the config does not have, before anything is sent as it. */
+  // Refuses a principal the config does not have, before anything is sent as it.
   principalOf(run.input, run.scenario, principal);
+
   return step.scheme === undefined ? { principal } : { principal, scheme: step.scheme };
 }
 
 function succeeded(step: ScenarioRequestStep, exchange: Exchange): boolean {
   const accepted = step.expect ?? [];
+
   if (accepted.length > 0) return accepted.includes(exchange.status);
+
   return exchange.status >= 200 && exchange.status < 300;
 }
 
@@ -97,9 +109,11 @@ function unshown(
 ): StepFailure {
   const { exchange, request, stepOp } = last;
   const proves = [...last.wants.flatMap(({ assert }) => assert.observes ?? []), ...blamed(stepOp)];
+
   const earlier = proves
     .map((id) => run.calls.get(id))
     .filter((call): call is Exchange => call !== undefined && call !== exchange);
+
   if (!last.ok) {
     return new StepFailure(
       `${request.method} ${request.path} returned ${exchange.status}`,
@@ -107,8 +121,10 @@ function unshown(
       blamed(stepOp),
     );
   }
-  /* A request that succeeded reaches here only with an assert unmet. */
+
+  // A request that succeeded reaches here only with an assert unmet.
   const unmet = last.unmet as Want;
+
   return new StepFailure(
     `${request.method} ${request.path} did not show ${unmet.mode} "${unmet.value}" at ${unmet.from}`,
     [...earlier, exchange],

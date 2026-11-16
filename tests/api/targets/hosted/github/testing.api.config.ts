@@ -1,21 +1,19 @@
-/*
- * GitHub's REST API against a throwaway repository: a manual target that needs the user's secrets
- * (never run by `test:targets`). Written with `testing api init`, then filled in.
- *
- * GitHub's description declares no security scheme, so the overlay declares the bearer token every
- * call sends. The run is scoped to labels and milestones, which a repository creates and deletes
- * freely; use a repository that holds nothing else.
- *
- *   TESTING_API_GITHUB_TOKEN=<fine-grained token: Issues read+write on that repository> \
- *   TESTING_API_GITHUB_OWNER=<a throwaway org> TESTING_API_GITHUB_REPO=<its throwaway repository> \
- *     testing api run --config tests/api/targets/hosted/github/testing.api.config.ts
- */
+// GitHub's REST API against a throwaway repository: a manual target that needs the user's secrets
+// (never run by `test:targets`). Written with `testing api init`, then filled in.
+//
+// GitHub's description declares no security scheme, so the overlay declares the bearer token every
+// call sends. The run is scoped to labels and milestones, which a repository creates and deletes
+// freely; use a repository that holds nothing else.
+//
+//   TESTING_API_GITHUB_TOKEN=<fine-grained token: Issues read+write on that repository> \
+//   TESTING_API_GITHUB_OWNER=<a throwaway org> TESTING_API_GITHUB_REPO=<its throwaway repository> \
+//     testing api run --config tests/api/targets/hosted/github/testing.api.config.ts
 import { defineConfig, env } from "../../../../../src/api/index.ts";
 
 export default defineConfig({
   spec: "https://raw.githubusercontent.com/github/rest-api-description/v2.1.0/descriptions/api.github.com/api.github.com.json",
   baseUrl: "https://api.github.com",
-  /* GitHub's secondary rate limits punish bursts of writes. */
+  // GitHub's secondary rate limits punish bursts of writes.
   maxRps: 1,
   globalHeaders: { "X-GitHub-Api-Version": "2022-11-28" },
   overlay: {

@@ -15,7 +15,7 @@ const JWT = `${segment({ alg: "HS256", typ: "JWT" })}.${segment({ sub: "alpha" }
 const FLIPPED = `${segment({ alg: "HS256", typ: "JWT" })}.${segment({ sub: "alpha" })}.Aig-nature_1`;
 const held = { held: (request: { scheme: string }) => ({ value: request.scheme === "jwt" ? JWT : "ak_1" }) };
 
-/* Accepts only a forged value equal to `value`; refuses every other with 401. */
+// Accepts only a forged value equal to `value`; refuses every other with 401.
 const accepting =
   (value?: string): SentResponder =>
   ({ options }) =>
@@ -28,6 +28,7 @@ describe("auth.invalid-credential-refused", () => {
       probe: held,
       respond: accepting(),
     });
+
     expect(await runOperationCheck(invalidCredentialRefused, ctx)).toEqual({ kind: "asserted" });
     expect(sent.map((s) => [s.path, s.options.as, s.options.probe])).toEqual([
       ["/projects/proj_a/notes", { forged: { scheme: "jwt", value: GARBAGE } }, true],
@@ -47,6 +48,7 @@ describe("auth.invalid-credential-refused", () => {
       probe: held,
       respond: accepting(FLIPPED),
     });
+
     expect(await runOperationCheck(invalidCredentialRefused, ctx)).toEqual({ kind: "finding", verdict: "SECURITY" });
     expect(findings.findings.map((f) => [f.summary, f.detail])).toEqual([
       [
@@ -79,14 +81,17 @@ describe("auth.invalid-credential-refused, garbage and writes", () => {
 
   it("probes a write only on the run-created record, with its current state", async () => {
     const backend = applyingBackend();
+
     const { ctx, sent } = operationContextFor(model, "notes.update", {
       principals,
       probe: held,
       respond: backend.respond,
       target: NOTE_TARGET,
     });
+
     expect(await runOperationCheck(invalidCredentialRefused, ctx)).toEqual({ kind: "finding", verdict: "SECURITY" });
     expect(new Set(sent.map((s) => s.path))).toEqual(new Set([NOTE_TARGET.path]));
+
     for (const s of sent) expect(s.options.body).toEqual({ title: "first" });
     expect(backend.records).toEqual(untouched());
   });
@@ -121,6 +126,7 @@ describe("auth.invalid-credential-refused planning", () => {
         },
       }),
     );
+
     expect(invalidCredentialRefused.plan(operationContextFor(paired, "pair").ctx)).toEqual({
       needs: "an alternative of one scheme, for a credential to stand in for",
       ok: false,

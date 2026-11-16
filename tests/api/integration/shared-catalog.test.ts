@@ -10,6 +10,7 @@ import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 const DEFECT_VERDICTS = new Set(["BACKEND_BUG", "SECURITY", "SPEC_BUG"]);
 
 let open: Array<{ close: () => Promise<void> }> = [];
+
 afterEach(async () => {
   for (const server of open) await server.close();
   open = [];
@@ -23,6 +24,7 @@ const item = {
 
 function spec(): OpenApiDocument {
   const entity = { name: "catalog" };
+
   return {
     ...bearerSecurity(),
     info: { title: "catalog", version: "1" },
@@ -90,8 +92,10 @@ function sendJson(res: ServerResponse, status: number, body: unknown): void {
 
 async function createTemplate(rows: Template[], req: IncomingMessage, res: ServerResponse): Promise<void> {
   const chunks: Buffer[] = [];
+
   for await (const chunk of req) chunks.push(chunk as Buffer);
   const body = JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}") as { name?: unknown };
+
   if (typeof body.name !== "string" || body.name === "") return sendJson(res, 400, { error: "invalid" });
   const row = { id: `tpl_${rows.length + 1}`, name: body.name };
   rows.push(row);
@@ -100,6 +104,7 @@ async function createTemplate(rows: Template[], req: IncomingMessage, res: Serve
 
 function readTemplate(rows: Template[], id: string | undefined, res: ServerResponse): void {
   const row = rows.find((template) => template.id === id);
+
   if (row === undefined) return sendJson(res, 404, { error: "missing" });
   sendJson(res, 200, row);
 }
@@ -108,7 +113,7 @@ function isTemplateList(parts: string[]): boolean {
   return parts[0] === "v1" && parts[1] === "projects" && parts[3] === "templates" && parts.length === 4;
 }
 
-/* Every token sees the same templates: the catalog is shared, not a tenant's. */
+// Every token sees the same templates: the catalog is shared, not a tenant's.
 async function route(
   { document, rows }: { document: OpenApiDocument; rows: Template[] },
   req: IncomingMessage,
@@ -116,12 +121,17 @@ async function route(
 ): Promise<void> {
   const url = new URL(req.url ?? "/", "http://127.0.0.1");
   const method = (req.method ?? "GET").toUpperCase();
+
   if (url.pathname === "/openapi.json") return sendJson(res, 200, document);
   const token = typeof req.headers.authorization === "string" ? req.headers.authorization : "";
+
   if (token !== "Bearer alpha" && token !== "Bearer beta") return sendJson(res, 401, { error: "unauthorized" });
   const parts = url.pathname.split("/").filter(Boolean);
+
   if (isTemplateList(parts) && method === "GET") return sendJson(res, 200, rows);
+
   if (parts.length === 4 && method === "POST") return createTemplate(rows, req, res);
+
   if (parts.length === 5 && method === "GET") return readTemplate(rows, parts[4], res);
   res.writeHead(404);
   res.end();
@@ -130,18 +140,22 @@ async function route(
 async function serve(): Promise<string> {
   const document = spec();
   const rows: Template[] = [];
+
   const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     void route({ document, rows }, req, res);
   });
+
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   open.push({ close: () => new Promise<void>((resolve) => server.close(() => resolve())) });
+
   return url;
 }
 
 describe("shared catalog", () => {
   it("does not call a shared template a tenant leak", async () => {
     const url = await serve();
+
     const result = await run({
       baseUrl: url,
       principals: {
@@ -152,9 +166,10 @@ describe("shared catalog", () => {
       seed: 1,
       spec: `${url}/openapi.json`,
     });
+
     const defects = result.findings.filter((finding) => DEFECT_VERDICTS.has(finding.verdict));
     expect(defects).toEqual([]);
-    /* The only get in this run asked for an id that was never listed (404): no pass to claim. */
+    // The only get in this run asked for an id that was never listed (404): no pass to claim.
     const get = result.scope.operations.find((op) => op.operationId === "catalog.get");
     expect(get?.status).not.toBe("failed");
     expect(get?.findings).toBe(0);

@@ -19,11 +19,14 @@ export const equalityFilterSelectsOne: Check<{
 }>({
   plan: (ctx) => {
     const target = ctx.records[0];
+
     if (!filterable(ctx) || !identityIsFilterable(ctx) || target === undefined) return cannot();
     const id = idOf(target, ctx.identity);
+
     if (id === undefined) return cannot(NO_IDENTITY);
     const field = filterIdentity(ctx);
     const term = filterTerm(conv(ctx), { field, op: "eq", value: id });
+
     return term === null
       ? cannot("a filter grammar that can express equality on the identity")
       : ready({ field, id, term });
@@ -35,13 +38,16 @@ export const equalityFilterSelectsOne: Check<{
   subjects: subjectsOf.list,
   async run(ctx, { field, id, term }): Promise<Outcome> {
     const result = await list(ctx, { ...q(ctx, { limit: pageSize(ctx) }), ...term });
-    /* A rejected filter is not a wrong answer. If the backend says this field is not
-     * filterable, that is a capability statement — the gap belongs to x-query, which is
-     * already reported, not here. Reading a 4xx as "returned zero records" invents a defect. */
+
+    // A rejected filter is not a wrong answer. If the backend says this field is not
+    // filterable, that is a capability statement — the gap belongs to x-query, which is
+    // already reported, not here. Reading a 4xx as "returned zero records" invents a defect.
     if (result.exchange.status >= 400)
       return ctx.findings.unresolved(this.id, ctx.entityName, "the equality filter was rejected");
     const got = ids(result.items, ctx.identity);
+
     if (got.length === 1 && got[0] === id) return ASSERTED;
+
     return ctx.findings.backend(this.id, ctx.entityName, {
       summary: "equality filter on the identity does not select exactly one record",
       detail: `filter=${field}.eq.${id} returned ${got.length} records (${got.slice(0, 5).join(", ")})`,

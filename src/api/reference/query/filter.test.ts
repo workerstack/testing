@@ -6,6 +6,7 @@ import { parseFilter } from "./filter.ts";
 
 const terms = (count: number): string =>
   `and(${Array.from({ length: count }, (_, i) => `position.neq.${i}`).join(",")})`;
+
 const status = (value: string) => ({ asText: false, field: "status", kind: "cmp", nullsMatch: false, op: "eq", value });
 
 describe("parseFilter: terms", () => {

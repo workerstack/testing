@@ -3,15 +3,13 @@ import { join, relative } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-/*
- * The architecture rules AGENTS.md states hold in the code, and the numbers it gives are the ones
- * the linter enforces: a rule a contributor reads is a rule that fails when broken.
- */
+// The architecture rules AGENTS.md states hold in the code, and the numbers it gives are the ones
+// the linter enforces: a rule a contributor reads is a rule that fails when broken.
 
 const ROOT = join(import.meta.dirname, "..", "..");
 const AGENTS = readFileSync(join(ROOT, "AGENTS.md"), "utf8");
 
-/* A catch-all name says nothing about what a module does: name it for that instead. */
+// A catch-all name says nothing about what a module does: name it for that instead.
 const VAGUE = /^(utils?|helpers?|misc)$/;
 
 /** Source files under `dirs`, as repository paths. */
@@ -61,10 +59,11 @@ describe("the architecture rules", () => {
   });
 
   it("are stated in AGENTS.md with the limits the linter enforces", () => {
-    /* The config the standards pack generates; sync writes it on install, under a `//` header line. */
+    // The config the standards pack generates; sync writes it on install, under a `//` header line.
     const lint = JSON.parse(readFileSync(join(ROOT, ".oxlintrc.jsonc"), "utf8").replace(/^\/\/.*\n/, "")) as {
       rules: Record<string, unknown>;
     };
+
     const limit = (rule: string): number => (lint.rules[`eslint/${rule}`] as [string, { max: number }])[1].max;
     const maxParams = /const MAX = (\d+)/.exec(readFileSync(join(ROOT, "lint", "max-params.ts"), "utf8"))?.[1];
     const section = AGENTS.slice(AGENTS.indexOf("## Architecture rules"));

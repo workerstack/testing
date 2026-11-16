@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { cellText } from "../cell.ts";
 import { ROW } from "../model/row.ts";
 import { api, BETA, rowsOf, TABLES } from "./__fixtures__/api.ts";
 import {
@@ -68,7 +69,7 @@ describe("liveRows", () => {
     const kept = await table("kept");
     const gone = await table("gone");
     await table("theirs", BETA);
-    await call("DELETE", `${TABLES}/${String(gone["id"])}`);
+    await call("DELETE", `${TABLES}/${cellText(gone["id"])}`);
     const live = await liveRows(state, state.table, { project_id: "proj_alpha", table_id: "x", unset: undefined });
     expect(live.map((row) => row["id"])).toEqual([kept["id"]]);
   });
@@ -91,7 +92,7 @@ describe("assertUnique", () => {
       status: 409,
     });
     await expect(
-      assertUnique(state, { entity: state.table, record: copy }, String(first["id"])),
+      assertUnique(state, { entity: state.table, record: copy }, cellText(first["id"])),
     ).resolves.toBeUndefined();
     await expect(
       assertUnique(state, { entity: state.table, record: { ...copy, project_id: "proj_beta" } }),
@@ -122,21 +123,21 @@ describe("refreshParentCount", () => {
     const { state, table } = await api();
     const parent = await table("t");
     await state.store.insert(ROW, { id: "r1", label: "a", table_id: parent["id"] });
-    await refreshParentCount(state, ROW, { table_id: String(parent["id"]) });
-    expect((await state.store.byId(state.table, String(parent["id"])))?.["row_count"]).toBe(1);
+    await refreshParentCount(state, ROW, { table_id: cellText(parent["id"]) });
+    expect((await state.store.byId(state.table, cellText(parent["id"])))?.["row_count"]).toBe(1);
   });
 
   it("touches nothing for another entity, a row without a table, or under PARENT_PROJECTION_STALE", async () => {
     const { state, table } = await api({ defects: ["PARENT_PROJECTION_STALE"] });
     const parent = await table("t");
     await state.store.insert(ROW, { id: "r1", label: "a", table_id: parent["id"] });
-    await refreshParentCount(state, ROW, { table_id: String(parent["id"]) });
+    await refreshParentCount(state, ROW, { table_id: cellText(parent["id"]) });
     const clean = await api();
     const update = vi.spyOn(clean.state.store, "update");
     await refreshParentCount(clean.state, clean.state.table, { table_id: "t" });
     await refreshParentCount(clean.state, ROW, {});
     expect(update).not.toHaveBeenCalled();
-    expect((await state.store.byId(state.table, String(parent["id"])))?.["row_count"]).toBe(0);
+    expect((await state.store.byId(state.table, cellText(parent["id"])))?.["row_count"]).toBe(0);
   });
 });
 
@@ -144,7 +145,7 @@ describe("readModifyWrite", () => {
   it("writes the whole record read before the patch", async () => {
     const { state, table } = await api();
     const made = await table("t");
-    const updated = await readModifyWrite(state, { entity: state.table, id: String(made["id"]) }, { position: 9 });
+    const updated = await readModifyWrite(state, { entity: state.table, id: cellText(made["id"]) }, { position: 9 });
     expect(updated).toMatchObject({ name: "t", position: 9 });
     expect(await readModifyWrite(state, { entity: state.table, id: "missing" }, { position: 1 })).toBeNull();
   });

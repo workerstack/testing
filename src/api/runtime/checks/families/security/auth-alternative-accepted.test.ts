@@ -8,6 +8,7 @@ import { NOTE_TARGET, securedDoc, undeclaredDoc } from "./__fixtures__/secured-a
 import { alternativeAccepted, controlOf } from "./auth-alternative-accepted.ts";
 
 const ok = { "200": { description: "ok" } };
+
 const model = modelOf(
   securedDoc({
     "/optional": { get: { operationId: "optional.read", responses: ok, security: [{}, { jwt: [] }] } },
@@ -16,16 +17,20 @@ const model = modelOf(
     },
   }),
 );
+
 const principals = [actorOf("alpha", { scope: { project_id: "proj_a" } })] as [ReturnType<typeof actorOf>];
+
 const scheme = (sent: { options: { as: object } }): string =>
   "scheme" in sent.options.as ? String(sent.options.as.scheme) : "principal" in sent.options.as ? "first" : "anonymous";
 
-/* Answers by the scheme the request named: a status, or an error thrown before anything is sent. */
+// Answers by the scheme the request named: a status, or an error thrown before anything is sent.
 const by =
   (answers: Record<string, number | Error>): SentResponder =>
   (sent) => {
     const answer = answers[scheme(sent)] ?? 200;
+
     if (answer instanceof Error) throw answer;
+
     return { status: answer };
   };
 
@@ -45,6 +50,7 @@ describe("auth.alternative-accepted", () => {
         principals,
         respond: by({ apiKey: status }),
       });
+
       expect(await runOperationCheck(alternativeAccepted, ctx)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
       expect(sent.map((s) => s.options.as)).toEqual([
         { principal: "alpha", scheme: "apiKey" },
@@ -68,6 +74,7 @@ describe("auth.alternative-accepted: a first alternative that is not refused", (
         principals,
         respond: by({ apiKey: 403, jwt: status }),
       });
+
       expect(await runOperationCheck(alternativeAccepted, ctx)).toEqual({
         kind: "unresolved",
         reason: `notes.list answered jwt with ${status}, not a success, so the refusal of apiKey says nothing of that alternative`,
@@ -88,10 +95,12 @@ describe("auth.alternative-accepted when it cannot judge", () => {
 
   it("is unresolved when the first alternative cannot be sent", async () => {
     const blocked = new UnsatisfiedSecurity("blocked", "alpha is BLOCKED for jwt");
+
     const { ctx } = operationContextFor(model, "notes.list", {
       principals,
       respond: by({ apiKey: 401, jwt: blocked }),
     });
+
     expect(await runOperationCheck(alternativeAccepted, ctx)).toEqual({
       kind: "unresolved",
       reason: "notes.list refused apiKey, and jwt could not be sent to compare: alpha is BLOCKED for jwt",
@@ -112,6 +121,7 @@ describe("auth.alternative-accepted when it cannot judge", () => {
       principals,
       respond: by({ apiKey: new Error("socket") }),
     });
+
     await expect(runOperationCheck(alternativeAccepted, ctx)).rejects.toThrow("socket");
   });
 
@@ -132,6 +142,7 @@ describe("auth.alternative-accepted when it cannot judge", () => {
     const { ctx, findings } = operationContextFor(model, "optional.read", {
       respond: by({ anonymous: 200, jwt: 401 }),
     });
+
     expect(await runOperationCheck(alternativeAccepted, ctx)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     expect(findings.findings[0]?.detail).toContain("The same request with no credential answered 200.");
   });
@@ -161,19 +172,20 @@ describe("auth.alternative-accepted planning", () => {
   });
 });
 
-/* A note beta created in its own project: an item read's target, which alpha has no access to. */
+// A note beta created in its own project: an item read's target, which alpha has no access to.
 const BETA_TARGET = {
   ...NOTE_TARGET,
   owner: "beta",
   params: { note_id: "n1", project_id: "proj_b" },
   path: "/projects/proj_b/notes/n1",
 };
+
 const team = [
   actorOf("alpha", { scope: { project_id: "proj_a" }, tenant: "t1" }),
   actorOf("beta", { scope: { project_id: "proj_b" }, tenant: "t2" }),
 ] as [ReturnType<typeof actorOf>, ...ReturnType<typeof actorOf>[]];
 
-/* Answers beta, the record's creator; anyone else finds no such record. */
+// Answers beta, the record's creator; anyone else finds no such record.
 const asBeta: SentResponder = (s) => ({
   status: "principal" in s.options.as && s.options.as.principal === "beta" ? 200 : 404,
 });
@@ -186,6 +198,7 @@ describe("auth.alternative-accepted on a record another principal created", () =
       respond: asBeta,
       target: BETA_TARGET,
     });
+
     expect(await runOperationCheck(alternativeAccepted, ctx)).toEqual({ kind: "asserted" });
     expect(sent.map((s) => [s.path, s.options.as])).toEqual([
       ["/projects/proj_b/notes/n1", { principal: "beta", scheme: "apiKey" }],
@@ -199,6 +212,7 @@ describe("auth.alternative-accepted on a record another principal created", () =
       respond: by({ apiKey: 403 }),
       target: BETA_TARGET,
     });
+
     expect(await runOperationCheck(alternativeAccepted, ctx)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     expect(sent.map((s) => s.options.as)).toEqual([
       { principal: "beta", scheme: "apiKey" },

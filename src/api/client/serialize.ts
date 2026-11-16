@@ -15,35 +15,36 @@ import type { RequestOptions } from "./types.ts";
 
 type FetchBody = NonNullable<RequestInit["body"]>;
 
-export interface EncodedBody {
+export type EncodedBody = {
   init?: FetchBody;
   /** Set this header. `undefined` means do not touch Content-Type. */
   contentType?: string;
   text?: string;
   bytes: number;
-}
+};
 
 /** A request's query: the caller's values, and each parameter's declared style by name. */
-export interface QueryWriting {
+export type QueryWriting = {
   query?: RequestOptions["query"];
   styles?: Readonly<Record<string, ParamStyle>> | undefined;
-}
+};
 
-/* Whether the URL already carries `name`, as itself or as a deepObject's `name[key]`. */
+// Whether the URL already carries `name`, as itself or as a deepObject's `name[key]`.
 function carries(url: URL, name: string): boolean {
   return [...url.searchParams.keys()].some((key) => key === name || key.startsWith(`${name}[`));
 }
 
-/* Whether one raw `name=value` pair, its name decoded as a query decodes it, is among `names`. */
+// Whether one raw `name=value` pair, its name decoded as a query decodes it, is among `names`.
 function namedIn(pair: string, names: Readonly<Record<string, unknown>>): boolean {
   return [...new URLSearchParams(pair).keys()].some((name) => Object.hasOwn(names, name));
 }
 
-/* Appends each parameter's pairs, as its style writes them, already percent-encoded. */
+// Appends each parameter's pairs, as its style writes them, already percent-encoded.
 function appendQuery(url: URL, values: Readonly<Record<string, unknown>>, styles: QueryWriting["styles"] = {}): void {
   const pairs = Object.entries(values).flatMap(([name, value]) =>
     serializeParam({ ...styles[name], in: "query", name }, value),
   );
+
   if (pairs.length === 0) return;
   const added = pairs.map(([key, value]) => `${key}=${value}`).join("&");
   url.search = url.search === "" ? added : `${url.search.slice(1)}&${added}`;
@@ -56,13 +57,14 @@ function appendQuery(url: URL, values: Readonly<Record<string, unknown>>, styles
 export function requestUrl(baseUrl: string, path: string, { query, styles }: QueryWriting = {}): URL {
   const url = new URL(isAbsoluteHttpUrl(path) ? path : `${baseUrl}${path}`);
   const values = Object.fromEntries(Object.entries(query ?? {}).filter(([, value]) => value !== undefined));
-  /* Pair by pair, not through `searchParams`, which would rewrite the pairs it keeps as a form. */
+  // Pair by pair, not through `searchParams`, which would rewrite the pairs it keeps as a form.
   url.search = url.search
     .slice(1)
     .split("&")
     .filter((pair) => pair !== "" && !namedIn(pair, values))
     .join("&");
   appendQuery(url, values, styles);
+
   return url;
 }
 
@@ -76,7 +78,7 @@ export function addRequiredQuery(
   appendQuery(url, Object.fromEntries(missing), styles);
 }
 
-/* A path segment or query value that is the text of a missing value, never something the API tester chose. */
+// A path segment or query value that is the text of a missing value, never something the API tester chose.
 export function carriesMissingValue(url: URL): boolean {
   return (
     url.pathname.split("/").some((segment) => decoded(segment) === "undefined") ||
@@ -94,33 +96,47 @@ function decoded(segment: string): string {
 
 export function encodeBody(body: unknown, contentType: string | null | undefined): EncodedBody {
   if (body === undefined) return { bytes: 0 };
+
   if (contentType === null) return asIs(body);
-  /* fetch sets multipart/form-data; boundary=… — setting it ourselves drops the boundary. */
+
+  // fetch sets multipart/form-data; boundary=… — setting it ourselves drops the boundary.
   if (isFormData(body)) return { bytes: formDataBytes(body), init: body };
+
   if (isURLSearchParams(body)) {
     const text = body.toString();
     const type = contentType ?? "application/x-www-form-urlencoded";
+
     return { bytes: utf8Bytes(text), contentType: type, init: body, text };
   }
+
   if (isRawBytes(body) || typeof body === "string") {
     const encoded = asIs(body);
+
     if (contentType !== undefined) encoded.contentType = contentType;
+
     return encoded;
   }
+
   const text = JSON.stringify(body);
+
   return { bytes: utf8Bytes(text), contentType: contentType ?? "application/json", init: text, text };
 }
 
-/* Sent as it is, without touching Content-Type; anything fetch cannot send is sent as JSON. */
+// Sent as it is, without touching Content-Type; anything fetch cannot send is sent as JSON.
 function asIs(body: unknown): EncodedBody {
   const encoded: EncodedBody = { bytes: bodyByteLength(body), init: asBodyInit(body) ?? JSON.stringify(body) };
+
   if (typeof body === "string") encoded.text = body;
+
   return encoded;
 }
 
 function asBodyInit(body: unknown): FetchBody | undefined {
   if (typeof body === "string") return body;
+
   if (isFormData(body) || isURLSearchParams(body) || isRawBytes(body)) return body as FetchBody;
+
   if (body instanceof ReadableStream) return body as FetchBody;
+
   return undefined;
 }

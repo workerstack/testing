@@ -4,11 +4,9 @@ import type { Responder } from "../__fixtures__/harness.ts";
 import { notesContext } from "../query/__fixtures__/notes.ts";
 import { createFresh, type Fresh } from "./create.ts";
 
-/*
- * A create meant to succeed. A client-chosen identity the API tester never saw can still be taken by another
- * tenant's record, so its 409 is retried under another identity a few times; a 409 on a body with
- * no identity of its own is about something else, and comes straight back.
- */
+// A create meant to succeed. A client-chosen identity the API tester never saw can still be taken by another
+// tenant's record, so its 409 is retried under another identity a few times; a 409 on a body with
+// no identity of its own is about something else, and comes straight back.
 
 const WITH_ID = { properties: { id: { type: "string" }, name: { type: "string" } }, required: ["id", "name"] };
 const WITHOUT_ID = { properties: { name: { type: "string" } }, required: ["name"] };
@@ -17,16 +15,19 @@ const answering =
   (...statuses: number[]): Responder =>
   () => ({ status: statuses.shift() ?? 201 });
 
-/* The create a test expects was sent. */
+// The create a test expects was sent.
 function sentOf(fresh: Fresh): Extract<Fresh, { exchange: unknown }> {
   if ("withheld" in fresh) throw new Error(fresh.withheld);
+
   return fresh;
 }
 
 function setup(respond: Responder, tracked: boolean) {
   const { ctx, sent } = notesContext(respond, tracked ? { takenIdentities: new Set<string>() } : {});
   const createOp = ctx.createOp;
+
   if (createOp === undefined) throw new Error("the notes have a create");
+
   return { createOp, ctx, sent };
 }
 
@@ -88,7 +89,7 @@ describe("createFresh", () => {
   });
 });
 
-/* A client-chosen integer identity in a small range, as a server whose id space spans tenants takes them. */
+// A client-chosen integer identity in a small range, as a server whose id space spans tenants takes them.
 const WITH_INTEGER_ID = {
   properties: { id: { maximum: 999, minimum: 1, type: "integer" }, name: { minLength: 1, type: "string" } },
   required: ["id", "name"],
@@ -120,6 +121,7 @@ describe("createFresh with a bounded integer identity", () => {
 describe("createFresh as a principal a higher rank outranks", () => {
   it("withholds a create a higher rank alone may send, sending nothing", async () => {
     const { createOp, ctx, sent } = setup(answering(201), false);
+
     const ranked = {
       ...ctx,
       actors: [
@@ -127,6 +129,7 @@ describe("createFresh as a principal a higher rank outranks", () => {
         { ...ctx.actor, id: "low", rank: 0 },
       ],
     };
+
     const required = { ...createOp, privilegedRequired: ["name"] };
     expect(await createFresh(ranked, required, WITHOUT_ID, "low")).toEqual({
       withheld:

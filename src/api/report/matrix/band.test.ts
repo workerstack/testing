@@ -13,6 +13,7 @@ describe("entityBand", () => {
       entities: [{ name: "table", readSurface: ["GET /table", "GET /table/{id}"] }, "row"],
       invalidates: [{ routes: ["GET /table", "GET /table"], writer: "row" }],
     });
+
     expect(svg).toContain('<svg viewBox="0 0 1120 172"');
     expect(svg).toContain('<circle cx="373.3333333333333" cy="56" r="16" fill="#f0c14b"/>');
     expect(svg).toContain(">2 read surfaces</text>");
@@ -49,6 +50,7 @@ describe("entityBand", () => {
       ],
       tested: ["a", "b"],
     });
+
     expect(svg).not.toMatch(/<path d="M \d/);
     expect(svg).not.toContain("no x-invalidate edges");
   });
@@ -57,6 +59,7 @@ describe("entityBand", () => {
 describe("entityBand of a crowd", () => {
   it("draws a crowd's parents as bars, busiest first, with how many more there are and who has no claim", () => {
     const crowd = names(32);
+
     const svg = bandOf({
       entities: crowd,
       invalidates: [
@@ -66,6 +69,7 @@ describe("entityBand of a crowd", () => {
         { routes: ["GET /e5"], writer: "e5" },
       ],
     });
+
     expect(svg).toContain(
       '<p class="forest-lead">32 entities · 32 cross-entity claims · 30 parents · 2 with no invalidate edge</p>',
     );

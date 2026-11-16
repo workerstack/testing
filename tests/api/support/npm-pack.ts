@@ -1,7 +1,7 @@
 /** What `npm pack --dry-run --json` says it would ship. */
-export interface PackedManifest {
+export type PackedManifest = {
   files: Array<{ path: string }>;
-}
+};
 
 /**
  * The manifests in `npm pack --json` output. npm 10 runs `prepare` despite `--ignore-scripts`, so a
@@ -11,8 +11,10 @@ export interface PackedManifest {
 export function packedManifests(stdout: string): PackedManifest[] {
   const lines = stdout.split("\n");
   const start = lines.findIndex((line) => line.startsWith("[") || line.startsWith("{"));
+
   try {
     if (start < 0) throw new Error("no JSON in the output");
+
     return Object.values(JSON.parse(lines.slice(start).join("\n")) as object) as PackedManifest[];
   } catch (error) {
     throw new Error(`npm pack printed no manifest JSON (${(error as Error).message}): ${stdout.slice(0, 200)}`, {

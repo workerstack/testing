@@ -44,16 +44,19 @@ function addDuplicate(paths: Paths): void {
   } as never;
 }
 
-/* Copies the table its path names, recording each source asked for, and 404 for an unknown one. */
+// Copies the table its path names, recording each source asked for, and 404 for an unknown one.
 function duplicateTable(world: TableWorld, duplicated: string[]): Route {
   return ({ method, res, url }) => {
     const copy = /\/tables\/([^/]+)\/duplicate$/.exec(url.pathname);
+
     if (copy === null || method !== "POST") return false;
     const source = copy[1] ?? "";
     duplicated.push(source);
+
     if (!world.tables.has(source)) return reply(res, 404);
     const id = world.nextId();
     world.tables.set(id, { id, name: "copy" });
+
     return reply(res, 201, { id, name: "copy" });
   };
 }
@@ -94,10 +97,8 @@ function addColumnUpdate(paths: Paths): void {
   } as never;
 }
 
-/*
- * One table t1 with one column c1; `seen` records the column add and each column update. The create
- * answers the record, with the name it was sent, so the seeded instance is that answer.
- */
+// One table t1 with one column c1; `seen` records the column add and each column update. The create
+// answers the record, with the name it was sent, so the seeded instance is that answer.
 function columnRoutes(seen: string[]): Route[] {
   return [
     ({ method, res, url }) =>
@@ -111,18 +112,24 @@ function columnRoutes(seen: string[]): Route[] {
     ({ method, res, url }) => {
       if (!url.pathname.endsWith("/columns") || method !== "POST") return false;
       seen.push("add");
+
       return reply(res, 200, { id: "t1" });
     },
     ({ method, res, url }) => {
       const update = /\/tables\/([^/]+)\/columns\/([^/]+)$/.exec(url.pathname);
+
       if (update === null || method !== "PATCH") return false;
       seen.push(`${update[1]}:${update[2]}`);
+
       return reply(res, 200, { id: "t1" });
     },
     ({ method, res, url }) => {
       const item = /\/tables\/([^/]+)$/.exec(url.pathname);
+
       if (item === null) return false;
+
       if (method === "DELETE") return reply(res, 204);
+
       return (method === "GET" || method === "PATCH") && reply(res, 200, { id: item[1] });
     },
   ];
@@ -162,7 +169,7 @@ function addReorder(paths: Paths): void {
   } as never;
 }
 
-/* Tables and their column ids; a reorder must name every column, and each order asked is kept. */
+// Tables and their column ids; a reorder must name every column, and each order asked is kept.
 class ColumnWorld {
   readonly columns = new Map<string, string[]>();
   readonly orders: string[][] = [];
@@ -170,6 +177,7 @@ class ColumnWorld {
 
   next(): string {
     this.#seq += 1;
+
     return String(this.#seq);
   }
 
@@ -180,23 +188,31 @@ class ColumnWorld {
 
 async function reorder(world: ColumnWorld, { method, req, res, url }: Exchange): Promise<boolean> {
   const match = /\/tables\/([^/]+)\/columns\/order$/.exec(url.pathname);
+
   if (match === null || method !== "PUT") return false;
   const order = (await readJson<{ order?: string[] }>(req)).order ?? [];
   world.orders.push(order);
   const have = world.columns.get(match[1] ?? "") ?? [];
+
   if ([...order].sort().join() !== [...have].sort().join()) return reply(res, 400, { error: "not every column" });
+
   return reply(res, 200, world.row(match[1] ?? ""));
 }
 
 function columnTable(world: ColumnWorld, { method, res, url }: Exchange): boolean {
   const item = /\/tables\/([^/]+)$/.exec(url.pathname);
+
   if (item === null) return false;
   const id = item[1] ?? "";
+
   if (method === "GET") return world.columns.has(id) ? reply(res, 200, world.row(id)) : reply(res, 404);
+
   if (method === "DELETE") {
     world.columns.delete(id);
+
     return reply(res, 204);
   }
+
   return method === "PATCH" && reply(res, 200, world.row(id));
 }
 
@@ -210,13 +226,16 @@ function reorderRoutes(world: ColumnWorld): Route[] {
       if (!url.pathname.endsWith("/tables") || method !== "POST") return false;
       const id = `t${world.next()}`;
       world.columns.set(id, ["c1"]);
+
       return reply(res, 201, world.row(id));
     },
     ({ method, res, url }) => {
       const add = /\/tables\/([^/]+)\/columns$/.exec(url.pathname);
+
       if (add === null || method !== "POST") return false;
       const id = add[1] ?? "";
       world.columns.get(id)?.push(`c${world.next()}`);
+
       return reply(res, 200, world.row(id));
     },
     (exchange) => reorder(world, exchange),
@@ -289,9 +308,10 @@ function inviteMemberPath(memberParams: unknown[]) {
   };
 }
 
-/* Members invited and removed; setting a role first invites the member it binds. */
+// Members invited and removed; setting a role first invites the member it binds.
 function preludeInviteSpec(): OpenApiDocument {
   const params = [pathParam("org_id")];
+
   return {
     info: { title: "prelude-invite", version: "1" },
     openapi: "3.1.0",
@@ -324,15 +344,20 @@ function memberRoutes(world: MemberWorld): Route[] {
       if (!url.pathname.endsWith("/members") || method !== "POST") return false;
       const id = `m_${String((world.invited += 1))}`;
       world.members.set(id, { id, role: "member" });
+
       return reply(res, 201, world.members.get(id));
     },
     ({ method, res, url }) => {
       const item = /\/members\/([^/]+)$/.exec(url.pathname);
+
       if (item === null) return false;
+
       if (method === "DELETE") {
         world.members.delete(item[1] ?? "");
+
         return reply(res, 200, {});
       }
+
       return method === "PATCH" && reply(res, 200, world.members.get(item[1] ?? "") ?? {});
     },
   ];
@@ -350,19 +375,22 @@ function organizationRoutes(seen: string[], members: Array<{ id: string }>): Rou
       if (!url.pathname.endsWith("/invites") || method !== "POST") return false;
       seen.push("invite");
       members.push({ id: "mem_1" });
+
       return reply(res, 201, { id: "mem_1" });
     },
     ({ method, res, url }) => {
       if (!url.pathname.endsWith("/members/mem_1") || method !== "PATCH") return false;
       seen.push("role");
+
       return reply(res, 200, { id: "mem_1" });
     },
   ];
 }
 
-/* A run as one principal bound to `scope`, narrowed as `options` asks. */
+// A run as one principal bound to `scope`, narrowed as `options` asks.
 function runAs(baseUrl: string, options: { cohortSize?: number; only?: string[]; scope: Record<string, string> }) {
   const { scope, ...narrowing } = options;
+
   return run({
     baseUrl,
     ...narrowing,
@@ -416,6 +444,7 @@ describe("action on a seeded instance", () => {
   it("seeds a list-only entity and reports a coverage gap when a path stays empty", async () => {
     const spec = nestedSpec();
     const paths = spec.paths;
+
     if (paths === undefined) throw new Error("missing paths");
     addOrganizations(paths);
     addMemberActions(paths);

@@ -10,10 +10,11 @@ type LoadSqlite = () => Promise<Pick<typeof import("node:sqlite"), "DatabaseSync
 /** Whether this runtime can host the SQLite backend: a Node built without SQLite cannot. */
 export async function sqliteAvailable(load: LoadSqlite = () => import("node:sqlite")): Promise<boolean> {
   try {
-    /* Constructing is the real test: on some builds the module resolves but the class is
-     * unusable, and a probe that only imports would report a false positive. */
+    // Constructing is the real test: on some builds the module resolves but the class is
+    // unusable, and a probe that only imports would report a false positive.
     const { DatabaseSync } = await load();
     new DatabaseSync(":memory:").close();
+
     return true;
   } catch {
     return false;
@@ -33,14 +34,15 @@ export function d1Available(): boolean {
 }
 
 /** What the probe needs of a Postgres connection; postgres.js's client is one. */
-export interface ProbeConnection {
+export type ProbeConnection = {
   unsafe(query: string): PromiseLike<unknown>;
   end(options: { timeout: number }): Promise<void>;
-}
+};
 
 /** The real driver against the server the environment names: one short-lived session, notices silenced. */
 export async function connectProbe(): Promise<ReturnType<typeof postgres>> {
   const { default: connect } = await import("postgres");
+
   return connect({ connect_timeout: 3, database: "postgres", max: 1, onnotice: () => {} });
 }
 
@@ -51,8 +53,10 @@ export type PostgresStatus = "ready" | "unreachable" | "no-driver";
 export async function postgresStatus(connect: () => Promise<ProbeConnection> = connectProbe): Promise<PostgresStatus> {
   try {
     const sql = await connect();
+
     try {
       await sql.unsafe("select 1");
+
       return "ready";
     } finally {
       await sql.end({ timeout: 3 });

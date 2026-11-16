@@ -16,12 +16,10 @@ import { dereference } from "../../../src/api/spec/load/dereference.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 import { checkContext } from "../support/check-context.ts";
 
-/*
- * The union check reads each term alone and then the or(). A record another check creates between
- * those reads shows up in the or() but in neither earlier term read. That is the collection moving,
- * not or() selecting a record neither term matches. An or() that really adds strangers must still
- * be reported.
- */
+// The union check reads each term alone and then the or(). A record another check creates between
+// those reads shows up in the or() but in neither earlier term read. That is the collection moving,
+// not or() selecting a record neither term matches. An or() that really adds strangers must still
+// be reported.
 
 const closers: Array<() => Promise<void>> = [];
 
@@ -85,14 +83,17 @@ function spec(): OpenApiDocument {
 
 function matches(row: Record_, term: string): boolean {
   const [field = "", , value = ""] = term.split(".");
+
   return String(row[field]) === value;
 }
 
 function select(rows: Record_[], filter: string | null, strangers: boolean): Record_[] {
   if (filter === null) return rows;
   const or = /^or\((.*)\)$/.exec(filter)?.[1];
+
   if (or === undefined) return rows.filter((row) => matches(row, filter));
   const terms = or.split(",");
+
   return rows.filter((row) => (strangers && row["id"] === "t-b") || terms.some((term) => matches(row, term)));
 }
 
@@ -100,31 +101,38 @@ async function listen(handler: (req: IncomingMessage, res: ServerResponse) => vo
   const server = createServer(handler);
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   closers.push(() => new Promise((resolve) => server.close(() => resolve())));
+
   return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 }
 
 async function run(opts: { grows: boolean; strangers: boolean }): Promise<FindingCollector> {
   const id = "filter.or-composes-as-union";
   const check = entityChecks(CHECKS).find((item) => item.id === id);
+
   if (check === undefined) throw new Error(`no check ${id}`);
   const model = buildModel(dereference(spec()).doc);
   const listOp = model.byOperationId.get("template.list");
+
   if (listOp === undefined) throw new Error("missing template.list");
   const store = [...COHORT];
+
   const url = await listen((req, res) => {
     const at = new URL(req.url ?? "/", "http://127.0.0.1");
     const filter = at.searchParams.get("filter");
-    /* Another check creates a general template just before the or() is read. */
-    if (opts.grows && filter?.startsWith("or(") && !store.some((row) => row["id"] === "t-new")) {
+
+    // Another check creates a general template just before the or() is read.
+    if (opts.grows && filter?.startsWith("or(") && !store.some((row) => row["id"] === "t-new"))
       store.push({ category: "general", created_at: 999, id: "t-new" });
-    }
+
     const rows = select(store, filter, opts.strangers);
     const limit = Number(at.searchParams.get("limit") ?? 20);
     const page = Number(at.searchParams.get("page") ?? 1);
     res.writeHead(200, { "content-type": "application/json" });
     res.end(JSON.stringify({ templates: rows.slice((page - 1) * limit, page * limit) }));
   });
+
   const findings = new FindingCollector();
+
   const ctx = checkContext({
     actors: [],
     asyncOps: [],
@@ -156,8 +164,10 @@ async function run(opts: { grows: boolean; strangers: boolean }): Promise<Findin
     validator: new SchemaValidator(),
     waitOps: [],
   });
+
   expect(check.plan(ctx).ok).toBe(true);
   await planAndRun(check, ctx);
+
   return findings;
 }
 

@@ -82,7 +82,7 @@ function invite(): Record<string, unknown> {
   };
 }
 
-/* The invite's accept and revoke steps. */
+// The invite's accept and revoke steps.
 function grantPaths(): Record<string, unknown> {
   return {
     "/v1/invites/{token}/accept": {
@@ -125,34 +125,45 @@ export function memberSpec(): OpenApiDocument {
 }
 
 /** The member API, every invite body it was sent, and the ones a seed sent with a generated email. */
-export interface MemberBackend {
+export type MemberBackend = {
   handle: Handle;
   inviteBodies: unknown[];
   seedBodies: unknown[];
-}
+};
 
 export function memberBackend(): MemberBackend {
   const spec = memberSpec();
   const inviteBodies: unknown[] = [];
   const seedBodies: unknown[] = [];
+
   const handle: Handle = async (request) => {
     const { pathname } = request.url;
     const { method } = request;
+
     if (pathname === "/v1/openapi/spec" && method === "GET") return answer(200, spec);
+
     if (pathname === "/v1/orgs/org_1/members" && method === "GET") return answer(200, { members: [] });
+
     if (pathname === "/v1/orgs/org_1/members" && method === "POST") {
       const body = await readJson(request);
       inviteBodies.push(body);
       const email = (body as { invite_email?: unknown } | null | undefined)?.invite_email;
+
       if (typeof email === "string" && !email.includes("@")) {
         seedBodies.push(body);
+
         return answer(400, { error: "invalid email" });
       }
+
       return answer(201, { grant_id: "g1", token: "tok" });
     }
+
     if (pathname === "/v1/invites/tok/accept" && method === "POST") return answer(200, { ok: true });
+
     if (pathname === "/v1/orgs/org_1/grants/g1" && method === "DELETE") return answer(200, { ok: true });
+
     return answer(404);
   };
+
   return { handle: guarded(handle), inviteBodies, seedBodies };
 }

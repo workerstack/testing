@@ -8,14 +8,14 @@
 import { SHAPE_NAMES } from "./shapes.ts";
 
 /** One shard: its name, the conformance flags that run it, and what it needs. */
-export interface Shard {
+export type Shard = {
   name: string;
   flags: string[];
   /** The backend it needs a server for, beyond the in-process ones. */
   needs?: "postgres";
   /** About how long it takes on a CI runner, in minutes: its job's timeout is twice this. */
   minutes: number;
-}
+};
 
 /** The dialects every pass runs behind, postgrest first: it alone also runs the scope leg. */
 export const SHARD_DIALECTS: readonly string[] = ["postgrest", "classic", "linked", "jsonapi", "plain", "template"];
@@ -35,7 +35,9 @@ export function conformanceShards(shapes: readonly string[] = SHAPE_NAMES): Shar
     minutes: 8,
     name: `shapes-recall-${index + 1}`,
   }));
+
   const [first, ...others] = SHARD_DIALECTS;
+
   return [
     { flags: ["--legs", "suites"], minutes: 4, name: "suites" },
     {

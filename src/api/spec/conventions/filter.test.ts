@@ -15,7 +15,9 @@ const at = (grammar: FilterGrammar, extra: Partial<QueryConventions> = {}): Quer
 });
 
 const parsed = parseFilterGrammar({ ops: { eq: "is" }, term: "{field}[{op}]={value}" });
+
 if (!parsed.ok) throw new Error(parsed.error);
+
 const template = at("template", { filterGrammar: parsed.spec });
 
 describe("filterSpec", () => {

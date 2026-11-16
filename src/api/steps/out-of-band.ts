@@ -20,9 +20,9 @@ export class MailStep implements BuiltStep {
 }
 
 /** An out-of-band wait that still needs the scope name its value binds to. */
-export interface MailDraft {
+export type MailDraft = {
   as(name: string): MailStep;
-}
+};
 
 /** Waits for the `kind` of value sent to `address`: a mailed token, a magic link, an OTP. */
 export function mail(kind: string, address: string): MailDraft {

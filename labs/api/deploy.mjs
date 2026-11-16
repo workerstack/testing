@@ -18,12 +18,14 @@ const here = dirname(fileURLToPath(import.meta.url));
 const env = loadDotEnv();
 const accountId = env.CLOUDFLARE_ACCOUNT_ID;
 const token = env.CLOUDFLARE_API_TOKEN;
+
 if (!accountId || !token) {
   console.error("deploy: CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN must be set in .env");
   process.exit(1);
 }
 
 const requested = process.argv.slice(2);
+
 if (requested.length === 0) {
   console.error("deploy: pass world ids, e.g. node labs/api/deploy.mjs tiny shop");
   process.exit(2);
@@ -39,6 +41,7 @@ function run(cmd, args, cwd) {
       env: { ...process.env, CLOUDFLARE_ACCOUNT_ID: accountId, CLOUDFLARE_API_TOKEN: token },
       stdio: ["ignore", "pipe", "pipe"],
     });
+
     let out = "";
     let err = "";
     child.stdout.on("data", (chunk) => {
@@ -59,13 +62,16 @@ function run(cmd, args, cwd) {
 for (const id of requested) {
   const key = d1EnvKey(id);
   const databaseId = env[key] ?? process.env[key];
+
   if (!databaseId) {
     console.error(`deploy: missing ${key}. Run node labs/api/provision.mjs ${id}`);
     process.exit(1);
   }
+
   const dir = join(here, ".deploy", id);
   await mkdir(dir, { recursive: true });
   const name = `testing-labs-${id}`;
+
   const toml = `name = "${name}"
 main = "../../world.worker.ts"
 compatibility_date = "2026-01-15"
@@ -79,23 +85,30 @@ binding = "DB"
 database_name = "${name}"
 database_id = "${databaseId}"
 `;
+
   await writeFile(join(dir, "wrangler.toml"), toml);
   console.log(`── deploy ${name}`);
   const out = await run(wrangler, ["deploy"], dir);
   const match = out.match(/https:\/\/[^\s]+workers\.dev[^\s]*/);
+
   if (match) urls[id] = match[0].replace(/\/$/, "");
 }
 
 const urlPath = join(here, ".deploy", "urls.json");
 let previous = {};
+
 try {
   previous = JSON.parse(await readFile(urlPath, "utf8"));
 } catch {
   previous = {};
 }
+
 const merged = { ...previous, ...urls };
+
 await writeFile(urlPath, `${JSON.stringify(merged, null, 2)}\n`);
+
 console.log("deployed");
+
 for (const [id, url] of Object.entries(urls)) {
   console.log(`  ${id}  ${url}`);
   console.log(

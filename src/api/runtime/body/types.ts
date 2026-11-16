@@ -3,20 +3,20 @@
 import type { JsonSchema } from "../../spec/types.ts";
 import type { UploadContext } from "../upload.ts";
 
-export interface EncodedBody {
+export type EncodedBody = {
   body: unknown;
   /** `null` means headers are already final (FormData — fetch sets the boundary). */
   contentType: string | null | undefined;
-}
+};
 
 /** An OpenAPI Encoding Object, as far as serialization goes. */
-export interface FieldEncoding {
+export type FieldEncoding = {
   contentType?: string;
   style?: string;
   explode?: boolean;
-}
+};
 
-export interface EncodeOptions {
+export type EncodeOptions = {
   operationId: string;
   mediaType: string;
   schema: JsonSchema;
@@ -27,11 +27,11 @@ export interface EncodeOptions {
   uploads: UploadContext;
   /** Fields left out on purpose, such as a probe's missing required field: no file part is filled for one. */
   omit?: ReadonlySet<string>;
-}
+};
 
 /** Where a body is encoded for: the uploads it may draw on, and the variant and record it is. */
-export interface EncodePlacement {
+export type EncodePlacement = {
   uploads: UploadContext;
   variant?: string | undefined;
   index?: number | undefined;
-}
+};

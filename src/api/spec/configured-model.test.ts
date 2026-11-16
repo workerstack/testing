@@ -5,7 +5,7 @@ import { doc, list, member, ok, query } from "./__fixtures__/documents.ts";
 import { assertQueryNamesDeclared, buildConfiguredModel } from "./configured-model.ts";
 import { dereference } from "./load/dereference.ts";
 
-/* Three lists, one filtering by `filter_by`, one by `where`, one answering its next cursor as `next_before`, and a read. */
+// Three lists, one filtering by `filter_by`, one by `where`, one answering its next cursor as `next_before`, and a read.
 const searched = dereference(
   doc({
     "/v1/notes": {
@@ -23,11 +23,13 @@ const searched = dereference(
   }),
 ).doc;
 
-/* The names checked against the model of `searched` alone. */
+// The names checked against the model of `searched` alone.
 const checked = (names: Record<string, unknown>) => () =>
   assertQueryNamesDeclared({ query: names }, [buildConfiguredModel(searched, { query: names })]);
+
 const typo = checked({ params: { filter: "filtr_by" } });
 const built = (params: unknown) => () => buildConfiguredModel(searched, { query: { params: params as never } });
+
 const filterOf = (model: ReturnType<typeof buildConfiguredModel>, id: string) =>
   model.byOperationId.get(id)?.conventions.filter;
 
@@ -58,6 +60,7 @@ describe("buildConfiguredModel", () => {
         "/v1/search": { get: { operationId: "search", parameters: [query("arrange")], responses: ok(list(member)) } },
       }),
     ).doc;
+
     const config = { query: { params: { sort: "arrange" } } };
     const model = buildConfiguredModel(searched, config);
     expect(model.byOperationId.has("notes.list")).toBe(true);
@@ -84,6 +87,7 @@ describe("buildConfiguredModel envelope names", () => {
     const model = buildConfiguredModel(searched, {
       query: { envelope: { nextCursor: "next_before" }, params: { cursor: "before" } },
     });
+
     expect(model.byOperationId.get("events.list")?.conventions).toMatchObject({
       cursor: "before",
       envelope: { nextCursor: "next_before" },

@@ -13,6 +13,7 @@ import { INLINE_BODY_LIMIT } from "../exchanges/media.ts";
 /** True when `value` is a live multipart/binary object or an oversized string still on the heap. */
 export function holdsLiveBody(value: unknown): boolean {
   if (isFormData(value) || isURLSearchParams(value) || isRawBytes(value)) return true;
+
   return typeof value === "string" && utf8Encode(value).byteLength > INLINE_BODY_LIMIT;
 }
 

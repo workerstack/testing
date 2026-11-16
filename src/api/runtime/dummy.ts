@@ -6,11 +6,11 @@
 
 import { mulberry32 } from "./fixture.ts";
 
-export interface DummyFile {
+export type DummyFile = {
   bytes: Uint8Array;
   filename: string;
   mediaType: string;
-}
+};
 
 const PDF = /* @__PURE__ */ textBytes(`%PDF-1.1
 1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj
@@ -20,23 +20,23 @@ trailer<</Root 1 0 R>>
 %%EOF
 `);
 
-/* 1×1 RGB PNG. */
+// 1×1 RGB PNG.
 const PNG = /* @__PURE__ */ hex(
   "89504e470d0a1a0a0000000d4948445200000001000000010802000000907753de0000000c4944415408d763f8cfc000000301010018dd8db00000000049454e44ae426082",
 );
 
-/* 1×1 JPEG (JFIF). */
+// 1×1 JPEG (JFIF).
 const JPEG = /* @__PURE__ */ hex(
   "ffd8ffe000104a46494600010100000100010000ffdb00430001010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101ffc0000b080001000101011100ffc40014100100000000000000000000000000000000ffda00080001000100003f00fb00ffd9",
 );
 
-/* 1×1 GIF89a. */
+// 1×1 GIF89a.
 const GIF = /* @__PURE__ */ hex("47494638396101000100800000ffffff0000002c00000000010001000002024401003b");
 
-/* 1×1 lossless WebP. */
+// 1×1 lossless WebP.
 const WEBP = /* @__PURE__ */ hex("52494646240000005745425056503820180000003001009d012a01000002000000340025a8000002");
 
-/* 1×1 little-endian TIFF, white pixel. */
+// 1×1 little-endian TIFF, white pixel.
 const TIFF = /* @__PURE__ */ hex(
   "49492a00080000000e0000fe0004000100000000000000000100030001000000010000000101030001000000010000000201030003000000120000000301030001000000010000000601030001000000020000001101040001000000080000001501030001000000010000001601040001000000010000001701040001000000030000001a01050001000000c40000001b01050001000000cc0000001c010300010000000100000028010300010000000200000000000000080008000800000000000100000000000100",
 );
@@ -48,11 +48,11 @@ const TEXT_CSV = /* @__PURE__ */ textBytes("a,b\n1,2\n");
 const TEXT_JSON = /* @__PURE__ */ textBytes("{}");
 const TEXT_XML = /* @__PURE__ */ textBytes("<testing/>");
 
-interface DummyKind {
+type DummyKind = {
   mediaType: string;
   ext: string;
   bytes: Uint8Array;
-}
+};
 
 const KINDS: DummyKind[] = [
   { bytes: PDF, ext: "pdf", mediaType: "application/pdf" },
@@ -125,8 +125,10 @@ const MEDIA_OF_EXT: Record<string, string> = {
 export function extensionOf(mediaType: string, filename?: string): string {
   if (filename !== undefined) {
     const dot = filename.lastIndexOf(".");
+
     if (dot >= 0 && dot < filename.length - 1) return filename.slice(dot + 1).toLowerCase();
   }
+
   return EXT_OF[bareType(mediaType)] ?? "bin";
 }
 
@@ -147,47 +149,56 @@ export function dummyFile(options: {
   const ext = kind?.ext ?? extensionOf(mediaType, options.filename);
   const filename = options.filename ?? `${options.field}-${options.variant}-${options.index}.${ext}`;
   const bytes = bytesOf(kind, mediaType, options);
+
   return { bytes, filename, mediaType: kind?.mediaType ?? (mediaType === "" ? "application/octet-stream" : mediaType) };
 }
 
 function kindOf(mediaType: string, filename?: string): DummyKind | undefined {
   const bare = mediaType.toLowerCase();
   const byMedia = KINDS.find((kind) => kind.mediaType === bare);
+
   if (byMedia !== undefined) return byMedia;
+
   if (bare === "image/jpg") return KINDS.find((kind) => kind.mediaType === "image/jpeg");
   const ext = extensionOf(mediaType, filename);
   const mapped = mediaTypeOfExtension(ext);
+
   if (mapped !== undefined) return KINDS.find((kind) => kind.mediaType === mapped);
+
   return undefined;
 }
 
 /** Which dummy is drawn: the run's seed and the file's position in the cohort. */
-interface DummyDraw {
+type DummyDraw = {
   seed: number;
   index: number;
-}
+};
 
 function bytesOf(kind: DummyKind | undefined, mediaType: string, { seed, index }: DummyDraw): Uint8Array {
   if (kind !== undefined) return kind.bytes;
+
   if (mediaType.startsWith("text/")) return textBytes(`the API tester dummy ${seed} ${index}\n`);
+
   return octetDummy(seed, index);
 }
 
 function octetDummy(seed: number, index: number): Uint8Array {
   const rand = mulberry32((seed ^ (index * 7919)) >>> 0);
   const out = new Uint8Array(16);
+
   for (let i = 0; i < out.length; i++) out[i] = Math.floor(rand() * 256);
+
   return out;
 }
 
 /** Magic bytes a file starts with: each part is the bytes expected at an offset. */
-interface Signature {
+type Signature = {
   mediaType: string;
   minLength: number;
   parts: readonly (readonly [offset: number, bytes: readonly number[]])[];
-}
+};
 
-/* First match wins, so the order is the order the formats are tried in. */
+// First match wins, so the order is the order the formats are tried in.
 const SIGNATURES: readonly Signature[] = [
   { mediaType: "application/pdf", minLength: 5, parts: [[0, [0x25, 0x50, 0x44, 0x46]]] },
   { mediaType: "image/png", minLength: 8, parts: [[0, [0x89, 0x50, 0x4e, 0x47]]] },
@@ -209,26 +220,34 @@ const SIGNATURES: readonly Signature[] = [
 
 function matches(bytes: Uint8Array, signature: Signature): boolean {
   if (bytes.length < signature.minLength) return false;
+
   return signature.parts.every(([offset, expected]) => expected.every((byte, i) => bytes[offset + i] === byte));
 }
 
 /** A zip is also an Office document: the file name tells which. */
 function zipMediaType(filename?: string): string {
   const ext = filename === undefined ? "" : extensionOf("", filename);
+
   if (ext === "xlsx") return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
   if (ext === "docx") return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
   return "application/zip";
 }
 
 export function sniffMediaType(bytes: Uint8Array, filename?: string): string | undefined {
   const sniffed = SIGNATURES.find((signature) => matches(bytes, signature))?.mediaType;
+
   if (sniffed === "application/zip") return zipMediaType(filename);
+
   if (sniffed !== undefined) return sniffed;
+
   if (filename !== undefined) return mediaTypeOfExtension(extensionOf("", filename));
+
   return undefined;
 }
 
-/* Declared and actual types that name the same format, as "declared actual". */
+// Declared and actual types that name the same format, as "declared actual".
 const EQUIVALENT: ReadonlySet<string> = /* @__PURE__ */ new Set([
   "application/xml text/xml",
   "image/jpeg image/jpg",
@@ -238,10 +257,13 @@ const EQUIVALENT: ReadonlySet<string> = /* @__PURE__ */ new Set([
 
 export function mediaTypesCompatible(declared: string | undefined, actual: string | undefined): boolean {
   if (declared === undefined || declared === "" || declared === "application/octet-stream") return true;
+
   if (actual === undefined) return false;
   const want = bareType(declared);
   const have = bareType(actual);
+
   if (want.endsWith("/*")) return have.startsWith(want.slice(0, -1));
+
   return want === have || EQUIVALENT.has(`${want} ${have}`);
 }
 
@@ -255,9 +277,11 @@ function bareType(mediaType: string): string {
 }
 
 function hex(text: string): Uint8Array {
-  const clean = text.replace(/\s+/g, "");
+  const clean = text.replaceAll(/\s+/g, "");
   const out = new Uint8Array(clean.length / 2);
+
   for (let i = 0; i < out.length; i++) out[i] = Number.parseInt(clean.slice(i * 2, i * 2 + 2), 16);
+
   return out;
 }
 

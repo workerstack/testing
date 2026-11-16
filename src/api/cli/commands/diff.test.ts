@@ -12,7 +12,7 @@ import { main } from "../main.ts";
 import { bufferWriter } from "../writer.ts";
 import { commandDiff } from "./diff.ts";
 
-/* Two runs side by side: new, fixed and persisting findings. A report, never a gate. */
+// Two runs side by side: new, fixed and persisting findings. A report, never a gate.
 
 const finding = (entity: string) => ({
   check: "c",
@@ -73,7 +73,7 @@ describe("commandDiff", () => {
   });
 });
 
-/* The command line's way in: two folders as positionals, a report that exits 0 unless it cannot read them. */
+// The command line's way in: two folders as positionals, a report that exits 0 unless it cannot read them.
 describe("testing api diff", () => {
   it("takes two run folders as positionals", () => {
     expect(parseArgs(["diff", "a", "b", "--json"]).positionals).toEqual(["a", "b"]);

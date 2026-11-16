@@ -14,7 +14,7 @@ const SIGNUP = {
 
 describe("createCaller", () => {
   it("is null when the spec has no create", async () => {
-    const { input, findings } = selfInput(() => undefined);
+    const { input, findings } = selfInput(() => {});
     expect(await createCaller(input, findings)).toBeNull();
   });
 
@@ -23,6 +23,7 @@ describe("createCaller", () => {
       nonce: "n0",
       seed: 3,
     });
+
     const created = await createCaller(input, findings);
     expect(created).toMatchObject({ body: { handle: "Quarterly Report 0 n0" } });
     expect(sent.map((request) => `${request.method} ${request.path}`)).toEqual(["POST /me"]);
@@ -33,14 +34,14 @@ describe("createCaller", () => {
     const optional = { properties: { handle: { type: "string" } }, type: "object" };
     const { input, findings } = selfInput(() => ({ status: 201 }), me({ create: optional }), { resolveInput });
     expect(await createCaller(input, findings)).toMatchObject({ body: { handle: "from-hook" } });
-    /* Required but undescribed, or described only by fields it does not require. */
+    // Required but undescribed, or described only by fields it does not require.
     const undescribed = { required: ["handle"], type: "object" };
     const bare = selfInput(() => ({ status: 201 }), me({ create: undescribed }));
     expect(await createCaller(bare.input, bare.findings)).toMatchObject({ body: { handle: "Quarterly Report 0" } });
     const elsewhere = { properties: { label: { type: "string" } }, required: ["handle"], type: "object" };
     const other = selfInput(() => ({ status: 201 }), me({ create: elsewhere }));
     expect(await createCaller(other.input, other.findings)).toMatchObject({ body: { handle: "Quarterly Report 0" } });
-    /* Properties as a list is no schema at all: generation says so. */
+    // Properties as a list is no schema at all: generation says so.
     const listed = { properties: [], required: ["handle"], type: "object" };
     const odd = selfInput(() => ({ status: 201 }), me({ create: listed }));
     expect(await createCaller(odd.input, odd.findings)).toMatchObject({
@@ -52,12 +53,12 @@ describe("createCaller", () => {
 
 describe("createCaller, when it cannot", () => {
   it("cannot create through a route that needs an id, or without a body", async () => {
-    const pathed = selfInput(() => undefined, me({ create: SIGNUP, createPath: "/me/{slot}" }));
+    const pathed = selfInput(() => {}, me({ create: SIGNUP, createPath: "/me/{slot}" }));
     expect(await createCaller(pathed.input, pathed.findings)).toEqual({
       kind: "unresolved",
       reason: "me.create needs a path id",
     });
-    const bodiless = selfInput(() => undefined, me({ create: null }));
+    const bodiless = selfInput(() => {}, me({ create: null }));
     expect(await createCaller(bodiless.input, bodiless.findings)).toEqual({
       kind: "unresolved",
       reason: "me.create declares no request body",
@@ -70,12 +71,13 @@ describe("createCaller, when it cannot", () => {
       required: ["n"],
       type: "object",
     };
-    const { input, findings } = selfInput(() => undefined, me({ create: impossible }));
+
+    const { input, findings } = selfInput(() => {}, me({ create: impossible }));
     expect(await createCaller(input, findings)).toMatchObject({
       kind: "unresolved",
       reason: expect.stringContaining("me.create"),
     });
-    const malformed = selfInput(() => undefined, me({ create: { allOf: [{ allOf: 5 }] } }));
+    const malformed = selfInput(() => {}, me({ create: { allOf: [{ allOf: 5 }] } }));
     expect(await createCaller(malformed.input, malformed.findings)).toMatchObject({
       kind: "unresolved",
       reason: expect.stringContaining("allOf/0/allOf is not a list of schemas"),

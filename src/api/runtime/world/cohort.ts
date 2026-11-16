@@ -18,7 +18,7 @@ import { isPlanLimitResponse } from "./plan-limit.ts";
 import type { Record_ } from "./records.ts";
 import type { Scope, SeededCohort, Seeding } from "./types.ts";
 
-export interface CohortRun {
+export type CohortRun = {
   createOp: OperationModel;
   seeding: Seeding;
   scope: Scope;
@@ -37,14 +37,15 @@ export interface CohortRun {
   uniqueGap: string | undefined;
   existingIds: string[];
   lastFail: { member: CohortMember; exchange: Exchange } | undefined;
-}
+};
 
 /** `null` for an acknowledgment the API tester could not confirm: it names no record, so it joins no cohort. */
 export async function recordCreated(run: CohortRun, exchange: Exchange, sent: unknown): Promise<Record_ | null> {
   const { createOp, seeding, scope } = run;
   const { model, client, options } = seeding;
-  /* A create's id is the one its answer names, or one a read under it confirms. A record
-   * with neither is not the API tester's to track or remove: it joins no cohort and is reported. */
+
+  // A create's id is the one its answer names, or one a read under it confirms. A record
+  // with neither is not the API tester's to track or remove: it joins no cohort and is reported.
   const made = await createdRecord({
     client,
     createOp,
@@ -55,25 +56,33 @@ export async function recordCreated(run: CohortRun, exchange: Exchange, sent: un
     sent,
     ...(options.readable === undefined ? {} : { readable: options.readable }),
   });
+
   if (made === null) {
     options.onUnidentified?.(createOp.entity ?? createOp.operationId, createOp.operationId, exchange);
+
     return null;
   }
+
   if (made.acknowledged) run.acknowledged = true;
+
   if (made.unverified !== undefined) run.unverified ??= made.unverified;
   const id = returnedId(made.record, run.identity);
+
   if (createOp.entity !== null && id !== undefined) options.onCreate?.(createOp.entity, id, { ...scope.values });
+
   return made.record;
 }
 
 export async function postMember(run: CohortRun, member: CohortMember, nextUploads: UploadContext): Promise<Exchange> {
   const { createOp, seeding } = run;
+
   const encoded = await encodeForOperation(createOp, seeding.model, {
     fields: member.body,
     index: run.records.length,
     uploads: nextUploads,
     variant: member.variant,
   });
+
   return seeding.client.request("POST", run.path, {
     body: encoded.body,
     ...(encoded.contentType === undefined ? {} : { contentType: encoded.contentType }),
@@ -83,12 +92,10 @@ export async function postMember(run: CohortRun, member: CohortMember, nextUploa
   });
 }
 
-/*
- * A client-chosen identity is reserved before the first create, so no record the run knows of (an
- * ancestor's, another lane's) holds it. It is unique across every tenant, and this principal lists
- * only its own: one another tenant holds comes back 409. It is sent again under a fresh one
- * (`createWithClientId`), and `exhausted` says why when the last attempt was refused too.
- */
+// A client-chosen identity is reserved before the first create, so no record the run knows of (an
+// ancestor's, another lane's) holds it. It is unique across every tenant, and this principal lists
+// only its own: one another tenant holds comes back 409. It is sent again under a fresh one
+// (`createWithClientId`), and `exhausted` says why when the last attempt was refused too.
 export async function postFresh(
   run: CohortRun,
   member: CohortMember,
@@ -96,15 +103,18 @@ export async function postFresh(
 ): Promise<{ exchange: Exchange; sent: CohortMember; exhausted?: string }> {
   const { createOp, ownIdentity, schema, seeding } = run;
   const { options } = seeding;
+
   const at = {
     identity: ownIdentity,
     schema,
     taken: takenFor(options, createOp),
     token: `id-${member.variant}-${options.nonce ?? ""}`,
   };
+
   const first = reserveIdentity(member.body, at);
   const made = await createWithClientId(first, (body) => postMember(run, { ...member, body }, nextUploads), at);
   const sent = made.sent === member.body ? member : { ...member, body: made.sent };
+
   return { exchange: made.exchange, sent, ...(made.exhausted === undefined ? {} : { exhausted: made.exhausted }) };
 }
 
@@ -122,10 +132,13 @@ export function withGap(run: CohortRun, cohort: SeededCohort): SeededCohort {
 
 function seedRefused(run: CohortRun, member: CohortMember, exchange: Exchange): SeedError {
   const { createOp } = run;
+
   return new SeedError(
     createOp.operationId,
-    `seeding "${member.variant}" returned ${describeStatus(exchange)}: ` +
-      JSON.stringify(exchange.responseBody).slice(0, 300),
+    `seeding "${member.variant}" returned ${describeStatus(exchange)}: ${JSON.stringify(exchange.responseBody).slice(
+      0,
+      300,
+    )}`,
     { exchange, operationId: createOp.operationId, status: exchange.status },
   );
 }
@@ -133,7 +146,9 @@ function seedRefused(run: CohortRun, member: CohortMember, exchange: Exchange): 
 /** What a refused create leaves: the cohort so far, a documented gate, an adopted row, or a seed error. */
 export async function failOrAdopt(run: CohortRun, member: CohortMember, exchange: Exchange): Promise<SeededCohort> {
   const { createOp, seeding, scope, records, seededMembers } = run;
+
   if (records.length > 0) return withGap(run, { featureGate: null, members: seededMembers, records });
+
   if (isDocumentedFeatureGateDenial(createOp, exchange.status, exchange.responseBody)) {
     return withGap(run, {
       featureGate: {
@@ -145,17 +160,22 @@ export async function failOrAdopt(run: CohortRun, member: CohortMember, exchange
       records,
     });
   }
+
   if (isUniqueConflictResponse(createOp, exchange.status)) {
     const adopted = await adoptExisting(createOp, seeding, scope);
-    if (adopted !== null) {
+
+    if (adopted !== null)
       return withGap(run, { featureGate: null, members: seededMembers, records: [adopted], uniqueAdopted: true });
-    }
+
     throw seedRefused(run, member, exchange);
   }
+
   if (isPlanLimitResponse(exchange.status, exchange.responseBody)) {
     const adopted = await adoptExisting(createOp, seeding, scope);
+
     if (adopted !== null)
       return withGap(run, { adopted: true, featureGate: null, members: seededMembers, records: [adopted] });
   }
+
   throw seedRefused(run, member, exchange);
 }

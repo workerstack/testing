@@ -17,6 +17,7 @@ describe("test", () => {
 
   it("gives a test body the guard and a11y options, and the readiness, a11y, network and pointer helpers", () => {
     type Args = typeof test extends TestType<infer T, object> ? T : never;
+
     expectTypeOf<Args["guard"]>().toEqualTypeOf<GuardOptions>();
     expectTypeOf<Args["ready"]>().toEqualTypeOf<Ready>();
     expectTypeOf<Args["a11yDefaults"]>().toEqualTypeOf<A11yOptions>();

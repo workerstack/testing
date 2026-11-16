@@ -8,6 +8,7 @@ import type { MatrixReport } from "./types.ts";
 
 const mermaidOf = (input: MatrixReport): string[] => {
   const graph = buildMatrixGraphFromReport(input);
+
   return mermaidFromGraph(graph.entities, graph.invalidate).split("\n");
 };
 
@@ -27,6 +28,7 @@ describe("mermaidFromGraph", () => {
         invalidates: [{ routes: ["GET /table", "GET /row.v2"], writer: "row.v2" }],
       }),
     );
+
     expect(lines.slice(0, 4)).toEqual([
       "flowchart LR",
       "  table((table))",
@@ -51,7 +53,7 @@ describe("mermaidFromGraph", () => {
   });
 
   it("draws a crowd as its 24 busiest parents and a note", () => {
-    /* e1…e29 receive two claims each, e0 one; e59 writes to itself. */
+    // e1…e29 receive two claims each, e0 one; e59 writes to itself.
     const lines = mermaidOf(crowd(60, (i) => (i < 59 ? (i + 1) % 30 : 59)));
     expect(lines[0]).toBe("flowchart LR");
     expect(lines[1]).toBe('  e1(("e1 ← 2"))');

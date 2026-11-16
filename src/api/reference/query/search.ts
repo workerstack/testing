@@ -16,11 +16,15 @@ export function parseSearch(
     .split(/\s+/)
     .map((token) => token.trim())
     .filter((token) => token.length > 0);
+
   const fields = fieldsWhere(entity, "searchable");
+
   if (split.length === 0) return defects.has("SEARCH_EMPTY_MATCHES_NONE") ? { kind: "const", value: false } : null;
+
   if (fields.length === 0) return null;
   const tokens = defects.has("SEARCH_ONLY_FIRST_TOKEN") ? split.slice(0, 1) : split;
   const caseSensitive = defects.has("SEARCH_CASE_SENSITIVE");
+
   return {
     children: tokens.map((token) => ({ caseSensitive, fields, kind: "search", mode, token })),
     kind: "and",

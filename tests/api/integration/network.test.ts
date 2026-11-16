@@ -93,6 +93,7 @@ describe("interfaces and kind copy", () => {
     expect(describeNetworkKind("unknown")).toMatch(/never reached/);
     expect(networkRetryWaitMs(0)).toBe(250);
     expect(networkRetryWaitMs(4)).toBe(4_000);
+
     const err = new NetworkError({
       attempts: 5,
       kind: "offline",
@@ -100,6 +101,7 @@ describe("interfaces and kind copy", () => {
       method: "GET",
       url: "http://x.test/",
     });
+
     expect(isNetworkError(err)).toBe(true);
     expect(isNetworkError(new Error("x"))).toBe(false);
     expect(err.code).toBe("NETWORK");
@@ -123,10 +125,12 @@ describe("createNetworkGate", () => {
     let probes = 0;
     const sleeps: number[] = [];
     let clock = 0;
+
     const gate = createNetworkGate({
       now: () => clock,
       probe: async () => {
         probes += 1;
+
         return probes >= 2;
       },
       probeIntervalMs: 100,
@@ -136,6 +140,7 @@ describe("createNetworkGate", () => {
       },
       waitBudgetMs: 1_000,
     });
+
     const err = networkError("reset", "reset");
     const [a, b] = await Promise.all([gate.awaitRecovery(err), gate.awaitRecovery(err)]);
     expect(a).toBe(true);
@@ -150,6 +155,7 @@ describe("createNetworkGate", () => {
   it("exhausts the budget and fails fast afterwards", async () => {
     const waits: Array<{ kind: string; remainingMs: number }> = [];
     let clock = 0;
+
     const gate = createNetworkGate({
       now: () => clock,
       onWait: (info) => waits.push({ kind: info.kind, remainingMs: info.remainingMs }),
@@ -160,6 +166,7 @@ describe("createNetworkGate", () => {
       },
       waitBudgetMs: 120,
     });
+
     const err = networkError("offline", "off");
     expect(await gate.awaitRecovery(err)).toBe(false);
     expect(gate.exhausted).toBe(true);
@@ -174,6 +181,7 @@ describe("createNetworkGate", () => {
 
 async function usesDefaultBudget(): Promise<void> {
   let clock = 0;
+
   const gate = createNetworkGate({
     now: () => clock,
     probe: async () => true,
@@ -181,6 +189,7 @@ async function usesDefaultBudget(): Promise<void> {
       clock += ms;
     },
   });
+
   expect(await gate.awaitRecovery(networkError("reset", "reset"))).toBe(true);
   expect(clock).toBe(2_000);
 }
@@ -196,6 +205,7 @@ async function skipsZeroBudget(): Promise<void> {
 async function withFetch(impl: () => Promise<Response>, body: () => Promise<void>): Promise<void> {
   const original = globalThis.fetch;
   globalThis.fetch = impl as typeof fetch;
+
   try {
     await body();
   } finally {
@@ -207,22 +217,27 @@ describe("Client records a status-0 network exchange and retries", () => {
   it("journals the failed attempt and succeeds on retry", async () => {
     const seen: number[] = [];
     let hits = 0;
+
     const impl = async (): Promise<Response> => {
       hits += 1;
+
       if (hits === 1) throw net("ECONNRESET");
+
       return new Response("{}", { status: 200, headers: { "content-type": "application/json" } });
     };
+
     await withFetch(impl, async () => {
       const client = new Client({
         baseUrl: "http://x.test",
         maxInFlight: 1,
-        /* No awaitRecovery: a failed attempt is retried at once, never waited out. */
+        // No awaitRecovery: a failed attempt is retried at once, never waited out.
         network: { retries: 2 },
         onExchange: (exchange) => {
           seen.push(exchange.status);
         },
         redactor: new Redactor(),
       });
+
       const exchange = await client.get("/v1/x", { as: { anonymous: true } });
       expect(exchange.status).toBe(200);
       expect(seen).toEqual([0, 200]);
@@ -243,11 +258,15 @@ describe("Client records a status-0 network exchange and retries", () => {
 
   it("retries once more when recovery succeeds", async () => {
     let hits = 0;
+
     const impl = async (): Promise<Response> => {
       hits += 1;
+
       if (hits === 1) throw net("ECONNREFUSED");
+
       return new Response("{}", { status: 200 });
     };
+
     await withFetch(impl, async () => {
       expect((await recoveringClient(true).get("/v1/x", { as: { anonymous: true } })).status).toBe(200);
     });
@@ -283,6 +302,7 @@ describe("progress and report name the network", () => {
       phase: "test",
       requests: 1,
     };
+
     expect(formatProgressLine(snap)).toMatch(/status=network/);
   });
 
@@ -298,6 +318,7 @@ describe("progress and report name the network", () => {
       network: { attempts: 5, incomplete: true, kind: "offline", url: "http://x.test/v1", waitedMs: 60_000 },
       startedAt: new Date("2026-08-18T00:00:00.000Z"),
     } as unknown as ReportInput);
+
     expect(md).toMatch(/\*\*Network\*\*: offline after 5 attempt\(s\) · waited 60s — run incomplete/);
   });
 });
@@ -332,6 +353,7 @@ describe("run() names a dead API as net.unreachable", () => {
         },
       }),
     );
+
     const result = await run({
       baseUrl: "http://127.0.0.1:1",
       network: { retries: 0, waitMs: 0 },
@@ -339,6 +361,7 @@ describe("run() names a dead API as net.unreachable", () => {
       seed: 1,
       spec,
     });
+
     expect(result.network?.incomplete).toBe(true);
     expect(result.network?.kind).toMatch(/refused|unreachable|offline|unknown/);
     expect(result.findings.some((finding) => finding.check === "net.unreachable")).toBe(true);

@@ -26,7 +26,7 @@ const ERRORS: Array<[number, string]> = [
 ];
 
 export function errorResponses(ctx: SpecContext, codes: number[]): Json {
-  /* A document may describe every failure at once: one `default` response and one schema. */
+  // A document may describe every failure at once: one `default` response and one schema.
   if (ctx.shape.rangeStatuses === true) {
     return {
       default: {
@@ -35,7 +35,9 @@ export function errorResponses(ctx: SpecContext, codes: number[]): Json {
       },
     };
   }
+
   const out: Json = {};
+
   for (const [status, key] of ERRORS) {
     if (!codes.includes(status)) continue;
     out[String(status)] = {
@@ -43,12 +45,14 @@ export function errorResponses(ctx: SpecContext, codes: number[]): Json {
       description: key,
     };
   }
+
   return out;
 }
 
 /** The component schemas the error responses refer to: one per status, and the catch-all `Error`. */
 export function errorSchemas(): Json {
   const schemas: Json = {};
+
   for (const [status, key] of ERRORS) schemas[`Err${status}`] = errorSchema(status, key);
   schemas["Error"] = {
     additionalProperties: false,
@@ -72,6 +76,7 @@ export function errorSchemas(): Json {
     required: ["type", "title", "status"],
     type: "object",
   };
+
   return schemas;
 }
 

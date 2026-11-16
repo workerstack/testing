@@ -15,6 +15,7 @@ export function isQueryEnvelopeRole(key: string): key is QueryEnvelopeRole {
  */
 export function readEnvelopeNames(raw: unknown): QueryEnvelopeNames | undefined {
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+
   return Object.fromEntries(
     Object.entries(raw).filter(([role, name]) => isQueryEnvelopeRole(role) && typeof name === "string" && name !== ""),
   ) as QueryEnvelopeNames;
@@ -31,5 +32,6 @@ export function mergeEnvelopeNames(sources: {
   declared: readonly string[];
 }): QueryEnvelopeNames {
   const applied = Object.entries(sources.config ?? {}).filter(([, name]) => sources.declared.includes(name));
+
   return { ...readEnvelopeNames(sources.tag), ...Object.fromEntries(applied) };
 }

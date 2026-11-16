@@ -21,16 +21,16 @@ export function pathOf(op: OperationModel): string | null {
 }
 
 /** The caller as the check acts as it: its client and the principal it sends as. */
-export interface Caller {
+export type Caller = {
   client: Client;
   principal: string;
-}
+};
 
 /** An operation and the filled path the request goes to. */
-export interface Route {
+export type Route = {
   op: OperationModel;
   path: string;
-}
+};
 
 export async function sendUpdate(
   caller: Caller,

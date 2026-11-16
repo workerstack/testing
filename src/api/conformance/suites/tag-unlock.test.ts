@@ -6,13 +6,14 @@ import { runTagUnlockSuite } from "./tag-unlock.ts";
 
 const promised = [...new Set(Object.values(TAG_UNLOCKS).flat())];
 
-/* Given the baselines the defect matrix already ran, the suite runs nothing itself. */
+// Given the baselines the defect matrix already ran, the suite runs nothing itself.
 describe("runTagUnlockSuite", () => {
   it("holds when stripping the tags loses exactly the promised checks", async () => {
     const [result] = await runTagUnlockSuite(inProcess, {
       tagged: ["list.read-after-write", ...promised],
       untagged: ["list.read-after-write"],
     });
+
     expect(result).toMatchObject({
       detail: `${promised.length} check(s) unlocked by tags, exactly as documented`,
       ok: true,

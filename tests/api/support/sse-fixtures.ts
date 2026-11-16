@@ -1,9 +1,10 @@
 import type { JsonSchema, OpenApiDocument } from "../../../src/api/spec/types.ts";
 
-/* The batch API behind the SSE tests: a stream that names a batch, optionally polled by x-async. */
+// The batch API behind the SSE tests: a stream that names a batch, optionally polled by x-async.
 
 export const COMPLETE_STREAM =
   'event: batch\ndata: {"batch_id":"b_1"}\n\nevent: complete\ndata: {"status":"complete"}\n\n';
+
 export const BATCH_ONLY_STREAM = 'event: batch\ndata: {"batch_id":"b_1"}\n\n';
 
 export const SSE_ASYNC = {
@@ -38,7 +39,9 @@ function streamOperation(async: boolean): Record<string, unknown> {
     "x-effects": [{ entity: "batch", op: "update" }],
     "x-entity": { action: "action", identity: "id", name: "batch" },
   };
+
   if (async) stream["x-async"] = { ...SSE_ASYNC };
+
   return stream;
 }
 

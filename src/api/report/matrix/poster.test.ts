@@ -35,6 +35,7 @@ describe("renderMatrixHtml", () => {
       entities: ["table", { name: "row", readSurface: [] }],
       invalidates: [{ routes: ["GET /table"], writer: "row" }],
     });
+
     expect(html).toContain("<title>testing api matrix — table, row</title>");
     expect(html).toContain('<div class="kicker">many entities · invalidate is an edge</div>');
     expect(html).toContain("<h1>2 entities, 1 cross-entity claim</h1>");
@@ -54,6 +55,7 @@ describe("renderMatrixHtml", () => {
         { routes: ["GET /e0"], writer: "e2" },
       ],
     });
+
     expect(html).toContain("<title>testing api matrix — 25 entities</title>");
     expect(html).toContain("<h1>25 entities, 2 cross-entity claims</h1>");
     expect(html).toContain('<div class="crowd-note">');
@@ -67,6 +69,7 @@ describe("renderPoster and renderMatrixFromParts", () => {
   it("draw the same page as the report the graph came from", () => {
     const input = report({ entities: ["table"] });
     expect(renderPoster(buildMatrixGraphFromReport(input))).toBe(renderMatrixHtml(input));
+
     const parts = {
       ...rowsOfReport(input),
       baseUrl: input.baseUrl,
@@ -74,6 +77,7 @@ describe("renderPoster and renderMatrixFromParts", () => {
       generatedAt: input.startedAt.toISOString(),
       readSurface: ["GET /table"],
     };
+
     expect(renderMatrixFromParts(parts)).toBe(renderPoster(buildMatrixGraph(parts)));
     expect(renderMatrixFromParts(parts)).toBe(renderMatrixHtml(input));
   });

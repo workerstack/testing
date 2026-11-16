@@ -33,6 +33,7 @@ describe("runFeatureGateSuite", () => {
       host: () => Promise.reject(new Error("no host")),
       launch: () => Promise.reject(new Error("unused")),
     };
+
     const results = await runFeatureGateSuite(nowhere);
     expect(results.slice(3).map((r) => [r.ok, r.detail])).toEqual([
       [false, "no host"],
@@ -47,7 +48,7 @@ describe("runFeatureGateSuite", () => {
 
 describe("runFeatureGateSuite against a backend that misbehaves", () => {
   it("fails each case when the backend refuses every request", async () => {
-    /* Every route but the document answers 401: nothing seeds, and the seed finding says why. */
+    // Every route but the document answers 401: nothing seeds, and the seed finding says why.
     const refusing: Via = {
       ...inProcess,
       host: (handle) =>
@@ -57,6 +58,7 @@ describe("runFeatureGateSuite against a backend that misbehaves", () => {
             : { body: '{"error_key":"unauthorized"}', headers: { "content-type": "application/json" }, status: 401 },
         ),
     };
+
     const results = await runFeatureGateSuite(refusing);
     const byName = Object.fromEntries(results.map((r) => [r.name, r]));
     expect(byName["matching gate 403 is a coverage gap"]?.ok).toBe(false);
@@ -66,8 +68,9 @@ describe("runFeatureGateSuite against a backend that misbehaves", () => {
   }, 120_000);
 
   it("names the defects of a backend that creates instead of gating, and breaks its item read", async () => {
-    /* Whatever harness a case asks for, this one creates every webhook and answers its read with a 500. */
+    // Whatever harness a case asks for, this one creates every webhook and answers its read with a 500.
     const creating = featureGateHarness({ create: "created", specTag: "webhooks" });
+
     const broken: Via = {
       ...inProcess,
       host: () =>
@@ -77,6 +80,7 @@ describe("runFeatureGateSuite against a backend that misbehaves", () => {
             : creating(request),
         ),
     };
+
     const results = await runFeatureGateSuite(broken);
     const byName = Object.fromEntries(results.map((r) => [r.name, r]));
     expect(byName["matching gate 403 is a coverage gap"]?.detail).toMatch(/^seed=none detail=— defects=[^n]/);

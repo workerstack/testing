@@ -4,11 +4,13 @@ export function readStatuses(responses: Record<string, unknown> | undefined): Do
   const exact: number[] = [];
   const ranges: number[] = [];
   let hasDefault = false;
+
   for (const key of Object.keys(responses ?? {})) {
     if (/^[1-5]\d\d$/.test(key)) exact.push(Number(key));
     else if (/^[1-5]xx$/i.test(key)) ranges.push(Number(key[0]));
     else if (key === "default") hasDefault = true;
   }
+
   return { default: hasDefault, exact: exact.sort((a, b) => a - b), ranges: ranges.sort((a, b) => a - b) };
 }
 

@@ -8,7 +8,7 @@ import { dereference } from "./load/dereference.ts";
 const TEMPLATE = { ops: { eq: "eq" }, term: "{field}[{op}]={value}" };
 const SORT_TEMPLATE = { asc: "a", desc: "d", term: "{field}:{direction}" };
 
-/* Notes declare a template filter and sort grammar; tags declare nothing. */
+// Notes declare a template filter and sort grammar; tags declare nothing.
 const model = () =>
   buildModel(
     dereference(
@@ -31,6 +31,7 @@ const model = () =>
 const conventionsOf = (config: Parameters<typeof applyGrammarOverrides>[1]) => {
   const m = model();
   applyGrammarOverrides(m, config);
+
   return Object.fromEntries(m.operations.map((op) => [op.operationId, op.conventions]));
 };
 
@@ -49,6 +50,7 @@ describe("applyGrammarOverrides", () => {
       entities: { note: { query: { grammar: "equality", sortGrammar: "spaced" } }, other: undefined },
       query: { grammar: TEMPLATE, sortGrammar: SORT_TEMPLATE },
     });
+
     expect(out["notes.list"]).toMatchObject({ grammar: "equality", sortGrammar: "spaced" });
     expect(out["tags.list"]).toMatchObject({ grammar: "template", sortGrammar: "template" });
     expect(out["tags.list"]?.filterGrammar?.term).toBe(TEMPLATE.term);

@@ -18,7 +18,7 @@ import {
 } from "./__fixtures__/items.ts";
 import { describeUndeclared, documentedStatusHonored } from "./response-status-is-documented.ts";
 
-/* The update documents only its 200 here, so a gated 403 is declared by the gate alone. */
+// The update documents only its 200 here, so a gated 403 is declared by the gate alone.
 const model = modelOfItems({ update: { "200": json(ITEM) } });
 
 async function judge(exchanges: Exchange[], transcript: Transcript = {}) {
@@ -26,12 +26,13 @@ async function judge(exchanges: Exchange[], transcript: Transcript = {}) {
   const fields = { judged: (ids: readonly string[]) => judged.push([...ids]), ...transcript.fields };
   const staged = overTranscript(model, exchanges, { ...transcript, fields });
   const outcome = await documentedStatusHonored.run(staged.ctx, undefined);
+
   return { ...staged, judged, outcome };
 }
 
 describe("response.status-is-documented plan", () => {
   it("applies to an entity with any operation besides its create", () => {
-    const { ctx } = contextFor(model, "item.list", { respond: () => undefined });
+    const { ctx } = contextFor(model, "item.list", { respond: () => {} });
     expect(documentedStatusHonored.plan(ctx).ok).toBe(true);
     expect(documentedStatusHonored.plan({ ...ctx, entityName: "ghost" }).ok).toBe(false);
   });
@@ -44,6 +45,7 @@ describe("response.status-is-documented run", () => {
       seen("item.read", { status: 404 }),
       seen("item.update", { status: 200 }),
     ]);
+
     expect(outcome).toEqual({ kind: "asserted" });
     expect(findings.findings).toEqual([]);
     expect(judged).toEqual([["item.read", "item.update"]]);
@@ -51,11 +53,13 @@ describe("response.status-is-documented run", () => {
 
   it("reports an undeclared status as a spec bug on its operation, citing its first exchange", async () => {
     const first = seen("item.read", { status: 500 });
+
     const { findings, outcome } = await judge([
       first,
       seen("item.read", { status: 418 }),
       seen("item.read", { status: 500 }),
     ]);
+
     expect(outcome).toEqual({ kind: "finding", verdict: "SPEC_BUG" });
     expect(findings.findings).toHaveLength(1);
     const [finding] = findings.findings;
@@ -72,6 +76,7 @@ describe("response.status-is-documented run", () => {
       seen("item.read", { status: 401 }, { probe: true }),
       seen("item.read", { status: 401 }, { forged: true }),
     ]);
+
     expect([probed.outcome, probed.findings.findings]).toEqual([{ kind: "asserted" }, []]);
     const normal = await judge([seen("item.read", { status: 401 })]);
     expect(normal.outcome).toEqual({ kind: "finding", verdict: "SPEC_BUG" });
@@ -104,7 +109,7 @@ describe("response.status-is-documented and a dedicated credential", () => {
       transport(() => answer({}, 418)),
       {
         credentials: fixedSource({
-          block: () => undefined,
+          block: () => {},
           kind: "sends",
           lapsed: () => false,
           principal: "alpha",
@@ -117,6 +122,7 @@ describe("response.status-is-documented and a dedicated credential", () => {
         operationResolver: () => ({ entity: "item", operationId: "item.read", template: "/items/{item_id}" }),
       },
     );
+
     const floor = { as: { principal: "alpha#probe-1" }, operationId: "item.read" };
     const sent = await sendAttempt(prepare(wire, "GET", "/items/1", floor), 0, wire);
     const { findings, outcome } = await judge([sent]);
@@ -142,6 +148,7 @@ describe("response.status-is-documented stand-asides", () => {
       ],
       { fields: { inScope: (op) => op.operationId !== "item.update" } },
     );
+
     expect(outcome).toEqual({ kind: "asserted" });
     expect(findings.findings).toEqual([]);
     expect(judged).toEqual([["item.read"]]);
@@ -175,7 +182,7 @@ describe("response.status-is-documented stand-asides", () => {
 });
 
 describe("describeUndeclared", () => {
-  const { ctx } = contextFor(model, "item.list", { respond: () => undefined });
+  const { ctx } = contextFor(model, "item.list", { respond: () => {} });
 
   it("says when an operation declares no concrete status, or is not in the document", () => {
     const { lines, evidence } = describeUndeclared(
@@ -185,6 +192,7 @@ describe("describeUndeclared", () => {
         ["gone", []],
       ]),
     );
+
     expect(lines).toEqual([
       "item.delete returned 500; the document declares no concrete status",
       "gone returned ; the document declares no concrete status",

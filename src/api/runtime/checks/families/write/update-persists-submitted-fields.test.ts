@@ -7,35 +7,36 @@ import { updateDrops } from "../../payloads/update-drops.ts";
 import { type Note, notesContext, notesDocument, notesModel, notesServer } from "./__fixtures__/notes.ts";
 import { updatePersistsFields } from "./update-persists-submitted-fields.ts";
 
-/*
- * An update must store what it was sent. One update on a record the check made itself carries a
- * new value for every field the update offers and a read returns; a field neither the update's
- * answer nor a read past the cache holds as sent was dropped, and later checks never pick it.
- */
+// An update must store what it was sent. One update on a record the check made itself carries a
+// new value for every field the update offers and a read returns; a field neither the update's
+// answer nor a read past the cache holds as sent was dropped, and later checks never pick it.
 
 const SEEDED: Note = { code: "c", id: "c1", name: "seeded", title: "t" };
 
-function backend(override: Responder = () => undefined, model = notesModel()) {
+function backend(override: Responder = () => {}, model = notesModel()) {
   const server = notesServer([{ ...SEEDED }]);
+
   const respond: Responder = (method, path, options) =>
     override(method, path, options) ?? server.respond(method, path, options);
+
   return { server, ...notesContext(model, respond, { records: [SEEDED] }) };
 }
 
-/* An update that answers 200 and stores everything but `code`. */
+// An update that answers 200 and stores everything but `code`.
 function dropping(field: string): (server: ReturnType<typeof notesServer>) => Responder {
   return (server) => (method, path, options) => {
-    if (method !== "PATCH") return undefined;
+    if (method !== "PATCH") return;
     const id = path.slice("/notes/".length);
     const current = server.records.get(id) as Note;
     const { [field]: _ignored, ...kept } = options.body as Note;
     const next = { ...current, ...kept };
     server.records.set(id, next);
+
     return { body: { ...next }, status: 200 };
   };
 }
 
-/* An update that refuses any body carrying `title`. */
+// An update that refuses any body carrying `title`.
 const refuseTitle: Responder = (method, _path, options) =>
   method === "PATCH" && Object.hasOwn(options.body as object, "title") ? { status: 422 } : undefined;
 
@@ -55,11 +56,13 @@ describe("update.persists-submitted-fields", () => {
   it("reports a field the update answers 200 to and does not store, and remembers it for later checks", async () => {
     const server = notesServer([{ ...SEEDED }]);
     const drop = dropping("code")(server);
+
     const { ctx, findings } = notesContext(
       notesModel(),
       (method, path, options) => drop(method, path, options) ?? server.respond(method, path, options),
       { records: [SEEDED] },
     );
+
     expect(await runCheck(updatePersistsFields, ctx)).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     expect(findings.findings[0]?.summary).toBe("update silently discards submitted fields");
     expect(findings.findings[0]?.detail).toContain('"code"');
@@ -68,22 +71,28 @@ describe("update.persists-submitted-fields", () => {
 
   it("counts a string stored case-folded or trimmed as stored, as a backend normalizing a slug does", async () => {
     const server = notesServer([{ ...SEEDED }]);
+
     const normalizing: Responder = (method, path, options) => {
-      if (method !== "PATCH") return undefined;
+      if (method !== "PATCH") return;
       const id = path.slice("/notes/".length);
+
       const sent = Object.entries(options.body as Note).map(([key, value]) => [
         key,
         typeof value === "string" ? ` ${value.toUpperCase()} ` : value,
       ]);
+
       const next = { ...(server.records.get(id) as Note), ...Object.fromEntries(sent) };
       server.records.set(id, next);
+
       return { body: { ...next }, status: 200 };
     };
+
     const { ctx, findings } = notesContext(
       notesModel(),
       (method, path, options) => normalizing(method, path, options) ?? server.respond(method, path, options),
       { records: [SEEDED] },
     );
+
     expect(await runCheck(updatePersistsFields, ctx)).toEqual({ kind: "asserted" });
     expect(findings.findings).toEqual([]);
   });
@@ -111,14 +120,17 @@ describe("update.persists-submitted-fields and what it never sends", () => {
         >
       >;
     };
+
     const lifecycle = {
       plan: { enum: ["free", "pro"], type: "string" },
       status: { enum: ["active", "suspended"], type: "string" },
     };
+
     const body = doc.paths["/notes/{id}"]?.["patch"]?.requestBody?.content["application/json"]?.schema;
+
     if (body === undefined) throw new Error("the notes update body moved");
     body.properties = { ...body.properties, ...lifecycle };
-    const { ctx, sent } = backend(() => undefined, modelOf(doc as never));
+    const { ctx, sent } = backend(() => {}, modelOf(doc as never));
     await runCheck(updatePersistsFields, ctx);
     const keys = Object.keys(patches(sent)[0]?.options.body as object);
     expect(keys).not.toContain("status");

@@ -22,11 +22,15 @@ export const sortInvalidDirectionRejected: Check<{ control: string; order: strin
 }>({
   plan: (ctx) => {
     const conventions = conv(ctx);
+
     if (conventions.order === undefined || conventions.sortDeclared !== true) return cannot();
     const field = ctx.query?.sortable.find((name) => name !== ctx.identity) ?? ctx.query?.sortable[0];
+
     if (field === undefined) return cannot("a sortable field");
     const order = renderUnknownDirection(sortSpec(conventions), field, UNKNOWN_DIRECTION);
+
     if (order === null) return cannot("a sort grammar with a token for each direction");
+
     return ready({ control: sortTerm(conventions, { direction: "asc", field }), order });
   },
   dependsOn: ["sort.order-is-applied"],
@@ -36,6 +40,7 @@ export const sortInvalidDirectionRejected: Check<{ control: string; order: strin
   subjects: subjectsOf.list,
   async run(ctx, { control, order }): Promise<Outcome> {
     const result = await list(asProbe(ctx), q(ctx, { limit: pageSize(ctx), order }));
+
     if (result.exchange.status >= 500) {
       return ctx.findings.backend(this.id, ctx.entityName, {
         summary: "an unknown sort direction produces a server error",
@@ -43,16 +48,18 @@ export const sortInvalidDirectionRejected: Check<{ control: string; order: strin
         evidence: [result.exchange],
       });
     }
+
     const refused = judgeRefusal(ctx, this.id, ["validation"], result.exchange);
+
     if (refused !== null) return refused;
     const ascending = await list(ctx, q(ctx, { limit: pageSize(ctx), order: control }));
     const same = ids(result.items, ctx.identity).join(",") === ids(ascending.items, ctx.identity).join(",");
+
     return ctx.findings.backend(this.id, ctx.entityName, {
       summary: "an unknown sort direction is accepted",
-      detail:
-        `order=${order} returned ${result.exchange.status}` +
-        (same ? " in ascending order, so the direction was read as ascending" : "") +
-        ". A direction the declared grammar does not have must be refused, not guessed.",
+      detail: `order=${order} returned ${result.exchange.status}${
+        same ? " in ascending order, so the direction was read as ascending" : ""
+      }. A direction the declared grammar does not have must be refused, not guessed.`,
       evidence: [ascending.exchange, result.exchange],
     });
   },

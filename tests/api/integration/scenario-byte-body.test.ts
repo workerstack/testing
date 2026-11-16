@@ -7,10 +7,8 @@ import type { Scenario } from "../../../src/api/config/define/types.ts";
 import { run } from "../../../src/api/runtime/run/index.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
 
-/*
- * A scenario step that uploads a file sends its bytes, under the step's media type, exactly as
- * they are — not as JSON, and not with `{name}` filling applied to them.
- */
+// A scenario step that uploads a file sends its bytes, under the step's media type, exactly as
+// they are — not as JSON, and not with `{name}` filling applied to them.
 
 const closers: Array<() => Promise<void>> = [];
 
@@ -45,12 +43,15 @@ describe("a byte body in a scenario step", () => {
   it("reaches the server as the same bytes, under the step's media type", async () => {
     const bytes = new Uint8Array([82, 73, 70, 70, 0, 1, 2, 3, 87, 69, 66, 80]);
     const received: Array<{ type: string | undefined; body: number[] }> = [];
+
     const server = createServer((req, res) => {
       if (req.url === "/openapi.json") {
         res.writeHead(200, { "content-type": "application/json" });
         res.end(JSON.stringify(spec));
+
         return;
       }
+
       const chunks: Buffer[] = [];
       req.on("data", (chunk: Buffer) => chunks.push(chunk));
       req.on("end", () => {
@@ -60,9 +61,11 @@ describe("a byte body in a scenario step", () => {
         res.end(JSON.stringify({ size: body.length }));
       });
     });
+
     await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
     closers.push(() => new Promise((resolve) => server.close(() => resolve())));
     const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+
     const scenario: Scenario = {
       covers: ["file.put"],
       id: "upload",
@@ -76,6 +79,7 @@ describe("a byte body in a scenario step", () => {
         },
       ],
     };
+
     await run({
       baseUrl: url,
       principals: { alpha: {} },

@@ -11,14 +11,21 @@ export function coerce(raw: string, field: FieldDef): Scalar | undefined {
   if (field.type === "integer" || field.type === "number") {
     if (raw.trim() === "") return undefined;
     const n = Number(raw);
+
     if (!Number.isFinite(n)) return undefined;
+
     if (field.type === "integer" && !Number.isInteger(n)) return undefined;
+
     return n;
   }
+
   if (field.type === "boolean") {
     if (raw === "true") return true;
+
     if (raw === "false") return false;
+
     return undefined;
   }
+
   return raw;
 }

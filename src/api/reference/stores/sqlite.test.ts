@@ -29,21 +29,24 @@ const ITEM: EntityDef = {
   plural: "items",
 };
 
-interface Call {
+type Call = {
   kind: "all" | "close" | "exec" | "run";
   sql?: string;
   args?: SqlValue[];
-}
+};
 
-/* A driver that records every call, answers `all` from `rows`, and fails what `fails` names. */
+// A driver that records every call, answers `all` from `rows`, and fails what `fails` names.
 function recordingDriver(options: { dqs?: boolean; rows?: SqlRow[]; fails?: (sql: string) => boolean } = {}) {
   const calls: Call[] = [];
+
   const fail = (sql: string): void => {
     if (options.fails?.(sql) === true) throw new Error(`refused: ${sql}`);
   };
+
   const driver: SqliteDriver = {
     all: async (sql, args) => {
       calls.push({ args, kind: "all", sql });
+
       return options.rows ?? [];
     },
     close: async () => {
@@ -59,6 +62,7 @@ function recordingDriver(options: { dqs?: boolean; rows?: SqlRow[]; fails?: (sql
       calls.push({ args, kind: "run", sql });
     },
   };
+
   return { calls, driver };
 }
 
@@ -81,20 +85,24 @@ const ROWS = [
 
 async function seeded(): Promise<SqlStore> {
   const store = await sqlite();
+
   for (const row of ROWS) await store.insert(ITEM, row);
+
   return store;
 }
 
 const ids = (rows: Array<Record<string, unknown>>): unknown[] => rows.map((row) => row["id"]);
 
-/* The predicates and orders the engine tests select by. */
+// The predicates and orders the engine tests select by.
 const like = (insensitive: boolean): FilterNode => ({
   field: "name",
   insensitive,
   kind: "like",
   pattern: [{ kind: "text", text: "ap" }, { kind: "any" }],
 });
+
 const contains = (substring: boolean): FilterNode => ({ field: "tags", kind: "contains", substring, value: "red" });
+
 const search = (caseSensitive: boolean): FilterNode => ({
   caseSensitive,
   fields: ["name"],
@@ -102,6 +110,7 @@ const search = (caseSensitive: boolean): FilterNode => ({
   mode: "prefix",
   token: "A",
 });
+
 const active = (value: boolean): FilterNode => ({
   asText: false,
   field: "active",
@@ -110,6 +119,7 @@ const active = (value: boolean): FilterNode => ({
   op: "eq",
   value,
 });
+
 const by = (field: string): SelectPlan["order"] => [{ asText: false, descending: false, field, nullsFirst: false }];
 
 describe("SqlStore.create", () => {
@@ -131,6 +141,16 @@ describe("SqlStore.create", () => {
     await SqlStore.create(new DefectSet(), driver);
     expect(calls[0]?.sql?.match(/CREATE TABLE "[a-z_]+"/g)).toEqual(
       ENTITIES.map((entity) => `CREATE TABLE "${entity.plural}"`),
+    );
+  });
+});
+
+describe("SqlStore reads", () => {
+  it("refuses a blob in a declared column, which no field type stores", async () => {
+    const { driver } = recordingDriver({ rows: [{ id: "a", name: new Uint8Array([1]) }] });
+    const store = await SqlStore.create(new DefectSet(), driver, { entities: [ITEM] });
+    await expect(store.byId(ITEM, "a")).rejects.toThrow(
+      'column "name" of items holds a blob, which no field type stores',
     );
   });
 });
@@ -212,6 +232,7 @@ describe("COLUMN_NAME_MISMATCH", () => {
     const store = await SqlStore.create(new DefectSet(["COLUMN_NAME_MISMATCH"]), await nodeSqliteDriver(), {
       entities: [named],
     });
+
     expect(await store.insert(named, { id: "a", name: "real" })).toEqual({ id: "a", name: "name" });
     await store.close();
   });

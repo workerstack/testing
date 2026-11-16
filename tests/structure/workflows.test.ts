@@ -6,11 +6,9 @@ import { describe, expect, it } from "vitest";
 import { hasHeading } from "../../scripts/changelog-has.ts";
 import { gatesVerdict } from "../../scripts/release-gates.ts";
 
-/*
- * A release publishes only a commit ci.yml passed, and is refused before it publishes anything
- * when the changelog does not name its version. Every job that runs on a machine has a timeout of
- * its own, so a hung step ends the run instead of holding a runner for six hours.
- */
+// A release publishes only a commit ci.yml passed, and is refused before it publishes anything
+// when the changelog does not name its version. Every job that runs on a machine has a timeout of
+// its own, so a hung step ends the run instead of holding a runner for six hours.
 
 const ROOT = join(import.meta.dirname, "..", "..");
 const workflow = (name: string): string => readFileSync(join(ROOT, ".github", "workflows", name), "utf8");
@@ -20,10 +18,13 @@ const WORKFLOWS = ["ci.yml", "release.yml", "targets.yml"] as const;
 function jobs(text: string): Map<string, string> {
   const body = text.slice(text.indexOf("\njobs:\n") + 7);
   const out = new Map<string, string>();
+
   for (const part of body.split(/\n(?= {2}[a-z][\w-]*:\n)/)) {
     const id = /^ {2}([a-z][\w-]*):/.exec(part)?.[1];
+
     if (id !== undefined) out.set(id, part);
   }
+
   return out;
 }
 
@@ -55,9 +56,8 @@ describe("gatesVerdict", () => {
   });
 
   it("fails on a run that finished red, so a release never outruns a failing gate", () => {
-    for (const conclusion of ["failure", "timed_out", "startup_failure"]) {
+    for (const conclusion of ["failure", "timed_out", "startup_failure"])
       expect(gatesVerdict([run(1, "completed", conclusion)])).toEqual({ id: 1, kind: "failed" });
-    }
   });
 
   it("runs the gates on the tag when no run on the commit finished, as when a later push canceled it", () => {
@@ -81,6 +81,7 @@ describe("the workflows", () => {
       const untimed = [...jobs(workflow(name))].filter(
         ([, job]) => job.includes("runs-on:") && !job.includes("timeout-minutes:"),
       );
+
       expect(untimed.map(([id]) => `${name}: ${id}`)).toEqual([]);
     }
   });
@@ -97,20 +98,21 @@ describe("the workflows", () => {
     const release = jobs(workflow("release.yml"));
     expect(release.get("gates")).toContain("bun scripts/release-gates.ts");
     expect(release.get("gates")).toContain("actions: write");
-    for (const publish of ["npmjs", "gh-pkg"]) {
-      expect(release.get(publish)).toMatch(/needs: \[gates, changelog\]/);
-    }
+
+    for (const publish of ["npmjs", "gh-pkg"]) expect(release.get(publish)).toMatch(/needs: \[gates, changelog\]/);
   });
 
   it("check out the tag a release names, so a dispatch for an existing tag publishes that tag", () => {
     const release = jobs(workflow("release.yml"));
+
     const untagged = [...release].filter(
       ([, job]) => job.includes("actions/checkout@") && !job.includes("ref: ${{ inputs.tag || github.ref }}"),
     );
+
     expect(untagged.map(([id]) => id)).toEqual([]);
   });
 
-  /* Run 41596487324: bun 1.4.4 reads the scoped .npmrc setup-node writes, and the job's token cannot read the private dev dependency there. */
+  // Run 41596487324: bun 1.4.4 reads the scoped .npmrc setup-node writes, and the job's token cannot read the private dev dependency there.
   it("install the GitHub Packages job's dependencies before it points the scope at GitHub Packages", () => {
     const job = jobs(workflow("release.yml")).get("gh-pkg") ?? "";
     expect(job.indexOf("bun install --frozen-lockfile")).toBeGreaterThan(-1);
@@ -129,7 +131,7 @@ describe("the workflows", () => {
     expect(jobs(workflow("ci.yml")).get("e2e")).toContain("bun run test:e2e");
     expect(existsSync(join(ROOT, ".github", "workflows", "targets.yml"))).toBe(true);
     const targets = workflow("targets.yml");
-    /* Run 40569216175 showed the five stacks fit a standard runner, so the targets run nightly too. */
+    // Run 40569216175 showed the five stacks fit a standard runner, so the targets run nightly too.
     expect(targets).toContain('- cron: "17 3 * * *"');
     expect(targets).toContain("workflow_dispatch:");
     expect(targets).toContain("bun run test:targets");

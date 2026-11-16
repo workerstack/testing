@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { createRecordScopes } from "./record-scoped.ts";
 
-/* A record's credential covers what its creator sends at the record's path or below it, for its scheme only. */
+// A record's credential covers what its creator sends at the record's path or below it, for its scheme only.
 
 describe("createRecordScopes", () => {
   it("names the holder for the record's own path and what is under it, and nobody elsewhere", () => {

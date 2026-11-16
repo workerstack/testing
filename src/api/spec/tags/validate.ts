@@ -45,11 +45,13 @@ const ASYNC = {
   until: text,
 } satisfies FieldsOf<AsyncSpec>;
 
-/* A record's path is any path the API tester reads; `[*]` fans out over a list's rows, so it may stand only
- * where rows are: right after a top-level key (`$.hits[*].document`). */
+// A record's path is any path the API tester reads; `[*]` fans out over a list's rows, so it may stand only
+// where rows are: right after a top-level key (`$.hits[*].document`).
 const recordPath: Check = (value) => {
   const problem = text(value);
+
   if (problem !== null || !(value as string).includes("[*]") || rowsOf(value as string) !== null) return problem;
+
   return 'may hold [*] only right after a top-level key, as in "$.hits[*].document"';
 };
 
@@ -90,17 +92,21 @@ const WAIT = {
 
 function entity(value: unknown): string | null {
   const problem = checkShape(value, ENTITY);
+
   if (problem !== null) return problem;
-  /* Where the answer keeps the record, its id or a credential may be declared alone; naming the entity
-   * still takes both its name and the operation's action. */
+  // Where the answer keeps the record, its id or a credential may be declared alone; naming the entity
+  // still takes both its name and the operation's action.
   const tag = value as RawOf<EntityTag>;
   const located = tag.createdIdFrom !== undefined || tag.recordPath !== undefined || tag.credentialFrom !== undefined;
+
   if (tag.name === undefined && (tag.action !== undefined || !located)) return 'needs "name"';
+
   if (tag.action === undefined && (tag.name !== undefined || !located)) return 'needs "action"';
+
   return null;
 }
 
-/* In the order their gaps are reported. */
+// In the order their gaps are reported.
 const OPERATION_TAGS: Readonly<Record<string, Check>> = {
   "x-before": text,
   "x-bind": (value) => checkShape(value, BIND),
@@ -131,13 +137,17 @@ const OPERATION_TAGS: Readonly<Record<string, Check>> = {
 /** Records a gap for every the API tester tag on `op` (and its parameters) that is present but malformed. */
 export function validateTags(op: OperationObject, operationId: string, gaps: GapCollector): void {
   const record = op as Record<string, unknown>;
+
   for (const [tag, check] of Object.entries(OPERATION_TAGS)) {
     if (record[tag] === undefined) continue;
     const problem = check(record[tag]);
+
     if (problem !== null) gaps.record(operationId, tag, `${tag} ${problem}; the API tester cannot use it`);
   }
+
   for (const parameter of (op.parameters ?? []) as ParameterObject[]) {
     const root = (parameter as Record<string, unknown>)["x-root"];
+
     if (root !== undefined && typeof root !== "boolean") {
       gaps.record(
         operationId,

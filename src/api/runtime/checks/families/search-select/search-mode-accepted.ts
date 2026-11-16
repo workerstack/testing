@@ -23,15 +23,19 @@ export const searchModeAccepted: Check = defineCheck({
     const rejected: string[] = [];
     const refusedBy: Exchange[] = [];
     const unknown: string[] = [];
+
     for (const mode of resolvedCaps(ctx).searchModes ?? []) {
       const result = await list(ctx, q(ctx, { limit: 5, search: "testing", searchMode: mode }));
       const answer = declarationAnswer(result.exchange.status);
+
       if (answer === "refused") {
         refusedBy.push(result.exchange);
         rejected.push(`${mode} (${result.exchange.status})`);
       }
+
       if (answer === "unknown") unknown.push(`${mode} (${result.exchange.status})`);
     }
+
     if (rejected.length === 0 && unknown.length > 0) {
       return ctx.findings.unresolved(
         this.id,
@@ -39,7 +43,9 @@ export const searchModeAccepted: Check = defineCheck({
         `probes were turned away without a verdict: ${unknown.join(", ")}`,
       );
     }
+
     if (rejected.length === 0) return ASSERTED;
+
     return ctx.findings.spec(this.id, ctx.entityName, {
       summary: "a declared search mode is rejected",
       detail: `rejected: ${rejected.join(", ")}.`,

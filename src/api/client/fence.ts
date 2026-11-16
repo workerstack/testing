@@ -7,14 +7,14 @@ import type { Placement } from "./placing.ts";
 /** Asks the fence about one hop; it throws when the hop is refused. */
 export type FenceAsk = (target: URL, method: string, body: unknown) => Promise<void>;
 
-export interface Fenced {
+export type Fenced = {
   /** The hop's headers as they are when it is asked: redirects strip and add some. */
   headers: Record<string, string>;
   purpose: Purpose | undefined;
   operationId: string | undefined;
   /** The attempt's credential: whose, and under which schemes. */
   placement: Placement;
-}
+};
 
 /** Asks `fence` with what the request is sending at the time of the ask; no fence lets everything through. */
 export function fenceAsker(fence: Fence | undefined, fenced: Fenced): FenceAsk {
@@ -31,7 +31,7 @@ export function fenceAsker(fence: Fence | undefined, fenced: Fenced): FenceAsk {
   };
 }
 
-/* Who the credential is, by the names a fence can match without parsing a header; nothing when none is placed. */
+// Who the credential is, by the names a fence can match without parsing a header; nothing when none is placed.
 function whoSends({ forged, principal, schemes }: Placement): {
   principal?: string;
   schemes?: string[];

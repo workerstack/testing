@@ -8,8 +8,10 @@ import { listingPredicate } from "./predicate.ts";
 import type { ListingRequest } from "./types.ts";
 
 const OPTIONS = { conventions: DEFAULT_CONVENTIONS, scope: { nope: 1, project_id: "proj_alpha" } };
+
 const predicate = (request: ListingRequest, defects: DefectName[] = [], entity = parseContext().entity) =>
   listingPredicate(request, OPTIONS, parseContext(defects, entity));
+
 const scope = { asText: false, field: "project_id", kind: "cmp", nullsMatch: false, op: "eq", value: "proj_alpha" };
 const hidden = { field: "deleted_at", kind: "isnull", negate: false };
 

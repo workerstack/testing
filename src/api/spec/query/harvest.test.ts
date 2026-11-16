@@ -23,7 +23,7 @@ describe("harvest", () => {
     expect(
       applyHarvest(caps, { axis: "sortable", names: ["n", "s", "x", "u"], types: ["int", "string", "nope"] }).sortable,
     ).toEqual([{ field: "n", type: "number" }, { field: "s", type: "string" }, { field: "x" }, { field: "u" }]);
-    /* A repeated name takes the type at its first place. */
+    // A repeated name takes the type at its first place.
     expect(applyHarvest(caps, { axis: "sortable", names: ["n", "n"], types: ["int", "string"] }).sortable).toEqual([
       { field: "n", type: "number" },
     ]);

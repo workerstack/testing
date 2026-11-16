@@ -6,10 +6,8 @@ import { runCheck } from "../../core/run.ts";
 import { notesContext, notesModel, notesServer } from "../write/__fixtures__/notes.ts";
 import { bypassIsFresh } from "./bypass-is-fresh.ts";
 
-/*
- * A read that declares a cache bypass must answer past every cache when sent it: right after a
- * write, one read with the bypass shows the write and no cache says it answered.
- */
+// A read that declares a cache bypass must answer past every cache when sent it: right after a
+// write, one read with the bypass shows the write and no cache says it answered.
 
 const BYPASS = { name: "x-fresh", value: "1" };
 
@@ -24,20 +22,26 @@ function cached(
 ) {
   const server = notesServer();
   const copies = new Map<string, Answer>();
+
   const respond: Responder = (method, path, options) => {
     if (method !== "GET") return server.respond(method, path, options);
     const headers = typeof options.headers === "function" ? options.headers() : (options.headers ?? {});
     const bypassed = (more.honors ?? true) && headers[BYPASS.name] === BYPASS.value;
     const copy = copies.get(path);
+
     if (!bypassed && copy !== undefined)
       return more.plain === true ? copy : { ...copy, headers: { "cache-status": "edge; hit" } };
     const answer = server.respond(method, path, options);
+
     if (answer?.status === 200 && !bypassed) copies.set(path, answer);
+
     return answer === undefined ? undefined : { ...answer, headers: more.label?.(bypassed) ?? {} };
   };
+
   const model = notesModel();
   const readOp = op(model, "note.get");
   const consistency = more.declared === false ? null : { bypass: BYPASS, stalenessMs: 1000 };
+
   return notesContext(model, respond, { readOp: { ...readOp, consistency }, records: [] });
 }
 
@@ -113,16 +117,20 @@ describe("consistency.bypass-is-fresh", () => {
 describe("consistency.bypass-is-fresh and an update that keeps the old value", () => {
   it("stands down when the update's own answer shows the old value: no cache is to blame", async () => {
     const server = notesServer();
+
     const respond: Responder = (method, path, options) =>
       method === "PATCH"
         ? { body: server.records.get(path.slice("/notes/".length)), status: 200 }
         : server.respond(method, path, options);
+
     const model = notesModel();
     const readOp = op(model, "note.get");
+
     const { ctx, findings } = notesContext(model, respond, {
       readOp: { ...readOp, consistency: { bypass: BYPASS, stalenessMs: 1000 } },
       records: [],
     });
+
     expect(await runCheck(bypassIsFresh, ctx)).toEqual({
       kind: "stood-down",
       reason: "the update's own answer does not show it, so update.persists-submitted-fields judges that, not a cache",

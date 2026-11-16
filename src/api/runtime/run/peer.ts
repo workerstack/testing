@@ -5,5 +5,6 @@
  */
 export function peerOf<T extends { tenant?: string | undefined }>(candidates: readonly [T, ...T[]]): T | undefined {
   const [first] = candidates;
+
   return candidates.find((other) => other.tenant !== undefined && other.tenant !== first.tenant);
 }

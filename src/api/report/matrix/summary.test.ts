@@ -8,6 +8,7 @@ import type { MatrixReport } from "./types.ts";
 const said = (input: MatrixReport) => {
   const graph = buildMatrixGraphFromReport(input);
   const cross = graph.invalidate.filter((l) => l.cross);
+
   return {
     summary: summaryLine(graph.entities, totalCounts(graph.entities), cross),
     thesis: thesisFor(graph.entities, cross),
@@ -22,6 +23,7 @@ describe("totalCounts", () => {
         entities: ["a", "b"],
       }),
     );
+
     const [a, b] = graph.entities;
     expect(totalCounts(graph.entities)).toEqual({
       blocked: 0,
@@ -47,6 +49,7 @@ describe("summaryLine and thesisFor", () => {
       entities: ["table", "row"],
       invalidates: [{ routes: ["GET /table"], writer: "row" }],
     });
+
     expect(said(input)).toEqual({
       summary:
         "table, row: 1 failed, 0 blocked, 112 passed, 0 skipped, 1 out of scope. Cross-entity invalidate: row → table. Roots: row:list.read-after-write.",

@@ -21,9 +21,11 @@ export const filterInOverLimitRejected: Check<{
   plan: (ctx) => {
     const max = resolvedCaps(ctx).maxInValues;
     const picked = pickFieldForOp(ctx, "in", 1);
+
     if (max === undefined || picked === null) return cannot();
     const members = Array.from({ length: max + 1 }, (_, i) => `testing-over-limit-${i}`);
     const term = filterTerm(conv(ctx), { field: picked.field.field, op: "in", value: members });
+
     return term === null
       ? cannot("a filter grammar that can express in()")
       : ready({ field: picked.field.field, max, term });
@@ -36,7 +38,9 @@ export const filterInOverLimitRejected: Check<{
   async run(ctx, { field, max, term }): Promise<Outcome> {
     const result = await list(asProbe(ctx), { ...q(ctx, { limit: 5 }), ...term });
     const refused = judgeRefusal(ctx, this.id, ["validation"], result.exchange);
+
     if (refused !== null) return refused;
+
     return ctx.findings.backend(this.id, ctx.entityName, {
       summary: "an over-limit in() list was accepted",
       detail: `maxInValues=${max} but ${field}.in with ${max + 1} members returned ${result.exchange.status}.`,

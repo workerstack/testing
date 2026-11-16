@@ -29,37 +29,45 @@ export async function runChecks(
     run,
     suppressedBy: new Map(),
   };
+
   let batch: PlannedCheck[] = [];
+
   const flush = async (): Promise<void> => {
     if (batch.length === 0) return;
     const pending = batch;
     batch = [];
     await Promise.all(pending.map((queued) => runCheck(loop, queued)));
   };
+
   for (const check of checks) {
     if (run.ctx.options.signal?.aborted === true) break;
     const graded = planned(loop, check);
+
     if (graded === null) continue;
     const next = { check, graded };
-    /* A writer runs alone; so does a check that judges the transcript, once everything queued
-     * before it has finished sending. */
+
+    // A writer runs alone; so does a check that judges the transcript, once everything queued
+    // before it has finished sending.
     if (check.mutates === true || check.judgesTranscript === true) {
       await flush();
+
       if (!suppressed(loop, next)) await runCheck(loop, next);
       continue;
     }
-    if (check.dependsOn?.some((dependency) => batch.some((queued) => queued.check.id === dependency)) === true) {
+
+    if (check.dependsOn?.some((dependency) => batch.some((queued) => queued.check.id === dependency)) === true)
       await flush();
-    }
+
     if (!suppressed(loop, next)) batch.push(next);
   }
+
   await flush();
 }
 
-interface SuppressingLoop extends CheckLoop {
+type SuppressingLoop = CheckLoop & {
   /** Each suppressed check, by the root cause it was suppressed for. */
   suppressedBy: Map<string, string>;
-}
+};
 
 /**
  * Whether the check applies here: it grades something this run targets, and its plan found what
@@ -71,18 +79,25 @@ function planned(loop: CheckLoop, check: Check): string[] | null {
   const { run } = loop;
   const { ctx, entity } = run;
   const graded = check.subjects(entity, ctx.model).filter((id) => ctx.scope.inScope(id) && !ctx.exclusion.excludes(id));
+
   if (ctx.scope.mode === "targeted" && graded.length === 0) {
     ctx.state.checksOutOfScope.push({ check: check.id, entity: entity.name });
+
     return null;
   }
+
   const plan = planOn(check, loop.context);
+
   if (plan.ok) {
     loop.plans.set(check.id, plan.value);
+
     return graded;
   }
+
   const needs = withLostVariants(run, planNeeds(check, loop.context, plan));
   ctx.state.checksSkipped.push({ check: check.id, entity: entity.name, needs });
   ctx.grades.skipped(graded, needs);
+
   return null;
 }
 
@@ -101,14 +116,18 @@ function planned(loop: CheckLoop, check: Check): string[] | null {
  */
 function suppressed(loop: SuppressingLoop, { check, graded }: PlannedCheck): boolean {
   const { ctx, entity } = loop.run;
+
   for (const dependency of check.dependsOn ?? []) {
     const because = failed(loop, dependency) ? dependency : loop.suppressedBy.get(dependency);
+
     if (because === undefined) continue;
     loop.suppressedBy.set(check.id, because);
     ctx.state.checksSuppressed.push({ because, check: check.id, entity: entity.name });
     ctx.grades.suppress(graded, check.id);
+
     return true;
   }
+
   return false;
 }
 
@@ -119,7 +138,9 @@ function suppressed(loop: SuppressingLoop, { check, graded }: PlannedCheck): boo
  */
 function failed({ outcomes, run }: CheckLoop, dependency: string): boolean {
   const outcome = outcomes.get(dependency);
+
   if (outcome !== undefined) return outcome.kind === "finding";
+
   return run.ctx.findings.findings.some(
     (finding) => finding.check === dependency && finding.entity === run.entity.name && isRootCause(finding),
   );

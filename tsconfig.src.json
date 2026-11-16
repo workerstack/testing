@@ -1,6 +1,7 @@
 {
-  "compilerOptions": { "noEmit": true },
-  "exclude": ["dist", "node_modules", "examples", "lab", "src/web", "src/**/*.test.ts", "src/**/__fixtures__/**"],
-  // The shipped API source under the strict flags; exclude repeats tsconfig.json's, which already leaves out the tests.
-  "extends": ["./tsconfig.json", "@workerstack/repo/tsconfig/strict"]
+  "compilerOptions": { "lib": ["ES2023"], "noEmit": true },
+  // The shipped API source under the strict flags, without the DOM, as tsconfig.build.json emits it.
+  "exclude": ["src/web", "src/**/*.test.ts", "src/**/__fixtures__/**"],
+  "extends": ["./tsconfig.json", "@workerstack/repo/tsconfig/strict"],
+  "include": ["src/**/*.ts"]
 }

@@ -5,12 +5,12 @@ import { oxlintReports, reportsOf } from "./rule-harness.ts";
 
 const MESSAGE = "import is outside the API tester's module boundaries (see AGENTS.md: dependency arrows)";
 
-/* One importing file per case: `from` imports `spec`, and the rule says whether that is allowed. */
+// One importing file per case: `from` imports `spec`, and the rule says whether that is allowed.
 function verdict(from: string, spec: string): boolean {
   return reportsOf(rule, { [from]: `import { x } from "${spec}"\n` }).length === 0;
 }
 
-/* Down the layers, and within a layer's own group. */
+// Down the layers, and within a layer's own group.
 const ALLOWED: Array<[string, string]> = [
   ["src/api/cli.ts", "./conformance/matrix/cases.ts"],
   ["src/api/cli/commands/run.ts", "../../report/render.ts"],
@@ -26,7 +26,7 @@ const ALLOWED: Array<[string, string]> = [
   ["src/api/client/request.ts", "../credentials/store.ts"],
   ["src/api/runtime/world.ts", "../client/client.ts"],
   ["src/api/client/client.ts", "../runtime/cookies/jar.ts"],
-  /* The transport directories still under runtime/ are client code, and import as client code. */
+  // The transport directories still under runtime/ are client code, and import as client code.
   ["src/api/runtime/transcript/spool.ts", "../exchange.ts"],
   ["src/api/runtime/rate-limit/rules.ts", "../../spec/graph/types.ts"],
   ["src/api/runtime/body/encode.ts", "../network/fetch.ts"],
@@ -45,13 +45,13 @@ const ALLOWED: Array<[string, string]> = [
   ["src/api/reference/stores/postgres.ts", "postgres"],
   ["src/api/conformance/matrix/engines.ts", "postgres"],
   ["src/api/cli.ts", "@workerstack/testing"],
-  /* The step builders sit just above the step types they emit. */
+  // The step builders sit just above the step types they emit.
   ["src/api/steps/request.ts", "../config/types/steps.ts"],
   ["src/api/steps/view.ts", "./request.ts"],
   ["src/api/steps/view.ts", "../errors/usage-error.ts"],
 ];
 
-/* Against the arrows. */
+// Against the arrows.
 const REFUSED: Array<[string, string]> = [
   ["src/api/spec/graph.ts", "../runtime/world.ts"],
   ["src/api/errors/network.ts", "../spec/graph.ts"],
@@ -69,21 +69,21 @@ const REFUSED: Array<[string, string]> = [
   ["src/api/client/client.ts", "lodash"],
   ["src/api/misc/thing.ts", "../spec/graph.ts"],
   ["src/api/runtime/world.ts", "../misc/thing.ts"],
-  /* security is a leaf: it reaches only the errors and config types. */
+  // security is a leaf: it reaches only the errors and config types.
   ["src/api/security/redact.ts", "../spec/graph.ts"],
   ["src/api/security/redact.ts", "../runtime/world.ts"],
-  /* client and credentials sit below the runtime: never the reverse arrow. */
+  // client and credentials sit below the runtime: never the reverse arrow.
   ["src/api/credentials/store.ts", "../runtime/body/encode.ts"],
   ["src/api/runtime/network/fetch.ts", "../world.ts"],
   ["src/api/runtime/exchanges/journal.ts", "../body/encode.ts"],
   ["src/api/client/request.ts", "../runtime/checks.ts"],
   ["src/api/client/client.ts", "../runtime/checks/registry.ts"],
   ["src/api/client/client.ts", "../runtime/world.ts"],
-  /* The step builders reach only the step types and the errors: nothing that runs a step. */
+  // The step builders reach only the step types and the errors: nothing that runs a step.
   ["src/api/steps/request.ts", "../runtime/world.ts"],
   ["src/api/steps/request.ts", "../spec/graph.ts"],
   ["src/api/steps/request.ts", "../security/redact.ts"],
-  /* The API tester never reaches the web helpers: they need a browser stack API-only consumers never install. */
+  // The API tester never reaches the web helpers: they need a browser stack API-only consumers never install.
   ["src/api/index.ts", "./web/index.ts"],
   ["src/api/runtime/world.ts", "../../web/ready.ts"],
 ];
@@ -108,6 +108,7 @@ describe("testing/boundaries", () => {
         "export const e = 1",
       ].join("\n"),
     };
+
     const reports = reportsOf(rule, fixture);
     expect(reports.map(({ line }) => line)).toEqual([1, 2, 3, 4]);
     expect(reports[0]?.message).toBe(MESSAGE);
@@ -115,6 +116,7 @@ describe("testing/boundaries", () => {
 
   it("leaves tests, fixtures and code outside src alone", () => {
     const source = 'import { x } from "../runtime/world.ts"\nimport { y } from "lodash"\n';
+
     const fixture = {
       "src/api/spec/graph.test.ts": source,
       "src/api/spec/__fixtures__/a.ts": source,
@@ -122,6 +124,7 @@ describe("testing/boundaries", () => {
       "lint/a.ts": source,
       "labs/api/demo.ts": source,
     };
+
     expect(reportsOf(rule, fixture)).toEqual([]);
   });
 

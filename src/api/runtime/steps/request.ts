@@ -1,9 +1,7 @@
-/*
- * A step resolved to the request it sends: an operation named in the document, or a raw method
- * and path for an endpoint the document does not describe, on the primary origin or a named one,
- * with `{name}` placeholders filled (one nothing fills is refused, never sent as written) and the body
- * encoded the way the operation documents it.
- */
+// A step resolved to the request it sends: an operation named in the document, or a raw method
+// and path for an endpoint the document does not describe, on the primary origin or a named one,
+// with `{name}` placeholders filled (one nothing fills is refused, never sent as written) and the body
+// encoded the way the operation documents it.
 
 import type { Client } from "../../client/client.ts";
 import type { Hooks } from "../../config/types/hooks.ts";
@@ -16,13 +14,13 @@ import type { BackoffConfig } from "../poll.ts";
 import { interpolate } from "./interpolate.ts";
 
 /** A named origin's client and the document it serves. */
-export interface OriginClient {
+export type OriginClient = {
   client: Client;
   model: SpecModel;
-}
+};
 
 /** What a chain of steps runs against, and whose chain it is. */
-export interface StepContext {
+export type StepContext = {
   client: Client;
   model: SpecModel;
   hooks: Hooks;
@@ -31,10 +29,10 @@ export interface StepContext {
   originClients?: ReadonlyMap<string, OriginClient>;
   /** Values a scenario keeps whole: a field that is exactly `{name}` of one sends it as it is. */
   kept?: ReadonlyMap<string, unknown>;
-}
+};
 
 /** The request a step sends, and the client it goes through. */
-export interface ResolvedRequest {
+export type ResolvedRequest = {
   method: string;
   path: string;
   body?: unknown;
@@ -43,7 +41,7 @@ export interface ResolvedRequest {
   query?: Record<string, string>;
   client: Client;
   redirect?: "follow" | "manual";
-}
+};
 
 /** True for a step that names an operation from the document. */
 export function isOperationStep(step: AuthStep): step is OperationStep {
@@ -64,21 +62,26 @@ export async function resolveRequest(
 ): Promise<ResolvedRequest> {
   const target = targetOf(ctx, step, index);
   const fill = (value: unknown): unknown => filled(value, { index, kept: ctx.kept ?? new Map(), scope });
-  /* Two shapes, distinguished structurally: name an operation from the document, or give a raw
-   * method and path for an endpoint the document does not describe. */
+
+  // Two shapes, distinguished structurally: name an operation from the document, or give a raw
+  // method and path for an endpoint the document does not describe.
   if (isOperationStep(step)) {
     const op = target.model.byOperationId.get(step.operationId);
+
     if (op === undefined) {
       throw new Error(
         `testing api: auth step ${index + 1} names operation "${step.operationId}", which is not in the document`,
       );
     }
+
     const raw = target.model.rawOperations.get(step.operationId);
     const interpolated = step.body === undefined ? undefined : fill(step.body);
+
     const encoded = await encodeAuthBody(raw, interpolated, {
       mediaType: step.mediaType,
       operationId: step.operationId,
     });
+
     return {
       client: target.client,
       method: op.method,
@@ -89,9 +92,9 @@ export async function resolveRequest(
     };
   }
 
-  if (!isRequestStep(step)) {
+  if (!isRequestStep(step))
     throw new Error(`testing api: auth step ${index + 1} declares neither an operationId nor a method and path`);
-  }
+
   return {
     client: target.client,
     method: step.method,
@@ -103,17 +106,16 @@ export async function resolveRequest(
   };
 }
 
-/*
- * A `{name}` the step writes that nothing fills would reach the backend as written and read as its
- * fault. Read from the step, not from what it sends: a bound value or a kept object may hold
- * `{id}`-shaped text, a saved URL template say, and is sent as it is.
- */
+// A `{name}` the step writes that nothing fills would reach the backend as written and read as its
+// fault. Read from the step, not from what it sends: a bound value or a kept object may hold
+// `{id}`-shaped text, a saved URL template say, and is sent as it is.
 function filled(
   value: unknown,
   at: { scope: Record<string, string>; kept: ReadonlyMap<string, unknown>; index: number },
 ): unknown {
   const { index, kept, scope } = at;
   const name = placeholderNames(value).find((each) => scope[each] === undefined && !kept.has(each));
+
   if (name === undefined) return interpolate(value, scope, kept);
   throw new Error(
     `testing api: step ${index + 1}'s placeholder {${name}} has no value: no bind, saveAs or earlier step fills it`,
@@ -123,22 +125,28 @@ function filled(
 /** The named origin a step goes to, if it names one. */
 function stepOrigin(step: AuthStep): string | undefined {
   if ("outOfBand" in step) return undefined;
+
   if ("origin" in step && typeof step.origin === "string" && step.origin !== "") return step.origin;
+
   return undefined;
 }
 
 /** The client and document a step goes through: its named origin's, or the primary one. */
 function targetOf(ctx: StepContext, step: AuthStep, index: number): OriginClient {
   const origin = stepOrigin(step);
+
   if (origin === undefined) return { client: ctx.client, model: ctx.model };
   const named = ctx.originClients?.get(origin);
+
   if (named === undefined) {
     const known = [...(ctx.originClients?.keys() ?? [])].join(", ");
     throw new Error(
-      `testing api: auth step ${index + 1} names origin "${origin}", which is not in config.origins` +
-        (known === "" ? "" : ` (known: ${known})`),
+      `testing api: auth step ${index + 1} names origin "${origin}", which is not in config.origins${
+        known === "" ? "" : ` (known: ${known})`
+      }`,
     );
   }
+
   return named;
 }
 
@@ -149,13 +157,15 @@ async function encodeAuthBody(
   options: { operationId: string; mediaType: string | undefined },
 ): Promise<{ body?: unknown; contentType?: string | null }> {
   const { mediaType, operationId } = options;
+
   if (body === undefined) return {};
-  /* An upload goes as it is, under the media type the step names. */
+
+  // An upload goes as it is, under the media type the step names.
   if (isBytes(body)) return mediaType === undefined ? { body } : { body, contentType: mediaType };
   const content = raw === undefined ? null : requestContent(raw, mediaType);
-  if (content === null || body === null || typeof body !== "object" || Array.isArray(body)) {
-    return { body };
-  }
+
+  if (content === null || body === null || typeof body !== "object" || Array.isArray(body)) return { body };
+
   const encoded = await encodeRequest({
     fields: body as Record<string, unknown>,
     index: 0,
@@ -166,6 +176,7 @@ async function encodeAuthBody(
     variant: "baseline",
     ...(content.encoding === undefined ? {} : { encoding: content.encoding }),
   });
+
   return encoded.contentType === undefined
     ? { body: encoded.body }
     : { body: encoded.body, contentType: encoded.contentType };

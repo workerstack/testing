@@ -3,14 +3,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Box, Spot } from "./gesture.ts";
 import { pointer, type GestureEvent, type GestureInit, type Surface } from "./pointer.ts";
 
-/* A stand-in element: a box, a parent, and `contains` over the parent chain. */
-interface FakeElement {
+// A stand-in element: a box, a parent, and `contains` over the parent chain.
+type FakeElement = {
   name: string;
   parentElement: FakeElement | null;
   getBoundingClientRect: () => Box;
   contains: (other: FakeElement) => boolean;
   dispatchEvent: (event: unknown) => boolean;
-}
+};
 
 function element(
   name: string,
@@ -20,6 +20,7 @@ function element(
   const self: FakeElement = {
     contains: (other) => {
       for (let at: FakeElement | null = other; at !== null; at = at.parentElement) if (at === self) return true;
+
       return false;
     },
     dispatchEvent: (event) => dispatched.push(event) > 0,
@@ -27,10 +28,11 @@ function element(
     name,
     parentElement: parent as unknown as FakeElement | null,
   };
+
   return self as unknown as Element;
 }
 
-/* A bare class that stands for the browser's `name`. */
+// A bare class that stands for the browser's `name`.
 const standIn = (name: string): new () => object =>
   class {
     readonly standsFor = name;
@@ -38,16 +40,14 @@ const standIn = (name: string): new () => object =>
 
 const nameOf = (target: Element): string => (target as unknown as FakeElement).name;
 
-interface Sent {
+type Sent = {
   to: string;
   type: GestureEvent;
   init: GestureInit;
-}
+};
 
-/*
- * A surface that hits `pick(spot)`, records every event as it is sent and every frame as it passes,
- * and lets a test hand the held pointer's capture to an element with `capture`.
- */
+// A surface that hits `pick(spot)`, records every event as it is sent and every frame as it passes,
+// and lets a test hand the held pointer's capture to an element with `capture`.
 function fakeSurface(pick: (spot: Spot) => Element): {
   surface: Surface;
   log: Array<Sent | "frame">;
@@ -55,6 +55,7 @@ function fakeSurface(pick: (spot: Spot) => Element): {
 } {
   const log: Array<Sent | "frame"> = [];
   let captor: Element | null = null;
+
   const surface: Surface = {
     frame: async () => {
       log.push("frame");
@@ -68,6 +69,7 @@ function fakeSurface(pick: (spot: Spot) => Element): {
     }),
     send: (target, type, init) => log.push({ init, to: nameOf(target), type }),
   };
+
   return {
     capture: (el) => {
       captor = el;
@@ -246,6 +248,7 @@ describe("the page surface", () => {
       body,
       elementFromPoint: (x: number, y: number) => {
         hits.push({ x, y });
+
         return x > 100 ? null : first;
       },
     });
@@ -263,6 +266,7 @@ describe("the page surface", () => {
 
   it("dispatches a bubbling, composed PointerEvent, a MouseEvent click, and waits on requestAnimationFrame", async () => {
     const made: Array<[string, string, object]> = [];
+
     const record = (kind: string) =>
       class {
         readonly kind = kind;
@@ -270,6 +274,7 @@ describe("the page surface", () => {
           made.push([kind, type, init]);
         }
       };
+
     const dispatched: unknown[] = [];
     const target = element("target", { height: 10, width: 10, x: 0, y: 0 }, { dispatched });
     vi.stubGlobal("Element", standIn("Element"));

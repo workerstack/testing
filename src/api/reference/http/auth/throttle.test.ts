@@ -10,10 +10,11 @@ const T0 = 1_800_000_000_000;
 async function world(options: ReferenceOptions = {}) {
   const now = { ms: T0 };
   const state = await referenceState({ clock: () => now.ms, ...options }, memoryStore);
+
   return { now, state };
 }
 
-/* Fails `count` logins for `identity`, a second apart, and answers whether the next is throttled. */
+// Fails `count` logins for `identity`, a second apart, and answers whether the next is throttled.
 function failLogins(state: Awaited<ReturnType<typeof world>>, identity: string, count: number): void {
   for (let index = 0; index < count; index += 1) {
     noteLogin(state.state, identity, false);
@@ -29,7 +30,7 @@ describe("throttled", () => {
     failLogins(state, "key:nobody", 1);
     const answer = throttled(state.state, "key:nobody");
     expect(answer?.status).toBe(429);
-    /* The first failure was at T0; it leaves the window at T0 + 60s, and the clock reads T0 + 5s. */
+    // The first failure was at T0; it leaves the window at T0 + 60s, and the clock reads T0 + 5s.
     expect(answer?.headers["retry-after"]).toBe("55");
     expect(JSON.parse(answer?.body ?? "")).toEqual({
       error_key: "too_many_requests",

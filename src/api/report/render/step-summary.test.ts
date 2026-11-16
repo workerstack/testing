@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { BASE, exchange, finding, operation, reportOf, scopeOf } from "./__fixtures__/report.ts";
 import { renderStepSummary, STEP_SUMMARY_LIMIT } from "./step-summary.ts";
 
-/* The run as a GitHub job summary: the verdict, the operations, the findings, and where the rest is. */
+// The run as a GitHub job summary: the verdict, the operations, the findings, and where the rest is.
 
 const RUN_DIR = "/w/.testing/api/runs/2026-10-22T10-00-00Z";
 const render = (input = reportOf()) => renderStepSummary(input, { runDir: RUN_DIR });
@@ -26,6 +26,7 @@ describe("renderStepSummary", () => {
     const text = render(
       reportOf({ findings: [finding()], profile: "cheap", scope: graded() }, [exchange(), exchange()]),
     );
+
     expect(text.split("\n").slice(0, 5)).toEqual([
       "## testing api: defects (exit 1)",
       "",
@@ -63,6 +64,7 @@ describe("renderStepSummary", () => {
         scope: graded(),
       }),
     );
+
     expect(text).toContain(
       [
         "### Findings",
@@ -86,6 +88,7 @@ describe("renderStepSummary, the text", () => {
       findings: [finding({ check: "c|d", summary: "a | b\nc\r\nd <img src=x> sk-live-123456" })],
       scope: graded(),
     });
+
     input.client.redactor.registerSecret("sk-live-123456");
     const text = render(input);
     expect(text).toContain("| BACKEND_BUG | row | `c\\|d` | a \\| b c d &lt;img src=x> &lt;redacted> |");
@@ -105,6 +108,7 @@ describe("renderStepSummary, the text", () => {
         scope: graded(),
       }),
     );
+
     expect(text).toContain(
       [
         "<details><summary>Untested (3)</summary>",
@@ -116,12 +120,14 @@ describe("renderStepSummary, the text", () => {
         "</details>",
       ].join("\n"),
     );
+
     const everywhere = render(
       reportOf({
         checksSuppressed: [{ because: "auth.required", check: "sort.order-is-applied", entity: "row" }],
         scope: graded(),
       }),
     );
+
     expect(everywhere).toContain("- `sort.order-is-applied`: blocked by an earlier failure, waiting on auth.required");
   });
 
@@ -144,11 +150,13 @@ describe("renderStepSummary, the bound", () => {
   it("stays within 65536 bytes and says how many rows it left out", () => {
     const long = "x".repeat(400);
     const findings = Array.from({ length: 400 }, (_, i) => finding({ check: `c${i}`, summary: long }));
+
     const inconclusive = Array.from({ length: 50 }, (_, i) => ({
       check: `i${i}`,
       entity: "row",
       reason: long.repeat(5),
     }));
+
     const text = render(reportOf({ findings, inconclusive, scope: graded() }));
     expect(STEP_SUMMARY_LIMIT).toBe(65_536);
     expect(bytes(text)).toBeLessThanOrEqual(STEP_SUMMARY_LIMIT);

@@ -3,15 +3,14 @@ import { describe, expect, it } from "vitest";
 import type { Scenario } from "../../config/types/steps.ts";
 import { assertScenarios, isExternal, isOutOfBand, scenarioCheckId, stepOperation } from "./validate.ts";
 
-/*
- * A scenario may step onto another origin — upload a file to the cdn, then commit it through the
- * API. The step names the operation as that origin's document has it, and is checked there.
- */
+// A scenario may step onto another origin — upload a file to the cdn, then commit it through the
+// API. The step names the operation as that origin's document has it, and is checked there.
 
 const documents: Record<string, Set<string>> = {
   cdn: new Set(["cdn.upload"]),
   main: new Set(["avatar.commit"]),
 };
+
 const known = (id: string, origin?: string) => documents[origin ?? "main"]?.has(id) === true;
 
 const scenario = (steps: Scenario["steps"]): Scenario => ({ covers: ["avatar.commit"], id: "upload", steps });
@@ -39,7 +38,7 @@ describe("scenario steps on another origin", () => {
   });
 });
 
-/* The main document has every `notes.` operation. */
+// The main document has every `notes.` operation.
 const main = (id: string) => id.startsWith("notes.");
 
 describe("assertScenarios", () => {

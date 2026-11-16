@@ -13,7 +13,7 @@ afterEach(() => {
 
 type Create = NonNullable<Parameters<typeof listeningVia>[0]>;
 
-/* A stand-in for node:http's server factory that listens nowhere and records what was asked of it. */
+// A stand-in for node:http's server factory that listens nowhere and records what was asked of it.
 function fakeCreate(log: string[]): Create {
   const server = {
     address: () => ({ address: "127.0.0.1", family: "IPv4", port: 4321 }),
@@ -21,6 +21,7 @@ function fakeCreate(log: string[]): Create {
     closeAllConnections: () => log.push("drop"),
     listen: (port: number, host: string, ready: () => void) => (log.push(`listen ${port} ${host}`), ready()),
   };
+
   return (() => server) as unknown as Create;
 }
 
@@ -36,6 +37,7 @@ describe("storeFor", () => {
   it("reads D1's credentials up front, and refuses without them", () => {
     for (const name of D1) delete process.env[name];
     expect(() => storeFor("d1")).toThrow(/D1 backend needs CLOUDFLARE_ACCOUNT_ID/);
+
     for (const name of D1) process.env[name] = "x";
     expect(storeFor("d1")).toBeTypeOf("function");
   });
@@ -78,10 +80,12 @@ describe("listeningVia", () => {
 describe("launch", () => {
   it("launches the target's engine with its dialect, its shape when it has one, and the options", async () => {
     const asked: unknown[] = [];
+
     const via: Via = {
       host: () => Promise.reject(new Error("unused")),
       launch: (backend, options) => (asked.push([backend, options]), inProcess.launch(backend, options)),
     };
+
     await (await launch({ backend: "memory", dialect: "classic", via }, { untagged: true })).close();
     await (await launch({ backend: "memory", dialect: "postgrest", shape: "path-prefix", via }, {})).close();
     expect(asked).toEqual([

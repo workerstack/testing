@@ -32,18 +32,21 @@ export class RateBucket {
     const previous = this.queue;
     this.queue = previous.then(async () => {
       const now = performance.now();
-      if (now < this.cooldownUntil) {
-        await new Promise<void>((resolve) => setTimeout(resolve, this.cooldownUntil - now));
-      }
+
+      if (now < this.cooldownUntil) await new Promise<void>((resolve) => setTimeout(resolve, this.cooldownUntil - now));
+
       const after = performance.now();
       this.tokens = Math.min(this.rps, this.tokens + ((after - this.last) / 1000) * this.rps);
       this.last = after;
+
       if (this.tokens >= 1) {
-        /* A cooldown wait is not room — the API tester did not believe it was under its own pace. */
+        // A cooldown wait is not room — the API tester did not believe it was under its own pace.
         hadRoom = now >= this.cooldownUntil;
         this.tokens -= 1;
+
         return;
       }
+
       const waitMs = ((1 - this.tokens) / this.rps) * 1000;
       await new Promise<void>((resolve) => setTimeout(resolve, waitMs));
       this.tokens = 0;
@@ -51,6 +54,7 @@ export class RateBucket {
       hadRoom = false;
     });
     await this.queue;
+
     return hadRoom;
   }
 }

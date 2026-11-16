@@ -98,6 +98,7 @@ const PUBLIC_CATALOG_SPEC = {
 function send(status: number, body?: unknown): ReferenceResponse {
   if (body === undefined) return { body: "", headers: {}, status };
   const text = JSON.stringify(body);
+
   return {
     body: text,
     headers: { "content-length": String(Buffer.byteLength(text)), "content-type": "application/json" },
@@ -108,6 +109,7 @@ function send(status: number, body?: unknown): ReferenceResponse {
 /** A body read as JSON: nothing when empty, and a throw — answered 500 — when it is not JSON. */
 async function readJson(request: ReferenceRequest): Promise<unknown> {
   const text = await request.text();
+
   return text === "" ? undefined : (JSON.parse(text) as unknown);
 }
 
@@ -119,23 +121,31 @@ export function publicCatalog(): Handle {
   const rows = new Map<string, { id: string; name: string }>();
   const tokens = new Set(["tok_alpha", "tok_beta"]);
   let seq = 0;
+
   const answer = async (request: ReferenceRequest): Promise<ReferenceResponse> => {
     const { method, url } = request;
+
     if (url.pathname === "/v1/openapi/spec" && method === "GET") return send(200, PUBLIC_CATALOG_SPEC);
     const token = bearer(request);
+
     if (token === undefined || !tokens.has(token)) return send(401, { error: "unauthorized" });
+
     if (url.pathname === "/v1/templates") {
       if (method === "GET") return send(200, { templates: listed(rows, url.searchParams.get("filter")) });
+
       if (method === "POST") {
         const body = (await readJson(request)) as { name?: unknown } | undefined;
         seq += 1;
         const row = { id: `tmpl_${String(seq)}`, name: typeof body?.name === "string" ? body.name : "" };
         rows.set(row.id, row);
+
         return send(201, row);
       }
     }
+
     return item(rows, request);
   };
+
   return async (request) => {
     try {
       return await answer(request);
@@ -145,23 +155,29 @@ export function publicCatalog(): Handle {
   };
 }
 
-/* Every template, or the one `filter=id.eq.<id>` names. */
+// Every template, or the one `filter=id.eq.<id>` names.
 function listed(rows: ReadonlyMap<string, { id: string; name: string }>, filter: string | null): unknown[] {
   const match = filter === null ? null : /^id\.eq\.(.+)$/.exec(filter);
+
   if (match === null) return [...rows.values()];
-  /* `(.+)` always captures: the group is there whenever the match is. */
+  // `(.+)` always captures: the group is there whenever the match is.
   const row = rows.get(String(match[1]));
+
   return row === undefined ? [] : [row];
 }
 
 function item(rows: Map<string, { id: string; name: string }>, request: ReferenceRequest): ReferenceResponse {
   const match = /^\/v1\/templates\/([^/]+)$/.exec(request.url.pathname);
+
   if (match === null || (request.method !== "GET" && request.method !== "DELETE"))
     return send(404, { error: "not_found" });
   const id = decodeURIComponent(String(match[1]));
   const row = rows.get(id);
+
   if (row === undefined) return send(404, { error: "not_found" });
+
   if (request.method === "GET") return send(200, row);
   rows.delete(id);
+
   return send(204);
 }

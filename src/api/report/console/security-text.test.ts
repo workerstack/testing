@@ -6,7 +6,7 @@ import { ANYROW, credentials, legacy, model } from "./__fixtures__/security.ts";
 import { planSecurityLines, securityLines, targetSecurity } from "./security-text.ts";
 import { securityFacts } from "./security.ts";
 
-/* What doctor and plan print about credentials: aligned columns of schemes, requirement groups and operations. */
+// What doctor and plan print about credentials: aligned columns of schemes, requirement groups and operations.
 
 describe("securityLines: schemes", () => {
   it("lists each scheme's placement and recipe", () => {
@@ -42,8 +42,10 @@ describe("securityLines: schemes", () => {
         ),
       ),
     );
+
     expect(lines[1]).toMatch(/ {3}static · \+1 placement$/);
     expect(lines[2]).toMatch(/ {3}static$/);
+
     const two = securityFacts(
       model(anyrow),
       credentials({
@@ -56,14 +58,17 @@ describe("securityLines: schemes", () => {
         },
       }),
     );
+
     expect(securityLines(two)[1]).toMatch(/ {3}static · \+2 placements$/);
     expect(securityLines(two)[2]).toMatch(/ {3}no recipe$/);
+
     const basic = securityLines(
       securityFacts(
         model(everyScheme),
         credentials({ basic: { format: "Basic {credential}", static: { password: "p", username: "u" } } }),
       ),
     );
+
     expect(basic[1]).toMatch(/header Authorization: Basic \{credential\} +static · format$/);
   });
 });

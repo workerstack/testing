@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { cycles, importGraph } from "../api/support/import-graph.ts";
 
-/* An import cycle makes load order matter and splits nothing: every module in it is one module. */
+// An import cycle makes load order matter and splits nothing: every module in it is one module.
 
 const ROOT = join(import.meta.dirname, "..", "..");
 
@@ -21,6 +21,7 @@ describe("no import cycles", () => {
       ["d.ts", new Set(["d.ts"])],
       ["e.ts", new Set(["a.ts"])],
     ]);
+
     expect(cycles(graph)).toEqual([["a.ts", "b.ts", "c.ts"], ["d.ts"]]);
   });
 });

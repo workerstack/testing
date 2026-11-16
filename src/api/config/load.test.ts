@@ -7,11 +7,9 @@ import { describe, expect, it } from "vitest";
 import { DEFER_ENV } from "./env.ts";
 import { interpolate, loadConfig } from "./load.ts";
 
-/*
- * `${NAME}` is filled from the environment through the plain data of a config. A value that is not
- * plain data — a file's bytes for an upload step, a date — is the config author's object and is
- * handed on as it is.
- */
+// `${NAME}` is filled from the environment through the plain data of a config. A value that is not
+// plain data — a file's bytes for an upload step, a date — is the config author's object and is
+// handed on as it is.
 
 describe("config env interpolation", () => {
   it("fills ${NAME} in strings inside objects and arrays", () => {
@@ -44,10 +42,11 @@ describe("loading a config that reads an unset variable", () => {
   });
 });
 
-/* A config file named `name` holding `text`, in a fresh folder. */
+// A config file named `name` holding `text`, in a fresh folder.
 async function written(name: string, text: string): Promise<string> {
   const path = join(await mkdtemp(join(tmpdir(), "testing-load-")), name);
   await writeFile(path, text);
+
   return path;
 }
 
@@ -79,11 +78,12 @@ describe("loadConfig", () => {
   });
 
   it("names the floor for a .ts config it cannot import", async () => {
-    /* What Node without type stripping raises for a .ts import. */
+    // What Node without type stripping raises for a .ts import.
     const path = await written(
       "f.ts",
       'throw new TypeError(`Unknown file extension ".ts" for ${import.meta.filename}`)\n',
     );
+
     await expect(loadConfig(path)).rejects.toThrow(
       `testing api: cannot load ${path} — this Node cannot import TypeScript ` +
         "(the API tester needs 22.18 or later, without --no-experimental-strip-types); or use a .js/.mjs config",
@@ -102,20 +102,23 @@ describe("interpolate", () => {
   });
 });
 
-/* A config that reads TESTING_API_UNSET_FOR_TEST through env(), in a fresh folder. */
+// A config that reads TESTING_API_UNSET_FOR_TEST through env(), in a fresh folder.
 async function readsUnset(): Promise<string> {
   const envModule = join(import.meta.dirname, "env.ts");
+
   return written(
     "testing.api.config.mjs",
     `import { env } from ${JSON.stringify(envModule)}\nexport default { token: env("TESTING_API_UNSET_FOR_TEST") }\n`,
   );
 }
 
-/* Runs `body` with TESTING_API_DEFER_ENV as `value` (absent when undefined), restoring what was there. */
+// Runs `body` with TESTING_API_DEFER_ENV as `value` (absent when undefined), restoring what was there.
 async function withDeferEnv(value: string | undefined, body: () => Promise<void>): Promise<void> {
   const previous = process.env[DEFER_ENV];
+
   if (value === undefined) delete process.env[DEFER_ENV];
   else process.env[DEFER_ENV] = value;
+
   try {
     await body();
   } finally {
@@ -152,11 +155,13 @@ describe("loadConfig deferring env for doctor and plan", () => {
 describe("interpolate deferring unset names", () => {
   it("leaves each unset ${NAME} as written and collects it, filling the set ones", () => {
     const unset = new Set<string>();
+
     const value = interpolate(
       { a: "Bearer ${TESTING_API_A}", b: ["${TESTING_API_B}", "${TESTING_API_A}"], c: "${SET}" },
       { SET: "s" },
       { unset },
     );
+
     expect(value).toEqual({ a: "Bearer ${TESTING_API_A}", b: ["${TESTING_API_B}", "${TESTING_API_A}"], c: "s" });
     expect([...unset]).toEqual(["TESTING_API_A", "TESTING_API_B"]);
   });

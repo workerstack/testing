@@ -1,21 +1,23 @@
 /** An entity in plan order, and the write path the document says its payload check probes. */
-export interface PlannedPayload {
+export type PlannedPayload = {
   entity: string;
   path: string | null;
-}
+};
 
-interface Outcome {
+type Outcome = {
   /** The path the entity ran the whole catalog on, or null once it never will. */
   path: Promise<string | null>;
   settle: (path: string | null) => void;
-}
+};
 
 function outcome(): Outcome {
-  /* The executor runs at once, so `settle` is assigned before it is returned. */
+  // The executor runs at once, so `settle` is assigned before it is returned.
   let settle!: (path: string | null) => void;
+
   const path = new Promise<string | null>((resolve) => {
     settle = resolve;
   });
+
   return { path, settle };
 }
 
@@ -34,6 +36,7 @@ export class PayloadClaims {
   /** The run's entities in plan order, each with the path it is planned on (`plannedWritePath`). */
   plan(entities: readonly PlannedPayload[]): void {
     this.planned = entities;
+
     for (const { entity } of entities) this.outcomes.set(entity, outcome());
   }
 
@@ -44,10 +47,13 @@ export class PayloadClaims {
    */
   async claim(entity: string, path: string): Promise<string | null> {
     const at = this.planned.findIndex((planned) => planned.entity === entity);
+
     for (const earlier of this.planned.slice(0, Math.max(at, 0))) {
       if (earlier.path !== path) continue;
+
       if ((await this.outcomes.get(earlier.entity)?.path) === path) return earlier.entity;
     }
+
     return null;
   }
 

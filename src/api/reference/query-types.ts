@@ -1,5 +1,5 @@
-/* The plan a store answers a listing from: which rows, in what order. Types only, so stores and the
- * planner share them without importing each other. */
+// The plan a store answers a listing from: which rows, in what order. Types only, so stores and the
+// planner share them without importing each other.
 
 export type Scalar = string | number | boolean | null;
 
@@ -34,19 +34,19 @@ export type FilterNode =
       caseSensitive: boolean;
     };
 
-export interface OrderTerm {
+export type OrderTerm = {
   field: string;
   descending: boolean;
   nullsFirst: boolean;
   asText: boolean;
-}
+};
 
 export type Collation = "binary" | "insensitive";
 
 export type SearchMode = "contains" | "prefix";
 
 /** Everything a store needs to answer a listing: which rows, in what order. */
-export interface SelectPlan {
+export type SelectPlan = {
   where: FilterNode;
   order: OrderTerm[];
   /** Text ordering. Filters always compare binary; only ordering follows the collation. */
@@ -56,4 +56,4 @@ export interface SelectPlan {
    * has no total order. Set only under UNSTABLE_SORT; otherwise the identity breaks every tie.
    */
   shuffleTies: boolean;
-}
+};

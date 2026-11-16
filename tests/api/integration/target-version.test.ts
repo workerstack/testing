@@ -10,11 +10,9 @@ import { EXIT, exitCode } from "../../../src/api/runtime/exit.ts";
 import { run } from "../../../src/api/runtime/run/index.ts";
 import { readBack } from "../support/json-body.ts";
 
-/*
- * A finding is about a build. A run records which one it tested — read from a version route by a
- * JSON path or from a response header — so two reports can be lined up with two releases. A
- * version that cannot be read is noted, never a reason the run fails.
- */
+// A finding is about a build. A run records which one it tested — read from a version route by a
+// JSON path or from a response header — so two reports can be lined up with two releases. A
+// version that cannot be read is noted, never a reason the run fails.
 
 const DOC = {
   info: { title: "versioned", version: "1" },
@@ -41,31 +39,40 @@ const DOC = {
 let url = "";
 let broken = false;
 let close: () => Promise<void> = async () => {};
+
 beforeAll(async () => {
   const server = createServer((req, res) => {
     if (req.url === "/openapi.json") {
       res.writeHead(200, { "content-type": "application/json" });
       res.end(JSON.stringify(DOC));
+
       return;
     }
+
     if (req.url === "/version") {
       res.writeHead(200, { "content-type": "application/json", "x-build": "1.0.88-hdr" });
       res.end(JSON.stringify({ build: "1.0.88" }));
+
       return;
     }
-    /* Not in the document, so nothing but the version read calls it, and breaking it changes nothing else. */
+
+    // Not in the document, so nothing but the version read calls it, and breaking it changes nothing else.
     if (req.url === "/build-info" && !broken) {
       res.writeHead(200, { "content-type": "application/json" });
       res.end(JSON.stringify({ build: "1.0.88" }));
+
       return;
     }
+
     res.writeHead(500, { "content-type": "application/json" });
     res.end(JSON.stringify({ error: "down" }));
   });
+
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   close = () => new Promise((resolve) => server.close(() => resolve()));
 });
+
 afterAll(() => close());
 
 const runWith = (targetVersion: { operationId?: string; path?: string; from: string }) =>
@@ -77,7 +84,7 @@ const runWith = (targetVersion: { operationId?: string; path?: string; from: str
     targetVersion,
   });
 
-/* A report needs only what it prints; the rest of a run result is irrelevant here. */
+// A report needs only what it prints; the rest of a run result is irrelevant here.
 const reportOf = (result: Awaited<ReturnType<typeof runWith>>): ReportInput =>
   ({
     ...result,
@@ -100,6 +107,7 @@ describe("targetVersion", () => {
   it("notes a version it cannot read, and leaves the exit code alone", async () => {
     const ok = await runWith({ from: "$.build", path: "/build-info" });
     broken = true;
+
     try {
       const failed = await runWith({ from: "$.build", path: "/build-info" });
       expect(failed.targetVersion).toMatchObject({ error: expect.stringContaining("500") });
@@ -109,6 +117,7 @@ describe("targetVersion", () => {
     } finally {
       broken = false;
     }
+
     expect(exitCode(ok)).not.toBe(EXIT.usage);
   });
 });

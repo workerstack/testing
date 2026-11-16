@@ -17,10 +17,13 @@ export const sortStableTiebreak: Check<{ primary: string; tiebreak: string }> = 
 }>({
   plan: (ctx) => {
     const tiebreak = resolvedCaps(ctx).sort?.stableTiebreak ?? ctx.query?.stableTiebreak;
+
     if (tiebreak === undefined) return cannot();
-    /* Only ties exercise a tiebreak: on distinct keys every implementation looks stable. */
+    // Only ties exercise a tiebreak: on distinct keys every implementation looks stable.
     const primary = tiedSortField(ctx);
+
     if (primary === null || primary === tiebreak) return cannot("a sortable field with tied values in the cohort");
+
     return ready({ primary, tiebreak });
   },
   dependsOn: ["pagination.page-walk-covers-set", "sort.order-is-applied"],
@@ -30,23 +33,31 @@ export const sortStableTiebreak: Check<{ primary: string; tiebreak: string }> = 
   subjects: subjectsOf.list,
   async run(ctx, { primary, tiebreak }): Promise<Outcome> {
     const order = sortTerm(conv(ctx), { direction: "asc", field: primary });
-    /* Two independent reads: a shared one would compare a walk with itself. */
+
+    // Two independent reads: a shared one would compare a walk with itself.
     const read = async () => {
       const result = await readSet(ctx, {}, { fresh: true, order });
+
       return result.status === "ok" ? result : null;
     };
+
     const firstRead = await read();
     const secondRead = await read();
+
     if (firstRead === null || secondRead === null)
       return ctx.findings.unresolved(this.id, ctx.entityName, "repeat sort was rejected");
+
     const settled = await settlePair(
       ctx.identity,
       { first: firstRead, second: secondRead },
       { first: read, second: read },
     );
+
     if (settled === "moving") return ctx.findings.unresolved(this.id, ctx.entityName, MOVING);
+
     if (settled === null) return ctx.findings.unresolved(this.id, ctx.entityName, "repeat sort was rejected");
     const { first, second } = settled;
+
     if (ids(first.items, ctx.identity).join(",") !== ids(second.items, ctx.identity).join(",")) {
       return ctx.findings.backend(this.id, ctx.entityName, {
         summary: "the same order is not deterministic across two walks",
@@ -54,23 +65,30 @@ export const sortStableTiebreak: Check<{ primary: string; tiebreak: string }> = 
         evidence: [first.last.exchange, second.last.exchange],
       });
     }
-    /* Within a run of equal keys the declared tiebreak decides the order, so its values must
-     * move one way. Which way is the backend's to choose; moving both ways is no tiebreak. */
+
+    // Within a run of equal keys the declared tiebreak decides the order, so its values must
+    // move one way. Which way is the backend's to choose; moving both ways is no tiebreak.
     const broken: string[] = [];
     let run: Record_[] = [];
+
     const flush = (): void => {
       const values = run.map((row) => row[tiebreak]).filter((value) => value !== null && value !== undefined);
       const rising = values.every((value, i) => i === 0 || compareScalars(values[i - 1], value) <= 0);
       const falling = values.every((value, i) => i === 0 || compareScalars(values[i - 1], value) >= 0);
+
       if (!rising && !falling) broken.push(JSON.stringify(run[0]?.[primary]));
       run = [];
     };
+
     for (const row of first.items) {
       if (run.length > 0 && JSON.stringify(run[0]?.[primary]) !== JSON.stringify(row[primary])) flush();
       run.push(row);
     }
+
     flush();
+
     if (broken.length === 0) return ASSERTED;
+
     return ctx.findings.backend(this.id, ctx.entityName, {
       summary: "ties are not broken by the declared tiebreak",
       detail:

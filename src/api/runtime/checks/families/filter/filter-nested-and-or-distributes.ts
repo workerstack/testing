@@ -32,22 +32,27 @@ export const filterNestedAndOrDistributes: Check<{
   plan: (ctx) => {
     if (!filterSpec(conv(ctx)).mixed || filterableNames(ctx).length <= 1) return cannot();
     const picked = twoFilterableFields(ctx);
+
     if (picked === null) return cannot("a cohort record with values on two distinct filterable fields");
     const idField = filterIdentity(ctx);
-    if (idField === picked.fieldA || idField === picked.fieldB || !identityIsFilterable(ctx)) {
+
+    if (idField === picked.fieldA || idField === picked.fieldB || !identityIsFilterable(ctx))
       return cannot("a filterable identity as a third term to nest and/or");
-    }
+
     const conventions = conv(ctx);
     const a = { field: picked.fieldA, op: "eq", value: String(picked.target[picked.fieldA]) } as const;
     const b = { field: picked.fieldB, op: "eq", value: String(picked.target[picked.fieldB]) } as const;
     const pickedId = idOf(picked.target, ctx.identity);
+
     if (pickedId === undefined) return cannot(NO_IDENTITY);
     const c = { field: idField, op: "eq", value: pickedId } as const;
     const nested = renderAndOfOr(filterSpec(conventions), conventions.filter, { either: [b, c], first: a });
     const termA = filterTerm(conventions, { field: a.field, op: a.op, value: a.value });
     const termB = filterTerm(conventions, { field: b.field, op: b.op, value: b.value });
     const termC = filterTerm(conventions, { field: c.field, op: c.op, value: c.value });
+
     if (nested === null || termA === null || termB === null || termC === null) return cannot();
+
     return ready({ nested, termA, termB, termC });
   },
   dependsOn: [
@@ -64,26 +69,33 @@ export const filterNestedAndOrDistributes: Check<{
     const distributed = (a: SetRead, b: SetRead, c: SetRead): Set<string> => {
       const setB = setOf(b.items, ctx.identity);
       const setC = setOf(c.items, ctx.identity);
+
       return new Set([...setOf(a.items, ctx.identity)].filter((id) => setB.has(id) || setC.has(id)));
     };
+
     const reads = await readSettled(ctx, [termA, termB, termC, nested], (sets) => {
       const [a, b, c, n] = sets as [SetRead, SetRead, SetRead, SetRead];
+
       return sameSet(distributed(a, b, c), setOf(n.items, ctx.identity));
     });
+
     if (reads === "rejected")
       return ctx.findings.unresolved(this.id, ctx.entityName, "a nested and/or listing was rejected");
-    if (reads === "incomplete") {
+
+    if (reads === "incomplete")
       return ctx.findings.unresolved(this.id, ctx.entityName, "the collection is larger than the walk covers");
-    }
+
     if (reads === "moving") return ctx.findings.unresolved(this.id, ctx.entityName, MOVING_COLLECTION);
-    /* One read per term, in the order the terms were given. */
+    // One read per term, in the order the terms were given.
     const [onlyA, onlyB, onlyC, combined] = reads as [SetRead, SetRead, SetRead, SetRead];
     const setA = setOf(onlyA.items, ctx.identity);
     const setB = setOf(onlyB.items, ctx.identity);
     const setC = setOf(onlyC.items, ctx.identity);
     const expected = new Set([...setA].filter((id) => setB.has(id) || setC.has(id)));
     const got = setOf(combined.items, ctx.identity);
+
     if (sameSet(expected, got)) return ASSERTED;
+
     return ctx.findings.backend(this.id, ctx.entityName, {
       summary: "and(A,or(B,C)) is not (A∩B) ∪ (A∩C)",
       detail: `nested combinator returned ${got.size}; the distributed form is ${expected.size}.`,

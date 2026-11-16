@@ -6,8 +6,8 @@ import { jsonResponse, ok } from "./operation.ts";
 import { pathParams, tenantParam } from "./params.ts";
 import type { Json, SpecContext } from "./types.ts";
 
-/* The async lifecycle: a start operation returning a receipt, and a poll route that
- * eventually reports a terminal state. x-async ties the two together. */
+// The async lifecycle: a start operation returning a receipt, and a poll route that
+// eventually reports a terminal state. x-async ties the two together.
 function startOperation(ctx: SpecContext, job: EntityDef): Json {
   return {
     operationId: "job.start",
@@ -50,7 +50,7 @@ function startOperation(ctx: SpecContext, job: EntityDef): Json {
   };
 }
 
-/* A write whose effect arrives elsewhere, later. x-wait tells the API tester where to look and how long. */
+// A write whose effect arrives elsewhere, later. x-wait tells the API tester where to look and how long.
 function notifyOperation(ctx: SpecContext, job: EntityDef): Json {
   return {
     operationId: "job.notify",
@@ -117,6 +117,7 @@ function inboxOperation(ctx: SpecContext, job: EntityDef): Json {
 
 export function jobPaths(ctx: SpecContext, job: EntityDef): Json {
   const project = job.collectionPath.replace("/jobs", "");
+
   return {
     [`${job.collectionPath}/start`]: { post: startOperation(ctx, job) },
     [`${project}/notifications`]: { post: notifyOperation(ctx, job) },

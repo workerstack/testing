@@ -15,6 +15,7 @@ describe("exchangeBlock", () => {
   it("collapses both bodies, scrubbed, and names the request id", () => {
     const redactor = new Redactor();
     redactor.registerSecret("s3cret");
+
     const lines = exchangeBlock(
       exchange({
         method: "POST",
@@ -26,6 +27,7 @@ describe("exchangeBlock", () => {
       }),
       redactor,
     );
+
     expect(lines[1]).toMatch(/^`POST \/v1\/rows\?token=.*&page=2` → \*\*201\*\* \(.* · req-1\)$/);
     expect(lines.join("\n")).not.toContain("s3cret");
     expect(lines.join("\n")).not.toContain("hunter2");
@@ -49,6 +51,7 @@ describe("exchangeBlock and a sign-in answered as a form", () => {
       responseBody: "access_token=acc-tok-123456&refresh_token=rt-9876543210",
       responseHeaders: { "content-type": "application/x-www-form-urlencoded; charset=utf-8" },
     });
+
     const text = exchangeBlock(answered, new Redactor()).join("\n");
     expect([text.includes("acc-tok-123456"), text.includes("rt-9876543210")]).toEqual([false, false]);
   });
@@ -57,6 +60,7 @@ describe("exchangeBlock and a sign-in answered as a form", () => {
 describe("findingSections", () => {
   it("writes a section per severity, each finding with up to three exchanges and its repro script", () => {
     const evidence = [1, 2, 3, 4].map((seq) => exchange({ seq, url: `${BASE}/v1/rows/${seq}` }));
+
     const lines = findingSections(
       [
         finding({ verdict: "SPEC_BUG", entity: "row", summary: "drift" }),
@@ -64,6 +68,7 @@ describe("findingSections", () => {
       ],
       new Redactor(),
     );
+
     const text = lines.join("\n");
     expect(text.indexOf("## Backend defects")).toBeLessThan(text.indexOf("## Specification drift"));
     expect(lines).toContain("### row · a.png — broken");

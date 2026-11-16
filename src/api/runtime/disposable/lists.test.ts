@@ -5,11 +5,12 @@ import { accountsDoc } from "./__fixtures__/accounts.ts";
 import { bodyFor, identityOf, parentList, recordsOf } from "./lists.ts";
 
 const json = (schema: unknown) => ({ content: { "application/json": { schema } } });
+
 const list = (operationId: string, schema: unknown) => ({
   get: { operationId, responses: { "200": { description: "ok", ...json(schema) } } },
 });
 
-/* Lists of every shape a destructive route's parent may answer with. */
+// Lists of every shape a destructive route's parent may answer with.
 const model = modelOf(
   accountsDoc({
     "/v1/bare": list("bare.list", {
@@ -23,9 +24,12 @@ const model = modelOf(
     "/v1/opaque": { get: { operationId: "opaque.list", responses: { "200": { description: "ok" } } } },
   }),
 );
+
 const op = (id: string) => {
   const found = model.byOperationId.get(id);
+
   if (found === undefined) throw new Error(`no ${id}`);
+
   return found;
 };
 

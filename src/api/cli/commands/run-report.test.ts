@@ -17,7 +17,7 @@ import {
   writeReports,
 } from "./run-report.ts";
 
-/* A finished run, written down: every file of the run folder, and the summary on the terminal. */
+// A finished run, written down: every file of the run folder, and the summary on the terminal.
 
 async function finishedRun(result: RunResult): Promise<Finished> {
   return { baseUrl: "http://api.test", durationMs: 12, outDir: folder(), result, startedAt: new Date(0) };
@@ -28,8 +28,10 @@ describe("reportInput", () => {
     const result = await run(optionsFor(notesApi()));
     const input = reportInput(await finishedRun(result));
     expect(input).toMatchObject({ baseUrl: "http://api.test", durationMs: 12, entitiesTested: ["note"] });
+
     for (const key of ["exchanges", "network", "fenced", "interrupted", "baseline", "targetVersion"])
       expect(input).not.toHaveProperty(key);
+
     const full = reportInput(
       await finishedRun({
         ...result,
@@ -41,6 +43,7 @@ describe("reportInput", () => {
         targetVersion: { value: "b" },
       }),
     );
+
     expect(full).toMatchObject({
       baseline: { fixed: [] },
       exchanges: { count: 1 },
@@ -55,6 +58,7 @@ describe("writeReports and printSummary", () => {
     const crashing = overriding(notesApi(), (method, path) =>
       method === "PATCH" && path.startsWith("/notes/") ? { status: 500 } : undefined,
     );
+
     const finished = await finishedRun(await run(optionsFor(crashing)));
     const input = reportInput(finished);
     await writeReports(finished, input);
@@ -108,11 +112,13 @@ describe("writeReports and printSummary, a quiet run", () => {
 
   it("says a run the network cut short is incomplete, and summarizes no teardown as none", async () => {
     const result = await run(optionsFor(notesApi()));
+
     const finished = await finishedRun({
       ...result,
       network: { attempts: 1, incomplete: true, kind: "dns", url: "u", waitedMs: 0 },
       teardown: null,
     });
+
     const writer = bufferWriter();
     printSummary(writer, finished, reportInput(finished));
     expect(writer.text()).toContain("  network: dns — run incomplete\n");

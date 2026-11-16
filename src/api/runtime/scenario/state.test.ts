@@ -28,7 +28,7 @@ describe("startScenario", () => {
       model: input.model,
       principalId: "alpha",
     });
-    /* The steps' requests read the very map the steps keep values in. */
+    // The steps' requests read the very map the steps keep values in.
     expect(run.context.kept).toBe(run.objects);
     expect(run.sleep).toBe(sleep);
   });
@@ -36,7 +36,7 @@ describe("startScenario", () => {
   it("sends as the scenario's own principal, with the run's origins and out-of-band backoff", () => {
     const originClients = new Map<string, never>();
     const { input } = stage(notesApi(notes()), { originClients, outOfBand: { attempts: 2 } });
-    const run = startScenario(input, scenario([], { principal: "beta" }), async () => undefined);
+    const run = startScenario(input, scenario([], { principal: "beta" }), async () => {});
     expect([run.principal, run.scope]).toEqual(["beta", {}]);
     expect(run.context).toMatchObject({ originClients, outOfBand: { attempts: 2 }, principalId: "beta" });
   });

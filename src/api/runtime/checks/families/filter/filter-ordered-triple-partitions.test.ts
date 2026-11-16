@@ -13,6 +13,7 @@ const COHORT = [
   { amount: 4, id: "w-4" },
   { amount: "n/a", id: "w-5" },
 ];
+
 /** A row the store holds that the API tester never seeded. */
 const OUTSIDE = { amount: 9, id: "x-1" };
 const DOC = { xQuery: { filterable: [{ field: "amount", ops: ["eq", "gt", "lt"], type: "number" }] } };
@@ -46,6 +47,7 @@ describe("filter.ordered-triple-partitions", () => {
       records: COHORT,
       store: [...COHORT, OUTSIDE],
     });
+
     expect(await runCheck(check, ctx)).toMatchObject({ kind: "finding" });
     expect(only(findings).detail).toBe("1 numeric record(s) match none of the three predicates.");
   });

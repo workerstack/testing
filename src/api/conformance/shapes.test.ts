@@ -20,7 +20,7 @@ import {
   waitingRecall,
 } from "./shapes.ts";
 
-/* A reference that will not start. */
+// A reference that will not start.
 const refusing: Via = { ...inProcess, launch: () => Promise.reject(new Error("no reference")) };
 
 function finding(check: string, verdict: Finding["verdict"] = "BACKEND_BUG"): Finding {
@@ -69,6 +69,7 @@ describe("cleanRunProblems", () => {
       created: {},
       result: { checksRun: ["a.b"], findings: [finding("x.y", "COVERAGE_GAP")], inconclusive: [], teardown: null },
     };
+
     expect(cleanRunProblems(quiet, new Set(["a.b"]), {})).toEqual([]);
     expect(cleanRunProblems(quiet, undefined, {})).toEqual([]);
   });
@@ -82,6 +83,7 @@ describe("cleanRunProblems", () => {
       status: 201,
       url: "",
     };
+
     const noisy: CleanRun = {
       after: { widget: [{ id: "w1", name: "changed" }, { id: "w9" }] },
       before: { widget: [{ id: "w1", name: "kept" }, { id: "w2" }] },
@@ -99,6 +101,7 @@ describe("cleanRunProblems", () => {
         },
       },
     };
+
     expect(cleanRunProblems(noisy, new Set(["c.d", "e.f"]), { "e.f": "no cursor" })).toEqual([
       "BACKEND_BUG [sort.order-is-applied] widget: sort.order-is-applied broke",
       "inconclusive [a.b] widget: one row",
@@ -111,13 +114,14 @@ describe("cleanRunProblems", () => {
   });
 });
 
-/* The store minted apikey_000017; the reference created it, and teardown never ledgered it. */
+// The store minted apikey_000017; the reference created it, and teardown never ledgered it.
 const minted = (teardown: CleanRun["result"]["teardown"]): CleanRun => ({
   after: { widget: [] },
   before: { widget: [] },
   created: { "api-key": ["apikey_000017"] },
   result: { checksRun: [], findings: [], inconclusive: [], teardown },
 });
+
 const torn = (failed: NonNullable<CleanRun["result"]["teardown"]>["failed"]) => ({
   failed,
   records: [],
@@ -135,6 +139,7 @@ describe("cleanRunProblems on what the credential store issued", () => {
     const failed = [
       { entity: "credential", id: "alpha/apiKey", principal: "alpha", reason: "revoke apiKey.revoke answered 500" },
     ];
+
     expect(cleanRunProblems(minted(torn(failed)), undefined, {})).toEqual([
       "could not remove credential alpha/apiKey: revoke apiKey.revoke answered 500",
     ]);
@@ -145,6 +150,7 @@ describe("renderShapeSuite", () => {
   const clean: ShapeCase = { expected: undefined, label: "shape:uuid-ids", problems: [], why: "uuid ids" };
   const known: ShapeCase = { expected: "no cursor yet", label: "shape:cursor-only", problems: ["x"], why: "cursors" };
   const fixed: ShapeCase = { expected: "was broken", label: "shape:page-total", problems: [], why: "pages" };
+
   const broken: ShapeCase = {
     expected: undefined,
     label: "shape:path-prefix",
@@ -240,6 +246,7 @@ describe("recallProblems", () => {
       spurious: [finding("a.b"), finding("c.d"), finding("e.f"), finding("g.h")],
       unreported: ["widget w1", "widget w2", "widget w3", "widget w4", "widget w5"],
     };
+
     expect(recallProblems(noisy)).toEqual([
       "spurious [a.b] widget: a.b broke",
       "spurious [c.d] widget: c.d broke",

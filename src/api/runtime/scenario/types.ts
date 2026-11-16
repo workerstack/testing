@@ -10,11 +10,11 @@ import type { OriginClient, StepContext } from "../steps/request.ts";
 import type { Lineage, ScenarioAccounts } from "./lineage.ts";
 
 /** A configured principal as a scenario sends as it, `as: { principal: id }`: the parameters bound for it. */
-export interface ScenarioPrincipal {
+export type ScenarioPrincipal = {
   scope: Readonly<Record<string, string>>;
-}
+};
 
-export interface ScenarioInput {
+export type ScenarioInput = {
   /** True once the run must stop: no further scenario, step or poll starts. */
   stopped?: () => boolean;
   scenarios: readonly Scenario[];
@@ -37,10 +37,10 @@ export interface ScenarioInput {
   /** The run's account ledger: a self delete sent through a session settles it, and `keepAccount` keeps an account in it. */
   accounts?: ScenarioAccounts;
   sleep?: (ms: number) => Promise<void>;
-}
+};
 
 /** One scenario as it runs: where it sends from, and what its steps have bound, sent and shown. */
-export interface ScenarioRun {
+export type ScenarioRun = {
   input: ScenarioInput;
   scenario: Scenario;
   sleep: (ms: number) => Promise<void>;
@@ -62,4 +62,4 @@ export interface ScenarioRun {
   observations: Map<string, PassEvidence["observation"]>;
   /** The account each scope name descends from. */
   lineage: Lineage;
-}
+};

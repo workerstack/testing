@@ -17,6 +17,7 @@ const mint: MintRecipe = {
   revoke: "apiKey.revoke",
   with: "jwt",
 };
+
 const AS_JWT = { principal: "ann", scheme: "jwt" };
 
 describe("acquireMint", () => {
@@ -41,12 +42,15 @@ describe("acquireMint", () => {
 
   it("registers each identity value its body sends as a secret before it calls", async () => {
     let before: string[] = [];
+
     const { ports, recorded } = fakePorts({
       call: () => {
         before = [...recorded.secrets];
+
         return Promise.resolve(answerOf({ key: "k1" }));
       },
     });
+
     await acquireMint(ctxOf(ports), mint, {});
     expect([before, recorded.secrets]).toEqual([["ann@x.io"], ["ann@x.io"]]);
   });

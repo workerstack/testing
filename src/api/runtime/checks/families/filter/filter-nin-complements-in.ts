@@ -25,19 +25,24 @@ export const filterNinComplementsIn: Check<{
 }>({
   plan: (ctx) => {
     const unverified = storedFieldsUnknown(ctx);
+
     if (unverified !== undefined) return unverified;
+
     if (!filterable(ctx)) return cannot();
-    /* Two members where the cohort has them: a list of one cannot tell "every member" from
-     * "the first member" apart. */
+    // Two members where the cohort has them: a list of one cannot tell "every member" from
+    // "the first member" apart.
     const picked = pickFieldForOp(ctx, "in", 2) ?? pickFieldForOp(ctx, "in", 1);
+
     if (picked === null || !canUseOp(ctx, picked.field, "nin")) return cannot();
-    /* A picked field holds at least one value, so the list is never empty. */
+    // A picked field holds at least one value, so the list is never empty.
     const members = picked.values.slice(0, 2).map(asTermValue);
     const conventions = conv(ctx);
     const field = picked.field.field;
     const inTerm = filterTerm(conventions, { field, op: "in", value: members });
     const ninTerm = filterTerm(conventions, { field, op: "nin", value: members });
+
     if (inTerm === null || ninTerm === null) return cannot("a filter grammar that can express in and nin");
+
     return ready({ field, inTerm, members, ninTerm });
   },
   dependsOn: ["query.filter-selects-from-whole-set", ...FOUNDATIONS, "filter.in-is-union-of-eq"],
@@ -51,28 +56,36 @@ export const filterNinComplementsIn: Check<{
       const ninIds = setOf(outside.items, ctx.identity);
       const overlap = [...inIds].filter((id) => ninIds.has(id));
       const union = new Set([...inIds, ...ninIds]);
+
       const missing = ids(all.items, ctx.identity).filter((id) => {
         const record = ctx.records.find((row) => idOf(row, ctx.identity) === id);
+
         return record !== undefined && record[field] !== null && record[field] !== undefined && !union.has(id);
       });
+
       return { missing, overlap };
     };
+
     const reads = await readSettled(ctx, [{}, inTerm, ninTerm], (sets) => {
       const [a, i, o] = sets as [SetRead, SetRead, SetRead];
       const verdict = judgeNin(a, i, o);
+
       return verdict.overlap.length === 0 && verdict.missing.length === 0;
     });
+
     if (reads === "rejected")
       return ctx.findings.unresolved(this.id, ctx.entityName, "one of the listings needed for nin() was rejected");
-    if (reads === "incomplete") {
+
+    if (reads === "incomplete")
       return ctx.findings.unresolved(this.id, ctx.entityName, "the collection is larger than the walk covers");
-    }
+
     if (reads === "moving") return ctx.findings.unresolved(this.id, ctx.entityName, MOVING_COLLECTION);
-    /* One read per term, in the order the terms were given. */
+    // One read per term, in the order the terms were given.
     const [all, inside, outside] = reads as [SetRead, SetRead, SetRead];
     const inIds = setOf(inside.items, ctx.identity);
     const ninIds = setOf(outside.items, ctx.identity);
     const overlap = [...inIds].filter((id) => ninIds.has(id));
+
     if (overlap.length > 0) {
       return ctx.findings.backend(this.id, ctx.entityName, {
         summary: "in() and nin() both match the same record",
@@ -80,13 +93,18 @@ export const filterNinComplementsIn: Check<{
         evidence: [inside.last.exchange, outside.last.exchange],
       });
     }
+
     const expected = ids(all.items, ctx.identity).filter((id) => {
       const record = ctx.records.find((row) => idOf(row, ctx.identity) === id);
+
       return record !== undefined && record[field] !== null && record[field] !== undefined;
     });
+
     const union = new Set([...inIds, ...ninIds]);
     const missing = expected.filter((id) => !union.has(id));
+
     if (missing.length === 0) return ASSERTED;
+
     return ctx.findings.backend(this.id, ctx.entityName, {
       summary: "in() and nin() do not cover the non-null set",
       detail: `${missing.length} non-null record(s) match neither side.`,

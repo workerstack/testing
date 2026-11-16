@@ -7,10 +7,8 @@ import { peerOf } from "../peer.ts";
 import { actorsOf } from "./actors.ts";
 import type { World } from "./state.ts";
 
-/*
- * Every principal as the checks act as it: the first in the entity's world, the others each in a
- * scope of their own; the first of another tenant is the peer the isolation checks cross into.
- */
+// Every principal as the checks act as it: the first in the entity's world, the others each in a
+// scope of their own; the first of another tenant is the peer the isolation checks cross into.
 
 const world: World = {
   createAcknowledged: false,
@@ -62,6 +60,7 @@ describe("actorsOf", () => {
         principals: { alpha: member("o1"), beta: member("o2", { inviteAs: "b@x", rank: 1, readOnly: true }) },
       }),
     );
+
     const actors = await actorsOf(entityRunOf(ctx), world);
     expect(actors.map((actor) => [actor.id, actor.scope])).toEqual([
       ["alpha", { w: "1" }],
@@ -83,12 +82,13 @@ describe("actorsOf", () => {
     const ctx = await contextOf(
       optionsFor(servingBoardless, { principals: { alpha: member("o1"), beta: member("o2") } }),
     );
+
     const actors = await actorsOf(entityRunOf(ctx, "card"), world);
     expect(actors[1]?.scope).toEqual({ org_id: "o2" });
   });
 });
 
-/* Cards under boards, whose create requires a property only the highest rank may set. */
+// Cards under boards, whose create requires a property only the highest rank may set.
 const verifiedBoards = {
   ...boardless,
   paths: {
@@ -114,7 +114,7 @@ const verifiedBoards = {
   },
 } as unknown as OpenApiDocument;
 
-/* Serves the document, and makes a board for any create that reaches it. */
+// Serves the document, and makes a board for any create that reaches it.
 const servingVerified = (method: string, path: string) =>
   path === "/openapi.json"
     ? { body: verifiedBoards, status: 200 }
@@ -127,6 +127,7 @@ describe("actorsOf: a parent only the highest rank may create", () => {
     const options = optionsFor(servingVerified, {
       principals: { alpha: member("o1", { rank: 2 }), member: member("o1", { rank: 1 }) },
     });
+
     const ctx = await contextOf(options);
     const actors = await actorsOf(entityRunOf(ctx, "card"), world);
     expect(actors[1]?.scope).toEqual({ org_id: "o1" });
@@ -145,9 +146,11 @@ describe("peerOf", () => {
     const ctx = await contextOf(optionsFor(notesApi(), { principals, writer: "alpha" }));
     const actors = await actorsOf(entityRunOf(ctx), world);
     expect([actors.map((one) => one.id), peerOf(actors)?.id]).toEqual([["alpha", "admin", "beta"], "beta"]);
+
     const alone = await contextOf(
       optionsFor(notesApi(), { principals: { admin: {}, alpha: member("o1") }, writer: "alpha" }),
     );
+
     expect(peerOf(await actorsOf(entityRunOf(alone), world))).toBeUndefined();
   });
 });

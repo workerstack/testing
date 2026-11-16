@@ -12,7 +12,7 @@ import { nextValue, type ProbeField, probeField } from "./probe-field.ts";
 import { pathOf, throttled } from "./requests.ts";
 
 /** The run of one self check: its entity, findings, and the operations it calls. */
-export interface SelfRun {
+export type SelfRun = {
   entity: EntityModel;
   findings: FindingCollector;
   /** The read when there is one, else the update: what the anonymous request goes to. */
@@ -21,7 +21,7 @@ export interface SelfRun {
   readOp: OperationModel | undefined;
   updateOp: OperationModel | undefined;
   readOps: OperationModel[];
-}
+};
 
 const isOk = (status: number): boolean => status >= 200 && status < 300;
 
@@ -36,7 +36,9 @@ export function answeredWithoutToken(ctx: SelfRun, anonymous: Exchange): Outcome
 /** With no read, the update alone is the check. */
 export function updatedAlone(ctx: SelfRun, anonymous: Exchange, wrote: Exchange): Outcome {
   if (wrote.status === 429) return throttled(ctx.findings, ctx.entity.name);
+
   if (isOk(wrote.status)) return ASSERTED;
+
   return ctx.findings.backend(SELF_CHECK_ID, ctx.entity.name, {
     summary: "updating the caller failed",
     detail: `${ctx.probe.operationId} returned ${wrote.status} for the signed-up caller.`,
@@ -46,7 +48,9 @@ export function updatedAlone(ctx: SelfRun, anonymous: Exchange, wrote: Exchange)
 
 export function readRefused(ctx: SelfRun, op: OperationModel, anonymous: Exchange, read: Exchange): Outcome | null {
   if (read.status === 429) return throttled(ctx.findings, ctx.entity.name);
+
   if (read.status === 200) return null;
+
   return ctx.findings.backend(SELF_CHECK_ID, ctx.entity.name, {
     summary: "reading the caller failed",
     detail: `${op.operationId} returned ${read.status} for the signed-up caller. The read is that caller and returns 200.`,
@@ -61,6 +65,7 @@ export function echoMissed(
   read: Exchange,
 ): Outcome | null {
   if (created === null || callerEchoed(created.body, read.responseBody)) return null;
+
   return ctx.findings.backend(SELF_CHECK_ID, ctx.entity.name, {
     summary: "the create did not show up on the next read",
     detail: `${created.exchange.operationId} sent ${JSON.stringify(created.body)}, and the next ${readOp.operationId} returned ${JSON.stringify(read.responseBody)}.`,
@@ -69,13 +74,13 @@ export function echoMissed(
 }
 
 /** The update the check sends: the field it changes, to what, and what it held before. */
-export interface UpdateProbe {
+export type UpdateProbe = {
   op: OperationModel;
   path: string;
   field: ProbeField;
   before: LocatedProbe;
   value: boolean | string;
-}
+};
 
 /** The update to send, never changing a field of `avoid`; or how the check ends without one. */
 export function updateProbe(
@@ -85,10 +90,13 @@ export function updateProbe(
 ): UpdateProbe | Outcome {
   const { read } = at;
   const { updateOp } = ctx;
+
   if (updateOp === undefined) return ASSERTED;
   const path = pathOf(updateOp);
+
   if (path === null) return ASSERTED;
   const field = probeField(requestContentOf(updateOp, model)?.schema, at.avoid);
+
   if (field === null) {
     return ctx.findings.unresolved(
       SELF_CHECK_ID,
@@ -96,13 +104,17 @@ export function updateProbe(
       "the update has no plain string or boolean field to change",
     );
   }
+
   const before = locateProbe(read.responseBody, field.name);
+
   return { before, field, op: updateOp, path, value: nextValue(field, before.current) };
 }
 
 export function writeRefused(ctx: SelfRun, update: UpdateProbe, read: Exchange, wrote: Exchange): Outcome | null {
   if (wrote.status === 429) return throttled(ctx.findings, ctx.entity.name);
+
   if (isOk(wrote.status)) return null;
+
   return ctx.findings.backend(SELF_CHECK_ID, ctx.entity.name, {
     summary: "updating the caller failed",
     detail: `${update.op.operationId} returned ${wrote.status} when setting ${update.field.name}.`,
@@ -113,9 +125,11 @@ export function writeRefused(ctx: SelfRun, update: UpdateProbe, read: Exchange, 
 export function notStuck(ctx: SelfRun, update: UpdateProbe, wrote: Exchange, again: Exchange): Outcome | null {
   if (again.status === 429) return throttled(ctx.findings, ctx.entity.name);
   const after = locateProbe(again.responseBody, update.field.name);
+
   if (again.status === 200 && probeStuck(update.before, after, update.value)) return null;
-  /* The read is the probe: the anonymous request went to it. */
+  // The read is the probe: the anonymous request went to it.
   const readOp = ctx.probe;
+
   return ctx.findings.backend(SELF_CHECK_ID, ctx.entity.name, {
     summary: "an update to the caller did not stick",
     detail: `${update.op.operationId} set ${update.field.name} to ${JSON.stringify(update.value)}, and the next ${readOp.operationId} returned ${again.status} with ${JSON.stringify(after.where === "top" ? after.current : after.values)}.`,
@@ -126,5 +140,6 @@ export function notStuck(ctx: SelfRun, update: UpdateProbe, wrote: Exchange, aga
 /** A value the update can put back: what the field held, when it was a plain one. */
 export function restorable(update: UpdateProbe): boolean {
   const current = update.before.current;
+
   return typeof current === "string" || current === null || typeof current === "boolean";
 }

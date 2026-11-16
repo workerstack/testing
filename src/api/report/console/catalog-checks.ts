@@ -26,49 +26,70 @@ function filterChecks(caps: Caps, conventions: QueryConventions, source: Caps["s
   const spec = filterSpec(conventions);
   const allows = (op: FilterOp): boolean => anyFieldAllows(caps, op) !== undefined;
   const write = (op: FilterOp): boolean => canWriteFilterOp(conventions, op);
+
   const ids = OPERATOR_CHECKS.filter((check) => check.allows.every(allows) && check.writes.every(write)).map(
     (check) => check.id,
   );
+
   if (spec.mixed && caps.filterable.length > 1) ids.push("filter.nested-and-or-distributes");
+
   if (Object.keys(caps.aliases).length > 0) ids.push("filter.alias-matches-canonical");
+
   if (caps.filterable.some((field) => opsAreClosed(field, caps))) {
     ids.push("filter.illegal-op-rejected");
+
     if (source === "tag" || source === "mixed") ids.push("spec.declared-filterable-ops-accepted");
   }
+
   const inWritable = allows("in") && write("in");
+
   if (caps.emptyIn !== undefined && inWritable) ids.push("filter.empty-in");
+
   if (caps.maxInValues !== undefined && inWritable) ids.push("filter.in-over-limit-rejected");
+
   if (caps.maxFilterConditions !== undefined && canGroupAnd(spec)) ids.push("filter.condition-cap-rejected");
+
   return ids;
 }
 
 function sortChecks(caps: Caps, conventions: QueryConventions): string[] {
   if (conventions.order === undefined) return [];
   const ids = ["sort.unknown-field-rejected"];
+
   if (caps.sortable.some((field) => field.type === "number")) ids.push("sort.numeric-order-is-numeric");
-  if (caps.sortable.some((field) => fieldAllowsNulls(field, caps, "first") || fieldAllowsNulls(field, caps, "last"))) {
+
+  if (caps.sortable.some((field) => fieldAllowsNulls(field, caps, "first") || fieldAllowsNulls(field, caps, "last")))
     ids.push("sort.nulls-first-last", "spec.declared-sortable-nulls-accepted");
-  }
-  if (caps.sortable.length >= 2 && (caps.sort?.maxKeys === undefined || caps.sort.maxKeys >= 2)) {
+
+  if (caps.sortable.length >= 2 && (caps.sort?.maxKeys === undefined || caps.sort.maxKeys >= 2))
     ids.push("sort.multi-key-tiebreak");
-  }
+
   if (caps.sort?.defaultOrder !== undefined) ids.push("sort.default-order-applied");
+
   if (caps.sort?.stableTiebreak !== undefined) ids.push("sort.stable-tiebreak");
+
   return ids;
 }
 
 function searchSelectChecks(caps: Caps, conventions: QueryConventions): string[] {
   const ids: string[] = [];
+
   if (conventions.search !== undefined && caps.searchable.length > 0) {
     ids.push("search.tokens-and", "search.case-insensitive");
+
     if (caps.searchEmpty !== undefined) ids.push("search.empty-q");
+
     if (caps.searchModes !== undefined && conventions.searchMode !== undefined) ids.push("search.mode-accepted");
   }
+
   if (conventions.select !== undefined && caps.selectable.length > 0) {
     ids.push("select.requested-fields-present");
+
     if (caps.select?.unknown !== undefined) ids.push("select.unknown-field-rejected");
+
     if (caps.select?.nested === true && (caps.select.relations?.length ?? 0) > 0) ids.push("select.nested-honored");
   }
+
   return ids;
 }
 
@@ -78,17 +99,21 @@ function composeChecks(caps: Caps, conventions: QueryConventions): string[] {
   const select = conventions.select !== undefined && caps.selectable.length > 0;
   const search = conventions.search !== undefined && caps.searchable.length > 0;
   const ids: string[] = [];
+
   if (sort && select) ids.push("query.sort-and-select-compose");
+
   if (search && select) ids.push("query.search-and-select-compose");
+
   if (search && sort) ids.push("query.search-and-sort-compose");
+
   if (
     caps.filterable.length > 0 &&
     caps.searchable.length > 0 &&
     caps.sortable.length > 0 &&
     caps.selectable.length > 0
-  ) {
+  )
     ids.push("query.filter-search-sort-select-compose");
-  }
+
   return ids;
 }
 

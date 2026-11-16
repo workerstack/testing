@@ -98,6 +98,7 @@ describe("isBinaryMediaType", () => {
     expect(primaryMediaType("", "text/plain")).toBe("text/plain");
   });
 });
+
 async function flushesNothingBuffered(): Promise<void> {
   const dir = await scratch();
   const journal = createExchangeJournal(dir, new Redactor());
@@ -126,19 +127,23 @@ async function persistsRedirectChain(): Promise<void> {
     }),
   );
   await journal.flush();
+
   const file = JSON.parse(await readFile(join(dir, "exchanges/consume-1.json"), "utf8")) as {
     finalUrl: string;
     redirects: Array<{ responseHeaders: Record<string, string>; status: number }>;
   };
+
   expect(file.finalUrl).toBe("http://app.test/app");
   expect(file.redirects).toHaveLength(1);
   expect(file.redirects[0]?.status).toBe(303);
   expect(file.redirects[0]?.responseHeaders["set-cookie"]).toBe("<redacted>");
   await journal.flush();
+
   const line = JSON.parse((await readFile(join(dir, "exchanges.jsonl"), "utf8")).trim()) as {
     finalUrl: string;
     redirects: number;
   };
+
   expect(line.finalUrl).toBe("http://app.test/app");
   expect(line.redirects).toBe(1);
 }
@@ -187,11 +192,13 @@ async function writesJoinableJson(): Promise<void> {
   expect(first["phase"]).toBe("test");
   expect(first["fixture"]).toBe("invoice.pdf");
   expect(first["operationId"]).toBe("thing.create");
+
   const file = JSON.parse(await readFile(join(dir, "exchanges/req-json.json"), "utf8")) as {
     requestHeaders: Record<string, string>;
     requestBody: Record<string, unknown>;
     status: number;
   };
+
   expect(file.status).toBe(201);
   expect(file.requestHeaders["authorization"]).toBe("Bearer <redacted>");
   expect(file.requestBody["access_token"]).toBe("<redacted>");
@@ -206,6 +213,7 @@ async function contentAddressesFixture(): Promise<void> {
   const dir = await scratch();
   const journal = createExchangeJournal(dir, new Redactor());
   const bytes = new Uint8Array([0xff, 0xd8, 0xff, 0x01, 0x02, 0x03]);
+
   const once = async (seq: number, requestId: string): Promise<void> => {
     const form = new FormData();
     form.append("title", "scan");
@@ -222,16 +230,20 @@ async function contentAddressesFixture(): Promise<void> {
     );
     await journal.flush();
   };
+
   await once(1, "up-1");
   await once(2, "up-2");
   const blobs = await readdir(join(dir, "blobs"));
   expect(blobs).toHaveLength(1);
+
   const one = JSON.parse(await readFile(join(dir, "exchanges/up-1.json"), "utf8")) as {
     requestBody: { parts: Array<Record<string, unknown>> };
   };
+
   const two = JSON.parse(await readFile(join(dir, "exchanges/up-2.json"), "utf8")) as {
     requestBody: { parts: Array<Record<string, unknown>> };
   };
+
   expect(one.requestBody.parts[2]).toMatchObject({
     bytes: 6,
     field: "file",
@@ -301,15 +313,19 @@ async function passesCompactedBodies(): Promise<void> {
   const snap = { parts: [{ field: "title", value: "scan" }] };
   await journal.record(exchange({ method: "POST", requestBody: snap, requestId: "snap-1", seq: 2 }));
   await journal.flush();
+
   const file = JSON.parse(await readFile(join(dir, "exchanges/ref-1.json"), "utf8")) as {
     requestBody: unknown;
     responseBody: unknown;
   };
+
   expect(file.requestBody).toEqual(ref);
   expect(file.responseBody).toEqual(ref);
+
   const snapFile = JSON.parse(await readFile(join(dir, "exchanges/snap-1.json"), "utf8")) as {
     requestBody: unknown;
   };
+
   expect(snapFile.requestBody).toEqual(snap);
 }
 
@@ -336,6 +352,7 @@ describe("report line", () => {
       model: { entities: new Map(), operations: [] },
       startedAt: new Date("2026-08-18T00:00:00.000Z"),
     } as unknown as ReportInput);
+
     expect(md).toContain("**Exchanges**: 1841 → [exchanges/](./exchanges/)");
   });
 });

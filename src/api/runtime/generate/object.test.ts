@@ -29,7 +29,7 @@ describe("objectFor", () => {
       name: "Quarterly Report 0 n0",
       note: "Quarterly Report 0",
     });
-    /* Below the top level a name is just a name. */
+    // Below the top level a name is just a name.
     expect(objectFor(schema, { ctx: ctx(), distinct: false, pointer: "/inner" }, instance)).toEqual({
       name: "Quarterly Report 0",
       note: "Quarterly Report 0",

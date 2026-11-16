@@ -8,18 +8,18 @@ import { CHECKS } from "../../runtime/checks/registry.ts";
 import type { MatrixGraphEdge, MatrixLayer } from "./types.ts";
 
 /** A poster cell: the check it shows, its short label, and what it asks. */
-export interface CellSpec {
+export type CellSpec = {
   id: string;
   label: string;
   hint: string;
-}
+};
 
 /** A strip of related checks, the graph group its checks belong to, and the layer that group sits on. */
-export interface Strip {
+export type Strip = {
   title: string;
   layer: MatrixLayer;
   ids: readonly string[];
-}
+};
 
 export const NODE_ORDER: readonly CellSpec[] = [
   { hint: "create then list", id: "list.read-after-write", label: "list" },
@@ -158,16 +158,17 @@ export const STRIPS: readonly Strip[] = [
 ];
 
 /** The cataloged checks, each with its strip, what it needs, and the edges between them. */
-export interface CheckCatalog {
+export type CheckCatalog = {
   /** Every check id the matrix tracks, in strip order. */
   ids: readonly string[];
   stripOf: ReadonlyMap<string, Strip>;
   needs: ReadonlyMap<string, string | undefined>;
   edges: MatrixGraphEdge[];
-}
+};
 
 export function checkCatalog(): CheckCatalog {
   const stripOf = new Map(STRIPS.flatMap((strip) => strip.ids.map((id) => [id, strip] as const)));
+
   return {
     edges: [
       ...entityChecks(CHECKS).flatMap((check) =>

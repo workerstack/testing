@@ -26,14 +26,14 @@ describe("readActionBind / readBefore", () => {
 });
 
 /** The seeded instance an action runs against, and the prelude's body when there is one. */
-interface Seeded {
+type Seeded = {
   pathParams: string[];
   records: Record<string, unknown>[];
   scope: Record<string, string>;
   beforeBody?: unknown;
-}
+};
 
-/* `bindActionScope` over a raw `x-bind`. */
+// `bindActionScope` over a raw `x-bind`.
 const scopeOf = (bind: unknown, seeded: Seeded) =>
   bindActionScope({ ...seeded, beforeBody: seeded.beforeBody, bind: readActionBind(bind) });
 
@@ -107,6 +107,7 @@ describe("applyActionBind", () => {
       { records: [record], beforeBody: undefined },
       { order: ["generated"] },
     );
+
     expect(applied.body).toEqual({ order: ["c1"] });
     expect(applied.query).toEqual({ aggs: "aa0.count", names: "aa0" });
     expect(applyActionBind(null, { records: [], beforeBody: undefined }, undefined)).toEqual({

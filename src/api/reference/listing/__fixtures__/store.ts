@@ -6,7 +6,8 @@ import { TABLE } from "../../model/table.ts"
 import type { EntityDef } from "../../model/types.ts"
 import { DEFAULT_CONVENTIONS, type ParseContext } from "../../query/conventions.ts"
 import type { SelectPlan } from "../../query-types.ts"
-import type { Row, Store } from "../../store-api.ts"
+import type { Row } from "../../cell.ts";
+import type { Store } from "../../store-api.ts";
 import { MemoryStore } from "../../stores/memory.ts"
 
 /** Six tables in proj_alpha (one soft-deleted) and one in proj_beta, ids in creation order. */

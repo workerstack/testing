@@ -16,7 +16,7 @@ import type { Actor, CredentialSource } from "./credential-source.ts";
 export type { SafeMethod } from "../spec/methods.ts";
 
 /** Who is asking, and why: carried onto every exchange a view sends. */
-export interface ExchangeContext {
+export type ExchangeContext = {
   check?: string;
   subject?: string;
   purpose?: Purpose;
@@ -28,10 +28,10 @@ export interface ExchangeContext {
   secrets?: readonly string[];
   /** The credential store sent it: what it creates is the store's to revoke, never a ledgered record. */
   issuedBy?: "credentials";
-}
+};
 
 /** The documented operation a request is an instance of. */
-export interface ResolvedOperation {
+export type ResolvedOperation = {
   operationId: string;
   template: string;
   entity?: string | null;
@@ -45,7 +45,7 @@ export interface ResolvedOperation {
   pathParams?: Record<string, string>;
   /** The `x-consistency` bypass a read declares; a read without one is sent `Cache-Control: no-cache`. */
   bypass?: CacheBypass | null;
-}
+};
 
 /** Maps a request to the documented operation it is an instance of. */
 export type OperationResolver = (method: string, relativePath: string) => ResolvedOperation | null;
@@ -54,20 +54,20 @@ export type OperationResolver = (method: string, relativePath: string) => Resolv
 export type HeaderResolver = (request: HeaderRequest) => Promise<Record<string, string> | null>;
 
 /** Fired around `fetch` — start is on the wire, end is return or throw. */
-export interface RequestStart {
+export type RequestStart = {
   method: string;
   url: string;
   at: number;
   requestId: string;
   requestBytes: number;
-}
+};
 
-export interface HttpHooks {
+export type HttpHooks = {
   start?: (probe: RequestStart) => void;
   end?: (probe: RequestStart) => void;
-}
+};
 
-export interface RequestOptions {
+export type RequestOptions = {
   /**
    * Who the request acts as. There is no default: anonymous is `{ anonymous: true }`. The credential
    * it sends comes from this and the operation's security, never from `headers`.
@@ -104,10 +104,10 @@ export interface RequestOptions {
   redirect?: "follow" | "manual";
   /** `use` reads as a client would, past no cache: the staleness measurement. Default `bypass`. */
   cache?: "bypass" | "use";
-}
+};
 
 /** Optional retry / wait-for-link policy. Unset keeps today's "throw and hope". */
-export interface NetworkClientOptions {
+export type NetworkClientOptions = {
   retries?: number;
   requestTimeoutMs?: number;
   /** Total time one request may take across every attempt and wait. */
@@ -119,9 +119,9 @@ export interface NetworkClientOptions {
   fetchImpl?: typeof fetch;
   /** This machine's network interfaces, read to tell a failed request from being offline. `os.networkInterfaces` unless given. */
   interfaces?: () => NodeJS.Dict<NetworkInterfaceInfo[]>;
-}
+};
 
-export interface ClientOptions {
+export type ClientOptions = {
   baseUrl: string;
   /** What the transcript, curl and reports scrub with: one per run, shared by its origin clients. */
   redactor: Redactor;
@@ -157,4 +157,4 @@ export interface ClientOptions {
    * whole body is still at hand; `undefined` when its operation documents no schema for the status.
    */
   validateAtCapture?: ((exchange: Exchange) => SchemaVerdict | undefined) | undefined;
-}
+};

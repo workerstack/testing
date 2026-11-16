@@ -15,13 +15,18 @@ import { readSet } from "../../sets/read.ts";
  */
 export async function currentRecords(ctx: CheckContext, scope: Record<string, string>): Promise<readonly Record_[]> {
   const readOp = ctx.readOp;
+
   if (readOp === undefined || !canFillPath(readOp.path, scope)) return ctx.records;
+
   const read = await ctx.client.get(fillPath(readOp.path, scope), {
     as: { principal: ctx.actor.id },
     operationId: readOp.operationId,
   });
+
   const body = read.responseBody;
+
   if (read.status >= 300 || body === null || typeof body !== "object" || Array.isArray(body)) return ctx.records;
+
   return [body as Record_, ...ctx.records];
 }
 
@@ -32,6 +37,7 @@ export type Observation =
 
 export function listOpFor(ctx: CheckContext, entityName: string): OperationModel | undefined {
   const listId = ctx.model.entities.get(entityName)?.list;
+
   return listId === undefined ? undefined : ctx.model.byOperationId.get(listId);
 }
 
@@ -41,10 +47,12 @@ export async function observe(
   scope: Record<string, string> = ctx.scope,
 ): Promise<Observation> {
   if (!canFillPath(listOp.path, scope)) return { status: "unfillable" };
-  /* The whole collection: an effect that adds one record to a collection larger than a page
-   * is invisible on the first page, and reads as an effect that never happened. */
+  // The whole collection: an effect that adds one record to a collection larger than a page
+  // is invisible on the first page, and reads as an effect that never happened.
   const view = forList(ctx, listOp);
   const read = await readSet(view, {}, { fresh: true, scope });
+
   if (!read.complete) return { exchange: read.last.exchange, reason: read.reason, status: "error" };
+
   return { exchange: read.last.exchange, ids: ids(read.items, view.identity), status: "ok" };
 }

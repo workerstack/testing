@@ -101,6 +101,7 @@ describe("declaredGrammars", () => {
       "/a": { get: listOp("a", "a.list", { "x-query": { grammar: FILTER_TEMPLATE } }) },
       "/b": { get: listOp("b", "b.list") },
     });
+
     const { model } = modelOf(doc, { entities: { b: { query: { sortGrammar: SORT_TEMPLATE } } } });
     const grammars = declaredGrammars(model);
     expect(grammars).toHaveLength(2);

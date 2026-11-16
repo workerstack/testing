@@ -22,23 +22,21 @@ type Result =
   | { kind: "skipped"; message: string }
   | { kind: "error"; type: string; message: string };
 
-interface Case {
+type Case = {
   classname: string;
   name: string;
   result: Result;
-}
+};
 
 const RUN_SUITE = "testing.api.run";
 const RUN_CLASS = "run";
 const EVIDENCE_LINES = 5;
 
-/* An operation's checks, the first kind a check appears under winning: GitLab keeps only the first duplicate. */
+// An operation's checks, the first kind a check appears under winning: GitLab keeps only the first duplicate.
 const PRECEDENCE = ["failed", "gaps", "inconclusive", "suppressed", "passed"] as const;
 
-/*
- * What XML 1.0 forbids anywhere, escaped or not: C0 controls other than tab, newline and carriage
- * return, U+FFFE, U+FFFF, and a surrogate half with no partner.
- */
+// What XML 1.0 forbids anywhere, escaped or not: C0 controls other than tab, newline and carriage
+// return, U+FFFE, U+FFFF, and a surrogate half with no partner.
 const XML_INVALID = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u{FFFE}\u{FFFF}]|\p{Cs}/gu;
 
 const ESCAPES: Record<string, string> = {
@@ -52,18 +50,19 @@ const ESCAPES: Record<string, string> = {
   ">": "&gt;",
 };
 
-/* Text content keeps its tabs and newlines; a carriage return is escaped so a parser does not fold it. */
+// Text content keeps its tabs and newlines; a carriage return is escaped so a parser does not fold it.
 function text(value: string): string {
-  return value.replace(XML_INVALID, "").replace(/[&<>"'\r]/g, (c) => ESCAPES[c] as string);
+  return value.replaceAll(XML_INVALID, "").replaceAll(/[&<>"'\r]/g, (c) => ESCAPES[c] as string);
 }
 
-/* An attribute value keeps every whitespace character a parser would otherwise normalize to a space. */
+// An attribute value keeps every whitespace character a parser would otherwise normalize to a space.
 function attr(value: string): string {
-  return value.replace(XML_INVALID, "").replace(/[&<>"'\t\n\r]/g, (c) => ESCAPES[c] as string);
+  return value.replaceAll(XML_INVALID, "").replaceAll(/[&<>"'\t\n\r]/g, (c) => ESCAPES[c] as string);
 }
 
 function suiteName(op: OperationCoverage): string {
   const entity = op.entity ?? "operations";
+
   return op.origin === undefined ? entity : `${op.origin}:${entity}`;
 }
 
@@ -75,34 +74,39 @@ function evidenceLine(exchange: Exchange, redactor: Redactor): string {
   return `${exchange.method} ${redactor.url(exchange.url)} → ${exchange.status}`;
 }
 
-/* A finding's detail, then the first exchanges that prove it. */
+// A finding's detail, then the first exchanges that prove it.
 function bodyOf(finding: Finding, redactor: Redactor): string {
   const lines = [finding.detail, ...finding.evidence.slice(0, EVIDENCE_LINES).map((e) => evidenceLine(e, redactor))];
   const more = finding.evidence.length - EVIDENCE_LINES;
+
   if (more > 0) lines.push(`… ${more} more exchanges in report.json`);
+
   return lines.join("\n");
 }
 
-/* Why a finding that does not fail the run is still worth a line. */
+// Why a finding that does not fail the run is still worth a line.
 function excuse(finding: Finding): string {
   if (finding.known !== undefined) return `known (baseline): ${finding.known.reason}`;
+
   return finding.verdict === "COVERAGE_GAP" ? `coverage gap: ${finding.summary}` : `blocked: ${finding.summary}`;
 }
 
-/*
- * One case standing for `findings`: a failure when any fails the run, else skipped with every excuse
- * once. A failure is only ever a finding the exit code counts: the scope report grades a check failed
- * from the same findings (junit.test.ts pins it), so a failed check with none on record is a report
- * out of step with itself, shown as skipped rather than as a failure the run did not count.
- */
+// One case standing for `findings`: a failure when any fails the run, else skipped with every excuse
+// once. A failure is only ever a finding the exit code counts: the scope report grades a check failed
+// from the same findings (junit.test.ts pins it), so a failed check with none on record is a report
+// out of step with itself, shown as skipped rather than as a failure the run did not count.
 function judged(findings: readonly Finding[], redactor: Redactor): Result {
   const failing = findings.filter(isFailingRootCause);
   const first = failing[0];
+
   if (first !== undefined) {
     const body = failing.map((finding) => bodyOf(finding, redactor)).join("\n\n");
+
     return { body, kind: "failure", message: first.summary, type: first.verdict };
   }
+
   if (findings.length === 0) return { kind: "skipped", message: "graded failed, but no finding on record names it" };
+
   return { kind: "skipped", message: [...new Set(findings.map(excuse))].join("; ") };
 }
 
@@ -122,7 +126,7 @@ class Cases {
     this.suites.set(suite, list);
   }
 
-  /* The findings an operation's case for `check` stands for: that check, on that operation, from that origin. */
+  // The findings an operation's case for `check` stands for: that check, on that operation, from that origin.
   #findingsOn(op: OperationCoverage, check: string): Finding[] {
     return this.#input.findings.filter(
       (f) => f.check === check && f.origin === op.origin && f.operations?.includes(op.operationId) === true,
@@ -132,33 +136,45 @@ class Cases {
   #result(op: OperationCoverage, kind: (typeof PRECEDENCE)[number], check: string): Result {
     const input = this.#input;
     const suite = suiteName(op);
+
     if (kind === "passed") return { kind: "passed" };
+
     if (kind === "failed") {
       const causes = this.#findingsOn(op, check).filter(isRootCause);
+
       for (const cause of causes) this.placed.add(cause);
+
       return judged(causes, input.client.redactor);
     }
+
     if (kind === "gaps") {
       const gap = this.#findingsOn(op, check).find((f) => f.verdict === "COVERAGE_GAP");
+
       return { kind: "skipped", message: gap === undefined ? "coverage gap" : `coverage gap: ${gap.summary}` };
     }
+
     if (kind === "inconclusive") {
-      /* A secondary origin's entries come back under its prefixed entity, not by operation. */
+      // A secondary origin's entries come back under its prefixed entity, not by operation.
       const entries = input.inconclusive ?? [];
+
       const entry = entries.find(
         (i) =>
           i.check === check &&
           (op.origin === undefined ? i.operations?.includes(op.operationId) === true : i.entity === suite),
       );
+
       return { kind: "skipped", message: entry === undefined ? "inconclusive" : `inconclusive: ${entry.reason}` };
     }
+
     const waiting = (input.checksSuppressed ?? []).find((s) => s.check === check && s.entity === suite);
+
     return { kind: "skipped", message: `blocked: waiting on ${waiting?.because ?? "an earlier failure"}` };
   }
 
   operation(op: OperationCoverage): void {
     const seen = new Set<string>();
     const classname = className(op);
+
     for (const kind of PRECEDENCE) {
       for (const check of op.checks[kind]) {
         if (seen.has(check)) continue;
@@ -166,18 +182,22 @@ class Cases {
         this.add(suiteName(op), { classname, name: check, result: this.#result(op, kind, check) });
       }
     }
-    if (seen.size === 0)
+
+    if (seen.size === 0) {
       this.add(suiteName(op), {
         classname,
         name: "graded",
         result: { kind: "skipped", message: op.reason ?? op.status },
       });
+    }
   }
 
   standDowns(): void {
     const seen = new Set<string>();
+
     for (const { check, entity, needs } of this.#input.checksSkipped ?? []) {
       const key = `${entity}\0${check}`;
+
       if (seen.has(key)) continue;
       seen.add(key);
       this.add(entity, {
@@ -188,24 +208,30 @@ class Cases {
     }
   }
 
-  /* Run-level findings, and root causes no operation case holds: the exit code counts them all. */
+  // Run-level findings, and root causes no operation case holds: the exit code counts them all.
   run(): void {
     const byCheck = new Map<string, Finding[]>();
+
     for (const finding of this.#input.findings) {
       if (this.placed.has(finding)) continue;
+
       if (finding.operations !== undefined && !isRootCause(finding)) continue;
       byCheck.set(finding.check, [...(byCheck.get(finding.check) ?? []), finding]);
     }
+
     const redactor = this.#input.client.redactor;
+
     for (const [check, findings] of byCheck)
       this.add(RUN_SUITE, { classname: RUN_CLASS, name: check, result: judged(findings, redactor) });
     const { outcome, reason } = runVerdict(this.#input);
-    if (outcome === "failed" || outcome === "leftovers")
+
+    if (outcome === "failed" || outcome === "leftovers") {
       this.add(RUN_SUITE, {
         classname: RUN_CLASS,
         name: "outcome",
         result: { kind: "error", message: reason, type: outcome },
       });
+    }
   }
 }
 
@@ -217,24 +243,33 @@ function caseXml(entry: Case, redactor: Redactor): string {
   const said = (value: string): string => attr(redactor.text(value));
   const head = `    <testcase classname="${said(entry.classname)}" name="${said(entry.name)}"`;
   const { result } = entry;
+
   switch (result.kind) {
-    case "passed":
+    case "passed": {
       return `${head}/>`;
-    case "skipped":
+    }
+
+    case "skipped": {
       return `${head}><skipped message="${said(result.message)}"/></testcase>`;
-    case "error":
+    }
+
+    case "error": {
       return `${head}><error type="${said(result.type)}" message="${said(result.message)}"/></testcase>`;
-    case "failure":
+    }
+
+    case "failure": {
       return (
         `${head}><failure type="${said(result.type)}" message="${said(result.message)}">` +
         `${text(redactor.text(result.body))}</failure></testcase>`
       );
+    }
   }
 }
 
 /** The run as `junit.xml`. */
 export function renderJunit(input: ReportInput): string {
   const cases = new Cases(input);
+
   for (const op of input.scope?.operations ?? []) cases.operation(op);
   cases.standDowns();
   cases.run();
@@ -242,11 +277,13 @@ export function renderJunit(input: ReportInput): string {
   const timestamp = input.startedAt.toISOString().replace(/\.\d{3}Z$/, "Z");
   const suites = [...cases.suites].sort(([a], [b]) => a.localeCompare(b));
   const all = suites.flatMap(([, list]) => list);
+
   const lines = [
     '<?xml version="1.0" encoding="UTF-8"?>',
     `<testsuites name="testing api" tests="${all.length}" failures="${count(all, "failure")}" errors="${count(all, "error")}"` +
       ` time="${(input.durationMs / 1000).toFixed(3)}">`,
   ];
+
   for (const [name, list] of suites) {
     list.sort((a, b) => a.classname.localeCompare(b.classname) || a.name.localeCompare(b.name));
     lines.push(
@@ -256,6 +293,8 @@ export function renderJunit(input: ReportInput): string {
       "  </testsuite>",
     );
   }
+
   lines.push("</testsuites>");
+
   return `${lines.join("\n")}\n`;
 }

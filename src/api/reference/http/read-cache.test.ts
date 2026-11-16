@@ -7,6 +7,7 @@ import { type ReferenceRequest, respond } from "./wire.ts";
 
 function holder(defects: string[] = [], cachedReads = true): CacheHolder & { at: (ms: number) => void } {
   let now = 0;
+
   return {
     at: (ms) => {
       now = ms;
@@ -25,9 +26,10 @@ const get = (headers: Record<string, string> = {}): ReferenceRequest => ({
   url: new URL("http://ref.test/tables/t1"),
 });
 
-/* The origin answers the version it is on, so a test can tell a cached answer from a fresh one. */
+// The origin answers the version it is on, so a test can tell a cached answer from a fresh one.
 function origin() {
   let version = 0;
+
   return {
     bump: () => {
       version += 1;
@@ -38,6 +40,7 @@ function origin() {
 
 const served = async (state: CacheHolder, request: ReferenceRequest, from: ReturnType<typeof origin>) => {
   const answer = await cachedRead(state, { request, who: "alpha" }, from.read);
+
   return { body: JSON.parse(answer.body) as { version: number }, headers: answer.headers };
 };
 
@@ -110,6 +113,7 @@ describe("cachedRead and the bypass", () => {
 
   it("fills no copy from a read sent the bypass, even under BYPASS_IGNORED", async () => {
     const bypass = get({ [CACHE_BYPASS.name]: CACHE_BYPASS.value });
+
     for (const state of [holder(), holder(["BYPASS_IGNORED"])]) {
       const from = origin();
       await served(state, bypass, from);

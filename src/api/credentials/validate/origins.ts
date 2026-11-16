@@ -5,15 +5,15 @@ import type { SecurityScheme } from "../../spec/security/schemes.ts";
 import { mappedPairs, type OriginSchemes } from "../origin-recipes.ts";
 import { declaredSchemes } from "./principals.ts";
 
-/* The config's secondary origins, as recipe validation reads them: each one's mapping, schemes and operations. */
+// The config's secondary origins, as recipe validation reads them: each one's mapping, schemes and operations.
 
 type Config = RawOf<ApiConfig>;
 
 /** What these checks read from a document: its schemes, and what each operation's security asks. */
-interface SpecView {
+type SpecView = {
   schemes: ReadonlyMap<string, SecurityScheme>;
   operations: ReadonlyArray<{ security: ResolvedSecurity }>;
-}
+};
 
 /** An origin scheme a recipe shares by name, used with no mapping that says which recipe it takes. */
 export function originProblems(
@@ -22,9 +22,11 @@ export function originProblems(
   recipes: ReadonlySet<string>,
 ): string[] {
   const declared = Array.isArray(config.origins) ? config.origins.filter((origin) => isRaw<OriginSpec>(origin)) : [];
+
   return Object.entries(origins).flatMap(([id, view]) => {
     const mapping = declared.find((origin) => origin.id === id)?.security;
     const mapped = isRecord(mapping) ? mapping : {};
+
     return [...view.schemes.keys()]
       .filter((scheme) => recipes.has(scheme) && !(scheme in mapped))
       .map(
@@ -34,14 +36,16 @@ export function originProblems(
   });
 }
 
-/* Each loaded origin, in config order, with its mapping and its document. */
+// Each loaded origin, in config order, with its mapping and its document.
 export type OriginView = OriginSchemes & { id: string; view: SpecView };
 
 /** Each origin the config declares and the run loaded, in config order. */
 export function originViews(config: Config, origins: Readonly<Record<string, SpecView>>): OriginView[] {
   const declared = Array.isArray(config.origins) ? config.origins.filter((origin) => isRaw<OriginSpec>(origin)) : [];
+
   return declared.flatMap((origin) => {
     const view = typeof origin.id === "string" ? origins[origin.id] : undefined;
+
     return view === undefined
       ? []
       : [{ id: origin.id as string, mapping: origin.security, schemes: view.schemes, view }];
@@ -53,6 +57,7 @@ export function declaredEverywhere(spec: SpecView, views: readonly OriginView[])
   const ofOrigins = views
     .filter((origin) => origin.schemes.size > 0)
     .map((origin) => `; origins.${origin.id} declares: ${[...origin.schemes.keys()].toSorted().join(", ")}`);
+
   return `${declaredSchemes(spec.schemes.keys())}${ofOrigins.join("")}`;
 }
 
@@ -60,9 +65,12 @@ export function declaredEverywhere(spec: SpecView, views: readonly OriginView[])
 export function scopedRecipes(spec: SpecView, views: readonly OriginView[]): ReadonlySet<string> {
   const needs = (view: SpecView) =>
     view.operations.flatMap((op) => op.security.alternatives.flat().filter((need) => need.scopes.length > 0));
+
   const ofOrigins = views.flatMap((origin) => {
     const recipeOf = new Map(mappedPairs(origin));
+
     return needs(origin.view).flatMap((need) => recipeOf.get(need.scheme) ?? []);
   });
+
   return new Set([...needs(spec).map((need) => need.scheme), ...ofOrigins]);
 }

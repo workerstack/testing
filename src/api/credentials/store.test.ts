@@ -76,18 +76,20 @@ describe("createStore: identity and reasons", () => {
 
 describe("createStore: clock and isolation", () => {
   it("reads the system clock unless given one, and finds no principal on the prototype", async () => {
-    /* Fixed before the store exists: it reads the clock it was made with. */
+    // Fixed before the store exists: it reads the clock it was made with.
     vi.useFakeTimers({ now: Date.UTC(2026, 0, 1), toFake: ["Date"] });
     onTestFinished(() => {
       vi.useRealTimers();
     });
     const { ports } = fakePorts();
+
     const store = createStore({
       ports,
       principals: { ann: {} },
       schemes: SCHEMES,
       security: { jwt: { expiresIn: 60, static: "s" } },
     });
+
     const held = (await store.acquire({ principal: "ann", scheme: "jwt" })) as Credential;
     expect(held.expiresAt).toBe(Date.UTC(2026, 0, 1) + 60_000);
     expect(await store.acquire({ principal: "constructor", scheme: "jwt" })).toEqual({
@@ -99,6 +101,7 @@ describe("createStore: clock and isolation", () => {
     let calls = 0;
     const { ports } = fakePorts({ hook: () => Promise.resolve(`totp-${++calls}`) });
     const clock = { now: NOW };
+
     const store = createStore({
       now: () => clock.now,
       ports,
@@ -106,11 +109,14 @@ describe("createStore: clock and isolation", () => {
       schemes: SCHEMES,
       security: { jwt: { expiresIn: 20, hook: true } },
     });
+
     const values = [];
+
     for (const step of [0, 5_000, 6_000]) {
       clock.now += step;
       values.push(valueOf(await store.acquire({ principal: "ann", scheme: "jwt" })));
     }
+
     expect([values, calls]).toEqual([["totp-1", "totp-1", "totp-2"], 2]);
   });
   it("shares nothing between two stores", async () => {
@@ -125,18 +131,22 @@ describe("createStore: clock and isolation", () => {
 describe("createStore: login", () => {
   it("shares one login between concurrent first acquires", async () => {
     const { recorded, store } = harness();
+
     const held = await Promise.all(
       Array.from({ length: 10 }, () => store.acquire({ principal: "ann", scheme: "jwt" })),
     );
+
     expect([new Set(held.map(valueOf)), recorded.runs.length]).toEqual([new Set(["ann-1"]), 1]);
   });
 
   it("attempts a login once: a failure is BLOCKED with the reason and never retried", async () => {
     const { recorded, store } = harness({ login: new Set(["ann"]) });
     const blocked = { blocked: "login for ann/jwt: auth step 1 answered 401" };
+
     const first = await Promise.all(
       Array.from({ length: 3 }, () => store.acquire({ principal: "ann", scheme: "jwt" })),
     );
+
     const later = await store.acquire({ principal: "ann", scheme: "jwt", scopes: ["a"] });
     const refreshed = await store.refresh({ principal: "ann", scheme: "jwt", sentValue: "ann-1" });
     expect([...first, later, refreshed]).toEqual(Array.from({ length: 5 }, () => blocked));
@@ -156,9 +166,11 @@ describe("createStore: refresh", () => {
     const { clock, recorded, store } = harness();
     await store.acquire({ principal: "ann", scheme: "jwt" });
     clock.now += 30_000;
+
     const held = await Promise.all(
       Array.from({ length: 10 }, () => store.acquire({ principal: "ann", scheme: "jwt" })),
     );
+
     expect([new Set(held.map(valueOf)), recorded.runs.map((run) => run.steps[0])]).toEqual([
       new Set(["ann-2"]),
       [{ body: { email: "ann@x.io" }, operationId: "auth.login" }, { operationId: "auth.refresh" }],
@@ -168,9 +180,11 @@ describe("createStore: refresh", () => {
   it("renews once for 10 parallel callers refused with the same value", async () => {
     const { recorded, store } = harness();
     await store.acquire({ principal: "ann", scheme: "jwt" });
+
     const held = await Promise.all(
       Array.from({ length: 10 }, () => store.refresh({ principal: "ann", scheme: "jwt", sentValue: "ann-1" })),
     );
+
     expect([new Set(held.map(valueOf)), recorded.runs.length]).toEqual([new Set(["ann-2"]), 2]);
   });
 
@@ -209,11 +223,13 @@ describe("createStore: refresh outcomes", () => {
     const { recorded, store } = harness({ login, refresh: new Set(["cy"]) });
     await store.acquire({ principal: "cy", scheme: "jwt" });
     login.add("cy");
-    /* The reason names the renewal and both refusals, never reading like a first sign-in that failed. */
+
+    // The reason names the renewal and both refusals, never reading like a first sign-in that failed.
     const blocked = {
       blocked:
         "renewal for cy/jwt: the refresh failed (refresh token reused), then acquiring afresh failed (auth step 1 answered 401)",
     };
+
     expect(await store.refresh({ principal: "cy", scheme: "jwt", sentValue: "cy-1" })).toEqual(blocked);
     expect(await store.refresh({ principal: "cy", scheme: "jwt", sentValue: "cy-1" })).toEqual(blocked);
     expect(await store.acquire({ principal: "cy", scheme: "jwt", scopes: ["other"] })).toEqual(blocked);
@@ -239,13 +255,16 @@ describe("createStore: refresh outcomes", () => {
 
 const SIGNUP = { method: "POST", operationId: "auth.register", path: "/v1/auth/register" };
 
-/* A store whose jwt login is `steps` with no refresh, issuing `t<n>` per login run, given the run's signup. */
+// A store whose jwt login is `steps` with no refresh, issuing `t<n>` per login run, given the run's signup.
 function signingUp(steps: SecurityConfig[string] & object, signup: typeof SIGNUP | null = SIGNUP) {
   let runs = 0;
+
   const { ports, recorded } = fakePorts({
     run: () => Promise.resolve({ answer: answerOf({ t: `t${++runs}` }), scope: {} }),
   });
+
   const security: SecurityConfig = { jwt: steps };
+
   const store = createStore({
     ports,
     principals: { ann: {} },
@@ -253,12 +272,14 @@ function signingUp(steps: SecurityConfig[string] & object, signup: typeof SIGNUP
     security,
     ...(signup === null ? {} : { signups: [signup] }),
   });
+
   return { recorded, store };
 }
 
 describe("createStore: a login that signs up", () => {
   it("renews to BLOCKED instead of signing up again, by operationId or by a raw step to its route", async () => {
     const blocked = { blocked: "renewing ann/jwt would sign up again; declare a refresh" };
+
     for (const step of [{ operationId: "auth.register" }, { method: "post", path: "/v1/auth/register" }]) {
       const { recorded, store } = signingUp({ login: { from: "$.t", steps: [{ operationId: "auth.csrf" }, step] } });
       await store.acquire({ principal: "ann", scheme: "jwt" });
@@ -275,12 +296,14 @@ describe("createStore: a login that signs up", () => {
           ? Promise.reject(new Error("refresh token revoked"))
           : Promise.resolve({ answer: answerOf({ t: "t1" }), scope: {} }),
     });
+
     const security: SecurityConfig = {
       jwt: {
         login: { from: "$.t", steps: [{ operationId: "auth.register" }] },
         refresh: { from: "$.t", steps: [{ operationId: "auth.refresh" }] },
       },
     };
+
     const store = createStore({ ports, principals: { ann: {} }, schemes: SCHEMES, security, signups: [SIGNUP] });
     await store.acquire({ principal: "ann", scheme: "jwt" });
     expect(await store.refresh({ principal: "ann", scheme: "jwt", sentValue: "t1" })).toEqual({
@@ -292,6 +315,7 @@ describe("createStore: a login that signs up", () => {
   it("re-runs a login that calls no signup, or one on another origin, or when the document marks none", async () => {
     const otherRoute = { method: "POST", path: "/v1/auth/login" };
     const otherOrigin = { method: "POST", origin: "idp", path: "/v1/auth/register" };
+
     const cases = [
       signingUp({ login: { from: "$.t", steps: [{ operationId: "auth.login" }] } }),
       signingUp({ login: { from: "$.t", steps: [otherRoute] } }),
@@ -300,6 +324,7 @@ describe("createStore: a login that signs up", () => {
       signingUp({ login: { from: "$.t", steps: [{ operationId: "auth.register" }] } }, null),
       signingUp({ static: "s" }),
     ];
+
     for (const { store } of cases) {
       const first = valueOf(await store.acquire({ principal: "ann", scheme: "jwt" }));
       const renewed = await store.refresh({ principal: "ann", scheme: "jwt", sentValue: first });
@@ -359,6 +384,7 @@ describe("createStore: what blocked a credential", () => {
       schemes: new Map([["odd", BEARER]]),
       security: {},
     });
+
     expect(await odd.acquire({ principal: "odd", scheme: "odd" })).toEqual({
       blocked: "acquire for odd/odd: the jwt recipe names no kind (login, mint, static, hook or oauth2)",
     });
@@ -395,10 +421,12 @@ describe("createStore: adopt", () => {
     await store.refresh({ principal: "cy", scheme: "jwt", sentValue: "cy-1" });
     await store.adopt({ principal: "ann", scheme: "jwt", value: "invited" });
     await store.adopt({ principal: "cy", scheme: "jwt", value: "again" });
+
     const held = [
       await store.acquire({ principal: "ann", scheme: "jwt" }),
       await store.acquire({ principal: "cy", scheme: "jwt" }),
     ];
+
     expect(held.map(valueOf)).toEqual(["invited", "again"]);
   });
 

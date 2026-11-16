@@ -17,7 +17,7 @@ type MailKind<T extends StepTypes> = T extends { mail: infer K extends string } 
 const NO_SESSION = "session(name) needs steps({ session }), the headers a session held in the scope is sent with";
 
 /** How the builders send what the caller's API leaves to it. */
-export interface StepsOptions {
+export type StepsOptions = {
   /** The configured origin a scenario of this set belongs to; give the set that origin's operations. */
   origin?: string;
   /**
@@ -25,10 +25,10 @@ export interface StepsOptions {
    * credential: where a credential goes is the API's to say, never the API tester's.
    */
   session?: (name: string) => Record<string, string>;
-}
+};
 
 /** The builders a scenario is written with, typed over the caller's `T`. */
-export interface Builders<T extends StepTypes> {
+export type Builders<T extends StepTypes> = {
   /** The scenario's own principal. */
   self: Sender<T["ops"], T>;
   /** No credential at all. */
@@ -47,7 +47,7 @@ export interface Builders<T extends StepTypes> {
   scenario(init: ScenarioInit<OpId<T["ops"]>>): Scenario;
   /** A deliberately invalid value, sent as written. */
   unchecked<V>(value: V): V & Unchecked;
-}
+};
 
 /**
  * The step builders for one document. `origin` makes it the set for a scenario that belongs to that
@@ -57,6 +57,7 @@ export interface Builders<T extends StepTypes> {
 export function steps<T extends StepTypes>(options: StepsOptions = {}): Builders<T> {
   const self = new Sender<T["ops"], T>(SELF);
   const { origin, session } = options;
+
   return {
     anon: new Sender(ANON),
     external: (name, ...input) => external(name, input[0] as Record<string, unknown> | undefined),
@@ -67,6 +68,7 @@ export function steps<T extends StepTypes>(options: StepsOptions = {}): Builders
     self,
     session: (name) => {
       if (session === undefined) throw new Error(NO_SESSION);
+
       return new Sender(sessionIdentity(session(name)));
     },
     unchecked,

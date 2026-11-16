@@ -17,11 +17,9 @@ import {
   unlessMoved,
 } from "./compare.ts";
 
-/*
- * Set reads shaped for the checks that compare them. Two reads that should agree and do not are
- * read again: when a read now holds other rows the collection is moving under the check, which
- * is no defect; only a disagreement the fresh reads repeat is the backend's.
- */
+// Set reads shaped for the checks that compare them. Two reads that should agree and do not are
+// read again: when a read now holds other rows the collection is moving under the check, which
+// is no defect; only a disagreement the fresh reads repeat is the backend's.
 
 /** Rows by the `filter` term each request carries; `pick` may change them between reads. */
 const byFilter =
@@ -132,11 +130,13 @@ describe("settlePair", () => {
   it("hands back the fresh pair when the disagreement holds still", async () => {
     const freshA = { items: [{ id: "1" }] };
     const freshB = { items: [{ id: "2" }] };
+
     const settled = await settlePair(
       "id",
       { first: a, second: b },
       { first: async () => freshA, second: async () => freshB },
     );
+
     expect(settled).toEqual({ first: freshA, second: freshB });
     expect(settled === "moving" || settled === null ? null : settled.first).toBe(freshA);
   });
@@ -174,22 +174,29 @@ describe("readSettled", () => {
   it("is moving when a read now holds other rows", async () => {
     let sets: Record<string, Record_[]> = SETS;
     const { ctx } = notesContext(byFilter(() => sets));
+
     const settled = await readSettled(ctx, TERMS, () => {
       sets = { ...SETS, b: rows(3).slice(0, 2).concat({ id: "late" }) };
+
       return false;
     });
+
     expect(settled).toBe("moving");
   });
 
   it("is rejected when a term's read is refused, the first time or the second", async () => {
     expect(await readSettled(notesContext(refusing).ctx, TERMS, () => true)).toBe("rejected");
     let refuse = false;
+
     const later: Responder = (method, path, options) =>
       (refuse ? refusing : byFilter(() => SETS))(method, path, options);
+
     const settled = await readSettled(notesContext(later).ctx, TERMS, () => {
       refuse = true;
+
       return false;
     });
+
     expect(settled).toBe("rejected");
   });
 
@@ -206,6 +213,7 @@ describe("unlessMoved", () => {
   async function judged(respond: Responder, reads: Record_[][]) {
     const { ctx, findings, sent } = notesContext(respond);
     const outcome = await unlessMoved(ctx, CHECK, { reads: reads.map((items) => ({ items })), terms });
+
     return { findings, outcome, sent };
   }
 
@@ -214,9 +222,10 @@ describe("unlessMoved", () => {
       byFilter(() => SETS),
       [SETS.a, SETS.b],
     );
+
     expect(outcome).toBeNull();
     expect(findings.findings).toEqual([]);
-    /* Each term is walked again as it was walked: its order, one row a page. */
+    // Each term is walked again as it was walked: its order, one row a page.
     expect(walks(sent).map((request) => request.options.query)).toEqual([
       expect.objectContaining({ filter: "a" }),
       expect.objectContaining({ filter: "b", limit: 1, sort: "id.desc" }),
@@ -228,16 +237,18 @@ describe("unlessMoved", () => {
       byFilter(() => SETS),
       [SETS.a, rows(1)],
     );
+
     expect(outcome).toMatchObject({ kind: "unresolved" });
     expect(findings.inconclusive[0]?.reason).toContain("gained or lost rows");
   });
 
   it("is moving when a row created after one term was deleted again before the reread", async () => {
-    /* The second term held the passing row; neither term holds it now, and the first never did. */
+    // The second term held the passing row; neither term holds it now, and the first never did.
     const { outcome } = await judged(
       byFilter(() => SETS),
       [SETS.a, [...SETS.b, { id: "passing" }]],
     );
+
     expect(outcome).toMatchObject({ kind: "unresolved" });
   });
 

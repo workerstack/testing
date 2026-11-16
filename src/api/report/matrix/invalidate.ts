@@ -7,8 +7,10 @@ import type { InvalidateLink, MatrixModel } from "./types.ts";
 
 export function invalidateLinks(model: MatrixModel): InvalidateLink[] {
   const out: InvalidateLink[] = [];
+
   for (const op of model.operations) {
     if (op.entity === null) continue;
+
     for (const route of op.invalidates) {
       const toEntity = model.byRoute.get(route)?.entity ?? owningEntityFromRoute(route, model) ?? op.entity;
       out.push({
@@ -20,12 +22,12 @@ export function invalidateLinks(model: MatrixModel): InvalidateLink[] {
       });
     }
   }
+
   return out;
 }
 
 function owningEntityFromRoute(route: string, model: MatrixModel): string | null {
-  for (const entity of model.entities.values()) {
-    if (entity.readSurface.includes(route)) return entity.name;
-  }
+  for (const entity of model.entities.values()) if (entity.readSurface.includes(route)) return entity.name;
+
   return null;
 }

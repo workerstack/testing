@@ -6,25 +6,29 @@ import { carries, dropWhen, endlessWhen, pagedDoc, rewriting } from "./__fixture
 import { backend, NOTES, queryDoc, queryOf, REJECT, stage } from "./__fixtures__/query-api.ts";
 import { querySearchAndSortCompose } from "./query-search-and-sort-compose.ts";
 
-/* A cohort the first title's whole value finds all of: "memo" in every title. */
+// A cohort the first title's whole value finds all of: "memo" in every title.
 const MEMOS = NOTES.map((row, index) => ({ ...row, title: index === 0 ? "memo" : `memo ${String(row["id"])}` }));
 
-/* Sorted by rank, the one sortable field: ranks the cohort holds out of order. */
+// Sorted by rank, the one sortable field: ranks the cohort holds out of order.
 const BY_RANK = queryDoc({ sortable: ["rank"] });
 
-/* A collection that loses a record on every request: something else is writing to it. */
+// A collection that loses a record on every request: something else is writing to it.
 function shrinking(): Responder {
   let calls = 0;
+
   return (method, path, options) => backend(MEMOS.slice(calls++))(method, path, options);
 }
 
-/* The sorted search drops the search; the plain search is refused once it has been answered. */
+// The sorted search drops the search; the plain search is refused once it has been answered.
 function refusingRepeat(): Responder {
   let searches = 0;
   const dropping = dropWhen("q", "order");
+
   return (method, path, options) => {
     const query = queryOf(options);
+
     if (!carries(query, "order") && searches++ > 0) return REJECT;
+
     return dropping(method, path, options);
   };
 }
@@ -36,7 +40,7 @@ describe("query.search-and-sort-compose judges", () => {
     expect(staged.sent.map((sent) => sent.options.query)).toEqual([
       { limit: 50, q: "memo" },
       { limit: 50, order: "rank.asc", q: "memo" },
-      /* An ascending answer is checked against the descending one: a fixed order passes only one. */
+      // An ascending answer is checked against the descending one: a fixed order passes only one.
       { limit: 50, order: "rank.desc", q: "memo" },
     ]);
   });
@@ -66,6 +70,7 @@ describe("query.search-and-sort-compose gives up", () => {
       (query) => (carries(query, "q") && carries(query, "order") ? { ...query, order: "rank.asc" } : query),
       MEMOS,
     );
+
     const staged = stage(querySearchAndSortCompose, { doc: BY_RANK, respond: fixed, rows: MEMOS });
     expect(await staged.run()).toEqual({ kind: "finding", verdict: "BACKEND_BUG" });
     expect(staged.sent.map((sent) => sent.options.query?.["order"]).filter(Boolean)).toContain("rank.desc");
@@ -111,9 +116,9 @@ describe("query.search-and-sort-compose plans", () => {
   it("stands down without a search or an order parameter, or without fields for them", () => {
     const noSearch = queryDoc({}, ["filter", "order", "select", "limit"]);
     const noOrder = queryDoc({}, ["filter", "select", "q", "limit"]);
-    for (const doc of [noSearch, noOrder, queryDoc({ searchable: [] }), queryDoc({ sortable: [] })]) {
+
+    for (const doc of [noSearch, noOrder, queryDoc({ searchable: [] }), queryDoc({ sortable: [] })])
       expect(stage(querySearchAndSortCompose, { doc }).plan()).toEqual({ ok: false });
-    }
   });
 
   it("stands down without a cohort value long enough to search for", async () => {

@@ -29,13 +29,14 @@ import { runStore } from "./store.ts";
  * scrub with, the exchange journal, the network gate, the run's credential store, and the clients of
  * the secondary origins, each resolving its actors over that store against its own document.
  */
-/* What the primary client's requests send: over the run's store, mapped as an origin's when this run is one. */
+// What the primary client's requests send: over the run's store, mapped as an origin's when this run is one.
 function primaryCredentials(
   { model, options }: Loaded,
   held: { store: CredentialStore; records: RecordScopes },
 ): CredentialSource {
   const { records, store } = held;
   const shared = options.sharedCredentials;
+
   return createCredentialSource({
     model,
     principals: store.principals,
@@ -49,14 +50,16 @@ function primaryCredentials(
 export function connect(loaded: Loaded): Connected {
   const { options, hooks, model, fence, progress } = loaded;
   const redactor = new Redactor();
+
   for (const name of options.redact?.headers ?? []) redactor.registerHeader(name);
   const journal = options.exchangeDir === undefined ? null : createExchangeJournal(options.exchangeDir, redactor);
   const onExchange = answered(journal, progress);
   const network = createRunNetwork(loaded);
-  /* The ports reach the clients only when they send, by which time both exist. */
+  // The ports reach the clients only when they send, by which time both exist.
   const store = runStore(loaded, { clients: () => ({ client, origins: originClients }), network, redactor });
   const records = createRecordScopes();
   const validator = new SchemaValidator(model.defs);
+
   const client = new Client({
     baseUrl: options.baseUrl,
     credentials: primaryCredentials(loaded, { records, store }),
@@ -77,8 +80,9 @@ export function connect(loaded: Loaded): Connected {
     transcript: options.transcript,
     validateAtCapture: captureVerdict(validator, model),
   });
+
   progress.countRequests(() => client.transcript.length);
-  /* From the first request: a principal's own sign-up makes an account too. */
+  // From the first request: a principal's own sign-up makes an account too.
   const accounts = new AccountLedger(options.accountsFile);
   watchAccounts({
     client,
@@ -87,6 +91,7 @@ export function connect(loaded: Loaded): Connected {
     ops: accountOps(model),
   });
   const originClients = loadOriginClients(loaded, { network: network.client, onExchange, redactor, store });
+
   return {
     ...loaded,
     accounts,
@@ -108,19 +113,21 @@ export function connect(loaded: Loaded): Connected {
 function answered(journal: ExchangeJournal | null, progress: RunProgress): (exchange: Exchange) => Promise<void> {
   return async (exchange) => {
     progress.remember(exchange);
+
     if (journal !== null) {
       try {
-        /* The exchange names its own check and entity: a shared "current check" was wrong
-         * whenever checks ran concurrently, and journaled a whole batch under the last one. */
+        // The exchange names its own check and entity: a shared "current check" was wrong
+        // whenever checks ran concurrently, and journaled a whole batch under the last one.
         await journal.record(exchange, {
           ...(exchange.check === undefined ? {} : { check: exchange.check }),
           ...(exchange.subject === undefined ? {} : { entity: exchange.subject }),
           phase: progress.phase,
         });
       } catch {
-        /* journal is observability — a write error must not fail the request */
+        // journal is observability — a write error must not fail the request
       }
     }
+
     progress.announce();
   };
 }

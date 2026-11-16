@@ -55,7 +55,7 @@ describe("plan as text", () => {
   it("tables each entity with its lifecycle, identity, cost and read surface, then what a run needs", async () => {
     const { model } = await referenceModel({ dialect: "template" });
     const lines = plan(model, false).split("\n");
-    /* The reference reads its API keys back (apiKey.get), so api-key is a trackable entity of its own. */
+    // The reference reads its API keys back (apiKey.get), so api-key is a trackable entity of its own.
     expect(lines[1]).toBe(`  ${model.operations.length} operations · 8 entities`);
     expect(lines.find((line) => line.startsWith("  notice "))).toMatch(
       / ·LR·· {2}id +\d+ {2}2 route\(s\) \(inferred\)$/,
@@ -77,6 +77,7 @@ describe("plan as text", () => {
       "/a": { get: listOp("a", "a.list", { "x-feature-gate": "beta" }) },
       "/b/{id}": { get: readOp("b", "b.get") },
     });
+
     const lines = plan(modelOf(doc).model, false).split("\n");
     expect(lines).toContain("  feature gates — a matching 403 is coverage, not a defect:");
     expect(lines).toContain(`    ${"a.list".padEnd(28)} x-feature-gate: beta`);
@@ -87,11 +88,14 @@ describe("plan as text", () => {
       "/a": { get: listOp("a", "a.list", { "x-query": { grammar: FILTER_TEMPLATE } }) },
       "/b": { get: listOp("b", "b.list") },
     });
+
     const { model } = modelOf(doc, { entities: { b: { query: { sortGrammar: SORT_TEMPLATE } } } });
+
     const rows = plan(model, false)
       .split("\n")
       .filter((line) => /^ {4}[ab] +(filter|sort) /.test(line))
       .map((line) => line.trim().split(/ +/).slice(0, 2).join(" "));
+
     expect(rows).toEqual(["a filter", "b sort"]);
   });
 
@@ -135,6 +139,7 @@ describe("plan as text, for an entity nothing reads", () => {
         },
       },
     });
+
     expect(plan(modelOf(doc).model, false)).toMatch(/\n {2}c {19}C···· {2}— {10}\s*\d+ {2}— none\n/);
   });
 });
@@ -142,9 +147,11 @@ describe("plan as text, for an entity nothing reads", () => {
 describe("plan and the operations a recipe names", () => {
   it("keeps an entity whose operations a security recipe calls when its create answers an id, in text and JSON", async () => {
     const { model } = await referenceModel();
+
     const authCreates = Object.assign(new Set(["apiKey.create", "apiKey.revoke"]), {
       mints: new Set(["apiKey.create"]),
     });
+
     expect(plan(model, false, { authCreates }).split("\n")[1]).toBe(
       `  ${model.operations.length} operations · 8 entities`,
     );
@@ -170,6 +177,7 @@ describe("plan with a targeted scope", () => {
         untestable: [{ operationId: "row.export", reason: "no entity" }],
       }),
     });
+
     const width = "a-long-operation-id.get".length + 2;
     expect(text.split("\n")).toEqual([
       "",

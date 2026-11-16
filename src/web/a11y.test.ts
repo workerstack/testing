@@ -5,11 +5,12 @@ import { describe, expect, it } from "vitest";
 import { createA11y, loadAxe, WCAG_22_AA, type A11yOptions } from "./a11y.ts";
 
 type Results = Awaited<ReturnType<AxeBuilder["analyze"]>>;
+
 type Violation = Results["violations"][number];
 
 const PAGE = {} as Page;
 
-/* A builder that records what the scan was told, and answers with the given violations. */
+// A builder that records what the scan was told, and answers with the given violations.
 function fakeBuilder(violations: readonly Partial<Violation>[] = []): {
   calls: Array<[string, unknown]>;
   builder: (page: Page) => Promise<AxeBuilder>;
@@ -17,11 +18,14 @@ function fakeBuilder(violations: readonly Partial<Violation>[] = []): {
 } {
   const calls: Array<[string, unknown]> = [];
   const pages: Page[] = [];
+
   const record = (name: string) =>
     function (this: unknown, value: unknown) {
       calls.push([name, value]);
+
       return this;
     };
+
   const fake = {
     analyze: async () => ({ violations }),
     disableRules: record("disableRules"),
@@ -29,9 +33,11 @@ function fakeBuilder(violations: readonly Partial<Violation>[] = []): {
     include: record("include"),
     withTags: record("withTags"),
   };
+
   return {
     builder: async (page) => {
       pages.push(page);
+
       return fake as unknown as AxeBuilder;
     },
     calls,
@@ -53,11 +59,13 @@ describe("a11y.check", () => {
 
   it("tells the scan what to include, exclude and skip, the defaults first", async () => {
     const { builder, calls } = fakeBuilder();
+
     const defaults: A11yOptions = {
       disable: [{ reason: "a fragment, not a page", rule: "region" }],
       exclude: [{ reason: "inert focus sentinel", selector: "[data-focus-guard]" }],
       include: "body",
     };
+
     await createA11y({ builder, defaults, page: PAGE }).check({
       disable: [{ reason: "the brand palette, tracked in DS-12", rule: "color-contrast" }],
       exclude: [{ reason: "third-party embed", selector: "iframe.map" }],
@@ -76,6 +84,7 @@ describe("a11y.check", () => {
       violation("image-alt", "Images must have alternative text", [["img.hero"], ["img.logo"]]),
       violation("button-name", "Buttons must have discernible text", [["iframe#pay", ["x-card", "button"]]]),
     ]);
+
     await expect(createA11y({ builder, defaults: {}, page: PAGE }).check()).rejects.toThrow(
       [
         "a11y: image-alt at img.hero: Images must have alternative text",

@@ -5,16 +5,17 @@ import { type Route, routed } from "../harness/routes.ts";
 import { answer, guarded, readJson } from "../harness/serve.ts";
 import { planLimitSpec, thingSpec } from "./spec.ts";
 
-interface Named {
+type Named = {
   id: string;
   name: string;
-}
+};
 
 const SPEC = /^\/v1\/openapi\/spec$/;
 
 /** A read of `id` from `rows`: the row, or a bare 404. */
 function readRow<T>(rows: ReadonlyMap<string, T>, id: string) {
   const row = rows.get(id);
+
   return row === undefined ? answer(404) : answer(200, row);
 }
 
@@ -24,6 +25,7 @@ export function untaggedThings(): Handle {
   const rows = new Map<string, Named>();
   let posts = 0;
   const item = /^\/v1\/things\/([^/]+)$/;
+
   return guarded(
     routed([
       { method: "GET", path: SPEC, reply: () => answer(200, document) },
@@ -33,9 +35,11 @@ export function untaggedThings(): Handle {
         path: /^\/v1\/things$/,
         reply: () => {
           posts += 1;
+
           if (posts === 1) return answer(429, { error: "too_many_requests" }, { "retry-after": "0" });
           const row = { id: `t_${String(posts)}`, name: "n" };
           rows.set(row.id, row);
+
           return answer(201, row);
         },
       },
@@ -51,6 +55,7 @@ function rowRoutes(tables: ReadonlyMap<string, Named>): Route[] {
   let sequence = 0;
   const collection = /^\/v1\/tables\/([^/]+)\/rows$/;
   const item = /^\/v1\/tables\/[^/]+\/rows\/([^/]+)$/;
+
   return [
     { method: "GET", path: collection, reply: () => answer(200, { items: [...rows.values()] }) },
     {
@@ -58,11 +63,13 @@ function rowRoutes(tables: ReadonlyMap<string, Named>): Route[] {
       path: collection,
       reply: async (table, request) => {
         const tableId = decodeURIComponent(table);
+
         if (!tables.has(tableId)) return answer(404);
         const body = ((await readJson(request)) ?? {}) as { name?: string };
         sequence += 1;
         const row = { id: `r_${String(sequence)}`, name: body.name ?? "n", table_id: tableId };
         rows.set(row.id, row);
+
         return answer(201, row);
       },
     },
@@ -76,6 +83,7 @@ export function planLimitedTables(): Handle {
   const document = planLimitSpec();
   const tables = new Map<string, Named>([["tbl_extract", { id: "tbl_extract", name: "from-extract" }]]);
   const item = /^\/v1\/tables\/([^/]+)$/;
+
   return guarded(
     routed([
       { method: "GET", path: SPEC, reply: () => answer(200, document) },

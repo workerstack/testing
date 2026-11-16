@@ -13,15 +13,18 @@ import type { ProgressSnapshot } from "../../../src/api/runtime/progress/types.t
 import { run } from "../../../src/api/runtime/run/index.ts";
 
 let server: ReferenceServer;
+
 beforeAll(async () => {
   server = await createMemoryServer({ defects: ["PATCH_REPLACES"] });
 });
+
 afterAll(async () => {
   await server.close();
 });
 
 async function report(ops?: string[]): Promise<{ input: ReportInput; progress: ProgressSnapshot[] }> {
   const progress: ProgressSnapshot[] = [];
+
   const result = await run({
     baseUrl: server.url,
     onProgress: (snap) => progress.push(snap),
@@ -31,6 +34,7 @@ async function report(ops?: string[]): Promise<{ input: ReportInput; progress: P
     spec: `${server.url}/v1/openapi/spec`,
     ...(ops === undefined ? {} : { ops }),
   });
+
   return {
     input: {
       baseUrl: server.url,
@@ -69,6 +73,7 @@ describe("scope in reports", () => {
       scope: { mode: string; operations: Array<{ operationId: string; status: string }>; support: unknown[] };
       findings: Array<{ check: string; operations?: string[] }>;
     };
+
     expect(json.scope.mode).toBe("targeted");
     expect(json.scope.operations.map((op) => [op.operationId, op.status])).toEqual([
       ["table.get", "passed"],
@@ -100,7 +105,7 @@ describe("scope in reports", () => {
     const { input } = await report();
     const md = renderMarkdown(input);
     expect(md).toContain("- **Scope**: full");
-    /* A POST that met its contract shows no effect unless it declares it has none (`x-effects: []`). */
+    // A POST that met its contract shows no effect unless it declares it has none (`x-effects: []`).
     expect(md).toMatch(/\| auth\.token \| — \| passed \| unproven \|/);
     expect(md).toMatch(/\| table\.create \| table \| passed \| verified \|/);
     expect(md).toContain("## Confidence");

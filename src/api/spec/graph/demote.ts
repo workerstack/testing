@@ -29,31 +29,40 @@ export function demoteNonEntities(operations: OperationModel[], gaps: GapCollect
   const views: OperationModel[] = [];
   const nouns = nounsWithItemRoute(operations);
   const kept = keptCollections(operations, nouns);
+
   for (const op of operations) {
     if (op.entity === null || op.entitySource === "tag" || nouns.has(op.entity)) continue;
+
     if (op.action === "create" && kept.has(`${op.entity}\u0000${op.path}`)) continue;
+
     if (isView(op)) {
-      /* A collection-shaped GET with no item route is usually a named view of another
-       * entity (`/table-templates/mine`). The API tester cannot know which, so it says so. */
+      // A collection-shaped GET with no item route is usually a named view of another
+      // entity (`/table-templates/mine`). The API tester cannot know which, so it says so.
       views.push(op);
       continue;
     }
+
     demote(op, nouns, gaps);
   }
+
   return views;
 }
 
 /** Nouns the API exposes an item route for: `<noun>/{param}`. */
 function nounsWithItemRoute(operations: readonly OperationModel[]): Set<string> {
   const nouns = new Set<string>();
+
   for (const op of operations) {
     const segments = segmentsOf(op.path);
+
     for (let i = 1; i < segments.length; i++) {
       const seg = segments[i] as string;
       const prev = segments[i - 1] as string;
+
       if (isParamSegment(seg) && !isParamSegment(prev)) nouns.add(singularize(prev));
     }
   }
+
   return nouns;
 }
 
@@ -76,6 +85,7 @@ function isView(op: OperationModel): boolean {
 /** Makes `op` an action on its nearest enclosing entity, or on none. */
 function demote(op: OperationModel, nouns: ReadonlySet<string>, gaps: GapCollector): void {
   const parent = enclosingEntity(op.path, nouns);
+
   if (parent === null) {
     gaps.record(
       op.operationId,
@@ -84,11 +94,12 @@ function demote(op: OperationModel, nouns: ReadonlySet<string>, gaps: GapCollect
         "to no entity and gets no lifecycle coverage. Name its entity with x-entity",
     );
   }
+
   op.entity = parent;
   op.action = parent === null ? null : "action";
 }
 
-/* Asked only of a heuristic entity outside `nounsWithItemRoute`, which was read off a trailing literal segment. */
+// Asked only of a heuristic entity outside `nounsWithItemRoute`, which was read off a trailing literal segment.
 function isVerbPhrase(path: string): boolean {
   return VERB_PREFIX.test(segmentsOf(path).at(-1) as string);
 }
@@ -96,11 +107,15 @@ function isVerbPhrase(path: string): boolean {
 /** Nearest ancestor segment in the path that names a real entity. */
 function enclosingEntity(path: string, entities: ReadonlySet<string>): string | null {
   const segments = segmentsOf(path);
+
   for (let i = segments.length - 1; i >= 0; i--) {
     const seg = segments[i] as string;
+
     if (isParamSegment(seg)) continue;
     const name = singularize(seg);
+
     if (entities.has(name)) return name;
   }
+
   return null;
 }

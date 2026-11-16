@@ -5,12 +5,14 @@ import type { Client } from "../../client/client.ts";
 import { fakeClient, modelOf, op } from "../checks/__fixtures__/harness.ts";
 import type { WriteContext } from "../checks/core/context.ts";
 import { FindingCollector } from "../finding.ts";
+import type { OwnRecords } from "../own-record.ts";
 import { me } from "./__fixtures__/me.ts";
 import { selfIdentityCheck } from "./check.ts";
 
 function contextFor(entityName: string, document = me()) {
   const model = modelOf(document);
   const { client, sent } = fakeClient(() => ({ status: 401 }));
+
   const ctx = checkContext<Client>({
     client,
     entityName,
@@ -18,6 +20,7 @@ function contextFor(entityName: string, document = me()) {
     listOp: op(model, "me.get"),
     model,
   });
+
   return { ctx: ctx as WriteContext, model, sent };
 }
 
@@ -28,6 +31,7 @@ describe("selfIdentityCheck", () => {
     expect(selfIdentityCheck.plan(contextFor("nobody").ctx)).toEqual(needs);
     const notSelf = modelOf(me());
     const entity = notSelf.entities.get("profile");
+
     if (entity !== undefined) entity.identity = "id";
     expect(selfIdentityCheck.plan({ ...contextFor("profile").ctx, model: notSelf })).toEqual(needs);
   });
@@ -42,7 +46,7 @@ describe("selfIdentityCheck", () => {
 
   it("hands the run's own-record guard to the self check", async () => {
     const { ctx, sent } = contextFor("profile");
-    const ownRecords = { disposable: async () => "d", identityOf: () => undefined, signIn: new Set<string>() };
+    const ownRecords: OwnRecords = { disposable: async () => "d", identityOf: () => {}, signIn: new Set<string>() };
     await selfIdentityCheck.run({ ...ctx, ownRecords });
     expect(sent[0]?.path).toBe("/me");
   });

@@ -10,6 +10,7 @@ import { ids } from "../../sets/list.ts";
 export const sortDefaultOrderApplied: Check<{ defaultOrder: string }> = defineCheck<{ defaultOrder: string }>({
   plan: (ctx) => {
     const defaultOrder = resolvedCaps(ctx).sort?.defaultOrder ?? ctx.query?.defaultOrder;
+
     return defaultOrder === undefined || ctx.records.length <= 1 ? cannot() : ready({ defaultOrder });
   },
   dependsOn: ["sort.order-is-applied", "pagination.page-walk-covers-set"],
@@ -21,9 +22,10 @@ export const sortDefaultOrderApplied: Check<{ defaultOrder: string }> = defineCh
     const limit = pageSize(ctx);
     let implicit = await collectSet(ctx, limit);
     let explicit = await collectSet(ctx, limit, {}, { order: defaultOrder });
-    if (implicit === null || explicit === null) {
+
+    if (implicit === null || explicit === null)
       return ctx.findings.unresolved(this.id, ctx.entityName, "default-order walk was rejected");
-    }
+
     const settled = await settlePair(
       ctx.identity,
       { first: implicit, second: explicit },
@@ -32,10 +34,13 @@ export const sortDefaultOrderApplied: Check<{ defaultOrder: string }> = defineCh
         second: () => collectSet(ctx, limit, {}, { order: defaultOrder, fresh: true }),
       },
     );
+
     if (settled === "moving") return ctx.findings.unresolved(this.id, ctx.entityName, MOVING);
+
     if (settled === null) return ctx.findings.unresolved(this.id, ctx.entityName, "default-order walk was rejected");
     implicit = settled.first;
     explicit = settled.second;
+
     if (!implicit.complete || !explicit.complete) {
       return ctx.findings.unresolved(
         this.id,
@@ -43,7 +48,9 @@ export const sortDefaultOrderApplied: Check<{ defaultOrder: string }> = defineCh
         "the walk is incomplete, so default order cannot be compared",
       );
     }
+
     if (ids(implicit.items, ctx.identity).join(",") === ids(explicit.items, ctx.identity).join(",")) return ASSERTED;
+
     return ctx.findings.backend(this.id, ctx.entityName, {
       summary: "omitting order does not match defaultOrder",
       detail: `defaultOrder=${defaultOrder} produced a different sequence than the implicit listing.`,

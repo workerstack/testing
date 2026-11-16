@@ -8,20 +8,20 @@ import type { ProvenId } from "../proven-id.ts";
 import type { UploadContext } from "../upload.ts";
 import type { Record_ } from "./records.ts";
 
-export interface Scope {
+export type Scope = {
   values: Record<string, string>;
   /** Records created while resolving ancestors, newest last — unwound in reverse at teardown. */
   created: Array<{ entity: string; path: string; id: string }>;
-}
+};
 
 /** Ancestors made in this run, and those whose create is under way, by principal, operation and parent path. */
-export interface AncestorCache {
+export type AncestorCache = {
   made: Map<string, string>;
   /** Entities in parallel lanes can reach the same missing ancestor at once; the second waits here. */
   creating: Map<string, Promise<string>>;
-}
+};
 
-export interface WorldOptions {
+export type WorldOptions = {
   roots: Record<string, string>;
   seed: number;
   /**
@@ -57,16 +57,16 @@ export interface WorldOptions {
    * outside them, and one refused with 409 joins them. Omitted, each create keeps its own.
    */
   taken?: (entity: string) => Set<string>;
-}
+};
 
 /** Where seeding happens: the model, the client it sends through, and the run's options. */
-export interface Seeding {
+export type Seeding = {
   model: SpecModel;
   client: Client;
   options: WorldOptions;
-}
+};
 
-export interface SeededCohort {
+export type SeededCohort = {
   members: CohortMember[];
   records: Record_[];
   /** Identities the collection held before seeding, as listed: no later create may reuse one. */
@@ -109,4 +109,4 @@ export interface SeededCohort {
    * the backend refused.
    */
   failedVariants?: Array<{ variant: string; exchange: Exchange }>;
-}
+};

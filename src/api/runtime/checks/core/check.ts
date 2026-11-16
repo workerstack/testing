@@ -1,4 +1,4 @@
-/* One check: what it needs, which operations it grades, and how it runs. */
+// One check: what it needs, which operations it grades, and how it runs.
 
 import type { Client } from "../../../client/client.ts";
 import type { EntityModel, SpecModel } from "../../../spec/graph/types.ts";
@@ -8,7 +8,7 @@ import type { CheckContext, Listed, WriteContext } from "./context.ts";
 import type { OperationContext, OperationWriteContext } from "./operation-context.ts";
 import type { Plan } from "./plan.ts";
 
-interface CheckBase<T, X extends CheckContext = CheckContext> {
+type CheckBase<T, X extends CheckContext = CheckContext> = {
   id: CheckId;
   /** What the check is planned on: an entity and its cohort. The default; see `OperationCheck`. */
   subject?: "entity";
@@ -51,7 +51,7 @@ interface CheckBase<T, X extends CheckContext = CheckContext> {
    * cannot run invisibly under `--ops`.
    */
   subjects: (entity: EntityModel, model: SpecModel) => string[];
-}
+};
 
 /**
  * Whether the check changes server state. Mutating checks run alone and in order, with a client
@@ -83,7 +83,7 @@ export type Check<T = unknown> = UnlistedCheck<T> | ListingCheck<T>;
  * check that changes a credential, after them alone and in order. `mutates` says only that some
  * probe of the check writes, which types its client. Findings are attributed to the operation.
  */
-export interface OperationCheckBase<T> {
+export type OperationCheckBase<T> = {
   id: CheckId;
   subject: "operation";
   /**
@@ -101,7 +101,7 @@ export interface OperationCheckBase<T> {
    * its probes runs after the lanes, alone and in order, whatever its method.
    */
   mutatesCredentials?: true;
-}
+};
 
 /** An operation check, by whether it changes server state or a credential: see `Check`. */
 export type OperationCheck<T = unknown> = OperationCheckBase<T> &
