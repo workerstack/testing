@@ -55,7 +55,7 @@ describe("patch.immutable-field-rejected verdicts", () => {
 
   it("fails a backend whose read shows the new value though the answer did not echo it", async () => {
     const { ctx, findings, server } = backend((method, path, options) => {
-      if (method !== "PATCH") return;
+      if (method !== "PATCH") return undefined;
       server.respond(method, path, options);
 
       return { status: 204 };

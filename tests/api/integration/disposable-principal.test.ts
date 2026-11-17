@@ -149,7 +149,7 @@ function write(res: ServerResponse, reply: Reply): void {
     res.writeHead(reply.status);
     res.end();
 
-    return;
+    return undefined;
   }
 
   res.writeHead(reply.status, { "content-type": "application/json" });
@@ -195,7 +195,7 @@ async function listenRoutes(document: OpenApiDocument, routes: Route[], notFound
 /** GET and PATCH /v1/me for a token `names` knows; any other token is refused. */
 function profileRoute(names: Map<string, string>): Route {
   return ({ body, method, path, token }) => {
-    if (path !== "/v1/me" || (method !== "GET" && method !== "PATCH")) return;
+    if (path !== "/v1/me" || (method !== "GET" && method !== "PATCH")) return undefined;
 
     if (!names.has(token)) return UNAUTHORIZED;
 
@@ -208,7 +208,7 @@ function profileRoute(names: Map<string, string>): Route {
 /** Registers a fresh `disp-<n>` session; `refresh` also issues its refresh token. */
 function disposableRegister(names: Map<string, string>, refresh: boolean): Route {
   return ({ method, path }) => {
-    if (path !== "/v1/register" || method !== "POST") return;
+    if (path !== "/v1/register" || method !== "POST") return undefined;
     const tokenId = `disp-${names.size}`;
     names.set(tokenId, "Ada");
 
@@ -225,7 +225,7 @@ async function serve(killCaller: boolean): Promise<string> {
   const names = new Map<string, string>([["alpha", "Ada"]]);
 
   const logout: Route = ({ method, path, token }) => {
-    if (path !== "/v1/logout" || method !== "POST") return;
+    if (path !== "/v1/logout" || method !== "POST") return undefined;
 
     if (killCaller) names.clear();
     else names.delete(token);
@@ -298,7 +298,7 @@ async function serveRefresh(refreshLives: boolean): Promise<string> {
   const dead = new Set<string>();
 
   const logout: Route = ({ body, method, path }) => {
-    if (path !== "/v1/logout" || method !== "POST") return;
+    if (path !== "/v1/logout" || method !== "POST") return undefined;
 
     if (typeof body["refresh_token"] === "string") dead.add(body["refresh_token"]);
 
@@ -306,7 +306,7 @@ async function serveRefresh(refreshLives: boolean): Promise<string> {
   };
 
   const refresh: Route = ({ body, method, path }) => {
-    if (path !== "/v1/refresh" || method !== "POST") return;
+    if (path !== "/v1/refresh" || method !== "POST") return undefined;
     const token = body["refresh_token"];
     const alive = typeof token === "string" && !dead.has(token);
 
@@ -355,7 +355,7 @@ async function startServer(document: OpenApiDocument, handle: Route): Promise<st
   ]);
 
   const register: Route = ({ method, path }) => {
-    if (path !== "/v1/register" || method !== "POST") return;
+    if (path !== "/v1/register" || method !== "POST") return undefined;
     names.set("t1", "Ada");
 
     return { body: { access_token: "t1", refresh_token: "r1" }, status: 201 };
@@ -459,7 +459,7 @@ async function acceptsAccountDelete(): Promise<void> {
       return { body: { ok: true }, status: 200 };
     }
 
-    return;
+    return undefined;
   });
 
   const result = await runDisposable(url);
@@ -508,7 +508,7 @@ async function provesRemovedItem(): Promise<void> {
       return { body: { ok: true }, status: 200 };
     }
 
-    return;
+    return undefined;
   });
 
   const result = await runDisposable(url);

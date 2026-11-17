@@ -56,7 +56,7 @@ const scripted =
 
     if (sent.method === "GET") return { body: { ...NOTE_TARGET.current, verified: shown }, status: 200 };
 
-    return;
+    return undefined;
   };
 
 // A role lattice turned over for updates: every write of the ranks in `refused` draws 403, and any other

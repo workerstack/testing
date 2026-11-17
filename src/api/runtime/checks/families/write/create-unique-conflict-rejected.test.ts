@@ -52,7 +52,7 @@ const answerPosts =
 
 // A 409 that stored the row all the same.
 const storesAnyway: Override = (server) => (method, path, options) => {
-  if (method !== "POST") return;
+  if (method !== "POST") return undefined;
   server.respond(method, path, options);
 
   return { status: 409 };
@@ -60,7 +60,7 @@ const storesAnyway: Override = (server) => (method, path, options) => {
 
 // A 409, while another lane's entity adds a row of its own to the same collection: it grows, nothing collides.
 const elsewhere: Override = (server) => (method, path, options) => {
-  if (method !== "POST" || !repeats(server, options.body as Note)) return;
+  if (method !== "POST" || !repeats(server, options.body as Note)) return undefined;
   server.respond("POST", path, { body: { code: "other", name: "other", title: "t" } });
 
   return { status: 409 };

@@ -32,7 +32,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 function flag(name) {
   const index = process.argv.indexOf(`--${name}`);
 
-  if (index === -1) return;
+  if (index === -1) return undefined;
   const next = process.argv[index + 1];
 
   return next !== undefined && !next.startsWith("--") ? next : true;

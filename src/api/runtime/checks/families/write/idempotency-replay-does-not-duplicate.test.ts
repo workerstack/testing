@@ -51,7 +51,7 @@ function onPost(nth: number, answer: Answer, backend: Responder = widgetApi()): 
   let posts = 0;
 
   return overriding(backend, (method) => {
-    if (method !== "POST") return;
+    if (method !== "POST") return undefined;
     posts += 1;
 
     return posts === nth ? answer : undefined;

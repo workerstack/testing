@@ -1,7 +1,10 @@
 {
-  "compilerOptions": { "lib": ["ES2023", "DOM", "DOM.Iterable"] },
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "tsBuildInfoFile": ".tmp/tsbuildinfo/web.tsbuildinfo"
+  },
   "exclude": ["src/web/**/*.test.ts"],
   // The web modules' build: the API build plus the DOM, since `ready.settle` runs a function in the page.
-  "extends": "./tsconfig.build.json",
+  "extends": "./tsconfig.api.json",
   "include": ["src/web/**/*.ts"]
 }

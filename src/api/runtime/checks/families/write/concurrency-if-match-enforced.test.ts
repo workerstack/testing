@@ -118,7 +118,7 @@ function writing(nth: number, answer: Answer, backend: Responder = versioned()):
   let writes = 0;
 
   return overriding(backend, (method) => {
-    if (method !== "PATCH" && method !== "PUT") return;
+    if (method !== "PATCH" && method !== "PUT") return undefined;
     writes += 1;
 
     return writes === nth ? answer : undefined;
@@ -130,7 +130,7 @@ function readingFrom(nth: number, answer: Answer): Responder {
   let reads = 0;
 
   return overriding(versioned(), (method, path) => {
-    if (method !== "GET" || path === "/widgets") return;
+    if (method !== "GET" || path === "/widgets") return undefined;
     reads += 1;
 
     return reads >= nth ? answer : undefined;

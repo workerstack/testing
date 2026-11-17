@@ -88,7 +88,7 @@ export const readOps: Step = (draft) => {
 
   if (!names.has("op") && count > 1) return "term must hold {op} when ops lists several";
 
-  return;
+  return undefined;
 };
 
 export const readConj: Step = (draft) => {
@@ -103,11 +103,11 @@ export const readConj: Step = (draft) => {
 
   if (draft.names.has("conj") && draft.conj === undefined) return "conj must be declared when term holds {conj}";
 
-  return;
+  return undefined;
 };
 
 export const readNull: Step = (draft) => {
-  if (draft.raw.null === undefined) return;
+  if (draft.raw.null === undefined) return undefined;
   const terms: RawOf<FilterGrammarTag["null"]> = isRecord(draft.raw.null) ? draft.raw.null : {};
 
   if (!nonEmpty(terms.is) || !nonEmpty(terms.not)) return "null must be { is: template, not: template }";
@@ -122,18 +122,18 @@ export const readNull: Step = (draft) => {
 
   draft.nullTerms = { is: terms.is as string, not: terms.not as string };
 
-  return;
+  return undefined;
 };
 
 export const readList: Step = (draft) => {
   const list = draft.raw.list;
 
-  if (list === undefined) return;
+  if (list === undefined) return undefined;
 
   if (!nonEmpty(list)) return 'list must be the joiner for in and nin values, such as ","';
   draft.list = { close: "", join: list, open: "" };
 
-  return;
+  return undefined;
 };
 
 export const readAnd: Step = (draft) => {
@@ -143,13 +143,13 @@ export const readAnd: Step = (draft) => {
     if (combine !== undefined) return "combine does not apply when param is {field}: each field is its own parameter";
     draft.and = "params";
 
-    return;
+    return undefined;
   }
 
   if (combine === undefined || combine === "repeat") {
     draft.and = "repeat";
 
-    return;
+    return undefined;
   }
 
   const written: RawOf<TermGroup> = isRecord(combine) ? combine : {};
@@ -165,7 +165,7 @@ export const readAnd: Step = (draft) => {
     return 'combine must be "repeat", { join: "," } or { group: "…{terms}…" }';
   }
 
-  return;
+  return undefined;
 };
 
 export const readOr: Step = (draft) => {
@@ -186,7 +186,7 @@ export const readOr: Step = (draft) => {
     draft.or = group;
   }
 
-  return;
+  return undefined;
 };
 
 export const readMixed: Step = (draft) =>
@@ -197,7 +197,7 @@ export const readMixed: Step = (draft) =>
 export const readEscape: Step = (draft) => {
   const escape = draft.raw.escape;
 
-  if (escape === undefined) return;
+  if (escape === undefined) return undefined;
 
   if (!isRecord(escape)) return "escape must map single characters to replacements";
 
@@ -208,7 +208,7 @@ export const readEscape: Step = (draft) => {
     draft.escape[char] = replacement;
   }
 
-  return;
+  return undefined;
 };
 
 export const readLikeMatches: Step = (draft) => {
@@ -217,5 +217,5 @@ export const readLikeMatches: Step = (draft) => {
   if (likeMatches !== "pattern" && likeMatches !== "contains") return 'likeMatches must be "pattern" or "contains"';
   draft.likeMatches = likeMatches;
 
-  return;
+  return undefined;
 };

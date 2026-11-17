@@ -3,7 +3,7 @@
     "allowImportingTsExtensions": true,
     // The bin and lab scripts are JavaScript: read for their types, so lint knows `process`, not checked.
     "allowJs": true,
-    // Declarations are the build's: tsconfig.build.json emits them and tsconfig.src.json holds src to
+    // Declarations are the build's: tsconfig.api.json emits them and tsconfig.src.json holds src to
     // isolatedDeclarations. Tests and scripts emit none.
     "declaration": false,
     "exactOptionalPropertyTypes": true,
@@ -20,7 +20,8 @@
     "noUncheckedIndexedAccess": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    // Emits nothing: tsconfig.build.json writes dist. knip reads this to map the package's dist exports onto src.
+    // Emits nothing: the builds tsconfig.build.json names write dist. knip reads this to map the package's dist
+    // exports onto src.
     "outDir": "dist",
     "rewriteRelativeImportExtensions": true,
     // The labs configs import the build ("../dist/index.js"); with no build, as in CI's check, that resolves to the

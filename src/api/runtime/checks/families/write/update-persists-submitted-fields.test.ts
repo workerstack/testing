@@ -25,7 +25,7 @@ function backend(override: Responder = () => {}, model = notesModel()) {
 // An update that answers 200 and stores everything but `code`.
 function dropping(field: string): (server: ReturnType<typeof notesServer>) => Responder {
   return (server) => (method, path, options) => {
-    if (method !== "PATCH") return;
+    if (method !== "PATCH") return undefined;
     const id = path.slice("/notes/".length);
     const current = server.records.get(id) as Note;
     const { [field]: _ignored, ...kept } = options.body as Note;
@@ -73,7 +73,7 @@ describe("update.persists-submitted-fields", () => {
     const server = notesServer([{ ...SEEDED }]);
 
     const normalizing: Responder = (method, path, options) => {
-      if (method !== "PATCH") return;
+      if (method !== "PATCH") return undefined;
       const id = path.slice("/notes/".length);
 
       const sent = Object.entries(options.body as Note).map(([key, value]) => [

@@ -1,18 +1,5 @@
 {
-  "compilerOptions": {
-    "allowJs": false,
-    "declaration": true,
-    "declarationMap": false,
-    "isolatedDeclarations": true,
-    "lib": ["ES2023"],
-    "noEmit": false,
-    "outDir": "dist",
-    "rootDir": "src",
-    "rootDirs": ["src"],
-    "sourceMap": false
-  },
-  // The shipped API: src without the web modules, tests or fixtures, emitted with declarations and no DOM.
-  "exclude": ["src/web", "src/**/*.test.ts", "src/**/__fixtures__/**"],
-  "extends": "./tsconfig.json",
-  "include": ["src/**/*.ts"]
+  // The shipped build: the API and the web modules, each its own program since only the web ones see the DOM.
+  "files": [],
+  "references": [{ "path": "./tsconfig.api.json" }, { "path": "./tsconfig.web.json" }]
 }

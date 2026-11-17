@@ -52,11 +52,11 @@ function anchorsOf(
 /** A step's operation in this document: its operationId, or the operation documented at a raw step's method and path. */
 export function stepOperation(model: SpecModel): StepOperation {
   return (step) => {
-    if ("origin" in step && step.origin !== undefined) return;
+    if ("origin" in step && step.origin !== undefined) return undefined;
 
     if ("operationId" in step) return step.operationId;
 
-    if (!("method" in step)) return;
+    if (!("method" in step)) return undefined;
     const method = step.method.toUpperCase();
 
     return model.operations.find((op) => op.method === method && pathTemplateParams(op.path, step.path) !== null)

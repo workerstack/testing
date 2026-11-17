@@ -12,7 +12,7 @@ import type { Route } from "./fixed.ts";
 export const invite: Route = async (state, request) => {
   const match = /^\/v1\/projects\/([^/]+)\/tables\/([^/]+)\/invites$/.exec(request.url.pathname);
 
-  if (match === null || request.method !== "POST") return;
+  if (match === null || request.method !== "POST") return undefined;
   const principal = authenticate(state, request);
   const projectId = match[1] as string;
   const tableId = await tableByKey(state, projectId, match[2] as string);
@@ -44,7 +44,7 @@ export const invite: Route = async (state, request) => {
 export const accept: Route = async (state, request) => {
   const match = /^\/v1\/invites\/([^/]+)\/accept$/.exec(request.url.pathname);
 
-  if (match === null || request.method !== "POST") return;
+  if (match === null || request.method !== "POST") return undefined;
   const principal = authenticate(state, request);
   const grant = [...state.grants.values()].find((item) => item.token === (match[1] as string));
 
@@ -59,7 +59,7 @@ export const accept: Route = async (state, request) => {
 export const revoke: Route = async (state, request) => {
   const match = /^\/v1\/projects\/([^/]+)\/tables\/([^/]+)\/grants\/([^/]+)$/.exec(request.url.pathname);
 
-  if (match === null || request.method !== "DELETE") return;
+  if (match === null || request.method !== "DELETE") return undefined;
   const principal = authenticate(state, request);
   const projectId = match[1] as string;
   const tableId = String(await tableByKey(state, projectId, match[2] as string));

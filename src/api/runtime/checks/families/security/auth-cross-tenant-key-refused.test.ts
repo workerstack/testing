@@ -16,7 +16,7 @@ const beta = actorOf("beta", { scope: { project_id: "proj_b" }, tenant: "proj_b"
 // The backend: beta's key under proj_a draws `cross`; under its own proj_b, `own`.
 function staged(operationId: string, statuses: { cross: number; own?: number }, peer: typeof beta | null = beta) {
   const respond = (sent: Sent) => {
-    if (sender(sent) !== "beta") return;
+    if (sender(sent) !== "beta") return undefined;
 
     return { status: sent.path.includes("proj_a") ? statuses.cross : (statuses.own ?? 200) };
   };

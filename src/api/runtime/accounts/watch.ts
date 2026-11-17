@@ -24,7 +24,7 @@ export function watchAccounts(watch: AccountWatch): void {
   client.setBeforeSend((sending) => {
     const { operationId } = sending;
 
-    if (operationId === undefined || SAFE.has(sending.method)) return;
+    if (operationId === undefined || SAFE.has(sending.method)) return undefined;
     const making = ops.creates(operationId);
 
     const answered = (entry: AccountEntry, exchange: Exchange): void =>
@@ -45,7 +45,7 @@ export function watchAccounts(watch: AccountWatch): void {
 
     const principal = "principal" in sending.as ? sending.as.principal : undefined;
 
-    if (operationId !== ops.deleteSelf?.operationId || principal === undefined) return;
+    if (operationId !== ops.deleteSelf?.operationId || principal === undefined) return undefined;
 
     return (exchange) => deletedItself(watch, { exchange, operationId, principal });
   });

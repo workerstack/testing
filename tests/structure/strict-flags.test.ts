@@ -23,7 +23,7 @@ function optionsOf(config: string): Record<string, unknown> {
 describe("the strict TypeScript flags", () => {
   it("hold index-signature reads to brackets, and src declarations to explicit types", () => {
     expect(optionsOf("tsconfig.json")["noPropertyAccessFromIndexSignature"]).toBe(true);
-    expect(optionsOf("tsconfig.build.json")["isolatedDeclarations"]).toBe(true);
+    expect(optionsOf("tsconfig.api.json")["isolatedDeclarations"]).toBe(true);
   });
 
   it("are not fought by a lint rule that turns bracket access back into dots", () => {

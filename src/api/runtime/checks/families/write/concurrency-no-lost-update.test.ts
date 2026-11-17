@@ -35,7 +35,7 @@ function readingFrom(nth: number, answer: { status: number; body?: unknown }): R
   let readsSeen = 0;
 
   return overriding(widgetApi(), (method, path) => {
-    if (method !== "GET" || path === "/widgets") return;
+    if (method !== "GET" || path === "/widgets") return undefined;
     readsSeen += 1;
 
     return readsSeen >= nth ? answer : undefined;

@@ -17,14 +17,14 @@ const is = (request: ReferenceRequest, method: string, pathname: string): boolea
   request.method === method && request.url.pathname === pathname;
 
 export const document: Route = async (state, request) => {
-  if (request.url.pathname !== "/v1/openapi/spec") return;
+  if (request.url.pathname !== "/v1/openapi/spec") return undefined;
   const context = { entities: state.entities, shape: state.shape };
 
   return respond(200, state.untagged ? buildUntaggedSpec(state.dialect, context) : buildSpec(state.dialect, context));
 };
 
 export const health: Route = async (state, request) => {
-  if (!is(request, "GET", "/health")) return;
+  if (!is(request, "GET", "/health")) return undefined;
 
   if (state.defects.has("PUBLIC_GET_NOT_SUCCESS")) return respond(500, { error_key: "internal_server_error" });
 
@@ -41,7 +41,7 @@ export const notices: Route = async (state, request) => {
 
   const notice = /^\/v1\/notices\/([^/]+)$/.exec(request.url.pathname);
 
-  if (notice === null || request.method !== "GET") return;
+  if (notice === null || request.method !== "GET") return undefined;
   authenticate(state, request);
 
   if (notice[1] !== "note_1") throw new HttpError(404, "not_found", "notice note_1 does not exist");
@@ -52,7 +52,7 @@ export const notices: Route = async (state, request) => {
 export const overview: Route = async (state, request) => {
   const match = /^\/v1\/projects\/([^/]+)\/overview$/.exec(request.url.pathname);
 
-  if (match === null || request.method !== "GET") return;
+  if (match === null || request.method !== "GET") return undefined;
 
   if (!state.defects.has("ROOT_READ_OPEN")) authenticate(state, request);
 
@@ -94,7 +94,7 @@ function admits(value: string, patterns: readonly string[]): boolean {
 }
 
 export const me: Route = async (state, request) => {
-  if (request.url.pathname !== "/v1/me" || (request.method !== "GET" && request.method !== "PATCH")) return;
+  if (request.url.pathname !== "/v1/me" || (request.method !== "GET" && request.method !== "PATCH")) return undefined;
   const principal = authenticate(state, request);
   const current = state.profiles.get(principal.key) ?? { first_name: "Ada" };
 
@@ -117,7 +117,7 @@ const ACCOUNT_FIELDS: Readonly<Record<string, (value: string) => boolean>> = {
 
 /** `account.update`: the caller's own sign-in email and password, and its display name; the next login reads them. */
 export const account: Route = async (state, request) => {
-  if (!is(request, "PUT", "/v1/me/account")) return;
+  if (!is(request, "PUT", "/v1/me/account")) return undefined;
   const principal = authenticate(state, request);
   requireJson(request, state.defects);
   const body = await readJson(request);

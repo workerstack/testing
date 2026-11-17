@@ -17,7 +17,7 @@ export function captureVerdict(
     const { operationId } = exchange;
     const raw = operationId === undefined ? undefined : model.rawOperations.get(operationId);
 
-    if (operationId === undefined || raw === undefined || !validator.documents(raw, exchange.status)) return;
+    if (operationId === undefined || raw === undefined || !validator.documents(raw, exchange.status)) return undefined;
     const result = validator.validate(operationId, raw, exchange);
 
     return result.unchecked === undefined ? { errors: result.errors } : { errors: [], unchecked: result.unchecked };

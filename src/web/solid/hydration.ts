@@ -90,7 +90,7 @@ function hydrateRecorded(input: { runtime: HydrationRuntime; code: () => JSX.Ele
       if (!(error instanceof Error && isMismatch(error.message))) throw error;
       thrown.push(error.message);
 
-      return;
+      return undefined;
     }
   });
 

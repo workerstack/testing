@@ -44,11 +44,20 @@ export default defineConfig({
         reason: "Playwright reads a fixture's dependencies from its first parameter's pattern, and `{}` is none",
       },
       {
-        files: ["**"],
-        rules: ["typescript/no-unnecessary-type-assertion"],
+        files: [
+          "src/api/cli/commands/init-config.ts",
+          "src/api/conformance/tasks.ts",
+          "src/api/errors/network.ts",
+          "src/api/reference/query/evaluate.ts",
+          "src/api/reference/spec/params.ts",
+          "src/api/reference/stores/sql-compile.ts",
+          "src/api/report/render/junit.ts",
+        ],
+        rules: ["typescript/consistent-return"],
         reason:
-          "it calls casts tsc needs unnecessary (src/api/runtime/body/multipart.ts:63), " +
-          "and its fix deletes them and breaks the build",
+          "each ends in an exhaustive switch whose every case returns, " +
+          "which this reads as a path that returns nothing; " +
+          "switch-exhaustiveness-check and tsc's noImplicitReturns hold it",
       },
       {
         files: ["**"],
@@ -56,13 +65,6 @@ export default defineConfig({
         reason:
           "key order is output here: its fix reorders style objects, " +
           "so src/api/client/param-style.test.ts writes B,G,R for R,G,B",
-      },
-      {
-        files: ["**"],
-        rules: ["typescript/consistent-return"],
-        reason:
-          "unicorn/no-useless-undefined rewrites `return undefined` to `return;`, which this then flags; " +
-          "tsc's noImplicitReturns already holds every path of a value-returning function to a return",
       },
     ],
   },

@@ -28,7 +28,7 @@ function signIn(state: ReferenceState, identity: string, find: () => Account | u
 
 /** `auth.token { key }`: an API key for a JWT pair. */
 export const token: Route = async (state, request) => {
-  if (!is(request, "POST", "/v1/auth/token")) return;
+  if (!is(request, "POST", "/v1/auth/token")) return undefined;
   const key = (await readJson(request)) as { key?: unknown } | null;
   const named = typeof key?.key === "string" ? key.key : "";
 
@@ -37,7 +37,7 @@ export const token: Route = async (state, request) => {
 
 /** `auth.login { email, password }`: a password for a JWT pair. Declared public; guarded under PUBLIC_ROUTE_GUARDED. */
 export const login: Route = async (state, request) => {
-  if (!is(request, "POST", "/v1/auth/login")) return;
+  if (!is(request, "POST", "/v1/auth/login")) return undefined;
 
   if (state.defects.has("PUBLIC_ROUTE_GUARDED")) authenticate(state, request);
 
@@ -55,7 +55,7 @@ export const login: Route = async (state, request) => {
 
 /** `auth.refresh { refresh_token }`: a new pair; the presented refresh token is spent. */
 export const refresh: Route = async (state, request) => {
-  if (!is(request, "POST", "/v1/auth/refresh")) return;
+  if (!is(request, "POST", "/v1/auth/refresh")) return undefined;
   const body = await readFields(request, state.defects, { refresh_token: "string" });
 
   return respond(200, rotate(state, body["refresh_token"] as string));
@@ -63,7 +63,7 @@ export const refresh: Route = async (state, request) => {
 
 /** `auth.revoke { token }`: revokes one of the caller's own access or refresh tokens. */
 export const revokeToken: Route = async (state, request) => {
-  if (!is(request, "POST", "/v1/auth/revoke")) return;
+  if (!is(request, "POST", "/v1/auth/revoke")) return undefined;
   const caller = authenticate(state, request);
   const body = await readFields(request, state.defects, { token: "string" });
   revokeJwt(state, caller, body["token"] as string);
@@ -73,7 +73,7 @@ export const revokeToken: Route = async (state, request) => {
 
 /** `auth.logout`: revokes the caller's access token, or, under DISPOSABLE_KILLS_CALLER, everyone's. */
 export const logout: Route = async (state, request) => {
-  if (!is(request, "POST", "/v1/logout")) return;
+  if (!is(request, "POST", "/v1/logout")) return undefined;
   const caller = authenticate(state, request);
 
   if (state.defects.has("DISPOSABLE_KILLS_CALLER")) killAll(state.auth);
@@ -88,7 +88,7 @@ export const logout: Route = async (state, request) => {
  * unless PRIVILEGED_FIELD_ON_SIGNUP grants it.
  */
 export const register: Route = async (state, request) => {
-  if (!is(request, "POST", "/v1/register")) return;
+  if (!is(request, "POST", "/v1/register")) return undefined;
   const body = await readFields(request, state.defects, { email: "string", staff: "boolean?" });
   const email = body["email"] as string;
   const staff = state.defects.has("PRIVILEGED_FIELD_ON_SIGNUP") && body["staff"] === true;
@@ -109,7 +109,7 @@ export const register: Route = async (state, request) => {
 
 /** `signup.list`: the accounts the register made in the caller's project, each with its staff flag. */
 export const signups: Route = async (state, request) => {
-  if (!is(request, "GET", "/v1/signups")) return;
+  if (!is(request, "GET", "/v1/signups")) return undefined;
   const caller = authenticate(state, request);
 
   const made = [...state.auth.accounts.values()].filter(
@@ -130,7 +130,7 @@ function removeAccount(state: ReferenceState, key: string): void {
 
 /** `profile.delete`: the caller deletes its own account. */
 export const deleteSelf: Route = async (state, request) => {
-  if (!is(request, "DELETE", "/v1/me")) return;
+  if (!is(request, "DELETE", "/v1/me")) return undefined;
   removeAccount(state, authenticate(state, request).key);
 
   return noContent();
@@ -140,7 +140,7 @@ export const deleteSelf: Route = async (state, request) => {
 export const deleteAccount: Route = async (state, request) => {
   const match = /^\/v1\/signups\/([^/]+)$/.exec(request.url.pathname);
 
-  if (match === null || request.method !== "DELETE") return;
+  if (match === null || request.method !== "DELETE") return undefined;
   const caller = authenticate(state, request);
   const target = state.auth.accounts.get(decodeURIComponent(match[1] as string));
 

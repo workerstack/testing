@@ -26,7 +26,7 @@ export function actingOf(ctx: Pick<RunContext, "model" | "options" | "store">, p
       const route = op === undefined ? operationId : `${op.method.toUpperCase()} ${op.path}`;
       const resolved = await source.resolve({ actor: { principal }, operationId, route });
 
-      if (resolved.kind !== "sends") return;
+      if (resolved.kind !== "sends") return undefined;
       // An alternative of two schemes sends both; the first one's value is the credential.
       const schemes = resolved.schemes.map((scheme) => resolved.sends[scheme] as Sends);
 

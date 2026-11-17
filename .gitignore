@@ -47,7 +47,7 @@ pnpm-debug.log*
 tests/api/targets/crapi/keys/
 tests/api/targets/vampi/openapi3.yml
 
-# repo:ignore 6bfbc92f
+# repo:ignore 3294036a
 .tmp/
 .worktrees/
 coverage/
@@ -63,14 +63,15 @@ repo.config.local.ts
 **/.repo/tmp/
 **/.repo/backlog.md
 node_modules/
-knip.jsonc
+/knip.jsonc
 knip.unignored-*.jsonc
-.oxfmtrc.jsonc
-.oxlintrc.jsonc
+/.oxfmtrc.jsonc
+.oxlintrc.fix-*.jsonc
+/.oxlintrc.jsonc
 .oxlintrc.unskipped-*.jsonc
-.agents/
-.claude/
-.codex/
-.cursor/
-.grok/
+/.agents/
+/.claude/
+/.codex/
+/.cursor/
+/.grok/
 # /repo:ignore

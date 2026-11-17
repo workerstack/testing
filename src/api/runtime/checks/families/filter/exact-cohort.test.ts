@@ -150,7 +150,7 @@ function filterStore(opts: StoreOptions, filter: string | null): Record_[] {
 /** The widget listing over `opts`, paged; any other route is a 404. */
 function listing(opts: StoreOptions): Serve {
   return (url, method) => {
-    if (method !== "GET" || url.pathname !== "/v1/widgets") return;
+    if (method !== "GET" || url.pathname !== "/v1/widgets") return undefined;
     const rows = filterStore(opts, url.searchParams.get("filter"));
     const limit = Number(url.searchParams.get("limit") ?? 20);
     const page = Number(url.searchParams.get("page") ?? 1);

@@ -20,7 +20,7 @@ function staged(operationId: string, { limit = 6, ok = false, recipes = { jwt: J
   let failures = 0;
 
   const respond = (sent: Sent) => {
-    if (sent.path !== "/auth/login") return;
+    if (sent.path !== "/auth/login") return undefined;
 
     if (ok) return { status: 200 };
     failures += 1;

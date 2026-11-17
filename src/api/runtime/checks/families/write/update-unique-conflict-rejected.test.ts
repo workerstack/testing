@@ -34,7 +34,7 @@ const answerPatches =
 
 // A 409 that stored the colliding values as a row all the same.
 const growsAnyway: Override = (server) => (method, _path, options) => {
-  if (method !== "PATCH") return;
+  if (method !== "PATCH") return undefined;
   server.respond("POST", "/notes", { body: { ...(options.body as Note) } });
 
   return { status: 409 };
@@ -42,7 +42,7 @@ const growsAnyway: Override = (server) => (method, _path, options) => {
 
 // A 409, while another lane's entity adds a row of its own to the same collection.
 const elsewhere: Override = (server) => (method, path, options) => {
-  if (method !== "PATCH" || !collides(server, path, options.body as Note)) return;
+  if (method !== "PATCH" || !collides(server, path, options.body as Note)) return undefined;
   server.respond("POST", "/notes", { body: { code: "other", name: "other" } });
 
   return { status: 409 };

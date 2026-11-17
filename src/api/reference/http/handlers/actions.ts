@@ -9,7 +9,7 @@ import { type ReferenceResponse, respond } from "../wire.ts";
 import { ownProject, type Route } from "./fixed.ts";
 
 export const startJob: Route = async (state, request) => {
-  if (!request.url.pathname.endsWith("/jobs/start") || request.method !== "POST") return;
+  if (!request.url.pathname.endsWith("/jobs/start") || request.method !== "POST") return undefined;
   const projectId = request.url.pathname.split("/")[3] ?? "";
   ownProject(state, request, projectId);
   requireJson(request, state.defects);
@@ -38,7 +38,7 @@ export const startJob: Route = async (state, request) => {
 export const notify: Route = async (state, request) => {
   const match = /^\/v1\/projects\/([^/]+)\/notifications$/.exec(request.url.pathname);
 
-  if (match === null || request.method !== "POST") return;
+  if (match === null || request.method !== "POST") return undefined;
   const projectId = match[1] as string;
   assertWrite(state, ownProject(state, request, projectId), "create");
   requireJson(request, state.defects);

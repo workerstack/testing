@@ -27,7 +27,7 @@ function backend(override: Override = () => () => {}, fields: { records?: Note[]
 
 // A PATCH that replaces the record with its body, as PUT would.
 const actsAsPut: Override = (server) => (method, path, options) => {
-  if (method !== "PATCH") return;
+  if (method !== "PATCH") return undefined;
   const id = path.slice("/notes/".length);
   const replaced = { ...(options.body as Note), id };
   server.records.set(id, replaced);
@@ -37,7 +37,7 @@ const actsAsPut: Override = (server) => (method, path, options) => {
 
 // Every write bumps `rev` on every record: drift the whole collection shares.
 const revisesAll: Override = (server) => (method, path, options) => {
-  if (method === "GET") return;
+  if (method === "GET") return undefined;
   const answer = server.respond(method, path, options);
 
   for (const record of server.records.values()) record["rev"] = Number(record["rev"] ?? 0) + 1;
@@ -71,7 +71,7 @@ const stamping =
   (key: string): Override =>
   (server) =>
   (method, path, options) => {
-    if (method === "GET") return;
+    if (method === "GET") return undefined;
     const answer = server.respond(method, path, options);
 
     for (const record of server.records.values()) record[key] = Number(record[key] ?? 0) + 1;
@@ -89,7 +89,7 @@ const restamping =
     let writes = 0;
 
     return (method, path, options) => {
-      if (method === "GET") return;
+      if (method === "GET") return undefined;
       const answer = server.respond(method, path, options);
       writes += 1;
 

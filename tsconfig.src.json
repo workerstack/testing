@@ -1,6 +1,6 @@
 {
   "compilerOptions": { "lib": ["ES2023"], "noEmit": true },
-  // The shipped API source under the strict flags, without the DOM, as tsconfig.build.json emits it.
+  // The shipped API source under the strict flags, without the DOM, as tsconfig.api.json emits it.
   "exclude": ["src/web", "src/**/*.test.ts", "src/**/__fixtures__/**"],
   "extends": ["./tsconfig.json", "@workerstack/repo/tsconfig/strict"],
   "include": ["src/**/*.ts"]

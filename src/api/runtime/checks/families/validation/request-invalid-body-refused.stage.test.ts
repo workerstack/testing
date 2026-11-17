@@ -123,7 +123,7 @@ describe("request.invalid-body-refused in the security stage, on an open POST th
     const rows: Record_[] = [];
 
     const registering: Responder = (_method, path) => {
-      if (path !== "/notes/register") return;
+      if (path !== "/notes/register") return undefined;
       rows.push({ id: "n9", title: "made by the probe" });
 
       return { body: { note_id: "n9" }, status: 201 };

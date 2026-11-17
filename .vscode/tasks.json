@@ -22,26 +22,6 @@
       }
     },
     {
-      "label": "build:api",
-      "type": "shell",
-      "command": "bun run build:api",
-      "problemMatcher": [],
-      "presentation": {
-        "panel": "new",
-        "reveal": "always"
-      }
-    },
-    {
-      "label": "build:web",
-      "type": "shell",
-      "command": "bun run build:web",
-      "problemMatcher": [],
-      "presentation": {
-        "panel": "new",
-        "reveal": "always"
-      }
-    },
-    {
       "label": "check",
       "type": "shell",
       "command": "bun run check",

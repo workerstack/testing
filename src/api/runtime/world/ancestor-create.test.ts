@@ -37,7 +37,7 @@ function seeding(respond: Responder, table: Record<string, unknown> = {}, option
 
 // A backend that refuses a member's body naming "verified": only its admin may set it.
 const adminSetsVerified: Responder = (method, _path, options) => {
-  if (method !== "POST") return;
+  if (method !== "POST") return undefined;
   const named = typeof options.body === "object" && options.body !== null && "verified" in options.body;
 
   return named

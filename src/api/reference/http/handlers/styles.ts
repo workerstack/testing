@@ -14,7 +14,7 @@ function bound(params: URLSearchParams, key: string): number | null {
 }
 
 export const styles: Route = async (_state, request) => {
-  if (request.method !== "GET" || request.url.pathname !== "/v1/styles") return;
+  if (request.method !== "GET" || request.url.pathname !== "/v1/styles") return undefined;
   const params = request.url.searchParams;
   const [min, max] = [bound(params, "min"), bound(params, "max")];
   const ids = params.getAll("ids");

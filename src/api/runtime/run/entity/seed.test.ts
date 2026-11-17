@@ -73,7 +73,7 @@ function boardsApi(doc: OpenApiDocument): Responder {
 
     if (/^\/boards\/[^/]+\/cards$/.test(path)) return { body: [{ id: "c1", text: "t" }], status: 200 };
 
-    return;
+    return undefined;
   };
 }
 

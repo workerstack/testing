@@ -28,7 +28,7 @@ function createsAnswered(...answers: Answer[]): Responder {
   let creates = 0;
 
   return (method, path) => {
-    if (method !== "POST" || path !== "/notes") return;
+    if (method !== "POST" || path !== "/notes") return undefined;
     creates += 1;
 
     return answers[creates - 1];
@@ -135,7 +135,7 @@ describe("seedCreated identities", () => {
     const rows: Record_[] = [];
 
     const { world } = await seeded(notesApi(doc, rows), (method, path, request) => {
-      if (method !== "POST" || path !== "/notes") return;
+      if (method !== "POST" || path !== "/notes") return undefined;
       rows.push(request.body as Record_);
 
       return { body: { status: "accepted" }, status: 202 };
@@ -166,7 +166,7 @@ describe("seedCreated identities", () => {
     let next = 0;
 
     const { run } = await seeded(notesApi(doc, []), (method, path, request) => {
-      if (method !== "POST" || path !== "/notes") return;
+      if (method !== "POST" || path !== "/notes") return undefined;
       next += 1;
 
       return { body: { ...(request.body as Json), id: next }, status: 201 };

@@ -68,7 +68,7 @@ async function adoptingNotes() {
   create["x-entity"] = { action: "create", credentialFrom: "$.access_token", name: "note" };
 
   const respond = overriding(notesApi(doc, rows), (method, path) => {
-    if (method !== "POST" || path !== "/notes") return;
+    if (method !== "POST" || path !== "/notes") return undefined;
     rows.push({ id: "n1", title: "x" });
 
     return { body: { access_token: "note-token", id: "n1", title: "x" }, status: 201 };
@@ -118,7 +118,7 @@ async function openRegister(answer: Record<string, unknown>) {
   };
 
   const respond = overriding(notesApi(notesDoc({ "/register": register }), rows), (method, path) => {
-    if (method !== "POST" || path !== "/register") return;
+    if (method !== "POST" || path !== "/register") return undefined;
     rows.push({ id: "r1", title: "made by a body it never read" });
 
     return { body: answer, status: 201 };

@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "allowJs": false,
+    "composite": true,
+    "declaration": true,
+    "declarationMap": false,
+    "isolatedDeclarations": true,
+    "lib": ["ES2023"],
+    "noEmit": false,
+    "outDir": "dist",
+    "rootDir": "src",
+    "rootDirs": ["src"],
+    "sourceMap": false,
+    "tsBuildInfoFile": ".tmp/tsbuildinfo/api.tsbuildinfo"
+  },
+  // The shipped API: src without the web modules, tests or fixtures, emitted with declarations and no DOM.
+  "exclude": ["src/web", "src/**/*.test.ts", "src/**/__fixtures__/**"],
+  "extends": "./tsconfig.json",
+  "include": ["src/**/*.ts"]
+}

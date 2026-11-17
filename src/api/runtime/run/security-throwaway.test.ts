@@ -130,7 +130,7 @@ describe("a throwaway's body", () => {
     const rows: Record_[] = [];
 
     const form = overriding(notesApi(formCreate(), rows), (method, path, request) => {
-      if (method !== "POST" || path !== "/notes") return;
+      if (method !== "POST" || path !== "/notes") return undefined;
       const made = { id: "n1", title: new URLSearchParams(String(request.body)).get("title") };
       rows.push(made);
 
@@ -159,7 +159,7 @@ describe("a throwaway's body, when the create takes none", () => {
     const rows: Record_[] = [];
 
     const bare = overriding(notesApi(bodilessCreate(), rows), (method, path) => {
-      if (method !== "POST" || path !== "/notes") return;
+      if (method !== "POST" || path !== "/notes") return undefined;
       rows.push({ id: "n1", title: "untitled" });
 
       return { body: { id: "n1", title: "untitled" }, status: 201 };
@@ -202,7 +202,7 @@ describe("a DELETE probe with no throwaway", () => {
     let failure: "refused" | "unreachable" = "refused";
 
     const failing = overriding(notesApi(notesDoc(), rows), (method) => {
-      if (method !== "POST") return;
+      if (method !== "POST") return undefined;
 
       if (failure === "unreachable") throw new Error("connection reset");
 

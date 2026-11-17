@@ -16,7 +16,7 @@ function knownScopes(state: ReferenceState): string[] {
 
 /** `apiKey.create { scopes }`: a new key, answered once with its value. */
 export const createKey: Route = async (state, request) => {
-  if (request.method !== "POST" || request.url.pathname !== "/v1/api-keys") return;
+  if (request.method !== "POST" || request.url.pathname !== "/v1/api-keys") return undefined;
   const caller = authenticate(state, request);
   const kinds = state.shape.keyLifecycle === true ? { name: "string?", scopes: "strings" } : { scopes: "strings" };
   const fields = await readFields(request, state.defects, kinds as Record<string, "string?" | "strings">);
@@ -37,7 +37,7 @@ const KEY = /^\/v1\/api-keys\/([^/]+)$/;
 export const readKey: Route = async (state, request) => {
   const match = KEY.exec(request.url.pathname);
 
-  if (match === null || request.method !== "GET") return;
+  if (match === null || request.method !== "GET") return undefined;
 
   return respond(200, shown(state, findApiKey(state, authenticate(state, request), match[1] as string)));
 };
@@ -51,7 +51,8 @@ function shown(state: ReferenceState, key: ApiKey): Record<string, unknown> {
 
 /** `apiKey.list` behind key-lifecycle: GET `/v1/api-keys`, the caller's tenant's live keys. */
 export const listKeys: Route = async (state, request) => {
-  if (state.shape.keyLifecycle !== true || request.method !== "GET" || request.url.pathname !== "/v1/api-keys") return;
+  if (state.shape.keyLifecycle !== true || request.method !== "GET" || request.url.pathname !== "/v1/api-keys")
+    return undefined;
 
   return respond(
     200,
@@ -63,7 +64,7 @@ export const listKeys: Route = async (state, request) => {
 export const renameKey: Route = async (state, request) => {
   const match = KEY.exec(request.url.pathname);
 
-  if (state.shape.keyLifecycle !== true || match === null || request.method !== "PATCH") return;
+  if (state.shape.keyLifecycle !== true || match === null || request.method !== "PATCH") return undefined;
   const key = ownedApiKey(state, authenticate(state, request), match[1] as string);
   key.name = (await readFields(request, state.defects, { name: "string" }))["name"] as string;
 
@@ -74,7 +75,7 @@ export const renameKey: Route = async (state, request) => {
 export const revokeKey: Route = async (state, request) => {
   const match = KEY.exec(request.url.pathname);
 
-  if (match === null || request.method !== "DELETE") return;
+  if (match === null || request.method !== "DELETE") return undefined;
   revokeApiKey(state, authenticate(state, request), match[1] as string);
 
   return respond(200, { revoked: true });

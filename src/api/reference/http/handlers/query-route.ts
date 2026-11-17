@@ -29,7 +29,7 @@ function methodOf(body: unknown): { kind: Kind; value: string } | null {
 }
 
 export const search: Route = async (state, request) => {
-  if (request.method !== "QUERY" || request.url.pathname !== "/v1/search") return;
+  if (request.method !== "QUERY" || request.url.pathname !== "/v1/search") return undefined;
   requireJson(request, state.defects);
   const method = methodOf(await readJson(request));
 

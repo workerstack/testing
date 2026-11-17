@@ -38,7 +38,7 @@ function issuing(path: string): Responder {
   let issued = 0;
 
   return (_method, at) => {
-    if (at !== path) return;
+    if (at !== path) return undefined;
     issued += 1;
     const pair = { access_token: `acc-${issued}-9f8e7d`, refresh_token: `ref-${issued}-1a2b3c` };
 

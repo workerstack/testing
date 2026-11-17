@@ -143,7 +143,7 @@
     "repo(no-known-value-widening)": 1,
     "repo(no-runtime-typeof)": 4,
     "repo(no-unknown-parameters)": 1,
-    "repo(no-unsafe-dictionary-type)": 2,
+    "repo(no-unsafe-dictionary-type)": 1,
     "typescript(no-base-to-string)": 1,
     "typescript(no-unnecessary-condition)": 1
   },
@@ -1191,7 +1191,7 @@
     "typescript(no-generated-empty-object-type)": 2
   },
   "src/api/config/types/security.ts": {
-    "repo(no-unsafe-dictionary-type)": 2
+    "repo(no-unsafe-dictionary-type)": 1
   },
   "src/api/config/types/steps.ts": {
     "repo(no-unsafe-dictionary-type)": 1
@@ -1319,11 +1319,9 @@
     "repo(filename-matches-export)": 1
   },
   "src/api/conformance/expected/table.test.ts": {
-    "repo(duplicate-code)": 1,
     "vitest(prefer-strict-equal)": 1
   },
   "src/api/conformance/expected/table.ts": {
-    "repo(duplicate-code)": 1,
     "repo(filename-matches-export)": 1
   },
   "src/api/conformance/expected/validation.test.ts": {
@@ -3360,7 +3358,6 @@
   "src/api/reference/spec/build.test.ts": {
     "eslint(max-lines-per-function)": 2,
     "repo(as-needs-reason)": 7,
-    "repo(duplicate-code)": 1,
     "repo(no-runtime-typeof)": 1,
     "repo(no-shape-in-symbol-names)": 9,
     "repo(no-unknown-parameters)": 1,
@@ -3393,7 +3390,6 @@
   "src/api/reference/spec/collection.test.ts": {
     "eslint(max-lines-per-function)": 2,
     "repo(as-needs-reason)": 5,
-    "repo(duplicate-code)": 1,
     "repo(no-shape-in-symbol-names)": 12,
     "repo(no-unsafe-dictionary-type)": 1,
     "vitest(prefer-strict-equal)": 10
@@ -3599,7 +3595,7 @@
     "eslint(no-nested-ternary)": 2,
     "repo(as-needs-reason)": 3,
     "repo(class-file)": 8,
-    "repo(duplicate-code)": 3,
+    "repo(duplicate-code)": 2,
     "repo(magic-number)": 6,
     "repo(magic-string)": 2,
     "repo(max-line-width)": 4,
@@ -3651,7 +3647,7 @@
     "eslint(no-await-in-loop)": 1,
     "repo(as-needs-reason)": 1,
     "repo(class-file)": 7,
-    "repo(duplicate-code)": 3,
+    "repo(duplicate-code)": 2,
     "repo(magic-string)": 2,
     "repo(member-ordering)": 5,
     "repo(no-runtime-typeof)": 3,
@@ -4428,7 +4424,7 @@
   },
   "src/api/runtime/checks/families/composition/query-axes-compose.ts": {
     "eslint(max-lines-per-function)": 1,
-    "repo(duplicate-code)": 4,
+    "repo(duplicate-code)": 1,
     "repo(magic-number)": 3,
     "repo(no-module-side-effects)": 1
   },
@@ -4454,7 +4450,7 @@
   "src/api/runtime/checks/families/composition/query-filter-search-select-compose.ts": {
     "eslint(complexity)": 1,
     "eslint(max-lines-per-function)": 1,
-    "repo(duplicate-code)": 4,
+    "repo(duplicate-code)": 3,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 3,
     "repo(no-module-side-effects)": 1
@@ -4467,7 +4463,7 @@
   },
   "src/api/runtime/checks/families/composition/query-filter-search-sort-compose.ts": {
     "eslint(max-lines-per-function)": 1,
-    "repo(duplicate-code)": 3,
+    "repo(duplicate-code)": 2,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 3,
     "repo(no-module-side-effects)": 1
@@ -4529,7 +4525,6 @@
     "vitest(prefer-strict-equal)": 15
   },
   "src/api/runtime/checks/families/composition/query-search-and-select-compose.ts": {
-    "repo(duplicate-code)": 5,
     "repo(magic-number)": 3,
     "repo(max-line-width)": 1,
     "repo(no-module-side-effects)": 1
@@ -4540,7 +4535,7 @@
   },
   "src/api/runtime/checks/families/composition/query-search-and-sort-compose.ts": {
     "eslint(max-lines-per-function)": 1,
-    "repo(duplicate-code)": 3,
+    "repo(duplicate-code)": 1,
     "repo(magic-number)": 3,
     "repo(no-module-side-effects)": 1
   },
@@ -4551,7 +4546,6 @@
   },
   "src/api/runtime/checks/families/composition/query-sort-and-select-compose.ts": {
     "eslint(complexity)": 1,
-    "repo(duplicate-code)": 2,
     "repo(magic-number)": 3,
     "repo(no-module-side-effects)": 1
   },
@@ -4619,7 +4613,6 @@
   "src/api/runtime/checks/families/conformance/schema-error-response-matches-document.ts": {
     "eslint(complexity)": 1,
     "eslint(no-await-in-loop)": 1,
-    "repo(duplicate-code)": 1,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 3,
     "repo(no-module-side-effects)": 1
@@ -4658,7 +4651,6 @@
   "src/api/runtime/checks/families/conformance/schema-read-response-matches-document.ts": {
     "eslint(complexity)": 2,
     "eslint(no-await-in-loop)": 1,
-    "repo(duplicate-code)": 1,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 2,
     "repo(max-line-width)": 1,
@@ -4708,7 +4700,6 @@
   "src/api/runtime/checks/families/consistency/consistency-projections-agree.ts": {
     "eslint(func-style)": 1,
     "eslint(max-lines-per-function)": 1,
-    "repo(duplicate-code)": 1,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 1,
     "repo(no-module-side-effects)": 1,
@@ -4816,7 +4807,6 @@
     "eslint(func-style)": 3,
     "eslint(max-lines)": 1,
     "eslint(max-lines-per-function)": 2,
-    "repo(duplicate-code)": 1,
     "typescript(no-unsafe-assignment)": 3,
     "vitest(prefer-strict-equal)": 15
   },
@@ -4864,7 +4854,6 @@
     "eslint(max-lines)": 1,
     "eslint(max-lines-per-function)": 3,
     "repo(as-needs-reason)": 1,
-    "repo(duplicate-code)": 1,
     "repo(max-line-width)": 1,
     "repo(no-boolean-param)": 1,
     "typescript(no-unsafe-assignment)": 2,
@@ -4992,7 +4981,6 @@
     "vitest(prefer-strict-equal)": 3
   },
   "src/api/runtime/checks/families/filter/filter-condition-cap-rejected.ts": {
-    "repo(duplicate-code)": 3,
     "repo(magic-number)": 1,
     "repo(no-module-side-effects)": 1
   },
@@ -5004,7 +4992,6 @@
   },
   "src/api/runtime/checks/families/filter/filter-contains-membership.ts": {
     "repo(as-needs-reason)": 4,
-    "repo(duplicate-code)": 3,
     "repo(magic-string)": 1,
     "repo(max-line-width)": 1,
     "repo(no-module-side-effects)": 1,
@@ -5015,7 +5002,7 @@
     "vitest(prefer-strict-equal)": 7
   },
   "src/api/runtime/checks/families/filter/filter-empty-in.ts": {
-    "repo(duplicate-code)": 2,
+    "repo(duplicate-code)": 1,
     "repo(magic-number)": 1,
     "repo(naming-convention)": 1,
     "repo(no-module-side-effects)": 1
@@ -5027,7 +5014,6 @@
     "vitest(prefer-strict-equal)": 7
   },
   "src/api/runtime/checks/families/filter/filter-equality-selects-exactly-one.ts": {
-    "repo(duplicate-code)": 5,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 2,
     "repo(no-module-side-effects)": 1
@@ -5037,7 +5023,6 @@
   },
   "src/api/runtime/checks/families/filter/filter-gte-is-gt-or-eq.ts": {
     "eslint(require-await)": 1,
-    "repo(duplicate-code)": 1,
     "repo(no-module-side-effects)": 1
   },
   "src/api/runtime/checks/families/filter/filter-ilike-is-case-insensitive.test.ts": {
@@ -5046,7 +5031,6 @@
     "vitest(prefer-strict-equal)": 7
   },
   "src/api/runtime/checks/families/filter/filter-ilike-is-case-insensitive.ts": {
-    "repo(duplicate-code)": 1,
     "repo(magic-number)": 2,
     "repo(magic-regex)": 2,
     "repo(max-line-width)": 1,
@@ -5087,7 +5071,6 @@
     "vitest(prefer-strict-equal)": 4
   },
   "src/api/runtime/checks/families/filter/filter-in-over-limit-rejected.ts": {
-    "repo(duplicate-code)": 2,
     "repo(magic-number)": 1,
     "repo(no-module-side-effects)": 1
   },
@@ -5112,7 +5095,6 @@
     "vitest(prefer-strict-equal)": 6
   },
   "src/api/runtime/checks/families/filter/filter-like-metacharacters-escaped.ts": {
-    "repo(duplicate-code)": 1,
     "repo(filename-matches-export)": 1,
     "repo(no-module-side-effects)": 1
   },
@@ -5121,7 +5103,6 @@
   },
   "src/api/runtime/checks/families/filter/filter-lte-is-lt-or-eq.ts": {
     "eslint(require-await)": 1,
-    "repo(duplicate-code)": 1,
     "repo(no-module-side-effects)": 1
   },
   "src/api/runtime/checks/families/filter/filter-malformed-term-rejected.test.ts": {
@@ -5132,7 +5113,7 @@
   "src/api/runtime/checks/families/filter/filter-malformed-term-rejected.ts": {
     "eslint(func-style)": 1,
     "eslint(max-lines-per-function)": 1,
-    "repo(duplicate-code)": 3,
+    "repo(duplicate-code)": 2,
     "repo(magic-number)": 2,
     "repo(max-line-width)": 1,
     "repo(naming-convention)": 1,
@@ -5150,7 +5131,6 @@
   "src/api/runtime/checks/families/filter/filter-negation-partitions-the-set.ts": {
     "eslint(complexity)": 1,
     "eslint(max-lines-per-function)": 1,
-    "repo(duplicate-code)": 2,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 2,
     "repo(max-line-width)": 1,
@@ -5167,7 +5147,7 @@
     "eslint(complexity)": 1,
     "eslint(func-style)": 1,
     "repo(as-needs-reason)": 2,
-    "repo(duplicate-code)": 2,
+    "repo(duplicate-code)": 1,
     "repo(no-module-side-effects)": 1
   },
   "src/api/runtime/checks/families/filter/filter-nin-complements-in.test.ts": {
@@ -5181,7 +5161,7 @@
     "eslint(func-style)": 1,
     "eslint(max-lines-per-function)": 1,
     "repo(as-needs-reason)": 2,
-    "repo(duplicate-code)": 4,
+    "repo(duplicate-code)": 1,
     "repo(magic-number)": 2,
     "repo(no-module-side-effects)": 1
   },
@@ -5195,7 +5175,6 @@
   "src/api/runtime/checks/families/filter/filter-numeric-comparison-is-numeric.ts": {
     "eslint(max-lines-per-function)": 1,
     "repo(as-needs-reason)": 5,
-    "repo(duplicate-code)": 2,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 4,
     "repo(no-module-side-effects)": 1,
@@ -5225,7 +5204,7 @@
     "eslint(func-style)": 1,
     "eslint(max-lines-per-function)": 1,
     "repo(as-needs-reason)": 2,
-    "repo(duplicate-code)": 3,
+    "repo(duplicate-code)": 1,
     "repo(no-module-side-effects)": 1,
     "repo(no-runtime-typeof)": 2,
     "unicorn(no-array-sort)": 1
@@ -5235,7 +5214,7 @@
     "vitest(prefer-strict-equal)": 3
   },
   "src/api/runtime/checks/families/filter/filter-unknown-field-rejected.ts": {
-    "repo(duplicate-code)": 3,
+    "repo(duplicate-code)": 1,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 1,
     "repo(max-line-width)": 1,
@@ -5316,7 +5295,6 @@
     "eslint(func-style)": 1,
     "eslint(max-lines-per-function)": 1,
     "eslint(no-await-in-loop)": 1,
-    "repo(duplicate-code)": 1,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 4,
     "repo(no-module-side-effects)": 1
@@ -5377,7 +5355,6 @@
   },
   "src/api/runtime/checks/families/isolation/tenant-filter-does-not-bypass-scope.ts": {
     "eslint(max-lines-per-function)": 1,
-    "repo(duplicate-code)": 2,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 1,
     "repo(naming-convention)": 1,
@@ -5393,7 +5370,7 @@
   },
   "src/api/runtime/checks/families/isolation/tenant-item-not-readable-cross-tenant.ts": {
     "eslint(max-lines-per-function)": 1,
-    "repo(duplicate-code)": 2,
+    "repo(duplicate-code)": 1,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 3,
     "repo(naming-convention)": 1,
@@ -5430,7 +5407,6 @@
     "eslint(max-params)": 1,
     "eslint(no-await-in-loop)": 2,
     "repo(as-needs-reason)": 2,
-    "repo(duplicate-code)": 1,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 4,
     "repo(max-line-width)": 3,
@@ -5515,7 +5491,6 @@
   },
   "src/api/runtime/checks/families/pagination/pagination-limit-bounds-enforced.ts": {
     "eslint(no-await-in-loop)": 1,
-    "repo(duplicate-code)": 2,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 1,
     "repo(no-module-side-effects)": 1
@@ -5535,7 +5510,6 @@
     "vitest(prefer-strict-equal)": 7
   },
   "src/api/runtime/checks/families/pagination/pagination-limit-respects-documented-max.ts": {
-    "repo(duplicate-code)": 1,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 2,
     "repo(no-module-side-effects)": 1
@@ -5551,7 +5525,6 @@
   "src/api/runtime/checks/families/pagination/pagination-page-walk-covers-set.ts": {
     "eslint(max-lines-per-function)": 1,
     "eslint(max-params)": 1,
-    "repo(duplicate-code)": 1,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 4,
     "repo(max-line-width)": 1,
@@ -5578,7 +5551,7 @@
   "src/api/runtime/checks/families/search-select/search-case-insensitive.ts": {
     "eslint(func-style)": 1,
     "eslint(max-lines-per-function)": 1,
-    "repo(duplicate-code)": 2,
+    "repo(duplicate-code)": 1,
     "repo(magic-number)": 2,
     "repo(magic-regex)": 3,
     "repo(no-module-side-effects)": 1
@@ -5589,7 +5562,6 @@
     "vitest(prefer-strict-equal)": 10
   },
   "src/api/runtime/checks/families/search-select/search-empty-q.ts": {
-    "repo(duplicate-code)": 1,
     "repo(magic-number)": 1,
     "repo(no-module-side-effects)": 1
   },
@@ -5599,7 +5571,7 @@
   },
   "src/api/runtime/checks/families/search-select/search-mode-accepted.ts": {
     "eslint(no-await-in-loop)": 1,
-    "repo(duplicate-code)": 7,
+    "repo(duplicate-code)": 5,
     "repo(magic-number)": 2,
     "repo(no-module-side-effects)": 1
   },
@@ -5608,7 +5580,6 @@
     "vitest(prefer-strict-equal)": 8
   },
   "src/api/runtime/checks/families/search-select/search-q-narrows-result.ts": {
-    "repo(duplicate-code)": 1,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 3,
     "repo(no-module-side-effects)": 1
@@ -5622,7 +5593,6 @@
   },
   "src/api/runtime/checks/families/search-select/search-tokens-and.ts": {
     "eslint(complexity)": 1,
-    "repo(duplicate-code)": 1,
     "repo(magic-number)": 5,
     "repo(magic-regex)": 1,
     "repo(max-line-width)": 1,
@@ -5636,7 +5606,6 @@
   },
   "src/api/runtime/checks/families/search-select/select-nested-honored.ts": {
     "repo(as-needs-reason)": 1,
-    "repo(duplicate-code)": 1,
     "repo(magic-number)": 2,
     "repo(no-module-side-effects)": 1,
     "repo(no-runtime-typeof)": 1
@@ -5646,7 +5615,7 @@
     "vitest(prefer-strict-equal)": 9
   },
   "src/api/runtime/checks/families/search-select/select-projection-honored.ts": {
-    "repo(duplicate-code)": 4,
+    "repo(duplicate-code)": 1,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 3,
     "repo(no-module-side-effects)": 1
@@ -5657,7 +5626,7 @@
   },
   "src/api/runtime/checks/families/search-select/select-requested-fields-present.ts": {
     "repo(as-needs-reason)": 1,
-    "repo(duplicate-code)": 3,
+    "repo(duplicate-code)": 1,
     "repo(magic-number)": 3,
     "repo(no-module-side-effects)": 1
   },
@@ -5666,7 +5635,7 @@
     "vitest(prefer-strict-equal)": 10
   },
   "src/api/runtime/checks/families/search-select/select-unknown-field-rejected.ts": {
-    "repo(duplicate-code)": 2,
+    "repo(duplicate-code)": 1,
     "repo(magic-number)": 2,
     "repo(magic-string)": 1,
     "repo(no-module-side-effects)": 1
@@ -5722,7 +5691,7 @@
     "eslint(func-style)": 2,
     "eslint(max-lines-per-function)": 2,
     "repo(as-needs-reason)": 1,
-    "repo(duplicate-code)": 3,
+    "repo(duplicate-code)": 1,
     "repo(max-line-width)": 1,
     "repo(no-unknown-parameters)": 1,
     "vitest(prefer-strict-equal)": 19
@@ -5802,7 +5771,7 @@
     "repo(no-runtime-typeof)": 3,
     "repo(no-unknown-parameters)": 5,
     "repo(no-unknown-returns)": 4,
-    "repo(no-unsafe-dictionary-type)": 2,
+    "repo(no-unsafe-dictionary-type)": 1,
     "unicorn(no-array-reduce)": 1
   },
   "src/api/runtime/checks/families/security/auth-refresh-reuse-refused.test.ts": {
@@ -5861,7 +5830,7 @@
     "eslint(func-style)": 3,
     "eslint(max-lines-per-function)": 2,
     "repo(as-needs-reason)": 3,
-    "repo(duplicate-code)": 2,
+    "repo(duplicate-code)": 1,
     "repo(max-line-width)": 1,
     "repo(no-unknown-parameters)": 1,
     "typescript(strict-boolean-expressions)": 1,
@@ -5878,7 +5847,7 @@
     "eslint(func-style)": 1,
     "eslint(max-lines-per-function)": 1,
     "repo(as-needs-reason)": 1,
-    "repo(duplicate-code)": 3,
+    "repo(duplicate-code)": 2,
     "repo(max-line-width)": 1,
     "vitest(prefer-strict-equal)": 15
   },
@@ -5953,7 +5922,7 @@
     "repo(magic-string)": 2,
     "repo(no-unknown-parameters)": 1,
     "repo(no-unknown-returns)": 1,
-    "repo(no-unsafe-dictionary-type)": 3,
+    "repo(no-unsafe-dictionary-type)": 1,
     "unicorn(no-array-reduce)": 1
   },
   "src/api/runtime/checks/families/security/probing.test.ts": {
@@ -6010,7 +5979,7 @@
     "vitest(prefer-strict-equal)": 12
   },
   "src/api/runtime/checks/families/sort/sort-invalid-direction-rejected.ts": {
-    "repo(duplicate-code)": 3,
+    "repo(duplicate-code)": 1,
     "repo(magic-number)": 1,
     "repo(naming-convention)": 1,
     "repo(no-module-side-effects)": 1
@@ -6044,7 +6013,6 @@
     "vitest(prefer-strict-equal)": 5
   },
   "src/api/runtime/checks/families/sort/sort-numeric-order-is-numeric.ts": {
-    "repo(duplicate-code)": 1,
     "repo(magic-number)": 3,
     "repo(no-module-side-effects)": 1,
     "unicorn(no-array-sort)": 3
@@ -6055,7 +6023,6 @@
   },
   "src/api/runtime/checks/families/sort/sort-order-is-applied.ts": {
     "eslint(max-lines-per-function)": 1,
-    "repo(duplicate-code)": 2,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 4,
     "repo(no-module-side-effects)": 1
@@ -6086,7 +6053,6 @@
     "eslint(complexity)": 1,
     "eslint(func-style)": 2,
     "eslint(max-lines-per-function)": 1,
-    "repo(duplicate-code)": 1,
     "repo(magic-number)": 1,
     "repo(no-module-side-effects)": 1
   },
@@ -6112,7 +6078,7 @@
     "eslint(max-lines-per-function)": 1,
     "eslint(max-params)": 1,
     "repo(as-needs-reason)": 1,
-    "repo(duplicate-code)": 6,
+    "repo(duplicate-code)": 5,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 2,
     "repo(magic-string)": 1,
@@ -6131,7 +6097,7 @@
     "eslint(complexity)": 1,
     "eslint(max-lines-per-function)": 1,
     "repo(as-needs-reason)": 1,
-    "repo(duplicate-code)": 2,
+    "repo(duplicate-code)": 1,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 3,
     "repo(no-module-side-effects)": 1,
@@ -6148,7 +6114,6 @@
   },
   "src/api/runtime/checks/families/spec-declarations/spec-declared-rate-limit-is-honored.ts": {
     "eslint(require-await)": 1,
-    "repo(duplicate-code)": 1,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 2,
     "repo(no-module-side-effects)": 1
@@ -6162,7 +6127,7 @@
   "src/api/runtime/checks/families/spec-declarations/spec-declared-selectable-is-selectable.ts": {
     "eslint(complexity)": 1,
     "eslint(max-lines-per-function)": 1,
-    "repo(duplicate-code)": 7,
+    "repo(duplicate-code)": 5,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 2,
     "repo(no-module-side-effects)": 1
@@ -6189,7 +6154,7 @@
   "src/api/runtime/checks/families/spec-declarations/spec-declared-sortable-nulls-accepted.ts": {
     "eslint(max-lines-per-function)": 1,
     "eslint(no-await-in-loop)": 1,
-    "repo(duplicate-code)": 4,
+    "repo(duplicate-code)": 2,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 2,
     "repo(no-module-side-effects)": 1
@@ -6287,7 +6252,7 @@
   },
   "src/api/runtime/checks/families/validation/validation-enum-enforced.ts": {
     "repo(as-needs-reason)": 1,
-    "repo(duplicate-code)": 5,
+    "repo(duplicate-code)": 3,
     "repo(filename-matches-export)": 1,
     "repo(no-module-side-effects)": 1
   },
@@ -6302,7 +6267,7 @@
   },
   "src/api/runtime/checks/families/validation/validation-max-length-enforced.ts": {
     "repo(as-needs-reason)": 3,
-    "repo(duplicate-code)": 4,
+    "repo(duplicate-code)": 3,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 1,
     "repo(no-module-side-effects)": 1,
@@ -6318,7 +6283,7 @@
   },
   "src/api/runtime/checks/families/validation/validation-required-enforced.ts": {
     "repo(as-needs-reason)": 1,
-    "repo(duplicate-code)": 3,
+    "repo(duplicate-code)": 2,
     "repo(filename-matches-export)": 1,
     "repo(no-module-side-effects)": 1
   },
@@ -6355,7 +6320,6 @@
   "src/api/runtime/checks/families/write/concurrency-no-lost-update.ts": {
     "eslint(max-lines-per-function)": 1,
     "repo(as-needs-reason)": 2,
-    "repo(duplicate-code)": 1,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 5,
     "repo(magic-regex)": 2,
@@ -6440,7 +6404,7 @@
     "eslint(max-lines-per-function)": 2,
     "eslint(max-params)": 3,
     "eslint(no-await-in-loop)": 1,
-    "repo(duplicate-code)": 2,
+    "repo(duplicate-code)": 1,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 9,
     "repo(no-module-side-effects)": 1
@@ -6451,7 +6415,6 @@
     "vitest(prefer-strict-equal)": 3
   },
   "src/api/runtime/checks/families/write/delete-absent-record-returns-404.ts": {
-    "repo(duplicate-code)": 2,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 5,
     "repo(no-module-side-effects)": 1
@@ -6482,7 +6445,6 @@
   },
   "src/api/runtime/checks/families/write/patch-immutable-field-rejected.ts": {
     "eslint(max-lines-per-function)": 1,
-    "repo(duplicate-code)": 1,
     "repo(filename-matches-export)": 1,
     "repo(no-module-side-effects)": 1
   },
@@ -6501,7 +6463,7 @@
     "eslint(complexity)": 1,
     "eslint(func-style)": 1,
     "eslint(max-lines-per-function)": 1,
-    "repo(duplicate-code)": 2,
+    "repo(duplicate-code)": 1,
     "repo(magic-number)": 6,
     "repo(magic-regex)": 3,
     "repo(magic-string)": 1,
@@ -6604,7 +6566,7 @@
   },
   "src/api/runtime/checks/families/write/softdelete-absent-from-default-list.ts": {
     "eslint(max-lines-per-function)": 1,
-    "repo(duplicate-code)": 2,
+    "repo(duplicate-code)": 1,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 1,
     "repo(no-module-side-effects)": 1
@@ -6627,7 +6589,6 @@
     "eslint(no-await-in-loop)": 2,
     "eslint(require-await)": 1,
     "repo(as-needs-reason)": 1,
-    "repo(duplicate-code)": 1,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 5,
     "repo(magic-string)": 1,
@@ -6648,7 +6609,7 @@
     "eslint(max-lines-per-function)": 2,
     "eslint(max-params)": 1,
     "eslint(no-await-in-loop)": 1,
-    "repo(duplicate-code)": 2,
+    "repo(duplicate-code)": 1,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 7,
     "repo(no-module-side-effects)": 1
@@ -7077,7 +7038,6 @@
     "eslint(require-await)": 1,
     "repo(as-needs-reason)": 9,
     "repo(class-file)": 20,
-    "repo(duplicate-code)": 1,
     "repo(max-line-width)": 1,
     "repo(no-chained-type-assertions)": 2,
     "repo(no-unknown-parameters)": 1,
@@ -7314,7 +7274,6 @@
   "src/api/runtime/exchanges/blobs.test.ts": {
     "eslint(max-lines-per-function)": 1,
     "repo(as-needs-reason)": 2,
-    "repo(duplicate-code)": 1,
     "vitest(prefer-strict-equal)": 6
   },
   "src/api/runtime/exchanges/blobs.ts": {
@@ -7346,7 +7305,6 @@
     "eslint(max-lines-per-function)": 4,
     "eslint(no-await-in-loop)": 3,
     "repo(as-needs-reason)": 2,
-    "repo(duplicate-code)": 1,
     "repo(no-unsafe-dictionary-type)": 2,
     "typescript(no-unnecessary-type-parameters)": 1,
     "vitest(prefer-strict-equal)": 12
@@ -7670,7 +7628,6 @@
     "eslint(no-await-in-loop)": 2,
     "eslint(require-await)": 3,
     "repo(as-needs-reason)": 3,
-    "repo(duplicate-code)": 1,
     "repo(max-line-width)": 1,
     "repo(no-boolean-param)": 1,
     "repo(no-chained-type-assertions)": 2,
@@ -10779,7 +10736,7 @@
     "repo(no-unsafe-dictionary-type)": 2
   },
   "src/api/spec/types.ts": {
-    "repo(no-unsafe-dictionary-type)": 7,
+    "repo(no-unsafe-dictionary-type)": 5,
     "typescript(no-redundant-type-constituents)": 1
   },
   "src/api/steps/external.test.ts": {
@@ -11149,7 +11106,7 @@
     "eslint(no-await-in-loop)": 1,
     "eslint(require-await)": 2,
     "repo(as-needs-reason)": 5,
-    "repo(duplicate-code)": 21,
+    "repo(duplicate-code)": 19,
     "repo(no-boolean-param)": 1,
     "repo(no-runtime-typeof)": 2,
     "repo(no-unknown-parameters)": 1,
@@ -11161,7 +11118,7 @@
     "eslint(no-await-in-loop)": 1,
     "eslint(require-await)": 2,
     "repo(as-needs-reason)": 5,
-    "repo(duplicate-code)": 19,
+    "repo(duplicate-code)": 16,
     "repo(no-unknown-parameters)": 1,
     "repo(no-unknown-returns)": 1,
     "vitest(prefer-strict-equal)": 2
@@ -11204,7 +11161,6 @@
   "tests/api/integration/baseline-diff.test.ts": {
     "eslint(max-lines-per-function)": 1,
     "repo(as-needs-reason)": 1,
-    "repo(duplicate-code)": 1,
     "repo(no-unsafe-dictionary-type)": 1,
     "unicorn(no-await-expression-member)": 3,
     "vitest(prefer-strict-equal)": 4
@@ -11277,7 +11233,7 @@
     "eslint(func-style)": 2,
     "eslint(max-lines-per-function)": 1,
     "repo(as-needs-reason)": 4,
-    "repo(duplicate-code)": 13,
+    "repo(duplicate-code)": 11,
     "repo(no-runtime-typeof)": 1,
     "repo(no-unknown-parameters)": 1,
     "typescript(strict-boolean-expressions)": 1,
@@ -11444,7 +11400,7 @@
     "eslint(max-lines-per-function)": 2,
     "eslint(require-await)": 1,
     "repo(as-needs-reason)": 2,
-    "repo(duplicate-code)": 18,
+    "repo(duplicate-code)": 17,
     "repo(no-boolean-param)": 1,
     "typescript(strict-boolean-expressions)": 1,
     "vitest(prefer-strict-equal)": 1
@@ -11468,7 +11424,7 @@
     "eslint(require-await)": 1,
     "repo(as-needs-reason)": 5,
     "repo(class-file)": 37,
-    "repo(duplicate-code)": 4,
+    "repo(duplicate-code)": 2,
     "repo(no-chained-type-assertions)": 1,
     "repo(no-known-value-widening)": 1,
     "repo(no-runtime-typeof)": 4,
@@ -11516,7 +11472,7 @@
     "eslint(no-nested-ternary)": 1,
     "eslint(require-await)": 11,
     "repo(as-needs-reason)": 5,
-    "repo(duplicate-code)": 18,
+    "repo(duplicate-code)": 16,
     "repo(max-line-width)": 1,
     "repo(no-unknown-parameters)": 1,
     "repo(no-unknown-returns)": 1,
@@ -11530,7 +11486,7 @@
     "eslint(no-await-in-loop)": 1,
     "eslint(require-await)": 1,
     "repo(as-needs-reason)": 4,
-    "repo(duplicate-code)": 12,
+    "repo(duplicate-code)": 11,
     "repo(no-runtime-typeof)": 2,
     "repo(no-unknown-parameters)": 1,
     "repo(no-unknown-returns)": 1
@@ -11555,7 +11511,6 @@
   "tests/api/integration/init.test.ts": {
     "eslint(max-lines-per-function)": 1,
     "repo(as-needs-reason)": 2,
-    "repo(duplicate-code)": 1,
     "repo(max-line-width)": 3,
     "unicorn(no-await-expression-member)": 2,
     "vitest(prefer-strict-equal)": 5
@@ -11604,7 +11559,7 @@
     "eslint(max-lines-per-function)": 2,
     "eslint(require-await)": 1,
     "repo(as-needs-reason)": 3,
-    "repo(duplicate-code)": 3,
+    "repo(duplicate-code)": 2,
     "repo(no-chained-type-assertions)": 1,
     "repo(no-unsafe-dictionary-type)": 1,
     "vitest(prefer-strict-equal)": 1
@@ -11614,7 +11569,7 @@
     "eslint(no-await-in-loop)": 1,
     "eslint(require-await)": 1,
     "repo(as-needs-reason)": 4,
-    "repo(duplicate-code)": 12,
+    "repo(duplicate-code)": 11,
     "repo(naming-convention)": 1,
     "repo(no-runtime-typeof)": 2,
     "repo(no-unknown-parameters)": 1,
@@ -11648,7 +11603,7 @@
     "eslint(no-await-in-loop)": 1,
     "eslint(require-await)": 1,
     "repo(as-needs-reason)": 2,
-    "repo(duplicate-code)": 7,
+    "repo(duplicate-code)": 6,
     "vitest(prefer-strict-equal)": 4
   },
   "tests/api/integration/listed-parent-scope.test.ts": {
@@ -11657,7 +11612,7 @@
     "eslint(max-lines)": 1,
     "eslint(max-lines-per-function)": 1,
     "repo(as-needs-reason)": 5,
-    "repo(duplicate-code)": 13,
+    "repo(duplicate-code)": 12,
     "repo(no-boolean-param)": 1,
     "repo(no-chained-type-assertions)": 2,
     "repo(no-unknown-parameters)": 2,
@@ -11677,7 +11632,7 @@
     "eslint(func-style)": 1,
     "eslint(max-lines-per-function)": 1,
     "repo(as-needs-reason)": 5,
-    "repo(duplicate-code)": 2,
+    "repo(duplicate-code)": 1,
     "repo(no-unsafe-dictionary-type)": 1,
     "unicorn(no-array-sort)": 1,
     "vitest(prefer-strict-equal)": 2
@@ -11727,7 +11682,7 @@
     "eslint(no-await-in-loop)": 1,
     "eslint(require-await)": 1,
     "repo(as-needs-reason)": 2,
-    "repo(duplicate-code)": 7,
+    "repo(duplicate-code)": 6,
     "repo(naming-convention)": 1,
     "unicorn(no-array-sort)": 1,
     "vitest(prefer-strict-equal)": 3
@@ -11750,7 +11705,7 @@
     "vitest(prefer-strict-equal)": 5
   },
   "tests/api/integration/ops-only.test.ts": {
-    "repo(duplicate-code)": 3,
+    "repo(duplicate-code)": 2,
     "unicorn(no-array-sort)": 1,
     "unicorn(no-await-expression-member)": 1,
     "vitest(prefer-strict-equal)": 4
@@ -11912,7 +11867,7 @@
     "eslint(no-await-in-loop)": 1,
     "eslint(require-await)": 1,
     "repo(as-needs-reason)": 2,
-    "repo(duplicate-code)": 4,
+    "repo(duplicate-code)": 3,
     "repo(naming-convention)": 1,
     "repo(no-boolean-param)": 1,
     "vitest(prefer-strict-equal)": 1
@@ -12094,7 +12049,7 @@
     "eslint(no-await-in-loop)": 1,
     "eslint(require-await)": 1,
     "repo(as-needs-reason)": 4,
-    "repo(duplicate-code)": 5,
+    "repo(duplicate-code)": 4,
     "repo(no-runtime-typeof)": 2,
     "repo(no-unknown-parameters)": 1,
     "typescript(strict-boolean-expressions)": 1,
@@ -12134,7 +12089,7 @@
     "eslint(max-lines)": 1,
     "eslint(max-lines-per-function)": 1,
     "repo(as-needs-reason)": 2,
-    "repo(duplicate-code)": 5,
+    "repo(duplicate-code)": 4,
     "repo(no-boolean-param)": 1,
     "repo(no-runtime-typeof)": 1,
     "repo(no-unknown-parameters)": 1,
@@ -12221,7 +12176,7 @@
   },
   "tests/api/integration/timeout-is-not-network.test.ts": {
     "repo(as-needs-reason)": 2,
-    "repo(duplicate-code)": 3,
+    "repo(duplicate-code)": 2,
     "typescript(strict-boolean-expressions)": 1
   },
   "tests/api/integration/totp-redaction.test.ts": {
@@ -12234,7 +12189,6 @@
     "vitest(prefer-strict-equal)": 1
   },
   "tests/api/integration/totp-setup-artifacts.test.ts": {
-    "repo(duplicate-code)": 1,
     "repo(no-shape-in-symbol-names)": 1,
     "unicorn(no-await-expression-member)": 1,
     "vitest(prefer-strict-equal)": 1
@@ -12267,7 +12221,7 @@
   "tests/api/integration/unavailable-retry.test.ts": {
     "eslint(max-lines-per-function)": 1,
     "repo(as-needs-reason)": 2,
-    "repo(duplicate-code)": 2,
+    "repo(duplicate-code)": 1,
     "typescript(strict-boolean-expressions)": 1,
     "unicorn(no-await-expression-member)": 1
   },
@@ -12332,7 +12286,7 @@
     "eslint(max-nested-callbacks)": 1,
     "eslint(require-await)": 5,
     "repo(as-needs-reason)": 6,
-    "repo(duplicate-code)": 7,
+    "repo(duplicate-code)": 6,
     "repo(no-unknown-parameters)": 1,
     "typescript(no-non-null-assertion)": 1,
     "typescript(strict-boolean-expressions)": 1,
@@ -12402,7 +12356,7 @@
   "tests/api/regression/like-matches.test.ts": {
     "eslint(max-lines-per-function)": 1,
     "repo(as-needs-reason)": 1,
-    "repo(duplicate-code)": 4,
+    "repo(duplicate-code)": 3,
     "repo(no-chained-type-assertions)": 1,
     "repo(no-unsafe-dictionary-type)": 2
   },
@@ -12717,7 +12671,6 @@
     "repo(no-module-side-effects)": 6
   },
   "tests/api/types/public-api.typetest.ts": {
-    "repo(duplicate-code)": 2,
     "repo(filename-matches-export)": 1,
     "repo(no-module-side-effects)": 3
   },

@@ -15,7 +15,7 @@ const PATH = [join(ROOT, "node_modules", ".bin"), process.env["PATH"] ?? ""].joi
 type Step = readonly string[] | (() => void);
 
 const removeDist: Step = () => rmSync(join(ROOT, "dist"), { force: true, recursive: true });
-const build: readonly Step[] = [removeDist, ["bun", "run", "build:api"], ["bun", "run", "build:web"]];
+const build: readonly Step[] = [removeDist, ["tsc", "-b", "tsconfig.build.json", "--force"]];
 
 /** Each sequence a package.json script runs, by the script's name. */
 export const SEQUENCES: Readonly<Record<string, readonly Step[]>> = {
@@ -31,7 +31,7 @@ export const SEQUENCES: Readonly<Record<string, readonly Step[]>> = {
     ["tsc", "-p", "tsconfig.src.json", "--noEmit"],
     ["tsc", "-p", "src/web/tsconfig.src.json", "--noEmit"],
     ["tsc", "-p", "tests/web/tsconfig.src.json", "--noEmit"],
-    ["tsc", "-p", "tsconfig.build.json", "--noEmit"],
+    ["tsc", "-p", "tsconfig.api.json", "--noEmit"],
     ["tsc", "-p", "tsconfig.web.json", "--noEmit"],
   ],
 };
