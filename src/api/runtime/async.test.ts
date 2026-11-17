@@ -102,7 +102,6 @@ function drive(answer: Answer, more: Partial<Omit<AsyncDrive, "spec">> & { spec?
     client,
     principal: "alpha",
     receipt: { id: "job 1" },
-    start: START,
     scope: {},
     spec: {
       idFrom: "$.id",
@@ -112,6 +111,7 @@ function drive(answer: Answer, more: Partial<Omit<AsyncDrive, "spec">> & { spec?
       until: "status.eq.done",
       ...spec,
     },
+    start: START,
     ...rest,
   });
 

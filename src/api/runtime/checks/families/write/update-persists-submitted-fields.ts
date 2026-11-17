@@ -42,6 +42,10 @@ type Witnesses = {
  * judges a create. What it drops is remembered, so every later check picks around it.
  */
 export const updatePersistsFields: Check<Plan> = defineCheck<Plan>({
+  dependsOn: ["create.persists-submitted-fields"],
+  id: ID,
+  mutates: true,
+  needs: "a create, an update and an item read",
   plan: (ctx) => {
     const { createOp, readOp, updateOp } = ctx;
 
@@ -52,11 +56,6 @@ export const updatePersistsFields: Check<Plan> = defineCheck<Plan>({
       ? cannot("an update that offers a field a read returns")
       : ready({ offered, readOp, updateOp });
   },
-  dependsOn: ["create.persists-submitted-fields"],
-  id: ID,
-  mutates: true,
-  needs: "a create, an update and an item read",
-  subjects: subjectsOf.update,
   async run(ctx, plan): Promise<Outcome> {
     const made = await scratchRecord(ctx, ID);
 
@@ -77,6 +76,7 @@ export const updatePersistsFields: Check<Plan> = defineCheck<Plan>({
 
     return judge(ctx, outcome);
   },
+  subjects: subjectsOf.update,
 });
 
 /** The update body's fields a read returns, none fixed, secret, privileged or a lifecycle switch. */

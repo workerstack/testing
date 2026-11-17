@@ -133,7 +133,9 @@ async function keepsMetadataAfterRelease() {
   const exchange = {
     at: 1,
     durationMs: 1,
+    fixture: "a.bin",
     method: "POST",
+    operationId: "upload.once",
     requestBody: titledForm(),
     requestBytes: 10,
     requestHeaders: { authorization: "Bearer x" },
@@ -144,8 +146,6 @@ async function keepsMetadataAfterRelease() {
     seq: 1,
     status: 200,
     url: "http://x.test/v1/x",
-    fixture: "a.bin",
-    operationId: "upload.once",
   };
 
   await releaseTranscriptBodies(exchange, new Redactor());

@@ -128,8 +128,8 @@ async function stoppedBy(
   if (reason !== undefined) return { kind: "unresolved", reason };
 
   return context.findings.gap(check.id, operation.operationId, {
-    summary: `check "${check.id}" could not complete`,
     detail: `${operation.operationId}: ${error instanceof Error ? error.message : String(error)}`,
+    summary: `check "${check.id}" could not complete`,
   });
 }
 

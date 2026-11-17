@@ -15,11 +15,11 @@ function stage(respond: Responder, options: WidgetDocOptions = {}) {
   const model = modelOf(widgetDoc({ item: CLIENT_ID, ...options }));
 
   return contextFor(model, "listWidgets", {
-    respond,
     fields: {
       createOp: op(model, "createWidget"),
       readOp: model.byOperationId.get("getWidget"),
     },
+    respond,
   });
 }
 
@@ -152,11 +152,11 @@ describe("create.keeps-submitted-identity preconditions", () => {
     const issued = modelOf(widgetDoc());
 
     const { ctx: serverIds } = contextFor(issued, "listWidgets", {
-      respond: widgetApi(),
       fields: {
         createOp: op(issued, "createWidget"),
         readOp: op(issued, "getWidget"),
       },
+      respond: widgetApi(),
     });
 
     expect(createKeepsSubmittedIdentity.plan(serverIds).ok).toBe(false);

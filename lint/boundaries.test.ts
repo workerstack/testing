@@ -118,11 +118,11 @@ describe("testing/boundaries", () => {
     const source = 'import { x } from "../runtime/world.ts"\nimport { y } from "lodash"\n';
 
     const fixture = {
-      "src/api/spec/graph.test.ts": source,
-      "src/api/spec/__fixtures__/a.ts": source,
-      "tests/api/integration/a.test.ts": source,
-      "lint/a.ts": source,
       "labs/api/demo.ts": source,
+      "lint/a.ts": source,
+      "src/api/spec/__fixtures__/a.ts": source,
+      "src/api/spec/graph.test.ts": source,
+      "tests/api/integration/a.test.ts": source,
     };
 
     expect(reportsOf(rule, fixture)).toEqual([]);

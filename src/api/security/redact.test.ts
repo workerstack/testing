@@ -6,7 +6,7 @@ describe("Redactor", () => {
   it("scrubs an issued credential wherever it appears, bare token included", () => {
     const redactor = new Redactor();
     redactor.registerSecret("Bearer tok_live_123456");
-    expect(redactor.json({ message: "rejected tok_live_123456", nested: ["tok_live_123456"], n: 3 })).toEqual({
+    expect(redactor.json({ message: "rejected tok_live_123456", n: 3, nested: ["tok_live_123456"] })).toEqual({
       message: `rejected ${REDACTED}`,
       n: 3,
       nested: [REDACTED],
@@ -31,7 +31,7 @@ describe("Redactor", () => {
       sessionId: REDACTED,
       total: null,
     });
-    expect(redactor.headers({ "x-tenant-credential": "v", accept: "json", authorization: "x" })).toEqual({
+    expect(redactor.headers({ accept: "json", authorization: "x", "x-tenant-credential": "v" })).toEqual({
       accept: "json",
       authorization: REDACTED,
       "x-tenant-credential": REDACTED,
@@ -138,7 +138,7 @@ describe("Redactor.body", () => {
     expect(redactor.body("refresh_token=rt-9876543210", "application/x-www-form-urlencoded")).toBe(
       `refresh_token=${REDACTED}`,
     );
-    expect(redactor.body({ refresh_token: "rt-9876543210", n: 1 }, "application/json")).toEqual({
+    expect(redactor.body({ n: 1, refresh_token: "rt-9876543210" }, "application/json")).toEqual({
       n: 1,
       refresh_token: REDACTED,
     });
@@ -149,9 +149,9 @@ describe("Redactor, placed credentials", () => {
   it("keeps an Authorization header's scheme word and scrubs the credential after it", () => {
     const headers = new Redactor().headers({
       Authorization: "ApiKey key_alpha_1",
+      authorization: "bare-token-value",
       "proxy-authorization": "Basic dXNlcjpwYXNz",
       "x-api-key": "Bearer looks-like-a-scheme",
-      authorization: "bare-token-value",
     });
 
     expect(headers).toEqual({
@@ -239,7 +239,7 @@ describe("Redactor, a secret the backend issues", () => {
 
   it("learns 12 to 15 characters only when not letters alone, and nothing shorter", () => {
     const redactor = new Redactor();
-    redactor.learn({ api_secret: "ab12cd34ef56", token_type: "Bearer", password_hint: "Abcdefghijklm" });
+    redactor.learn({ api_secret: "ab12cd34ef56", password_hint: "Abcdefghijklm", token_type: "Bearer" });
     expect(redactor.text("ab12cd34ef56")).toBe(REDACTED);
     expect(redactor.text("Bearer x")).toBe("Bearer x");
     expect(redactor.text("Abcdefghijklm")).toBe("Abcdefghijklm");

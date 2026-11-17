@@ -25,12 +25,12 @@ describe("a dangling $ref in a schema", () => {
   it("reads as unconstrained, with a gap on each operation whose request or response reaches it", () => {
     const model = modelOf(
       {
+        "/health": {
+          get: { operationId: "health.get", responses: ok(item, { links: { self: { operationId: "health.get" } } }) },
+        },
         "/orders": {
           get: { operationId: "orders.list", responses: ok({ items: orderRef, type: "array" }) },
           post: { operationId: "orders.create", requestBody: body(orderRef), responses: ok(item) },
-        },
-        "/health": {
-          get: { operationId: "health.get", responses: ok(item, { links: { self: { operationId: "health.get" } } }) },
         },
       },
       { components: { schemas: { Order: order } } },
@@ -99,11 +99,6 @@ describe("a dangling $ref outside a schema", () => {
   it("is found in a body, a response, a media type, a header, an encoding, an example and a link", () => {
     const model = modelOf({
       "/body": { post: { operationId: "body", requestBody: gone("body"), responses: {} } },
-      "/response": { get: { operationId: "response", responses: { "200": gone("response") } } },
-      "/media": {
-        get: { operationId: "media", responses: { "200": { content: { "application/json": gone("media") } } } },
-      },
-      "/header": { get: { operationId: "header", responses: { "200": { headers: { X: gone("header") } } } } },
       "/encoding": {
         post: {
           operationId: "encoding",
@@ -118,19 +113,24 @@ describe("a dangling $ref outside a schema", () => {
           responses: {},
         },
       },
+      "/header": { get: { operationId: "header", responses: { "200": { headers: { X: gone("header") } } } } },
       "/link": { get: { operationId: "link", responses: { "200": { links: { next: gone("link") } } } } },
+      "/media": {
+        get: { operationId: "media", responses: { "200": { content: { "application/json": gone("media") } } } },
+      },
+      "/response": { get: { operationId: "response", responses: { "200": gone("response") } } },
     });
 
-    const reasons = model.operations.map((op) => op.unsendable);
-    expect(reasons).toEqual([
-      "$ref #/components/x/body points at nothing",
-      "$ref #/components/x/response points at nothing",
-      "$ref #/components/x/media points at nothing",
-      "$ref #/components/x/header points at nothing",
-      "$ref #/components/x/encoding points at nothing",
-      "$ref #/components/x/example points at nothing",
-      "$ref #/components/x/link points at nothing",
-    ]);
+    const reasons = Object.fromEntries(model.operations.map((op) => [op.operationId, op.unsendable]));
+    expect(reasons).toEqual({
+      body: "$ref #/components/x/body points at nothing",
+      encoding: "$ref #/components/x/encoding points at nothing",
+      example: "$ref #/components/x/example points at nothing",
+      header: "$ref #/components/x/header points at nothing",
+      link: "$ref #/components/x/link points at nothing",
+      media: "$ref #/components/x/media points at nothing",
+      response: "$ref #/components/x/response points at nothing",
+    });
   });
 });
 
@@ -140,10 +140,10 @@ describe("a dangling $ref in a callback", () => {
       "/callback": {
         post: {
           callbacks: {
-            onEvent: gone("callback"),
             onDone: { "{$url}": gone("pathItem") },
-            onSent: { "{$url}": { post: { requestBody: gone("callbackBody"), responses: {} } } },
+            onEvent: gone("callback"),
             onSchema: { "{$url}": { parameters: [{ in: "query", name: "q", schema: fee }] } },
+            onSent: { "{$url}": { post: { requestBody: gone("callbackBody"), responses: {} } } },
           },
           operationId: "callback",
           responses: {},
@@ -151,11 +151,11 @@ describe("a dangling $ref in a callback", () => {
       },
     });
 
-    expect(model.byOperationId.get("callback")?.unsendable).toBe("$ref #/components/x/callback points at nothing");
+    expect(model.byOperationId.get("callback")?.unsendable).toBe("$ref #/components/x/pathItem points at nothing");
     expect(refGaps(model)).toEqual([
       `callback: $ref ${MISSING} points at nothing; the API tester reads that schema as unconstrained`,
-      `callback: ${untested("#/components/x/callback")}`,
       `callback: ${untested("#/components/x/pathItem")}`,
+      `callback: ${untested("#/components/x/callback")}`,
       `callback: ${untested("#/components/x/callbackBody")}`,
     ]);
   });

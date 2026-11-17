@@ -35,10 +35,9 @@ function buildPaths(ctx: SpecContext, dialect: Dialect): Json {
   const paths: Json = {};
 
   for (const entity of ctx.entities) {
-    Object.assign(paths, {
-      [entity.collectionPath]: securedByEntity(entity, collectionPathItem(ctx, entity, dialect)),
-      [entity.itemPath]: securedByEntity(entity, itemPathItem(ctx, entity)),
-    });
+    // The collection, then its item: a statement each, so the order is the code's, not a literal's.
+    paths[entity.collectionPath] = securedByEntity(entity, collectionPathItem(ctx, entity, dialect));
+    paths[entity.itemPath] = securedByEntity(entity, itemPathItem(ctx, entity));
   }
 
   Object.assign(paths, callerProfilePaths(ctx), publicReadPaths(ctx), noticePaths(ctx), callerRootPaths(ctx));
@@ -49,16 +48,24 @@ function buildPaths(ctx: SpecContext, dialect: Dialect): Json {
 
 export function buildSpec(dialect: Dialect = POSTGREST, ctx: SpecContext = DEFAULT_CONTEXT): Json {
   const paths = buildPaths(ctx, dialect);
-  const rest = { security: ROOT_SECURITY };
+  const isLaidOut = ctx.shape.specLayout === true;
+
   // 3.2: the search route is a QUERY operation, a Path Item field since OAS 3.2.
-  const head = { info: { title: "the API tester reference backend", version: "1.0.0" }, openapi: "3.2.0" };
+  const parts = {
+    components: components(ctx),
+    info: { title: "the API tester reference backend", version: "1.0.0" },
+    openapi: "3.2.0",
+    paths: isLaidOut ? hoistPathParameters(paths) : paths,
+    security: ROOT_SECURITY,
+  };
 
-  // Key order is the layout: a document is free to define its components before its paths, and
-  // to declare path parameters once on the path item rather than on every operation.
-  if (ctx.shape.specLayout === true)
-    return { ...head, components: components(ctx), paths: hoistPathParameters(paths), ...rest };
+  // The layout is the order of these keys: a document is free to define its components before its
+  // paths, and to declare path parameters once on the path item rather than on every operation.
+  const order: readonly (keyof typeof parts)[] = isLaidOut
+    ? ["info", "openapi", "components", "paths", "security"]
+    : ["info", "openapi", "paths", "components", "security"];
 
-  return { ...head, paths, components: components(ctx), ...rest };
+  return Object.fromEntries(order.map((key) => [key, parts[key]]));
 }
 
 function strip(node: unknown): unknown {

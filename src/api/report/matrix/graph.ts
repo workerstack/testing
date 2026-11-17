@@ -3,6 +3,7 @@
  * entities, the check edges, and how to read them.
  */
 
+import { inOrder } from "../../spec/in-order.ts";
 import { REPORT_SCHEMA_VERSION } from "../render/json.ts";
 import { type CheckCatalog, checkCatalog } from "./catalog.ts";
 import { invalidateLinks } from "./invalidate.ts";
@@ -24,14 +25,31 @@ const READ: MatrixGraph["read"] = {
     "How the API tester crossed the entities in this run. Each entity's checks are tracked independently. " +
     "`invalidate` edges are x-invalidate claims. failed = two projections of the same fact " +
     "disagreed. blocked = a dependsOn check already failed — not a second defect.",
-  status: {
+  status: /* @__PURE__ */ inOrder(["blocked", "failed", "passed", "out-of-scope", "skipped"], {
     blocked: "not evaluated; a dependsOn check already failed",
     failed: "two projections of the same fact disagreed — a finding",
-    passed: "tested, and the projections agreed",
     "out-of-scope": "a targeted run (--ops) did not grade it; it could apply",
+    passed: "tested, and the projections agreed",
     skipped: "the document does not support this check",
-  },
+  }),
 };
+
+/** The graph's fields in the order a reader meets them: what it is, how to read it, the run, then the data. */
+const GRAPH_ORDER: readonly (keyof MatrixGraph)[] = [
+  "kind",
+  "schemaVersion",
+  "read",
+  "summary",
+  "thesis",
+  "index",
+  "baseUrl",
+  "generatedAt",
+  "counts",
+  "entities",
+  "invalidate",
+  "edges",
+  "mermaid",
+];
 
 /** Where and when the run happened. */
 type Origin = {
@@ -77,12 +95,12 @@ function assembleGraph(origin: Origin, { entities, invalidate }: MatrixContent, 
 
   for (const invalidation of cross) inbound[invalidation.toEntity] = (inbound[invalidation.toEntity] ?? 0) + 1;
 
-  return {
-    kind: "testing.api.matrix",
-    schemaVersion: REPORT_SCHEMA_VERSION,
-    read: READ,
-    summary: summaryLine(entities, counts, cross),
-    thesis: thesisFor(entities, cross),
+  return inOrder(GRAPH_ORDER, {
+    baseUrl: origin.baseUrl,
+    counts,
+    edges: catalog.edges,
+    entities,
+    generatedAt: origin.generatedAt,
     index: {
       crossClaims: cross.length,
       entityCount: entities.length,
@@ -90,14 +108,14 @@ function assembleGraph(origin: Origin, { entities, invalidate }: MatrixContent, 
       inbound,
       parents: unique(cross.map((l) => l.toEntity)),
     },
-    baseUrl: origin.baseUrl,
-    generatedAt: origin.generatedAt,
-    counts,
-    entities,
     invalidate,
-    edges: catalog.edges,
+    kind: "testing.api.matrix",
     mermaid: mermaidFromGraph(entities, invalidate),
-  };
+    read: READ,
+    schemaVersion: REPORT_SCHEMA_VERSION,
+    summary: summaryLine(entities, counts, cross),
+    thesis: thesisFor(entities, cross),
+  });
 }
 
 /** Drop per-check nodes for clean entities so a 2k-entity graph stays loadable. */

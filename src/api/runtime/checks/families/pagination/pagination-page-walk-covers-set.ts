@@ -25,9 +25,6 @@ function reportUnstableWalks(
   const sameMembers = [...second].sort().join(",") === [...walked].sort().join(",");
 
   return ctx.findings.backend(check, ctx.entityName, {
-    summary: sameMembers
-      ? "identical page walks return records in different orders"
-      : "identical page walks return different records",
     detail:
       `walking the collection twice with the same parameters${
         orderParam === undefined ? "" : ` (order=${orderParam})`
@@ -35,12 +32,13 @@ function reportUnstableWalks(
       `Pagination requires a total order; without a tiebreak the page boundary moves between ` +
       `requests and callers silently miss or repeat rows.`,
     evidence: [evidence],
+    summary: sameMembers
+      ? "identical page walks return records in different orders"
+      : "identical page walks return different records",
   });
 }
 
 export const pageWalkCoversSet: Check = defineCheck({
-  // Walked by whatever the endpoint pages by — a cursor alone is enough.
-  plan: (ctx) => when((pageable(ctx) || conv(ctx).cursor !== undefined) && ctx.records.length > 2),
   dependsOn: [
     "list.read-after-write",
     "pagination.limit-bounds-page-size",
@@ -53,7 +51,8 @@ export const pageWalkCoversSet: Check = defineCheck({
   id: "pagination.page-walk-covers-set",
   lists: true,
   needs: "a way to page forward — a page number, a row offset or a cursor — and at least three records",
-  subjects: subjectsOf.list,
+  // Walked by whatever the endpoint pages by — a cursor alone is enough.
+  plan: (ctx) => when((pageable(ctx) || conv(ctx).cursor !== undefined) && ctx.records.length > 2),
   async run(ctx): Promise<Outcome> {
     const limit = pageSize(ctx);
     // Walk under a low-cardinality sort. Distinct keys admit exactly one valid order, so an
@@ -76,11 +75,11 @@ export const pageWalkCoversSet: Check = defineCheck({
 
     if (repeated.length > 0) {
       return ctx.findings.backend(this.id, ctx.entityName, {
-        summary: "paging returns the same record on more than one page",
         detail:
           `walking at limit=${walkSize} returned ${repeated.length} duplicated id(s): ${repeated.slice(0, 3).join(", ")}. ` +
           "This is the signature of a sort without a total order — the page boundary is not stable.",
         evidence: [single.exchange],
+        summary: "paging returns the same record on more than one page",
       });
     }
 
@@ -90,11 +89,11 @@ export const pageWalkCoversSet: Check = defineCheck({
 
     if (missing.length > 0) {
       return ctx.findings.backend(this.id, ctx.entityName, {
-        summary: "paging skips records that a single large page returns",
         detail:
           `a single page at limit=${limit} returned ${expected.length} records, but walking at ` +
           `limit=${walkSize} yielded ${walked.length} and missed ${missing.length}: ${missing.slice(0, 3).join(", ")}`,
         evidence: [single.exchange],
+        summary: "paging skips records that a single large page returns",
       });
     }
 
@@ -107,4 +106,5 @@ export const pageWalkCoversSet: Check = defineCheck({
 
     return reportUnstableWalks(ctx, this.id, { orderParam, second, walked }, single.exchange);
   },
+  subjects: subjectsOf.list,
 });

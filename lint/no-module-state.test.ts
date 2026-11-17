@@ -63,10 +63,10 @@ describe("testing/no-module-state: reasons and scope", () => {
 
   it("leaves tests, fixtures and code outside src alone", () => {
     const fixture = {
-      "src/api/runtime/a.test.ts": "let x = 0\n",
-      "src/api/runtime/__fixtures__/a.ts": "let x = 0\n",
-      "tests/api/integration/a.test.ts": "let x = 0\n",
       "labs/api/demo.ts": "let x = 0\n",
+      "src/api/runtime/__fixtures__/a.ts": "let x = 0\n",
+      "src/api/runtime/a.test.ts": "let x = 0\n",
+      "tests/api/integration/a.test.ts": "let x = 0\n",
     };
 
     expect(reportsOf(rule, fixture)).toEqual([]);

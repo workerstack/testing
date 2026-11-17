@@ -25,7 +25,7 @@ describe("deriveQueryConventions", () => {
     });
   });
 
-  it("names every role's parameter, the Link header and the envelope, in a fixed order", () => {
+  it("names every role's parameter, the Link header and the envelope", () => {
     const conventions = deriveQueryConventions(
       [
         { in: "header", name: "q" },
@@ -43,22 +43,10 @@ describe("deriveQueryConventions", () => {
       { responseHeaders: ["X-Total", "link"] },
     );
 
-    expect(Object.keys(conventions)).toEqual([
-      "envelope",
-      "grammar",
-      "selectGrammar",
-      "sortGrammar",
-      "linkHeader",
-      "filter",
-      "order",
-      "select",
-      "search",
-      "searchMode",
-      "cursor",
-      "limit",
-      "page",
-      "offset",
-    ]);
+    expect(Object.keys(conventions).toSorted().join(" ")).toBe(
+      "cursor envelope filter grammar limit linkHeader offset order page " +
+        "search searchMode select selectGrammar sortGrammar",
+    );
     expect(conventions).toMatchObject({ cursor: "after", filter: "where", linkHeader: "link", searchMode: "mode" });
     expect(conventions.envelope).toEqual({
       hasMore: "more",
@@ -85,7 +73,14 @@ describe("deriveQueryConventions filter grammar", () => {
       grammarDeclared: true,
     });
     const template = deriveQueryConventions([], null, { declared: { grammar: TEMPLATE } });
-    expect(Object.keys(template).slice(0, 4)).toEqual(["envelope", "grammar", "filterGrammar", "grammarDeclared"]);
+    expect(Object.keys(template).toSorted()).toEqual([
+      "envelope",
+      "filterGrammar",
+      "grammar",
+      "grammarDeclared",
+      "selectGrammar",
+      "sortGrammar",
+    ]);
     expect(template.grammar).toBe("template");
     expect(template.filterGrammar?.term).toBe(TEMPLATE.term);
   });

@@ -6,7 +6,6 @@ import { FOUNDATIONS } from "../../query/capabilities.ts";
 import { assertRangeUnion, rangePlan, type RangeProbe } from "./range.ts";
 
 export const filterLteIsLtOrEq: Check<RangeProbe> = defineCheck<RangeProbe>({
-  plan: (ctx) => rangePlan(ctx, "lte", "lt"),
   dependsOn: [
     "query.filter-selects-from-whole-set",
     ...FOUNDATIONS,
@@ -16,8 +15,9 @@ export const filterLteIsLtOrEq: Check<RangeProbe> = defineCheck<RangeProbe>({
   id: "filter.lte-is-lt-or-eq",
   lists: true,
   needs: "an ordered field that allows `lte` and `lt`",
-  subjects: subjectsOf.list,
+  plan: (ctx) => rangePlan(ctx, "lte", "lt"),
   async run(ctx, probe): Promise<Outcome> {
     return assertRangeUnion(ctx, this.id, probe);
   },
+  subjects: subjectsOf.list,
 });

@@ -18,14 +18,6 @@ async function call(url: string, init?: RequestInit): Promise<unknown> {
 
 const target: Target = {
   baseUrl: "http://127.0.0.1:15002",
-  // VAmPI's own document, as published: its login example carries a sample JWT, so it is not committed.
-  vendored: [
-    {
-      path: "openapi3.yml",
-      sha256: "35200f354f9c9968182fc19458295ed45bb4c368150348c46d5146a7e40a61c9",
-      url: "https://raw.githubusercontent.com/erev0s/VAmPI/c41096526d4094b2301bef5e5dd8e5ed4786af4e/openapi_specs/openapi3.yml",
-    },
-  ],
   async prepare(baseUrl) {
     await answers(`${baseUrl}/`, 60_000);
     // VAmPI starts with no tables; /createdb makes them and seeds its three users.
@@ -57,6 +49,14 @@ const target: Target = {
     return env;
   },
   readyWithinMs: 60_000,
+  // VAmPI's own document, as published: its login example carries a sample JWT, so it is not committed.
+  vendored: [
+    {
+      path: "openapi3.yml",
+      sha256: "35200f354f9c9968182fc19458295ed45bb4c368150348c46d5146a7e40a61c9",
+      url: "https://raw.githubusercontent.com/erev0s/VAmPI/c41096526d4094b2301bef5e5dd8e5ed4786af4e/openapi_specs/openapi3.yml",
+    },
+  ],
 };
 
 export default target;

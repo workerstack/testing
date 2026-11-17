@@ -24,6 +24,36 @@ const DOCUMENT = {
   info: { title: "tracker", version: "1" },
   openapi: "3.1.0",
   paths: {
+    "/columns/import": {
+      post: {
+        operationId: "column.import",
+        responses: { "202": { ...json(ITEM), description: "accepted" } },
+        ...entity("action", "column"),
+      },
+    },
+    "/columns/{column_id}": {
+      get: {
+        operationId: "column.read",
+        parameters: [{ in: "path", name: "column_id", required: true, schema: { type: "string" } }],
+        responses: { "200": { ...json(ITEM), description: "ok" } },
+        ...entity("read", "column"),
+      },
+    },
+    "/keys": {
+      post: {
+        operationId: "keys.create",
+        requestBody: { ...json(ITEM), required: true },
+        responses: { "201": { ...json(ITEM), description: "minted" } },
+        ...entity("create", "key"),
+      },
+    },
+    "/logs": {
+      get: {
+        operationId: "log.list",
+        responses: { "200": { ...json({ items: LINE, type: "array" }), description: "ok" } },
+        ...entity("list", "log"),
+      },
+    },
     "/me": {
       put: {
         operationId: "me.create",
@@ -47,44 +77,12 @@ const DOCUMENT = {
         ...entity("create"),
       },
     },
-    "/signup": {
-      post: {
-        operationId: "member.signup",
-        requestBody: { ...json(ITEM), required: true },
-        responses: { "201": { ...json(ITEM), description: "signed up" } },
-        security: [],
-        ...entity("create", "member"),
-        "x-fresh-principal": true,
-      },
-    },
-    "/keys": {
-      post: {
-        operationId: "keys.create",
-        requestBody: { ...json(ITEM), required: true },
-        responses: { "201": { ...json(ITEM), description: "minted" } },
-        ...entity("create", "key"),
-      },
-    },
-    "/columns/{column_id}": {
-      get: {
-        operationId: "column.read",
-        parameters: [{ in: "path", name: "column_id", required: true, schema: { type: "string" } }],
-        responses: { "200": { ...json(ITEM), description: "ok" } },
-        ...entity("read", "column"),
-      },
-    },
-    "/columns/import": {
-      post: {
-        operationId: "column.import",
-        responses: { "202": { ...json(ITEM), description: "accepted" } },
-        ...entity("action", "column"),
-      },
-    },
-    "/logs": {
-      get: {
-        operationId: "log.list",
-        responses: { "200": { ...json({ items: LINE, type: "array" }), description: "ok" } },
-        ...entity("list", "log"),
+    "/projects/{project_id}/tables/{table_id}": {
+      delete: {
+        operationId: "table.delete",
+        parameters: [PROJECT, TABLE],
+        responses: { "204": { description: "gone" } },
+        ...entity("delete"),
       },
     },
     "/settings": {
@@ -94,12 +92,14 @@ const DOCUMENT = {
         ...entity("read", "settings"),
       },
     },
-    "/projects/{project_id}/tables/{table_id}": {
-      delete: {
-        operationId: "table.delete",
-        parameters: [PROJECT, TABLE],
-        responses: { "204": { description: "gone" } },
-        ...entity("delete"),
+    "/signup": {
+      post: {
+        operationId: "member.signup",
+        requestBody: { ...json(ITEM), required: true },
+        responses: { "201": { ...json(ITEM), description: "signed up" } },
+        security: [],
+        ...entity("create", "member"),
+        "x-fresh-principal": true,
       },
     },
   },
@@ -134,8 +134,8 @@ function setup() {
     get: (path: string) =>
       path === "/columns/c9" ? Promise.resolve({ status: 200 }) : Promise.reject(new Error("no read expected")),
     hydrate: async (sent: Exchange) => sent,
-    transcript: [],
     relativePath: (url: string) => new URL(url).pathname,
+    transcript: [],
     view: () => client,
   } as unknown as Client;
 

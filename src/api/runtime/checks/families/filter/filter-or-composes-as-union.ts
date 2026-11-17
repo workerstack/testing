@@ -15,8 +15,6 @@ import { type Compound, compoundPlan, readComposed } from "./compound.ts";
  * AND-only — so this stands down everywhere else rather than inventing a request to send.
  */
 export const filterOrComposesAsUnion: Check<Compound> = defineCheck<Compound>({
-  plan: (ctx) =>
-    canWriteOr(filterSpec(conv(ctx))) && (ctx.query?.filterable.length ?? 0) > 1 ? compoundPlan(ctx, orTerm) : cannot(),
   dependsOn: [
     "query.filter-selects-from-whole-set",
     "list.read-after-write",
@@ -32,7 +30,8 @@ export const filterOrComposesAsUnion: Check<Compound> = defineCheck<Compound>({
   id: "filter.or-composes-as-union",
   lists: true,
   needs: "two filterable fields and an or() combinator (postgrest-shaped filter grammar)",
-  subjects: subjectsOf.list,
+  plan: (ctx) =>
+    canWriteOr(filterSpec(conv(ctx))) && (ctx.query?.filterable.length ?? 0) > 1 ? compoundPlan(ctx, orTerm) : cannot(),
   async run(ctx, { combined, fieldA, fieldB, termA, termB, valueA, valueB }): Promise<Outcome> {
     const composed = await readComposed(ctx, { combined, termA, termB }, (a, b) => new Set([...a, ...b]));
 
@@ -58,13 +57,14 @@ export const filterOrComposesAsUnion: Check<Compound> = defineCheck<Compound>({
     if (missing.length === 0 && extra.length === 0) return ASSERTED;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "or() does not compose as the union of its terms",
       detail: `or(${fieldA}.eq.${valueA},${fieldB}.eq.${valueB}) returned ${got.size} record(s); ${fieldA}.eq.${valueA} alone returned ${setA.size}, ${fieldB}.eq.${valueB} alone returned ${setB.size}, whose union is ${expected.size}. ${
         missing.length > 0 ? `Missing from the combined result: ${missing.slice(0, 3).join(", ")}. ` : ""
       }${
         extra.length > 0 ? `Present but matches neither term individually: ${extra.slice(0, 3).join(", ")}. ` : ""
       }A disjunction must select exactly the records either term matches alone.`,
       evidence: [onlyA.last.exchange, onlyB.last.exchange, composed.combined.last.exchange],
+      summary: "or() does not compose as the union of its terms",
     });
   },
+  subjects: subjectsOf.list,
 });

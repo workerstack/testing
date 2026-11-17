@@ -36,7 +36,13 @@ const shapeOf = (value: unknown, encode: Encode): Shape => {
 
   if (typeof value !== "object" || value === null) return { scalar: encode(String(value)) };
 
-  return { entries: Object.entries(value).map(([key, item]): [string, string] => [encode(key), encode(String(item))]) };
+  const byName = new Map<string, unknown>(Object.entries(value));
+
+  const entries = [...byName.keys()]
+    .toSorted()
+    .map((key): [string, string] => [encode(key), encode(String(byName.get(key)))]);
+
+  return { entries };
 };
 
 const pieces = (shape: Shape, explode: boolean, joiner: string): string[] => {

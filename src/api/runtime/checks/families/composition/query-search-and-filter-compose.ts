@@ -21,17 +21,6 @@ import { overlapPlan, type Subset } from "./plans.ts";
  * intersection. The token is chosen so each axis matches something the other does not.
  */
 export const searchAndFilterCompose: Check<Subset & { token: string }> = defineCheck<Subset & { token: string }>({
-  plan: (ctx) =>
-    andThen(
-      when(
-        filterable(ctx) &&
-          conv(ctx).search !== undefined &&
-          ctx.query !== null &&
-          ctx.query.searchable.length > 0 &&
-          ctx.records.length > 2,
-      ),
-      () => overlapPlan(ctx),
-    ),
   dependsOn: [
     "query.filter-selects-from-whole-set",
     "list.read-after-write",
@@ -43,7 +32,17 @@ export const searchAndFilterCompose: Check<Subset & { token: string }> = defineC
   id: "query.search-and-filter-compose",
   lists: true,
   needs: "a filterable field, a free-text search parameter, and more than two records",
-  subjects: subjectsOf.list,
+  plan: (ctx) =>
+    andThen(
+      when(
+        filterable(ctx) &&
+          conv(ctx).search !== undefined &&
+          ctx.query !== null &&
+          ctx.query.searchable.length > 0 &&
+          ctx.records.length > 2,
+      ),
+      () => overlapPlan(ctx),
+    ),
   async run(ctx, { field, term, token }): Promise<Outcome> {
     const limit = pageSize(ctx);
 
@@ -98,7 +97,6 @@ export const searchAndFilterCompose: Check<Subset & { token: string }> = defineC
     if (moved !== null) return moved;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "a filter and a search do not compose as their intersection",
       detail:
         `filter on "${field}" matched ${filterIds.size}; q=${JSON.stringify(token)} matched ${searchIds.size}; both together matched ${got.size} (intersection is ${expected.size}). ${
           missing.length > 0 ? `Missing: ${missing.slice(0, 3).join(", ")}. ` : ""
@@ -107,6 +105,8 @@ export const searchAndFilterCompose: Check<Subset & { token: string }> = defineC
         }A structured predicate and a free-text search must narrow each other. When they ` +
         `do not, one of them is being dropped the moment the other is present.`,
       evidence: [filtered.last.exchange, searched.last.exchange, both.last.exchange],
+      summary: "a filter and a search do not compose as their intersection",
     });
   },
+  subjects: subjectsOf.list,
 });

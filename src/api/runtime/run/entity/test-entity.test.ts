@@ -176,7 +176,7 @@ describe("testEntity", () => {
     expect(full.ctx.findings.findings[0]?.operations).toEqual(["notes.create"]);
     const targeted = await contextOf(optionsFor(crashing, { ops: ["notes.get"] }));
     const run = entityRunOf(targeted);
-    run.findings.gap("world.seed", "note", { summary: "s", detail: "d" });
+    run.findings.gap("world.seed", "note", { detail: "d", summary: "s" });
     expect(targeted.findings.findings[0]?.operations).toEqual(["notes.get"]);
   });
 
@@ -185,7 +185,7 @@ describe("testEntity", () => {
     delete listOnly.paths["/notes"]?.["post"];
     const ctx = await contextOf(optionsFor(notesApi(listOnly as unknown as OpenApiDocument)));
     const run = entityRunOf(ctx);
-    run.findings.gap("world.seed", "note", { summary: "s", detail: "d" });
+    run.findings.gap("world.seed", "note", { detail: "d", summary: "s" });
     expect(ctx.findings.findings[0]).not.toHaveProperty("operations");
   });
 });

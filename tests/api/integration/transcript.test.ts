@@ -32,12 +32,12 @@ async function track(started: Promise<Listening>): Promise<Listening> {
 function recognizesDescriptors() {
   expect(isBodyRef(null)).toBe(false);
   expect(isBodyRef([])).toBe(false);
-  expect(isBodyRef({ sha256: "a", bytes: 1 })).toBe(false);
+  expect(isBodyRef({ bytes: 1, sha256: "a" })).toBe(false);
   expect(isBodyRef({ bytes: 1, extra: true, mediaType: "text/plain", sha256: "a" })).toBe(false);
   expect(isBodyRef({ bytes: 1, mediaType: "text/plain", sha256: "a" })).toBe(true);
   expect(isFormSnapshot(null)).toBe(false);
   expect(isFormSnapshot([])).toBe(false);
-  expect(isFormSnapshot({ parts: [], extra: 1 })).toBe(false);
+  expect(isFormSnapshot({ extra: 1, parts: [] })).toBe(false);
   expect(isFormSnapshot({ parts: [] })).toBe(true);
   expect(holdsLiveBody(new FormData())).toBe(true);
   expect(holdsLiveBody(new URLSearchParams("a=1"))).toBe(true);
@@ -182,7 +182,7 @@ async function compactsResponseBodies() {
   });
   expect(await compactResponseBody([{ id: "1" }], {})).toEqual([{ id: "1" }]);
   expect(await compactResponseBody(0, {})).toBe(0);
-  expect(await compactResponseBody("hello", { "content-type": "  ", "CONTENT-TYPE": "text/plain" })).toBe("hello");
+  expect(await compactResponseBody("hello", { "CONTENT-TYPE": "text/plain", "content-type": "  " })).toBe("hello");
   const giantFrames = [{ data: huge, event: "chunk" }];
   expect(await compactResponseBody(giantFrames, { "content-type": "text/event-stream" })).toMatchObject({
     mediaType: "text/event-stream",

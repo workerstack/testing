@@ -55,16 +55,15 @@ function typedSentinel(ctx: Listed, field: EffectiveFilterField): string | numbe
 }
 
 export const declaredFilterableOpsAccepted: Check = defineCheck({
+  dependsOn: ["list.read-after-write", "spec.declared-filterable-is-filterable", "error.malformed-filter-not-5xx"],
+  id: "spec.declared-filterable-ops-accepted",
+  lists: true,
+  needs: "a closed operator list on at least one declared field",
   plan: (ctx) =>
     when(
       ctx.query?.source === "tag" &&
         resolvedCaps(ctx).filterable.some((field) => opsAreClosed(field, resolvedCaps(ctx))),
     ),
-  dependsOn: ["list.read-after-write", "spec.declared-filterable-is-filterable", "error.malformed-filter-not-5xx"],
-  id: "spec.declared-filterable-ops-accepted",
-  lists: true,
-  needs: "a closed operator list on at least one declared field",
-  subjects: subjectsOf.list,
   async run(ctx): Promise<Outcome> {
     const caps = resolvedCaps(ctx);
     const rejected: string[] = [];
@@ -122,9 +121,10 @@ export const declaredFilterableOpsAccepted: Check = defineCheck({
     if (rejected.length === 0) return ASSERTED;
 
     return ctx.findings.spec(this.id, ctx.entityName, {
-      summary: "the document declares a filter operator the backend rejects",
       detail: `declared ops that 4xx: ${rejected.slice(0, 8).join(", ")}.`,
       evidence: refusedBy.slice(0, 3),
+      summary: "the document declares a filter operator the backend rejects",
     });
   },
+  subjects: subjectsOf.list,
 });

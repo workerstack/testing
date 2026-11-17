@@ -339,7 +339,7 @@
       "added": [
         {
           "check": "patch.minimality",
-          "detail": "patching only \"label\" also changed 4 other field(s): amount 1.5 → 0; note \"Quarterly Report 0\" → null; active true → false; tags [\"red\"] → []. PATCH is a partial update; behaving as PUT silently destroys data callers never sent.",
+          "detail": "patching only \"label\" also changed 4 other field(s): active true → false; amount 1.5 → 0; note \"Quarterly Report 0\" → null; tags [\"red\"] → []. PATCH is a partial update; behaving as PUT silently destroys data callers never sent.",
           "entity": "row",
           "operations": [
             "row.update"
@@ -393,7 +393,7 @@
         },
         {
           "check": "patch.minimality",
-          "detail": "patching only \"name\" also changed 2 other field(s): url \"Quarterly Report 0 a7a7a7a7b55.3.0\" → \"\"; description \"Quarterly Report 0\" → null. PATCH is a partial update; behaving as PUT silently destroys data callers never sent.",
+          "detail": "patching only \"name\" also changed 2 other field(s): description \"Quarterly Report 0\" → null; url \"Quarterly Report 0 a7a7a7a7b55.3.0\" → \"\". PATCH is a partial update; behaving as PUT silently destroys data callers never sent.",
           "entity": "webhook",
           "operations": [
             "webhook.update"
@@ -420,7 +420,7 @@
         },
         {
           "check": "patch.minimality",
-          "detail": "patching only \"name\" also changed 3 other field(s): slug \"Quarterly Report 0 a7a7a7a7b55.0.0\" → \"\"; position 1 → 0; description \"Quarterly Report 0\" → null. PATCH is a partial update; behaving as PUT silently destroys data callers never sent.",
+          "detail": "patching only \"name\" also changed 3 other field(s): description \"Quarterly Report 0\" → null; position 1 → 0; slug \"Quarterly Report 0 a7a7a7a7b55.0.0\" → \"\". PATCH is a partial update; behaving as PUT silently destroys data callers never sent.",
           "entity": "table",
           "operations": [
             "table.update"

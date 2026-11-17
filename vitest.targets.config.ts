@@ -4,10 +4,10 @@ import { defineConfig } from "vitest/config";
 // network required, minutes per target, so it stays out of `test`; CI runs it nightly.
 export default defineConfig({
   test: {
+    fileParallelism: false,
     globalSetup: ["tests/api/support/temp-root.ts"],
+    hookTimeout: 900_000,
     include: ["tests/api/targets/run.test.ts"],
     testTimeout: 60_000,
-    hookTimeout: 900_000,
-    fileParallelism: false,
   },
 });

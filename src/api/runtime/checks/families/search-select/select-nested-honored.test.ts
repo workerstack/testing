@@ -58,6 +58,21 @@ describe("select.nested-honored judges", () => {
   });
 });
 
+describe("select.nested-honored lists by name", () => {
+  it("names the relation's fields by name, whatever order the answer wrote them in", async () => {
+    const author = Object.fromEntries([
+      ["name", "n"],
+      ["email", "e"],
+    ]);
+
+    const staged = stage(selectNestedHonored, { ...NESTED, respond: authoredBy(author) });
+
+    await staged.run();
+
+    expect(staged.findings.findings[0]?.detail).toBe("select=author(name) returned email, name.");
+  });
+});
+
 describe("select.nested-honored gives up", () => {
   it("is unresolved when the nested select is refused or empty", async () => {
     const reason = "nested select was rejected or empty";

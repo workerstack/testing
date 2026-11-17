@@ -9,15 +9,14 @@
  * encoding the same assumptions the API tester does, and the two drift together into agreeing on nonsense.
  */
 
-import { CATALOG_DEFECTS } from "./catalog.ts";
-import { COMPOSITION_DEFECTS } from "./composition.ts";
-import { CORE_DEFECTS } from "./core.ts";
-import { FRESHNESS_DEFECTS } from "./freshness.ts";
-import { QUERY_DEFECTS } from "./query.ts";
-import { RECORD_DEFECTS } from "./records.ts";
-import { SECURITY_DEFECTS } from "./security.ts";
+import { CATALOG_DEFECT_ORDER, CATALOG_DEFECTS } from "./catalog.ts";
+import { COMPOSITION_DEFECT_ORDER, COMPOSITION_DEFECTS } from "./composition.ts";
+import { CORE_DEFECT_ORDER, CORE_DEFECTS } from "./core.ts";
+import { FRESHNESS_DEFECT_ORDER, FRESHNESS_DEFECTS } from "./freshness.ts";
+import { QUERY_DEFECT_ORDER, QUERY_DEFECTS } from "./query.ts";
+import { RECORD_DEFECT_ORDER, RECORD_DEFECTS } from "./records.ts";
+import { SECURITY_DEFECT_ORDER, SECURITY_DEFECTS } from "./security.ts";
 
-// The families in the table's order: every reader of the names (the matrix, the docs, the goldens) sees this order.
 export const DEFECTS: Readonly<
   typeof CORE_DEFECTS &
     typeof COMPOSITION_DEFECTS &
@@ -35,6 +34,17 @@ export const DEFECTS: Readonly<
   ...SECURITY_DEFECTS,
   ...FRESHNESS_DEFECTS,
 };
+
+/** Every defect's name in the table's order: the families as listed, each in its own order. */
+export const DEFECT_ORDER: readonly DefectName[] = [
+  ...CORE_DEFECT_ORDER,
+  ...COMPOSITION_DEFECT_ORDER,
+  ...QUERY_DEFECT_ORDER,
+  ...RECORD_DEFECT_ORDER,
+  ...CATALOG_DEFECT_ORDER,
+  ...SECURITY_DEFECT_ORDER,
+  ...FRESHNESS_DEFECT_ORDER,
+];
 
 export type DefectName = keyof typeof DEFECTS;
 

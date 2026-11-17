@@ -45,9 +45,9 @@ export async function afterCall(input: DisposableInput, call: Accepted): Promise
 
   if (caller.status !== 200) {
     blame.collector.backend(DISPOSABLE_CHECK_ID, read.entity ?? "caller", {
-      summary: "the suite caller was logged out",
       detail: `${op.operationId} ran as the second user, and the suite ${read.operationId} then returned ${caller.status}.`,
       evidence: [called, caller],
+      summary: "the suite caller was logged out",
     });
 
     return;
@@ -90,9 +90,9 @@ async function listedGone(input: DisposableInput, call: Accepted): Promise<Obser
 
   if (recordsOf(listed.responseBody, list, input.model).some((row) => row[field] === value)) {
     blame.collector.backend(DISPOSABLE_CHECK_ID, blame.entity, {
-      summary: "the credential was still listed",
       detail: `${op.operationId} returned ${called.status}, and the follow-up list still contained ${value}.`,
       evidence: [called, listed],
+      summary: "the credential was still listed",
     });
 
     return BLAMED;
@@ -121,9 +121,9 @@ async function sessionEnded(input: DisposableInput, call: Accepted): Promise<Obs
   // no refresh declared, or one that sent nothing, nothing shows the session ended.
   if (!refused && (renewed === undefined || renews)) {
     blame.collector.backend(DISPOSABLE_CHECK_ID, blame.entity, {
-      summary: "the disposable session was still accepted",
       detail: `${op.operationId} invalidates ${read.operationId}, and that read then returned ${gone.status} with the second user's credential.`,
       evidence: renewed === undefined ? [called, gone] : [called, gone, renewed],
+      summary: "the disposable session was still accepted",
     });
 
     return BLAMED;
@@ -131,9 +131,9 @@ async function sessionEnded(input: DisposableInput, call: Accepted): Promise<Obs
 
   if (refused && renews) {
     blame.collector.backend(DISPOSABLE_CHECK_ID, blame.entity, {
-      summary: "the refresh token still renews after the session ended",
       detail: `${op.operationId} ended the session, and the declared refresh then returned ${renewed.status}.`,
       evidence: [called, gone, renewed],
+      summary: "the refresh token still renews after the session ended",
     });
 
     return BLAMED;

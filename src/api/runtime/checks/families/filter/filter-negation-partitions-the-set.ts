@@ -30,6 +30,19 @@ export const negationPartitions: Check<{
   eqTerm: Record<string, string>;
   neqTerm: Record<string, string>;
 }>({
+  dependsOn: [
+    "query.filter-selects-from-whole-set",
+    "list.read-after-write",
+    // Partitioning is asserted over field *values*. A backend that drops submitted fields
+    // leaves the cohort without the value the predicate is built from.
+    "create.persists-submitted-fields",
+    // The three sets are gathered across pages, so a walk that skips or repeats records makes
+    // the partition fail for a reason that has nothing to do with the predicate.
+    "pagination.page-walk-covers-set",
+  ],
+  id: "filter.negation-partitions-the-set",
+  lists: true,
+  needs: "a `filter` parameter supporting eq and neq",
   plan: (ctx) => {
     if (!filterable(ctx) || ctx.records.length <= 1 || !identityIsFilterable(ctx)) return cannot();
     // Prefer a field with nulls in the cohort: partitioning on the identity can never expose
@@ -49,20 +62,6 @@ export const negationPartitions: Check<{
 
     return ready({ eqTerm, field, neqTerm, value });
   },
-  dependsOn: [
-    "query.filter-selects-from-whole-set",
-    "list.read-after-write",
-    // Partitioning is asserted over field *values*. A backend that drops submitted fields
-    // leaves the cohort without the value the predicate is built from.
-    "create.persists-submitted-fields",
-    // The three sets are gathered across pages, so a walk that skips or repeats records makes
-    // the partition fail for a reason that has nothing to do with the predicate.
-    "pagination.page-walk-covers-set",
-  ],
-  id: "filter.negation-partitions-the-set",
-  lists: true,
-  needs: "a `filter` parameter supporting eq and neq",
-  subjects: subjectsOf.list,
   async run(ctx, { eqTerm, field, neqTerm }): Promise<Outcome> {
     const limit = pageSize(ctx);
     const all = await collectSet(ctx, limit);
@@ -105,11 +104,11 @@ export const negationPartitions: Check<{
 
     if (overlap.length > 0) {
       return ctx.findings.backend(this.id, ctx.entityName, {
-        summary: "a predicate and its negation both match the same record",
         detail: `${overlap.length} record(s) appear in both ${field}.eq and ${field}.neq results: ${overlap
           .slice(0, 3)
           .join(", ")}`,
         evidence: [matching.last.exchange, complement.last.exchange],
+        summary: "a predicate and its negation both match the same record",
       });
     }
 
@@ -117,6 +116,7 @@ export const negationPartitions: Check<{
 
     return ASSERTED;
   },
+  subjects: subjectsOf.list,
 });
 
 /** Records that match neither the predicate nor its negation, and whether nulls explain them. */
@@ -132,7 +132,6 @@ function reportUncovered(
   });
 
   ctx.findings.backend(check, ctx.entityName, {
-    summary: "a predicate and its negation do not cover the full set",
     detail: `${missing.length} record(s) match neither ${field}.eq nor ${field}.neq: ${missing.slice(0, 3).join(", ")}. ${
       nulls.length === missing.length
         ? `Every one of them has ${field} = null, so the negated predicate is dropping ` +
@@ -141,5 +140,6 @@ function reportUncovered(
         : "A record must satisfy either a predicate or its negation."
     }`,
     evidence: reads.map((read) => read.last.exchange),
+    summary: "a predicate and its negation do not cover the full set",
   });
 }

@@ -27,36 +27,36 @@ const scope: ScopeReport = {
   mode: "full",
   operations: [
     row({
-      operationId: "health.get",
       evidence: { call: 1 },
+      operationId: "health.get",
       sufficiency: "complete",
       tier: "contract",
       why: "a read with no declared effects: its contract is the whole promise",
     }),
     row({
-      operationId: "note.create",
       evidence: { call: 2, observation: { path: "$.id", seq: 3, value: "n1" } },
+      operationId: "note.create",
       sufficiency: "verified",
       tier: "verified",
       why: "a later exchange shows what this call did",
     }),
     row({
-      operationId: "notify.send",
       evidence: { call: 4 },
+      operationId: "notify.send",
       sufficiency: "unproven",
       tier: "contract",
       why: "met its contract, but no later read observed what it changed",
     }),
     row({
-      operationId: "extract.once",
       checks: { ...none, failed: ["response.no-server-error"] },
       findings: 1,
+      operationId: "extract.once",
       status: "failed",
     }),
     row({ operationId: "billing.offer", reason: 'blocked by scenario "offer-redeem"', status: "blocked" }),
   ],
   originsSkipped: [],
-  requested: { ops: [], only: [] },
+  requested: { only: [], ops: [] },
   support: [],
 };
 

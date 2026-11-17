@@ -52,17 +52,17 @@ function irregularPlurals(): SpecFixture {
         "/analyses": {
           get: { operationId: "analysis.list", responses: okResponse({ type: "object" }) },
         },
-        "/statuses": {
-          get: { operationId: "status.list", responses: okResponse({ type: "object" }) },
-        },
-        "/people": {
-          get: { operationId: "person.list", responses: okResponse({ type: "object" }) },
-        },
         "/campuses": {
           get: { operationId: "campus.list", responses: okResponse({ type: "object" }) },
         },
         "/inboxes": {
           get: { operationId: "inbox.list", responses: okResponse({ type: "object" }) },
+        },
+        "/people": {
+          get: { operationId: "person.list", responses: okResponse({ type: "object" }) },
+        },
+        "/statuses": {
+          get: { operationId: "status.list", responses: okResponse({ type: "object" }) },
         },
       },
     },

@@ -6,8 +6,12 @@ import { operationResolver } from "./resolver.ts";
 
 const resolve = operationResolver(
   modelOf({
-    "/tables/{id}": {
-      get: { operationId: "tables.get", responses: { ...ok(member), "302": { description: "moved" } } },
+    "/health": {
+      get: {
+        operationId: "health",
+        responses: ok({ type: "object" }),
+        "x-consistency": { bypass: "X-Fresh: 1", staleness: "30s" },
+      },
     },
     "/tables/archived": {
       get: {
@@ -21,12 +25,8 @@ const resolve = operationResolver(
         responses: ok(member),
       },
     },
-    "/health": {
-      get: {
-        operationId: "health",
-        responses: ok({ type: "object" }),
-        "x-consistency": { bypass: "X-Fresh: 1", staleness: "30s" },
-      },
+    "/tables/{id}": {
+      get: { operationId: "tables.get", responses: { ...ok(member), "302": { description: "moved" } } },
     },
     "/tables/{id}/rows/{row}": { get: { operationId: "rows.get", responses: { "3XX": { description: "elsewhere" } } } },
   }),

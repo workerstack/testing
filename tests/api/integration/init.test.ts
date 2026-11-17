@@ -91,7 +91,7 @@ describe("testing api init, then doctor and run on what it wrote", () => {
   it("doctor names the unset vars, then shows every scheme's recipe once they are set", async () => {
     const unset = await tester("doctor", "--config", config);
     expect(unset.out).toContain(
-      "  env        TESTING_API_BASE_URL, TESTING_API_API_KEY_KEY, TESTING_API_JWT_TOKEN not set — a run stops until they are\n",
+      "  env        TESTING_API_API_KEY_KEY, TESTING_API_BASE_URL, TESTING_API_JWT_TOKEN not set — a run stops until they are\n",
     );
 
     for (const line of SECURITY_LINES) expect(unset.out).toMatch(line);

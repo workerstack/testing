@@ -34,6 +34,10 @@ export const filterContainsMembership: Check<{
   element: string;
   term: Record<string, string>;
 }>({
+  dependsOn: [...FOUNDATIONS, "query.filter-selects-from-whole-set"],
+  id: "filter.contains-membership",
+  lists: true,
+  needs: "an array field that allows `contains` and a known element",
   plan: (ctx) => {
     const unverified = storedFieldsUnknown(ctx);
 
@@ -59,11 +63,6 @@ export const filterContainsMembership: Check<{
 
     return term === null ? cannot("a filter grammar with a contains operator") : ready({ element, field, term });
   },
-  dependsOn: [...FOUNDATIONS, "query.filter-selects-from-whole-set"],
-  id: "filter.contains-membership",
-  lists: true,
-  needs: "an array field that allows `contains` and a known element",
-  subjects: subjectsOf.list,
   async run(ctx, { element, field, term }): Promise<Outcome> {
     const result = await collectSet(ctx, pageSize(ctx), term);
 
@@ -87,9 +86,10 @@ export const filterContainsMembership: Check<{
     if (sameSet(expected, got)) return ASSERTED;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "contains does not select membership of the given element",
       detail: `${field.field}.contains.${String(element)} returned ${got.size}; ${expected.size} records hold that element.`,
       evidence: [result.last.exchange],
+      summary: "contains does not select membership of the given element",
     });
   },
+  subjects: subjectsOf.list,
 });

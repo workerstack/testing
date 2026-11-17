@@ -7,7 +7,7 @@ import { successSchemaHonored } from "./schema-success-response-matches-document
 /** A context whose run already created an item, answered with `created`; then the check's outcome. */
 async function judge(created: Answer | null, options: ItemsOptions = {}) {
   const model = modelOfItems(options);
-  const staged = contextFor(model, "item.list", { respond: () => created ?? undefined, fields: itemOperations(model) });
+  const staged = contextFor(model, "item.list", { fields: itemOperations(model), respond: () => created ?? undefined });
 
   if (created !== null)
     await staged.ctx.client.request("POST", "/items", { as: { principal: "alpha" }, operationId: "item.create" });
@@ -24,7 +24,7 @@ const verdicts = (findings: { findings: { verdict: string; summary: string }[] }
 describe("schema.success-response-matches-document plan", () => {
   it("needs a create, a validator, and the create in the document", () => {
     const model = modelOfItems();
-    const { ctx } = contextFor(model, "item.list", { respond: () => {}, fields: itemOperations(model) });
+    const { ctx } = contextFor(model, "item.list", { fields: itemOperations(model), respond: () => {} });
     expect(successSchemaHonored.plan(ctx).ok).toBe(true);
     expect(successSchemaHonored.plan({ ...ctx, createOp: undefined })).toEqual({ needs: undefined, ok: false });
     expect(successSchemaHonored.plan({ ...ctx, validator: undefined }).ok).toBe(false);

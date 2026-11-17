@@ -13,8 +13,8 @@ function stage(respond: Responder, fields: Partial<Listed> = {}) {
   const model = modelOf(notesDoc());
 
   return contextFor(model, "notes.list", {
-    respond,
     fields: { readOp: op(model, "notes.get"), records: [listed], ...fields },
+    respond,
   });
 }
 

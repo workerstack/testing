@@ -129,8 +129,8 @@ describe("SchemaValidator discriminator", () => {
     const schema = doc.components?.schemas?.["Pet"] as JsonSchema;
     const validator = new SchemaValidator();
     const op = returning("200", "application/json", schema);
-    expect(validator.validate("pet", op, { responseBody: { kind: "Dog", bark: true }, status: 200 }).ok).toBe(true);
-    const wrong = validator.validate("pet", op, { responseBody: { kind: "Cat", bark: true }, status: 200 });
+    expect(validator.validate("pet", op, { responseBody: { bark: true, kind: "Dog" }, status: 200 }).ok).toBe(true);
+    const wrong = validator.validate("pet", op, { responseBody: { bark: true, kind: "Cat" }, status: 200 });
     expect(wrong.ok).toBe(false);
     expect(wrong.errors).toContain("/kind must be equal to one of the allowed values");
   });

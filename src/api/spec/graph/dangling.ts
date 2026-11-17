@@ -39,16 +39,24 @@ function at(found: Found, node: unknown, visit: Visit): void {
   else visit(found, node);
 }
 
+// A list's items in place, a map's values by key name: the pointers found do not depend on key order.
+function valuesByName(nodes: Parameters<Visit>[1] | unknown[]): unknown[] {
+  if (Array.isArray(nodes)) return nodes;
+  const byName = new Map<string, unknown>(Object.entries(nodes));
+
+  return [...byName.keys()].toSorted().map((name) => byName.get(name));
+}
+
 // Every entry of a map or list of structure nodes.
 function each(found: Found, nodes: unknown, visit: Visit): void {
-  if (nodes !== null && typeof nodes === "object") for (const node of Object.values(nodes)) at(found, node, visit);
+  if (Array.isArray(nodes) || isRecord(nodes)) for (const node of valuesByName(nodes)) at(found, node, visit);
 }
 
 const leaf: Visit = () => {};
 
 // A schema and everything under it, recursive definitions included.
 function schema(found: Found, node: unknown): void {
-  if (node === null || typeof node !== "object" || found.seen.has(node)) return;
+  if (!(Array.isArray(node) || isRecord(node)) || found.seen.has(node)) return;
   found.seen.add(node);
   const record = node as Record<string, unknown>;
   const pointer = record[DANGLING_KEY];
@@ -58,7 +66,7 @@ function schema(found: Found, node: unknown): void {
 
   if (typeof ref === "string" && ref.startsWith(DEF_PREFIX)) schema(found, found.defs[ref.slice(DEF_PREFIX.length)]);
 
-  for (const value of Object.values(node)) schema(found, value);
+  for (const value of valuesByName(node)) schema(found, value);
 }
 
 const media: Visit = (found, node) => {

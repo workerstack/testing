@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { SECURITY_DEFECTS } from "./security.ts";
+import { SECURITY_DEFECT_ORDER, SECURITY_DEFECTS } from "./security.ts";
 
 describe("SECURITY_DEFECTS", () => {
   it("holds the family of credentials, schemes, scopes, sessions, roles and logins, in the table's order", () => {
-    expect(Object.keys(SECURITY_DEFECTS)).toEqual([
+    expect(SECURITY_DEFECT_ORDER).toEqual([
       "AUTH_IGNORED_ON_ROUTE",
       "TOKEN_NOT_VERIFIED",
       "ANY_SCHEME_ACCEPTED",

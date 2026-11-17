@@ -207,7 +207,7 @@ for (const id of ids) {
     envText += `${key}=${databaseId}\n`;
   }
 
-  map[id] = { id: databaseId, name, entities: world.entities.length };
+  map[id] = { entities: world.entities.length, id: databaseId, name };
 }
 
 await writeFile(envPath, envText);

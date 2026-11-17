@@ -49,7 +49,7 @@ describe("sseEvents", () => {
     expect(isSseFrameList([])).toBe(false);
     expect(isSseFrameList("data: x")).toBe(false);
     expect(isSseFrameList([null])).toBe(false);
-    expect(isSseFrameList([{ event: 1, data: 1 }])).toBe(false);
+    expect(isSseFrameList([{ data: 1, event: 1 }])).toBe(false);
     expect(isSseFrameList([{ event: "e" }])).toBe(false);
     expect(isSseFrameList([{ data: null, event: "e" }])).toBe(true);
   });

@@ -101,14 +101,14 @@ export function requestCredential(
     accepted: () => {
       if (judged(last)) wire.controls.accepted(last);
     },
+    // A probe sends what it resolved, as it renews nothing: the refusal it expects is the answer.
+    lapsed: () => !probe && last?.kind === "sends" && last.lapsed(),
     next: async () => {
       last = renewal ?? (await resolveWith(wire.credentials, request));
       renewal = undefined;
 
       return placementOf(last, { actor: acting.actor, redactor: wire.redactor });
     },
-    // A probe sends what it resolved, as it renews nothing: the refusal it expects is the answer.
-    lapsed: () => !probe && last?.kind === "sends" && last.lapsed(),
     refused: async (send) => {
       // Only a value a renewal issued is judged: any other refusal is the answer as it stands.
       if (!judged(last)) return false;

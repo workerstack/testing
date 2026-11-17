@@ -95,11 +95,11 @@ export async function guardNetwork(
 }
 
 export const fixtures: Fixtures<WebFixtures, object, TestArgs, WorkerArgs> = {
-  guard: [{}, { option: true }],
-  page: guardPage,
-  ready: async ({ page }, use) => use(createReady(page)),
-  a11yDefaults: [{}, { option: true }],
   a11y: async ({ a11yDefaults, page }, use) => use(createA11y({ builder: buildAxe, defaults: a11yDefaults, page })),
+  a11yDefaults: [{}, { option: true }],
+  guard: [{}, { option: true }],
   network: [guardNetwork, { auto: true }],
+  page: guardPage,
   pointer: async ({ page }, use) => use(createPointer(page)),
+  ready: async ({ page }, use) => use(createReady(page)),
 };

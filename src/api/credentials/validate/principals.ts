@@ -2,6 +2,7 @@
 // removed. Each problem names the path and, for a removed field, what replaces it.
 
 import type { ApiConfig } from "../../config/types/config.ts";
+import { entriesByName } from "../../config/types/entries-by-name.ts";
 import { isRaw, isRecord, type RawOf } from "../../config/types/raw.ts";
 import type { PrincipalEntry, Recipe } from "../../config/types/security.ts";
 import { requestSchema } from "../../spec/collection/request.ts";
@@ -61,8 +62,11 @@ function entryProblems(id: string, entry: Entry): string[] {
   const path = `principals.${id}`;
   const problems: string[] = [];
 
-  for (const [field, why] of Object.entries(REMOVED_ON_PRINCIPAL))
-    if (field in entry) problems.push(`${path}.${field} was removed in 0.25.0: ${why(path)}`);
+  for (const field of Object.keys(REMOVED_ON_PRINCIPAL).toSorted()) {
+    const why = REMOVED_ON_PRINCIPAL[field];
+
+    if (why !== undefined && field in entry) problems.push(`${path}.${field} was removed in 0.25.0: ${why(path)}`);
+  }
 
   problems.push(...scopeProblems(path, entry.scope));
 
@@ -238,7 +242,7 @@ export const REMOVED_KEYS: readonly string[] = /* @__PURE__ */ Object.keys(REMOV
 
 /** Top-level fields 0.25.0 removed, with their replacement: keys the current config type no longer has. */
 export function removedProblems(config: object): string[] {
-  return Object.entries(REMOVED_TOP_LEVEL)
+  return entriesByName(REMOVED_TOP_LEVEL)
     .filter(([key]) => key in config)
     .map(([key, replacement]) => `${key} was removed in 0.25.0: ${replacement}`);
 }

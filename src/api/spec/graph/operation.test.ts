@@ -2,65 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { list, member, ok, query } from "../__fixtures__/documents.ts";
 import { details, operationsOf } from "./__fixtures__/operations.ts";
-
-// The model's fields, in the order every operation carries them.
-const FIELDS = [
-  "action",
-  "async",
-  "eventStream",
-  "cleanup",
-  "collection",
-  "createdIdFrom",
-  "credentialFrom",
-  "recordPath",
-  "cost",
-  "featureGate",
-  "unique",
-  "destructive",
-  "documentedStatuses",
-  "statuses",
-  "consistency",
-  "effects",
-  "noEffects",
-  "entity",
-  "entitySource",
-  "freshPrincipal",
-  "generated",
-  "hasRequestBody",
-  "identity",
-  "identitySource",
-  "idempotent",
-  "immutable",
-  "invalidates",
-  "rateLimit",
-  "isMutation",
-  "unsendable",
-  "method",
-  "operationId",
-  "path",
-  "pathParams",
-  "privileged",
-  "privilegedRequired",
-  "query",
-  "conventions",
-  "queryParamNames",
-  "requiredQuery",
-  "requiredHeaders",
-  "requiredCookies",
-  "paramStyles",
-  "idempotencyHeader",
-  "etag",
-  "ifMatch",
-  "rootParams",
-  "route",
-  "securitySchemes",
-  "security",
-  "softDelete",
-  "invite",
-  "wait",
-  "tenantParam",
-  "tenantSource",
-];
+import { OPERATION_FIELDS } from "./operation.ts";
 
 const twoArrays = { properties: { a: list(member), b: list(member) }, type: "object" };
 
@@ -84,16 +26,18 @@ describe("modelOperation", () => {
     );
 
     const [create] = operations;
-    expect(Object.keys(create ?? {})).toEqual(FIELDS);
+    expect(Object.keys(create ?? {})).toEqual(OPERATION_FIELDS);
+    expect(OPERATION_FIELDS.slice(0, 3)).toStrictEqual(["action", "async", "eventStream"]);
+    expect(OPERATION_FIELDS.at(-1)).toBe("tenantSource");
     expect(create).toMatchObject({
       action: "create",
       documentedStatuses: [201],
       entity: "note",
       entitySource: "tag",
       hasRequestBody: true,
+      idempotencyHeader: "Idempotency-Key",
       identity: "id",
       identitySource: "schema",
-      idempotencyHeader: "Idempotency-Key",
       isMutation: true,
       method: "POST",
       noEffects: true,
@@ -204,10 +148,13 @@ describe("modelOperation collections", () => {
 
   it("asks which arrays are the rows only of a listing that does not say", () => {
     const { gaps } = operationsOf({
+      "/": { get: { operationId: "root", responses: ok({ type: "object" }) } },
       "/a": { get: { operationId: "a", responses: ok(twoArrays) } },
       "/b": { get: { operationId: "b", responses: ok(twoArrays), "x-entity": { recordPath: "$.a" } } },
       "/c/{id}": { get: { operationId: "c", responses: ok(twoArrays) } },
       "/d": { post: { operationId: "d", responses: ok(twoArrays) } },
+      "/e/{id}/feed": { get: { operationId: "feed", responses: ok(twoArrays) } },
+      "/f/{id}": { get: { operationId: "f", responses: ok(twoArrays), "x-entity": { action: "list", name: "f" } } },
       // A declared action outranks the path's shape: a singleton read is a record, an item-shaped list has rows.
       "/me": {
         get: {
@@ -216,9 +163,6 @@ describe("modelOperation collections", () => {
           "x-entity": { action: "read", identity: "self", name: "me" },
         },
       },
-      "/e/{id}/feed": { get: { operationId: "feed", responses: ok(twoArrays) } },
-      "/f/{id}": { get: { operationId: "f", responses: ok(twoArrays), "x-entity": { action: "list", name: "f" } } },
-      "/": { get: { operationId: "root", responses: ok({ type: "object" }) } },
     });
 
     expect(gaps.gaps.filter((gap) => gap.tag === "x-entity.recordPath").map((gap) => gap.operationId)).toEqual([

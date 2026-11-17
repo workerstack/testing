@@ -113,11 +113,11 @@ describe("response.status-is-documented and a dedicated credential", () => {
           kind: "sends",
           lapsed: () => false,
           principal: "alpha",
+          refresh: async () => ({ kind: "anonymous" }),
           schemes: [],
           secrets: { cookies: [], headers: [], query: [], values: [] },
           sends: {},
           sentValues: {},
-          refresh: async () => ({ kind: "anonymous" }),
         }),
         operationResolver: () => ({ entity: "item", operationId: "item.read", template: "/items/{item_id}" }),
       },
@@ -166,7 +166,7 @@ describe("response.status-is-documented stand-asides", () => {
     expect(gated.outcome).toEqual({ kind: "asserted" });
     expect(gated.judged).toEqual([["item.update"]]);
 
-    const refused = await judge([seen("item.update", { status: 403, body: { error: "no" } })]);
+    const refused = await judge([seen("item.update", { body: { error: "no" }, status: 403 })]);
     expect(refused.outcome).toEqual({ kind: "finding", verdict: "SPEC_BUG" });
     expect(refused.findings.findings[0]?.detail).toContain("item.update returned 403; the document declares 200.");
   });

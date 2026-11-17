@@ -23,13 +23,6 @@ import { projectionPlan, type Subset, subsetPlan } from "./plans.ts";
  */
 export const filterAndSelectCompose: Check<Subset & { extra: string; projection: Record<string, string> }> =
   defineCheck<Subset & { extra: string; projection: Record<string, string> }>({
-    plan: (ctx) => {
-      if (!filterable(ctx) || conv(ctx).select === undefined || ctx.records.length <= 2) return cannot();
-
-      return andThen(subsetPlan(ctx), (subset) =>
-        andThen(projectionPlan(ctx), (projected) => ready({ ...subset, ...projected })),
-      );
-    },
     dependsOn: [
       "query.filter-selects-from-whole-set",
       "list.read-after-write",
@@ -44,7 +37,13 @@ export const filterAndSelectCompose: Check<Subset & { extra: string; projection:
     id: "query.filter-and-select-compose",
     lists: true,
     needs: "a filterable field, a select parameter, and more than two records",
-    subjects: subjectsOf.list,
+    plan: (ctx) => {
+      if (!filterable(ctx) || conv(ctx).select === undefined || ctx.records.length <= 2) return cannot();
+
+      return andThen(subsetPlan(ctx), (subset) =>
+        andThen(projectionPlan(ctx), (projected) => ready({ ...subset, ...projected })),
+      );
+    },
     async run(ctx, { extra, field, projection, term }): Promise<Outcome> {
       const limit = pageSize(ctx);
 
@@ -93,7 +92,6 @@ export const filterAndSelectCompose: Check<Subset & { extra: string; projection:
       if (moved !== null) return moved;
 
       return ctx.findings.backend(this.id, ctx.entityName, {
-        summary: "adding a select changes which records a filter returns",
         detail:
           `filter on "${field}" alone matched ${alone.size} record(s); the same filter with ` +
           `select=${[ctx.identity, extra].join(",")} matched ${combined.size}. ${
@@ -104,6 +102,8 @@ export const filterAndSelectCompose: Check<Subset & { extra: string; projection:
           `that only holds while every column is selected is one a query plan is dropping ` +
           `once it has to name the columns.`,
         evidence: [filtered.last.exchange, both.last.exchange],
+        summary: "adding a select changes which records a filter returns",
       });
     },
+    subjects: subjectsOf.list,
   });

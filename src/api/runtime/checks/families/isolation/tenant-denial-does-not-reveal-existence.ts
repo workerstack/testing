@@ -32,6 +32,13 @@ export const denialDoesNotRevealExistence: Check<{
   readOp: OperationModel;
   peer: Actor;
 }>({
+  dependsOn: [
+    // If the record is readable across tenants at all, that is the finding — how the denial
+    // would have been phrased is beside the point.
+    "tenant.item-not-readable-cross-tenant",
+  ],
+  id: "tenant.denial-does-not-reveal-existence",
+  needs: "a second principal in a different tenant, and a tenant tagged or inferred from the path",
   plan: (ctx) => {
     const { peer, readOp } = ctx;
     const target = ctx.records[0];
@@ -40,14 +47,6 @@ export const denialDoesNotRevealExistence: Check<{
 
     return ready({ peer, readOp, target });
   },
-  dependsOn: [
-    // If the record is readable across tenants at all, that is the finding — how the denial
-    // would have been phrased is beside the point.
-    "tenant.item-not-readable-cross-tenant",
-  ],
-  id: "tenant.denial-does-not-reveal-existence",
-  needs: "a second principal in a different tenant, and a tenant tagged or inferred from the path",
-  subjects: subjectsOf.read,
   async run(ctx, { peer, readOp, target }): Promise<Outcome> {
     const realId = idOf(target, ctx.identity);
 
@@ -87,13 +86,14 @@ export const denialDoesNotRevealExistence: Check<{
     if (existing.status === absent.status) return ASSERTED;
 
     return ctx.findings.security(this.id, ctx.entityName, {
-      summary: "the denial status reveals whether a record exists",
       detail:
         `a record belonging to another tenant was refused with ${existing.status}, while an id ` +
         `that does not exist was refused with ${absent.status}. The difference is an oracle: ` +
         "anyone able to guess or enumerate identifiers can learn which ones are real without " +
         "ever reading one. Both cases must answer identically — conventionally 404.",
       evidence: [existing, absent],
+      summary: "the denial status reveals whether a record exists",
     });
   },
+  subjects: subjectsOf.read,
 });

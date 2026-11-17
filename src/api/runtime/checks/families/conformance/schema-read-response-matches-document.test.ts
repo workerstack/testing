@@ -39,7 +39,7 @@ const listed = (body: unknown, extra: Partial<Exchange> = {}): Exchange =>
 describe("schema.read-response-matches-document plan", () => {
   it("needs a validator, and an item read or a listing", () => {
     const model = modelOfItems();
-    const { ctx } = contextFor(model, "item.list", { respond: () => {}, fields: itemOperations(model) });
+    const { ctx } = contextFor(model, "item.list", { fields: itemOperations(model), respond: () => {} });
     expect(readSchemaHonored.plan(ctx).ok).toBe(true);
     expect(readSchemaHonored.plan({ ...ctx, readOp: undefined }).ok).toBe(true);
     expect(readSchemaHonored.plan({ ...ctx, validator: undefined }).ok).toBe(false);

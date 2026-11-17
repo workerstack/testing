@@ -56,7 +56,7 @@ describe("field lists", () => {
   });
 
   it("keeps a row's keys in field, type, then ops order", () => {
-    const [row] = parseFilterable([{ ops: ["eq"], type: "string", field: "id" }]).fields;
+    const [row] = parseFilterable([{ field: "id", ops: ["eq"], type: "string" }]).fields;
     expect(Object.keys(row ?? {})).toEqual(["field", "type", "ops"]);
   });
 });

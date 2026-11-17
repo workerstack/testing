@@ -18,6 +18,10 @@ export const selectUnknownFieldRejected: Check<{
   requested: string[];
   projection: Record<string, string>;
 }>({
+  dependsOn: ["select.projection-honored", "error.malformed-filter-not-5xx"],
+  id: "select.unknown-field-rejected",
+  lists: true,
+  needs: "`select.unknown` declared",
   plan: (ctx) => {
     const policy = resolvedCaps(ctx).select?.unknown;
 
@@ -27,11 +31,6 @@ export const selectUnknownFieldRejected: Check<{
 
     return projection === null ? cannot() : ready({ policy, projection, requested });
   },
-  dependsOn: ["select.projection-honored", "error.malformed-filter-not-5xx"],
-  id: "select.unknown-field-rejected",
-  lists: true,
-  needs: "`select.unknown` declared",
-  subjects: subjectsOf.list,
   async run(ctx, { policy, projection }): Promise<Outcome> {
     const result = await list(asProbe(ctx), { ...q(ctx, { limit: 5 }), ...projection });
 
@@ -41,9 +40,9 @@ export const selectUnknownFieldRejected: Check<{
       if (refused !== null) return refused;
 
       return ctx.findings.backend(this.id, ctx.entityName, {
-        summary: "unknown select field was not rejected",
         detail: `select.unknown=reject but the probe returned ${result.exchange.status}.`,
         evidence: [result.exchange],
+        summary: "unknown select field was not rejected",
       });
     }
 
@@ -55,9 +54,10 @@ export const selectUnknownFieldRejected: Check<{
     if (extras.length === 0) return ASSERTED;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "unknown select field was honored under ignore",
       detail: "select.unknown=ignore should drop the undeclared name, not return it.",
       evidence: [result.exchange],
+      summary: "unknown select field was honored under ignore",
     });
   },
+  subjects: subjectsOf.list,
 });

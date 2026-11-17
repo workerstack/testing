@@ -48,8 +48,8 @@ export async function resolvePrincipals(planned: Planned): Promise<RunPrincipals
 
     blocked.push({ id, reason });
     findings.blocked("auth.blocked" satisfies RunFindingId, id, {
-      summary: `principal "${id}" is BLOCKED`,
       cause: reason,
+      summary: `principal "${id}" is BLOCKED`,
     });
   }
 

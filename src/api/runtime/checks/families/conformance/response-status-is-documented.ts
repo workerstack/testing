@@ -95,11 +95,10 @@ async function readExchange(
 }
 
 export const documentedStatusHonored: Check = defineCheck({
-  plan: (ctx) => when(ctx.model.operations.some((op) => op.entity === ctx.entityName && op.action !== "create")),
   id: "response.status-is-documented",
   judgesTranscript: true,
   needs: "a modeled non-create operation on this entity",
-  subjects: subjectsOf.nonCreate,
+  plan: (ctx) => when(ctx.model.operations.some((op) => op.entity === ctx.entityName && op.action !== "create")),
   async run(ctx): Promise<Outcome> {
     const byOp = new Map<string, Exchange[]>();
     const probes = new Map<string, Exchange[]>();
@@ -125,11 +124,11 @@ export const documentedStatusHonored: Check = defineCheck({
     if (probes.size > 0) {
       const { lines, evidence } = describeUndeclared(ctx, probes);
       ctx.findings.attributed([...probes.keys()]).spec(this.id, ctx.entityName, {
-        summary: "requests the API tester sent to be refused drew statuses the document does not declare",
         detail:
           `${lines.join(". ")}. These were deliberately invalid probes, so the refusal is right; ` +
           "its status is what the document leaves out.",
         evidence,
+        summary: "requests the API tester sent to be refused drew statuses the document does not declare",
       });
     }
 
@@ -139,9 +138,10 @@ export const documentedStatusHonored: Check = defineCheck({
     const { lines, evidence } = describeUndeclared(ctx, byOp);
 
     return ctx.findings.attributed([...byOp.keys()]).spec(this.id, ctx.entityName, {
-      summary: "an operation returned a status the document does not declare",
       detail: `${lines.join(". ")}. Clients generated from this document will not recognize the response.`,
       evidence,
+      summary: "an operation returned a status the document does not declare",
     });
   },
+  subjects: subjectsOf.nonCreate,
 });

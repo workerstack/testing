@@ -5,6 +5,7 @@
  */
 
 import type { SpecModel } from "../../spec/graph/types.ts";
+import { inOrder } from "../../spec/in-order.ts";
 import { type DoctorConfig, type DoctorFacts, doctorFacts } from "./doctor-facts.ts";
 import { authLines, catalogLines, envelopeLines } from "./doctor-notes.ts";
 import { declarationLines, entityLines, summaryLines, tagLines } from "./doctor-text.ts";
@@ -42,15 +43,46 @@ export function unsetEnvLines(unsetEnv: readonly string[] | undefined): string[]
   return [`  ${"env".padEnd(11)}${unsetEnv.join(", ")} not set — a run stops until they are`, ""];
 }
 
+/** The report's fields in the order `doctor --json` states them. */
+const DOCTOR_ORDER = [
+  "blocking",
+  "cacheBypass",
+  "entities",
+  "externalRefs",
+  "danglingRefs",
+  "featureGates",
+  "invites",
+  "adoptingCreates",
+  "uniqueConstraints",
+  "gaps",
+  "listableEntities",
+  "queryCatalog",
+  "allowRemoved",
+  "prefixRoots",
+  "unmadeIds",
+  "security",
+  "testableEntities",
+  "trackableEntities",
+  "untestableEntities",
+  "unknownEntities",
+  "unsetEnv",
+] as const;
+
 function doctorJson({ config, danglingRefs, externalRefs, facts, unsetEnv }: Diagnosis): string {
   return `${JSON.stringify(
-    {
+    inOrder(DOCTOR_ORDER, {
+      adoptingCreates: facts.adopting.map((op) => ({
+        credentialFrom: op.credentialFrom,
+        entity: op.entity,
+        operationId: op.operationId,
+      })),
       blocking: facts.blocking,
       cacheBypass: facts.bypass,
+      danglingRefs,
       entities: facts.entities.length,
       externalRefs,
-      danglingRefs,
       featureGates: facts.featureGates,
+      gaps: facts.gaps,
       invites: facts.inviting.map((entity) => ({
         accept: entity.invite.accept,
         acceptFrom: entity.invite.acceptFrom === "link" ? "link" : "token",
@@ -58,24 +90,18 @@ function doctorJson({ config, danglingRefs, externalRefs, facts, unsetEnv }: Dia
         revokeStaleness: entity.invite.revokeStaleness ?? null,
         tokenFrom: entity.invite.tokenFrom,
       })),
-      adoptingCreates: facts.adopting.map((op) => ({
-        credentialFrom: op.credentialFrom,
-        entity: op.entity,
-        operationId: op.operationId,
-      })),
-      uniqueConstraints: facts.uniqueConstraints,
-      gaps: facts.gaps,
       listableEntities: facts.listable.length,
       queryCatalog: facts.catalogs,
+      uniqueConstraints: facts.uniqueConstraints,
       ...(config?.allowRemoved === undefined ? {} : { allowRemoved: config.allowRemoved }),
       ...rootsJson(facts.roots),
       security: securityJson(facts.security),
       testableEntities: facts.testable.length,
       trackableEntities: facts.trackable.length,
-      untestableEntities: facts.untestable,
       unknownEntities: facts.unknownEntities,
+      untestableEntities: facts.untestable,
       ...(unsetEnv === undefined ? {} : { unsetEnv }),
-    },
+    }),
     null,
     2,
   )}\n`;

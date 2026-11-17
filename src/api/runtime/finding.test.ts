@@ -7,9 +7,9 @@ describe("finding attribution", () => {
   it("an attributed view shares the collector and stamps its operations", () => {
     const root = new FindingCollector();
     const view = root.attributed(["row.list"]);
-    view.backend("filter.in-is-union-of-eq", "row", { summary: "s", detail: "d", evidence: [] });
+    view.backend("filter.in-is-union-of-eq", "row", { detail: "d", evidence: [], summary: "s" });
     view.unresolved("sort.order-is-applied", "row", "no field");
-    view.gap("world.seed", "row", { summary: "s", detail: "d" });
+    view.gap("world.seed", "row", { detail: "d", summary: "s" });
     expect(root.findings.map((f) => f.operations)).toEqual([["row.list"], ["row.list"]]);
     expect(root.inconclusive).toEqual([
       { check: "sort.order-is-applied", entity: "row", operations: ["row.list"], reason: "no field" },
@@ -21,13 +21,13 @@ describe("finding attribution", () => {
     root
       .attributed(["job.start", "job.other"])
       .attributed(["job.start"])
-      .spec("effects.x", "job", { summary: "s", detail: "d", evidence: [] });
+      .spec("effects.x", "job", { detail: "d", evidence: [], summary: "s" });
     expect(root.findings[0]?.operations).toEqual(["job.start"]);
   });
 
   it("leaves run-level findings unattributed", () => {
     const root = new FindingCollector();
-    root.gap("world.teardown", "run", { summary: "s", detail: "d" });
+    root.gap("world.teardown", "run", { detail: "d", summary: "s" });
     root.unresolved("net", "run", "down");
     expect(root.findings[0]?.operations).toBeUndefined();
     expect(root.inconclusive[0]).toEqual({ check: "net", entity: "run", reason: "down" });
@@ -38,7 +38,7 @@ describe("finding attribution", () => {
     const exchange = { method: "POST", status: 500 } as never;
     root
       .attributed(["row.list"])
-      .blocked("world.seed", "row", { summary: "s", cause: "support table.create failed (500)", evidence: [exchange] });
+      .blocked("world.seed", "row", { cause: "support table.create failed (500)", evidence: [exchange], summary: "s" });
     expect(root.findings[0]).toMatchObject({
       detail: "blocked by support table.create failed (500)",
       evidence: [exchange],
@@ -51,11 +51,11 @@ describe("finding attribution", () => {
 describe("a check's own findings", () => {
   it("cannot be filed under another check's id", () => {
     const findings = new FindingCollector().ownedBy("sort.order-is-applied");
-    expect(() => findings.gap("filter.unknown-field-rejected", "row", { summary: "s", detail: "d" })).toThrow(
+    expect(() => findings.gap("filter.unknown-field-rejected", "row", { detail: "d", summary: "s" })).toThrow(
       /tried to report under/,
     );
     expect(() => findings.unresolved("filter.unknown-field-rejected", "row", "r")).toThrow(/tried to report under/);
-    findings.attributed(["row.list"]).gap("sort.order-is-applied", "row", { summary: "s", detail: "d" });
+    findings.attributed(["row.list"]).gap("sort.order-is-applied", "row", { detail: "d", summary: "s" });
     expect(findings.findings).toHaveLength(1);
   });
 });

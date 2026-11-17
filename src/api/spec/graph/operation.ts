@@ -35,6 +35,7 @@ import { readCleanup, readInvalidate } from "../extensions/routes.ts";
 import { ext, extObject } from "../extensions/tag.ts";
 import { pathParameterNames, readRootParams, readTenantParam, readTenantSource } from "../extensions/tenant.ts";
 import { readUnique } from "../extensions/unique.ts";
+import { inOrder } from "../in-order.ts";
 import { MUTATING, unsendableReason } from "../methods.ts";
 import type { QueryTag } from "../query/tag.ts";
 import { resolveSecurity } from "../security/requirements.ts";
@@ -96,10 +97,69 @@ export type ModelContext = {
   queryEnvelope?: QueryEnvelopeNames | undefined;
 };
 
+/** The model's fields in the order every operation carries them, whatever order the facts are read in. */
+export const OPERATION_FIELDS: readonly (keyof OperationModel)[] = [
+  "action",
+  "async",
+  "eventStream",
+  "cleanup",
+  "collection",
+  "createdIdFrom",
+  "credentialFrom",
+  "recordPath",
+  "cost",
+  "featureGate",
+  "unique",
+  "destructive",
+  "documentedStatuses",
+  "statuses",
+  "consistency",
+  "effects",
+  "noEffects",
+  "entity",
+  "entitySource",
+  "freshPrincipal",
+  "generated",
+  "hasRequestBody",
+  "identity",
+  "identitySource",
+  "idempotent",
+  "immutable",
+  "invalidates",
+  "rateLimit",
+  "isMutation",
+  "unsendable",
+  "method",
+  "operationId",
+  "path",
+  "pathParams",
+  "privileged",
+  "privilegedRequired",
+  "query",
+  "conventions",
+  "queryParamNames",
+  "requiredQuery",
+  "requiredHeaders",
+  "requiredCookies",
+  "paramStyles",
+  "idempotencyHeader",
+  "etag",
+  "ifMatch",
+  "rootParams",
+  "route",
+  "securitySchemes",
+  "security",
+  "softDelete",
+  "invite",
+  "wait",
+  "tenantParam",
+  "tenantSource",
+];
+
 export function modelOperation(endpoint: Endpoint, context: ModelContext): OperationModel {
   const reading = readOperation(endpoint, context);
 
-  return { ...contractFacts(reading), ...behaviorFacts(reading), ...requestFacts(reading) };
+  return inOrder(OPERATION_FIELDS, { ...contractFacts(reading), ...behaviorFacts(reading), ...requestFacts(reading) });
 }
 
 function readOperation(endpoint: Endpoint, { doc, gaps, queryParams, queryEnvelope }: ModelContext): Reading {
@@ -183,18 +243,18 @@ function contractFacts(reading: Reading): Pick<OperationModel, ContractFacts> {
   return {
     action: reading.entity?.action ?? null,
     async: readAsync(op),
-    eventStream: documentsEventStream(op),
     cleanup: readCleanup(op),
     collection: reading.collection,
+    cost: readCost(op),
     createdIdFrom: readCreatedIdFrom(endpoint),
     credentialFrom: readCredentialFrom(endpoint, reading.entity?.action ?? null, gaps),
-    recordPath: reading.recordPath,
-    cost: readCost(op),
-    featureGate: readFeatureGate(op),
-    unique: readUnique(op, endpoint.operationId, gaps),
     destructive: readFlag(op, "x-destructive", true),
     documentedStatuses: reading.statuses.exact,
+    eventStream: documentsEventStream(op),
+    featureGate: readFeatureGate(op),
+    recordPath: reading.recordPath,
     statuses: reading.statuses,
+    unique: readUnique(op, endpoint.operationId, gaps),
   };
 }
 
@@ -207,23 +267,23 @@ function behaviorFacts(reading: Reading) {
   return {
     consistency: readConsistency(op),
     effects: readEffects(op, operationId, gaps),
-    noEffects: Array.isArray(effects) && effects.length === 0,
     entity: reading.entity?.name ?? null,
     entitySource: reading.entity?.source ?? null,
     freshPrincipal: readFlag(op, "x-fresh-principal"),
     generated: readGenerated(op, reading.bodySchema),
     hasRequestBody: hasRequestBody(op),
+    noEffects: Array.isArray(effects) && effects.length === 0,
     ...reading.identity,
     idempotent: readFlag(op, "x-idempotent"),
     immutable: readImmutable(op),
     invalidates: readInvalidate(op),
-    rateLimit: readRateLimit(op),
     isMutation: MUTATING.has(method),
-    unsendable: unsendableReason(method),
     method,
     operationId,
     path,
     pathParams: reading.pathParams,
+    rateLimit: readRateLimit(op),
+    unsendable: unsendableReason(method),
     ...privilegedFacts(reading),
   };
 }
@@ -255,9 +315,11 @@ function requestFacts(reading: Reading) {
   const queryParamNames = parameters.filter((p) => p.in === "query").map((p) => p.name);
   const record = (message: string) => gaps.record(operationId, "x-query", message);
 
+  // Read before the conventions: the gaps it records come first.
+  const query =
+    collection === null ? null : readQueryCapability(endpoint, collection.itemSchema, { gaps, params: queryParams });
+
   return {
-    query:
-      collection === null ? null : readQueryCapability(endpoint, collection.itemSchema, { gaps, params: queryParams }),
     // A config name the operation does not declare is dropped before this, so an unmatched one is the tag's.
     conventions: deriveQueryConventions(parameters, collection, {
       declared,
@@ -271,22 +333,23 @@ function requestFacts(reading: Reading) {
       params: mergeQueryParams({ config: queryParams, declared: queryParamNames, tag: declared?.params }),
       responseHeaders: successResponseHeaders(op),
     }),
-    queryParamNames,
-    requiredQuery: readRequiredQuery(parameters),
-    requiredHeaders: readRequiredHeaders(op),
-    requiredCookies: readRequiredCookies(parameters),
-    paramStyles: readParamStyles(parameters),
-    idempotencyHeader: idempotencyHeader(op),
     etag: declaresEtag(op),
+    idempotencyHeader: idempotencyHeader(op),
     ifMatch: parameters.find((p) => p.in === "header" && p.name.toLowerCase() === "if-match")?.name ?? null,
+    invite: readInvite(op),
+    paramStyles: readParamStyles(parameters),
+    query,
+    queryParamNames,
+    requiredCookies: readRequiredCookies(parameters),
+    requiredHeaders: readRequiredHeaders(op),
+    requiredQuery: readRequiredQuery(parameters),
     rootParams: readRootParams(op),
     route: `${endpoint.method.toUpperCase()} ${endpoint.path}`,
-    securitySchemes: [...new Set(reading.security.alternatives.flat().map((requirement) => requirement.scheme))],
     security: reading.security,
+    securitySchemes: [...new Set(reading.security.alternatives.flat().map((requirement) => requirement.scheme))],
     softDelete: readSoftDelete(op),
-    invite: readInvite(op),
-    wait: readWait(op),
     tenantParam: readTenantParam(endpoint, gaps),
     tenantSource: readTenantSource(endpoint),
+    wait: readWait(op),
   };
 }

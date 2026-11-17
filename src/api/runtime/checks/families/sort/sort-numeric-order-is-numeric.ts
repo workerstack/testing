@@ -23,16 +23,15 @@ function numericLexicalDisagrees(ctx: Listed, field: string): boolean {
 export const sortNumericOrderIsNumeric: Check<{ field: EffectiveFilterField }> = defineCheck<{
   field: EffectiveFilterField;
 }>({
+  dependsOn: ["sort.order-is-applied", "pagination.page-walk-covers-set"],
+  id: "sort.numeric-order-is-numeric",
+  lists: true,
+  needs: "a numeric sortable field whose lexical order disagrees with numeric order",
   plan: (ctx) => {
     const field = resolvedCaps(ctx).sortable.find((item) => numericLexicalDisagrees(ctx, item.field));
 
     return conv(ctx).order === undefined || field === undefined ? cannot() : ready({ field });
   },
-  dependsOn: ["sort.order-is-applied", "pagination.page-walk-covers-set"],
-  id: "sort.numeric-order-is-numeric",
-  lists: true,
-  needs: "a numeric sortable field whose lexical order disagrees with numeric order",
-  subjects: subjectsOf.list,
   async run(ctx, { field }): Promise<Outcome> {
     // Across pages: a server that serves a few rows at a time can put the disagreeing values on
     // different pages. Even a read cut short is a prefix of the order, and must ascend.
@@ -45,9 +44,10 @@ export const sortNumericOrderIsNumeric: Check<{ field: EffectiveFilterField }> =
     if (numbers.join(",") === sorted.join(",")) return ASSERTED;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: `"${field.field}" is sorted as text rather than as a number`,
       detail: `order=${field.field}.asc returned ${numbers.slice(0, 8).join(", ")}.`,
       evidence: read.pages.slice(0, 3).map((page) => page.exchange),
+      summary: `"${field.field}" is sorted as text rather than as a number`,
     });
   },
+  subjects: subjectsOf.list,
 });

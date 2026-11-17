@@ -14,10 +14,10 @@ export function createExclusion({ model, profile, state, findings }: Loaded): Ex
       state.excludedIds.add(op.operationId);
       state.profileExclusions.push({ entity: entity.name, operationId: op.operationId, reason });
       findings.attributed([op.operationId]).gap("profile.skip" satisfies RunFindingId, entity.name, {
-        summary: `${op.operationId} excluded by profile "${profile.name}"`,
         detail:
           `${reason}, under --profile ${profile.name}. Checks that depend on this operation stand ` +
           "down rather than run against data the API tester did not create through it.",
+        summary: `${op.operationId} excluded by profile "${profile.name}"`,
       });
 
       return true;

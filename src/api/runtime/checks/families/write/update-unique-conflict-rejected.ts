@@ -33,6 +33,12 @@ export const uniqueConflictUpdate: Check<{
   sets: string[][];
   updateOp: OperationModel;
 }>({
+  // Reads whole sets across pages, so a walk that skips or repeats records corrupts them.
+  dependsOn: ["pagination.page-walk-covers-set"],
+  id: "update.unique-conflict-rejected",
+  lists: true,
+  mutates: true,
+  needs: "x-unique, an update operation with a probeable set, a create, and a known row",
   plan: (ctx) => {
     const updateOp = ctx.uniqueUpdateOp;
     const [first] = ctx.records;
@@ -44,13 +50,6 @@ export const uniqueConflictUpdate: Check<{
 
     return sets.length === 0 ? cannot() : ready({ first, sets, updateOp });
   },
-  // Reads whole sets across pages, so a walk that skips or repeats records corrupts them.
-  dependsOn: ["pagination.page-walk-covers-set"],
-  id: "update.unique-conflict-rejected",
-  lists: true,
-  mutates: true,
-  needs: "x-unique, an update operation with a probeable set, a create, and a known row",
-  subjects: subjectsOf.update,
   async run(ctx, { first, sets, updateOp }): Promise<Outcome> {
     const bodyCols = bodyPropertyNames(updateOp, ctx.model);
     const required = idempotencyHeaderRequired(updateOp, ctx.model);
@@ -66,6 +65,7 @@ export const uniqueConflictUpdate: Check<{
 
     return ASSERTED;
   },
+  subjects: subjectsOf.update,
 });
 
 /** What every unique probe on one update shares: the row whose values are collided with. */
@@ -110,9 +110,9 @@ async function probeUpdateSet(
   if (patch === null) return undefined;
 
   const headers = uniqueProbeHeaders({
+    fresh: `testing-unique-patch-${ctx.entityName}-${ctx.seed}-${index}`,
     header: updateOp.idempotencyHeader,
     required: probe.required,
-    fresh: `testing-unique-patch-${ctx.entityName}-${ctx.seed}-${index}`,
   });
 
   const update = await updateRequest(ctx, updateOp, target, patch);
@@ -141,10 +141,10 @@ async function judgeUpdateProbe(
 
   if (isPlanLimitResponse(sent.status, sent.responseBody)) {
     ctx.findings.gap(check, ctx.entityName, {
-      summary: `${updateOp.operationId} did not apply`,
       detail:
         `${updateOp.operationId} returned ${sent.status} (plan limit) on a unique-conflict ` +
         "probe, so uniqueness was not observed.",
+      summary: `${updateOp.operationId} did not apply`,
     });
 
     return;
@@ -160,12 +160,12 @@ async function judgeUpdateProbe(
 
     if (leaked.length > 0) {
       ctx.findings.backend(check, ctx.entityName, {
-        summary: "a unique-conflict 409 still grew the collection",
         detail:
           `PATCH colliding ${set.join(", ")} returned 409 but the list grew from ` +
           `${before.items.length} to ${after.items.length}, by ${leaked.slice(0, 3).join(", ")}, ` +
           `which holds the colliding values.`,
         evidence: [before.exchange, sent, after.exchange],
+        summary: "a unique-conflict 409 still grew the collection",
       });
     }
 
@@ -187,9 +187,9 @@ function reportUpdateAnswer(
 
   if (sent.status >= 200 && sent.status < 300) {
     ctx.findings.backend(check, ctx.entityName, {
-      summary: "a duplicate unique-set update was accepted",
       detail: `${moved}constraint must be 409, not 2xx.`,
       evidence: [sent],
+      summary: "a duplicate unique-set update was accepted",
     });
 
     return;
@@ -197,9 +197,9 @@ function reportUpdateAnswer(
 
   if (sent.status >= 500) {
     ctx.findings.backend(check, ctx.entityName, {
-      summary: "a duplicate unique-set update drew a server error",
       detail: `${moved}constraint must be refused with 409, not crash.`,
       evidence: [sent],
+      summary: "a duplicate unique-set update drew a server error",
     });
 
     return;

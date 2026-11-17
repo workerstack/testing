@@ -27,13 +27,13 @@ describe("acquireMint", () => {
     expect([issued.value, issued.expiresAt, issued.scopes]).toEqual(["k1", null, ["rows:read", "rows:write"]]);
     expect(recorded.calls).toEqual([
       {
+        as: AS_JWT,
         body: {
           label: "the API tester ann@x.io",
           note: "for rows:read rows:write",
           scopes: ["rows:read", "rows:write"],
           tags: ["testing", 1, null],
         },
-        as: AS_JWT,
         operationId: "apiKey.create",
         secrets: ["$.key"],
       },

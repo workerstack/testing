@@ -1,10 +1,9 @@
 import { selectTerm } from "../../../../spec/conventions/select.ts";
-import type { Exchange } from "../../../exchange.ts";
-import { ASSERTED, type Outcome } from "../../../finding.ts";
+import type { Outcome } from "../../../finding.ts";
 import type { Check } from "../../core/check.ts";
 import { defineCheck } from "../../core/define.ts";
 import { when } from "../../core/plan.ts";
-import { declarationAnswer } from "../../planning/declarations.ts";
+import { declarationOutcome } from "../../planning/declarations.ts";
 import { subjectsOf } from "../../planning/subjects.ts";
 import { conv, q } from "../../query/capabilities.ts";
 import { list } from "../../sets/list.ts";
@@ -15,13 +14,6 @@ import { list } from "../../sets/list.ts";
  * client generated from the document exactly the same way a rejected filter or sort does.
  */
 export const declaredSelectableWorks: Check = defineCheck({
-  plan: (ctx) =>
-    when(
-      conv(ctx).select !== undefined &&
-        ctx.query?.source === "tag" &&
-        ctx.query.selectable.length > 0 &&
-        ctx.records.length > 0,
-    ),
   dependsOn: [
     "list.read-after-write",
     // Same masking risk as the filter and sort overclaim checks: ERROR_500_ON_BAD_FILTER turns
@@ -37,12 +29,15 @@ export const declaredSelectableWorks: Check = defineCheck({
   id: "spec.declared-selectable-is-selectable",
   lists: true,
   needs: "x-query naming selectable fields",
-  subjects: subjectsOf.list,
+  plan: (ctx) =>
+    when(
+      conv(ctx).select !== undefined &&
+        ctx.query?.source === "tag" &&
+        ctx.query.selectable.length > 0 &&
+        ctx.records.length > 0,
+    ),
   async run(ctx): Promise<Outcome> {
     const conventions = conv(ctx);
-    const rejected: Array<{ field: string; status: number; exchange: Exchange }> = [];
-    const unknown: string[] = [];
-    let probed = 0;
 
     const answers = await Promise.all(
       (ctx.query?.selectable ?? []).map(async (field) => {
@@ -54,42 +49,21 @@ export const declaredSelectableWorks: Check = defineCheck({
       }),
     );
 
-    for (const answered of answers) {
-      if (answered === null) continue;
-      const { field, result } = answered;
-      probed += 1;
-      // Only a rejection counts. A field accepted and then ignored is select.projection-
-      // honored's finding, not a capability claim breaking.
-      const answer = declarationAnswer(result.exchange.status);
-
-      if (answer === "refused") rejected.push({ exchange: result.exchange, field, status: result.exchange.status });
-
-      if (answer === "unknown") unknown.push(`${field} (${result.exchange.status})`);
-    }
-
-    if (probed === 0)
-      return ctx.findings.unresolved(this.id, ctx.entityName, "no declared selectable field could be probed");
-
-    if (rejected.length === 0 && unknown.length > 0) {
-      return ctx.findings.unresolved(
-        this.id,
-        ctx.entityName,
-        `probes were turned away without a verdict: ${unknown.join(", ")}`,
-      );
-    }
-
-    if (rejected.length === 0) return ASSERTED;
-
-    return ctx.findings.spec(this.id, ctx.entityName, {
-      summary: "the document declares a select field the backend does not accept",
-      detail:
-        `x-query lists ${rejected.length} field(s) as selectable that the backend rejects: ` +
-        `${rejected.map((r) => `${r.field} (${r.status})`).join(", ")}. ` +
-        "Every client generated from this document will offer a sparse fieldset that fails at " +
-        "runtime. Either the field needs to stay projectable or the declaration needs " +
-        "removing — but the document and the backend currently disagree about what this API " +
-        "can do.",
-      evidence: rejected.slice(0, 3).map((item) => item.exchange),
-    });
+    return declarationOutcome(
+      ctx,
+      answers.filter((answered) => answered !== null),
+      {
+        consequence:
+          "Every client generated from this document will offer a sparse fieldset that fails at " +
+          "runtime. Either the field needs to stay projectable or the declaration needs " +
+          "removing — but the document and the backend currently disagree about what this API " +
+          "can do.",
+        id: this.id,
+        kind: "selectable",
+        noProbe: "no declared selectable field could be probed",
+        summary: "the document declares a select field the backend does not accept",
+      },
+    );
   },
+  subjects: subjectsOf.list,
 });

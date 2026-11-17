@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { run } from "../../../src/api/runtime/run/index.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
+import { readJson, send } from "../support/effects-fixtures.ts";
 
 // `create.keeps-submitted-identity`: a create that takes the record's id from the client and answers
 // only an acknowledgment must have stored the record under that id. A server that quietly picks
@@ -83,24 +84,10 @@ function spec(mode: Mode): OpenApiDocument {
   } as OpenApiDocument;
 }
 
-async function readJson(req: IncomingMessage): Promise<unknown> {
-  const chunks: Buffer[] = [];
-
-  for await (const chunk of req) chunks.push(chunk as Buffer);
-  const raw = Buffer.concat(chunks).toString("utf8");
-
-  return raw === "" ? undefined : JSON.parse(raw);
-}
-
-function send(res: ServerResponse, status: number, body?: unknown): void {
-  res.writeHead(status, { "content-type": "application/json" });
-  res.end(body === undefined ? "" : JSON.stringify(body));
-}
-
 type World = { mode: Mode; next: number; notes: Map<string, Note> };
 
 async function createNote(world: World, req: IncomingMessage, res: ServerResponse): Promise<void> {
-  const body = (await readJson(req)) as Partial<Note> | undefined;
+  const body = await readJson<Partial<Note> | undefined>(req);
 
   if (typeof body?.name !== "string" || body.name === "") return send(res, 400, { error: "name" });
 

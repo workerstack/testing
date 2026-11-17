@@ -11,14 +11,6 @@ const CHECK = "delete.absent-record-returns-404";
 
 // Notes with an item read and delete, a soft-deleting archive, a bin emptied as a whole, and a delete with no read.
 const notes = doc({
-  "/notes/{note_id}": {
-    delete: {
-      operationId: "notes.delete",
-      parameters: [pathParam("note_id")],
-      responses: { "204": { description: "gone" } },
-    },
-    get: { operationId: "notes.get", parameters: [pathParam("note_id")], responses: ok(item) },
-  },
   "/archive/{note_id}": {
     delete: {
       operationId: "archive.delete",
@@ -38,6 +30,14 @@ const notes = doc({
   "/flat": {
     delete: { operationId: "flat.empty", responses: { "204": { description: "gone" } } },
     get: { operationId: "flat.list", responses: ok({ items: item, type: "array" }) },
+  },
+  "/notes/{note_id}": {
+    delete: {
+      operationId: "notes.delete",
+      parameters: [pathParam("note_id")],
+      responses: { "204": { description: "gone" } },
+    },
+    get: { operationId: "notes.get", parameters: [pathParam("note_id")], responses: ok(item) },
   },
   "/orphans/{id}": {
     delete: {
@@ -77,10 +77,10 @@ describe("confirmDeletes", () => {
 
     await confirmDeletes(input);
     expect(sent.map((request) => `${request.method} ${request.path} ${String(request.options.operationId)}`)).toEqual([
-      "GET /notes/n1 notes.get",
       "GET /archive/n2 archive.get",
       "GET /bin bin.list",
       "GET /flat flat.list",
+      "GET /notes/n1 notes.get",
     ]);
     expect(sent.every((request) => JSON.stringify(request.options.as) === '{"principal":"alpha"}')).toBe(true);
     expect(input.grades.evidence.get("notes.delete")?.observation).toMatchObject({ status: 404 });
@@ -103,10 +103,10 @@ describe("confirmDeletes", () => {
 
     await confirmDeletes(input);
     expect(input.findings.findings.map((finding) => `${finding.check} ${finding.entity} ${finding.verdict}`)).toEqual([
-      `${CHECK} note BACKEND_BUG`,
       `${CHECK} archive BACKEND_BUG`,
       `${CHECK} bin.empty BACKEND_BUG`,
       `${CHECK} flat.empty BACKEND_BUG`,
+      `${CHECK} note BACKEND_BUG`,
     ]);
     expect(input.grades.ran.get("notes.delete")?.has(CHECK)).toBe(true);
   });
@@ -123,8 +123,8 @@ describe("confirmDeletes on refusals and skips", () => {
 
     await confirmDeletes(input);
     expect(input.findings.inconclusive.map((entry) => entry.reason)).toEqual([
-      "notes.get answered 403 when reading /notes/n1 back after notes.delete, so whether the record is gone was not seen",
       "bin.list answered 302 when reading /bin back after bin.empty, so whether the record is gone was not seen",
+      "notes.get answered 403 when reading /notes/n1 back after notes.delete, so whether the record is gone was not seen",
     ]);
     expect(input.grades.evidence.get("archive.delete")?.observation).toMatchObject({ status: 410 });
     expect(input.findings.findings.map((finding) => finding.entity)).toEqual(["flat.empty"]);

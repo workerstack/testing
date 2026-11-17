@@ -50,8 +50,8 @@ test("a consumer hydrates and server-renders its fixtures through the packed pac
   const status = Object.fromEntries([...run.tests].map(([name, outcome]) => [name, outcome.status]));
   expect(status, run.stderr).toEqual({
     "a packed consumer hydrates a clean button and reads its server HTML": "passed",
-    "a packed consumer reports the element the server rendered differently": "passed",
     "a packed consumer rejects with the plugin's line when a fixture has no such export": "passed",
+    "a packed consumer reports the element the server rendered differently": "passed",
     "a packed consumer's server test renders a component that reads Solid's owner": "passed",
   });
   expect(run.stderr).not.toContain("Failed to load source map");

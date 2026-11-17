@@ -16,7 +16,6 @@ export const refreshReuseRefused: OperationCheck<Lifecycle[]> = defineCheck<Life
   mutatesCredentials: true,
   needs: "a recipe that declares a refresh, and a GET the credential authenticates",
   plan: (ctx) => lifecyclePlan(ctx, "refresh"),
-  subject: "operation",
   async run(ctx, planned) {
     const outcomes: SchemeOutcome[] = [];
 
@@ -24,6 +23,7 @@ export const refreshReuseRefused: OperationCheck<Lifecycle[]> = defineCheck<Life
 
     return settle(outcomes);
   },
+  subject: "operation",
 });
 
 const CHECK = "auth.refresh-reuse-refused";

@@ -9,6 +9,22 @@ const item = { properties: { id: { type: "string" } }, type: "object" };
 
 // Things: a list, a create, a read under an id, a destructive purge, and a query-bound search.
 const things = doc({
+  "/blob": {
+    get: {
+      operationId: "things.blob",
+      parameters: [{ in: "query", name: "b", required: true, schema: { type: "object" } }],
+      responses: ok(),
+    },
+  },
+  "/purge": { post: { operationId: "things.purge", responses: ok(), "x-destructive": true } },
+  "/search": {
+    get: {
+      operationId: "things.search",
+      parameters: [{ in: "query", name: "q", required: true, schema: { type: "string" } }],
+      responses: ok(),
+      "x-bind": { query: { q: "needle" } },
+    },
+  },
   "/things": {
     get: { operationId: "things.list", responses: ok({ items: item, type: "array" }) },
     post: {
@@ -20,26 +36,10 @@ const things = doc({
   "/things/{thing_id}": {
     get: { operationId: "things.get", parameters: [pathParam("thing_id")], responses: ok(item) },
   },
-  "/purge": { post: { operationId: "things.purge", responses: ok(), "x-destructive": true } },
-  "/search": {
-    get: {
-      operationId: "things.search",
-      parameters: [{ in: "query", name: "q", required: true, schema: { type: "string" } }],
-      responses: ok(),
-      "x-bind": { query: { q: "needle" } },
-    },
-  },
   "/upload": {
     post: {
       operationId: "things.upload",
       requestBody: { content: { "text/csv": { schema: { type: "string" } } } },
-      responses: ok(),
-    },
-  },
-  "/blob": {
-    get: {
-      operationId: "things.blob",
-      parameters: [{ in: "query", name: "b", required: true, schema: { type: "object" } }],
       responses: ok(),
     },
   },
@@ -54,16 +54,16 @@ describe("runContractCalls", () => {
     await runContractCalls(input);
     expect(input.checksRun.has("response.contract-call")).toBe(true);
     expect(sent.map((request) => `${request.method} ${request.path}`)).toEqual([
+      "GET /search",
       "GET /things",
       "POST /things",
-      "GET /search",
     ]);
-    expect(sent[2]?.options.query).toEqual({ q: "needle" });
+    expect(sent[0]?.options.query).toEqual({ q: "needle" });
     expect(sent.map((request) => request.options.as)).toEqual(
       Array.from({ length: 3 }, () => ({ principal: "alpha" })),
     );
-    expect(sent[0]?.options).not.toHaveProperty("query");
-    expect(sent[0]?.options).not.toHaveProperty("body");
+    expect(sent[1]?.options).not.toHaveProperty("query");
+    expect(sent[1]?.options).not.toHaveProperty("body");
     expect([...(input.grades.needs.get("things.get") ?? [])]).toEqual([
       "unresolved param thing_id: no response this run saw carried one, and hooks.resolvePathValue did not answer",
     ]);
@@ -76,8 +76,8 @@ describe("runContractCalls", () => {
 
   it("judges an earlier success instead of calling again", async () => {
     const { input, sent } = stage(things, () => ({ status: 200 }), {
-      mode: "targeted",
       inScope: (id) => id === "things.list",
+      mode: "targeted",
     });
 
     input.client.transcript.push(
@@ -117,8 +117,8 @@ describe("runContractCalls and declared styles", () => {
 describe("runContractCalls and security probes", () => {
   it("never takes a security probe's success for the operation's contract call, and calls it itself", async () => {
     const { input, sent } = stage(things, () => ({ status: 200 }), {
-      mode: "targeted",
       inScope: (id) => id === "things.list",
+      mode: "targeted",
     });
 
     const probe = { as: { anonymous: true }, operationId: "things.list", probe: true } as const;
@@ -131,8 +131,8 @@ describe("runContractCalls and security probes", () => {
 
   it("still calls an operation only security probes graded", async () => {
     const { input, sent } = stage(things, () => ({ status: 200 }), {
-      mode: "targeted",
       inScope: (id) => id === "things.list",
+      mode: "targeted",
     });
 
     input.grades.probedBy(["things.list"], "auth.anonymous-operation-open");
@@ -155,8 +155,8 @@ describe("runContractCalls and credential operations", () => {
 
     await runContractCalls(input);
     expect(sent.map((request) => [request.path, request.options.as])).toEqual([
-      ["/things", { principal: "alpha#probe-1 for things.list", scheme: "jwt" }],
       ["/search", { principal: "alpha" }],
+      ["/things", { principal: "alpha#probe-1 for things.list", scheme: "jwt" }],
     ]);
   });
 

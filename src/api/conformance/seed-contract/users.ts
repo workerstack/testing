@@ -71,7 +71,7 @@ export function userSpec(): OpenApiDocument {
   return {
     info: { title: "register-is-not-seed", version: "1" },
     openapi: "3.1.0",
-    paths: { "/v1/auth/register": { post: register() }, "/v1/auth/login": { post: login() } },
+    paths: { "/v1/auth/login": { post: login() }, "/v1/auth/register": { post: register() } },
     ...bearerSecurity(),
   } as OpenApiDocument;
 }

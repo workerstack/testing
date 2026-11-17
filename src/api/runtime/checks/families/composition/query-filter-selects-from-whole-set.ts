@@ -57,10 +57,6 @@ async function walkBothWays(
  * that pages first returns a subset, and the difference is exactly the records it skipped.
  */
 export const filterAndPagingCompose: Check<Subset & { value: unknown }> = defineCheck<Subset & { value: unknown }>({
-  plan: (ctx) =>
-    andThen(when(filterable(ctx) && ctx.records.length > 2), () =>
-      andThen(subsetPlan(ctx), (subset) => ready({ ...subset, value: subset.target[subset.field] })),
-    ),
   // A foundation, not a composition: every check that reads a filtered set relies on the filter
   // applying to the whole collection, so they depend on this and not the other way round. A
   // filter dropped once a sort is present is walked around without the sort; one ignored outright
@@ -74,7 +70,10 @@ export const filterAndPagingCompose: Check<Subset & { value: unknown }> = define
   id: "query.filter-selects-from-whole-set",
   lists: true,
   needs: "a filterable field and more than two records",
-  subjects: subjectsOf.list,
+  plan: (ctx) =>
+    andThen(when(filterable(ctx) && ctx.records.length > 2), () =>
+      andThen(subsetPlan(ctx), (subset) => ready({ ...subset, value: subset.target[subset.field] })),
+    ),
   async run(ctx, { field, term, value }): Promise<Outcome> {
     const matches = (row: Record_): boolean => JSON.stringify(row[field]) === JSON.stringify(value);
     const { everything, order, serverSide } = await walkBothWays(ctx, term, matches);
@@ -120,7 +119,6 @@ export const filterAndPagingCompose: Check<Subset & { value: unknown }> = define
     if (moved !== null) return moved;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "paging a filtered query skips records that match the filter",
       detail:
         `walking the collection at ${ROWS_PER_PAGE} per page and filtering client-side on ` +
         `"${field}" = ${JSON.stringify(value)} finds ${clientSide.size} record(s); asking the ` +
@@ -129,6 +127,8 @@ export const filterAndPagingCompose: Check<Subset & { value: unknown }> = define
         "predicate is applied, so matching records fall outside it and are lost — page one " +
         "looks correct and later pages silently omit data.",
       evidence: [everything.last.exchange, serverSide.last.exchange],
+      summary: "paging a filtered query skips records that match the filter",
     });
   },
+  subjects: subjectsOf.list,
 });

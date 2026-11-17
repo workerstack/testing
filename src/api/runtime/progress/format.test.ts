@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { readBack } from "../../../../tests/api/support/json-body.ts";
-import { formatProgressJsonl, formatProgressLine, formatProgressTsv } from "./format.ts";
+import { progressFields } from "./fields.ts";
+import { formatProgressJsonl, formatProgressLine, formatProgressTsv, LOGFMT_ORDER } from "./format.ts";
 import type { ProgressSnapshot } from "./types.ts";
 
 const AT = Date.parse("2030-01-01T00:00:00Z");
@@ -45,6 +46,10 @@ describe("formatProgressLine", () => {
     expect(line.endsWith("idle_ms=5 elapsed_ms=50")).toBe(true);
     expect(formatProgressLine({ ...settled, message: 'a"b\\c=d' }, AT)).toContain('msg="a\\"b\\\\c=d"');
     expect(formatProgressLine(waiting)).toContain("status=in_flight");
+  });
+
+  it("orders its keys by an explicit list that holds each column once, and the instant", () => {
+    expect([...LOGFMT_ORDER].toSorted()).toStrictEqual([...Object.keys(progressFields(settled, AT)), "ts"].toSorted());
   });
 });
 

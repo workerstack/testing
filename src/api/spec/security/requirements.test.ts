@@ -68,7 +68,7 @@ describe("resolveSecurity", () => {
 // Square's api.json gives RevokeToken `{ "oauth2": null }`.
 const secured = (security: unknown, at: "operation" | "root"): OpenApiDocument =>
   ({
-    components: { securitySchemes: { oauth2: { type: "oauth2" }, key: { type: "apiKey" } } },
+    components: { securitySchemes: { key: { type: "apiKey" }, oauth2: { type: "oauth2" } } },
     info: { title: "t", version: "1" },
     openapi: "3.0.0",
     paths: { "/revoke": { post: { operationId: "RevokeToken", ...(at === "operation" ? { security } : {}) } } },
@@ -79,12 +79,12 @@ describe("resolveSecurity and a scope list that is not an array", () => {
   it("reads null, a string, an object or a number as no scopes, and names the scheme", () => {
     for (const scopes of [null, "PAYMENTS_READ", { read: true }, 7]) {
       for (const at of ["operation", "root"] as const) {
-        const doc = secured([{ oauth2: scopes, key: [] }, { oauth2: ["A"] }], at);
+        const doc = secured([{ key: [], oauth2: scopes }, { oauth2: ["A"] }], at);
         expect(resolveSecurity(opOf(doc, "/revoke", "post"), doc)).toEqual({
           alternatives: [
             [
-              { scheme: "oauth2", scopes: [] },
               { scheme: "key", scopes: [] },
+              { scheme: "oauth2", scopes: [] },
             ],
             [{ scheme: "oauth2", scopes: ["A"] }],
           ],
@@ -97,7 +97,7 @@ describe("resolveSecurity and a scope list that is not an array", () => {
   });
 
   it("names each scheme once, in order", () => {
-    const doc = secured([{ oauth2: null }, { oauth2: null, key: "x" }], "operation");
+    const doc = secured([{ oauth2: null }, { key: "x", oauth2: null }], "operation");
     expect(resolveSecurity(opOf(doc, "/revoke", "post"), doc).malformedScopes).toEqual(["key", "oauth2"]);
   });
 });

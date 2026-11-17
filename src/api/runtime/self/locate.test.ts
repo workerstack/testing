@@ -9,7 +9,7 @@ const top = (current: unknown) => ({ current, values: [current], where: "top" as
 describe("locateProbe", () => {
   it("finds the field at the top, on each nested record, or nowhere", () => {
     expect(locateProbe({ name: "a" }, "name")).toEqual({ current: "a", values: ["a"], where: "top" });
-    expect(locateProbe({ x: { name: "a" }, y: { name: "b" }, z: [1], w: null, v: "s" }, "name")).toEqual({
+    expect(locateProbe({ v: "s", w: null, x: { name: "a" }, y: { name: "b" }, z: [1] }, "name")).toEqual({
       current: "a",
       values: ["a", "b"],
       where: "nested",

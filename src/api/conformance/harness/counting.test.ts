@@ -119,7 +119,13 @@ describe("run, counted by source", () => {
 describe("sumRequests and requestLines", () => {
   it("adds tallies source by source, and prints the total with its sources sorted by name", () => {
     const summed = sumRequests([
-      { sources: { seed: 2, "check b": 1 }, total: 3 },
+      {
+        sources: Object.fromEntries([
+          ["seed", 2],
+          ["check b", 1],
+        ]),
+        total: 3,
+      },
       { sources: { seed: 1, unattributed: 1 }, total: 2 },
     ]);
 

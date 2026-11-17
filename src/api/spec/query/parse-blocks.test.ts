@@ -53,7 +53,7 @@ describe("sort block", () => {
     });
     expect(parseSortBlock({ defaultOrder: "flat", sort: { defaultOrder: "block" } })?.defaultOrder).toBe("block");
     expect(parseSortBlock({ defaultOrder: "flat", sort: { defaultOrder: 1 } })?.defaultOrder).toBe("flat");
-    expect(parseSortBlock({ sort: { defaultOrder: "" }, defaultOrder: "flat" })).toBeUndefined();
+    expect(parseSortBlock({ defaultOrder: "flat", sort: { defaultOrder: "" } })).toBeUndefined();
   });
 });
 
@@ -67,7 +67,7 @@ describe("sort block: what does not validate", () => {
       }),
     ).toBeUndefined();
     expect(
-      parseSortBlock({ sortDefaultNulls: 1, maxSortKeys: Number.POSITIVE_INFINITY, sortNulls: ["nope"] }),
+      parseSortBlock({ maxSortKeys: Number.POSITIVE_INFINITY, sortDefaultNulls: 1, sortNulls: ["nope"] }),
     ).toBeUndefined();
     expect(parseSortBlock({ sortCollation: "case-insensitive" })).toEqual({ collation: "case-insensitive" });
   });

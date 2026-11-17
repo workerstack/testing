@@ -1,5 +1,6 @@
 /** Routes with no record to write: a read-only list of notices, and a public health read. */
 
+import { inOrder } from "../../spec/in-order.ts";
 import { errorResponses } from "./errors.ts";
 import { jsonResponse, ok } from "./operation.ts";
 import type { Json, SpecContext } from "./types.ts";
@@ -13,7 +14,7 @@ export function noticePaths(ctx: SpecContext): Json {
     type: "object",
   };
 
-  return {
+  return inOrder(["/v1/notices", "/v1/notices/{id}"], {
     "/v1/notices": {
       get: {
         operationId: "notice.list",
@@ -43,7 +44,7 @@ export function noticePaths(ctx: SpecContext): Json {
         "x-entity": { action: "read", identity: "id", name: "notice" },
       },
     },
-  };
+  });
 }
 
 /** A public read. No token, no id, no body. */

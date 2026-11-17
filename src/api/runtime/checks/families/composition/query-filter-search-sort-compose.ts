@@ -19,20 +19,6 @@ import { overlapPlan, sortFieldBeside, type Subset } from "./plans.ts";
 export const filterSearchSortCompose: Check<Subset & { token: string; sortField: string }> = defineCheck<
   Subset & { token: string; sortField: string }
 >({
-  plan: (ctx) =>
-    andThen(
-      when(
-        filterable(ctx) &&
-          conv(ctx).search !== undefined &&
-          conv(ctx).order !== undefined &&
-          ctx.query !== null &&
-          ctx.query.searchable.length > 0 &&
-          ctx.query.sortable.length > 0 &&
-          ctx.records.length > 2,
-      ),
-      () =>
-        andThen(overlapPlan(ctx), (overlap) => ready({ ...overlap, sortField: sortFieldBeside(ctx, overlap.field) })),
-    ),
   dependsOn: [
     "list.read-after-write",
     "create.persists-submitted-fields",
@@ -47,7 +33,20 @@ export const filterSearchSortCompose: Check<Subset & { token: string; sortField:
   id: "query.filter-search-sort-compose",
   lists: true,
   needs: "a filterable field, a search parameter, a sortable field, and more than two records",
-  subjects: subjectsOf.list,
+  plan: (ctx) =>
+    andThen(
+      when(
+        filterable(ctx) &&
+          conv(ctx).search !== undefined &&
+          conv(ctx).order !== undefined &&
+          ctx.query !== null &&
+          ctx.query.searchable.length > 0 &&
+          ctx.query.sortable.length > 0 &&
+          ctx.records.length > 2,
+      ),
+      () =>
+        andThen(overlapPlan(ctx), (overlap) => ready({ ...overlap, sortField: sortFieldBeside(ctx, overlap.field) })),
+    ),
   async run(ctx, { field, sortField, term, token }): Promise<Outcome> {
     const conventions = conv(ctx);
     const limit = pageSize(ctx);
@@ -98,7 +97,6 @@ export const filterSearchSortCompose: Check<Subset & { token: string; sortField:
     if (moved !== null) return moved;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "adding a sort changes which records a filter and a search return",
       detail:
         `filter on "${field}" with q=${JSON.stringify(token)} matched ${expected.size}; ` +
         `the same request with order=${sortField} desc matched ${got.size}. ${
@@ -107,6 +105,8 @@ export const filterSearchSortCompose: Check<Subset & { token: string; sortField:
           extraIds.length > 0 ? `Appeared: ${extraIds.slice(0, 3).join(", ")}. ` : ""
         }A sort must reorder the intersection, never change it.`,
       evidence: [pair.last.exchange, triple.last.exchange],
+      summary: "adding a sort changes which records a filter and a search return",
     });
   },
+  subjects: subjectsOf.list,
 });

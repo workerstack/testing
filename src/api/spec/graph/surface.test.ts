@@ -86,7 +86,7 @@ describe("markTrackable", () => {
     const tracked = entityWith({ create: "notes.create", identity: "id" });
     markTrackable(tracked, gaps);
     markTrackable(entityWith({ name: "tag", update: "tags.update" }), gaps);
-    markTrackable(entityWith({ name: "log", list: "logs.list" }), gaps);
+    markTrackable(entityWith({ list: "logs.list", name: "log" }), gaps);
     expect(tracked.get("note")?.trackable).toBe(true);
     expect(gaps.gaps.map((gap) => [gap.operationId, gap.tag])).toEqual([["tags.update", "x-entity.identity"]]);
     expect(gaps.gaps[0]?.detail).toBe(

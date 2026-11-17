@@ -22,8 +22,8 @@ function world(respond: Responder, options: Partial<WorldOptions> = {}, document
       client: fake.client,
       model,
       options: {
-        principal: "alpha",
         onCreate: (entity: string, id: string) => created.push(`${entity} ${id}`),
+        principal: "alpha",
         roots: { project_id: "p1" },
         seed: 1,
         ...options,

@@ -29,6 +29,15 @@ export const filterNestedAndOrDistributes: Check<{
   termB: Record<string, string>;
   termC: Record<string, string>;
 }>({
+  dependsOn: [
+    "query.filter-selects-from-whole-set",
+    ...FOUNDATIONS,
+    "filter.and-composes-as-intersection",
+    "filter.or-composes-as-union",
+  ],
+  id: "filter.nested-and-or-distributes",
+  lists: true,
+  needs: "a postgrest-shaped grammar and two filterable fields",
   plan: (ctx) => {
     if (!filterSpec(conv(ctx)).mixed || filterableNames(ctx).length <= 1) return cannot();
     const picked = twoFilterableFields(ctx);
@@ -55,16 +64,6 @@ export const filterNestedAndOrDistributes: Check<{
 
     return ready({ nested, termA, termB, termC });
   },
-  dependsOn: [
-    "query.filter-selects-from-whole-set",
-    ...FOUNDATIONS,
-    "filter.and-composes-as-intersection",
-    "filter.or-composes-as-union",
-  ],
-  id: "filter.nested-and-or-distributes",
-  lists: true,
-  needs: "a postgrest-shaped grammar and two filterable fields",
-  subjects: subjectsOf.list,
   async run(ctx, { nested, termA, termB, termC }): Promise<Outcome> {
     const distributed = (a: SetRead, b: SetRead, c: SetRead): Set<string> => {
       const setB = setOf(b.items, ctx.identity);
@@ -97,9 +96,10 @@ export const filterNestedAndOrDistributes: Check<{
     if (sameSet(expected, got)) return ASSERTED;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "and(A,or(B,C)) is not (A∩B) ∪ (A∩C)",
       detail: `nested combinator returned ${got.size}; the distributed form is ${expected.size}.`,
       evidence: [combined.last.exchange, onlyA.last.exchange, onlyB.last.exchange, onlyC.last.exchange],
+      summary: "and(A,or(B,C)) is not (A∩B) ∪ (A∩C)",
     });
   },
+  subjects: subjectsOf.list,
 });

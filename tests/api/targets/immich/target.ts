@@ -25,7 +25,6 @@ async function post(url: string, body: unknown, token?: string): Promise<Record<
 
 const target: Target = {
   baseUrl: "http://127.0.0.1:12283/api",
-  readyWithinMs: 180_000,
   async prepare(baseUrl) {
     await answers(`${baseUrl}/server/ping`, 180_000, (status) => status === 200);
     await post(`${baseUrl}/auth/admin-sign-up`, ADMIN);
@@ -40,6 +39,7 @@ const target: Target = {
 
     return env;
   },
+  readyWithinMs: 180_000,
 };
 
 export default target;

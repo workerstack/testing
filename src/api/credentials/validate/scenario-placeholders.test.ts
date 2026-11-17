@@ -8,8 +8,8 @@ function problems(steps: unknown[], extra: Record<string, unknown> = {}): string
     principals: { alpha: { scope: { project_id: "p1" } }, beta: { scope: { team_id: "t1" } } },
     scenarios: [{ covers: [], id: "flow", steps, ...extra }],
     security: {
-      jwt: { login: { claims: { "scope.organization_id": "orgs.0.oid", tenant: "sub" }, steps: [] } },
       apiKey: { login: { claims: { "scope.key_owner": "$.owner" }, steps: [] } },
+      jwt: { login: { claims: { "scope.organization_id": "orgs.0.oid", tenant: "sub" }, steps: [] } },
     },
   });
 }
@@ -38,11 +38,6 @@ describe("scenarioPlaceholderProblems: what fills a placeholder", () => {
     expect(problems([{ bind: { a: "{a}" }, operationId: "a.get" }])).toEqual(refused("a", 0));
   });
 
-  it("lets a saveAs address read a name an earlier entry of the same saveAs bound, and nothing later", () => {
-    expect(savesWith({ id: "$.id", row: "$.rows[?(@.id=='{id}')]" })).toEqual([]);
-    expect(savesWith({ row: "$.rows[?(@.id=='{id}')]", id: "$.id" })).toEqual(refused("id", 0));
-  });
-
   it("does not count a claim that binds identity rather than scope", () => {
     expect(problems([{ operationId: "a.get", query: { t: "{tenant}" } }])).toEqual(refused("tenant", 0));
   });
@@ -57,9 +52,27 @@ describe("scenarioPlaceholderProblems: what fills a placeholder", () => {
   });
 });
 
+describe("scenarioPlaceholderProblems: entries that read each other", () => {
+  it("lets a saveAs address read any sibling of the same saveAs, whatever order the keys were written in", () => {
+    expect(savesWith({ id: "$.id", row: "$.rows[?(@.id=='{id}')]" })).toEqual([]);
+
+    const written = Object.fromEntries([
+      ["row", "$.rows[?(@.id=='{id}')]"],
+      ["id", "$.id"],
+    ]);
+
+    expect(savesWith(written)).toStrictEqual([]);
+  });
+
+  it("refuses a bind or saveAs entry that reads a sibling that reads it back", () => {
+    expect(savesWith({ a: "{b}", b: "{a}" })).toStrictEqual(refused("b", 0));
+    expect(problems([{ bind: { a: "{b}", b: "{a}" }, operationId: "a.get" }])).toStrictEqual(refused("b", 0));
+  });
+});
+
 describe("scenarioPlaceholderProblems: the principal's scope", () => {
   it("passes the scenario principal's config scope and any scheme's scope.<param> login claim", () => {
-    const steps = [{ bind: { p: "{project_id}", o: "{organization_id}", k: "{key_owner}" }, operationId: "a.get" }];
+    const steps = [{ bind: { k: "{key_owner}", o: "{organization_id}", p: "{project_id}" }, operationId: "a.get" }];
     expect(problems(steps)).toEqual([]);
     expect(problems([{ operationId: "a.get", query: { t: "{team_id}" } }])).toEqual(refused("team_id", 0));
     expect(problems([{ operationId: "a.get", query: { t: "{team_id}" } }], { principal: "beta" })).toEqual([]);

@@ -23,6 +23,10 @@ export const filterNinComplementsIn: Check<{
   inTerm: Record<string, string>;
   ninTerm: Record<string, string>;
 }>({
+  dependsOn: ["query.filter-selects-from-whole-set", ...FOUNDATIONS, "filter.in-is-union-of-eq"],
+  id: "filter.nin-complements-in",
+  lists: true,
+  needs: "a field that allows both `in` and `nin`",
   plan: (ctx) => {
     const unverified = storedFieldsUnknown(ctx);
 
@@ -45,11 +49,6 @@ export const filterNinComplementsIn: Check<{
 
     return ready({ field, inTerm, members, ninTerm });
   },
-  dependsOn: ["query.filter-selects-from-whole-set", ...FOUNDATIONS, "filter.in-is-union-of-eq"],
-  id: "filter.nin-complements-in",
-  lists: true,
-  needs: "a field that allows both `in` and `nin`",
-  subjects: subjectsOf.list,
   async run(ctx, { field, inTerm, ninTerm }): Promise<Outcome> {
     const judgeNin = (all: SetRead, inside: SetRead, outside: SetRead) => {
       const inIds = setOf(inside.items, ctx.identity);
@@ -88,9 +87,9 @@ export const filterNinComplementsIn: Check<{
 
     if (overlap.length > 0) {
       return ctx.findings.backend(this.id, ctx.entityName, {
-        summary: "in() and nin() both match the same record",
         detail: `${overlap.length} record(s) appear in both ${field}.in and .nin.`,
         evidence: [inside.last.exchange, outside.last.exchange],
+        summary: "in() and nin() both match the same record",
       });
     }
 
@@ -106,9 +105,10 @@ export const filterNinComplementsIn: Check<{
     if (missing.length === 0) return ASSERTED;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "in() and nin() do not cover the non-null set",
       detail: `${missing.length} non-null record(s) match neither side.`,
       evidence: [all.last.exchange, inside.last.exchange, outside.last.exchange],
+      summary: "in() and nin() do not cover the non-null set",
     });
   },
+  subjects: subjectsOf.list,
 });

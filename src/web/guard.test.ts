@@ -31,8 +31,8 @@ describe("breaches", () => {
 
   it("drops what an ignore matches, by substring or by RegExp", () => {
     const ignore = [
-      { text: "oom", reason: "a known third-party widget" },
-      { text: /not defined$/, reason: "the legacy bundle" },
+      { reason: "a known third-party widget", text: "oom" },
+      { reason: "the legacy bundle", text: /not defined$/ },
     ];
 
     expect(breaches(EVENTS, { ignore })).toEqual([]);
@@ -40,7 +40,7 @@ describe("breaches", () => {
 
   it("drops only the kind an ignore names", () => {
     const found = breaches([event("error", "boom"), event("pageerror", "boom")], {
-      ignore: [{ kind: "error", text: "boom", reason: "logged on purpose" }],
+      ignore: [{ kind: "error", reason: "logged on purpose", text: "boom" }],
     });
 
     expect(found).toEqual([event("pageerror", "boom")]);
@@ -49,7 +49,7 @@ describe("breaches", () => {
   it("lets an ignore win over a `fail` match", () => {
     const found = breaches(EVENTS, {
       fail: [{ kind: "warning", text: "deprecated" }],
-      ignore: [{ text: "deprecated", reason: "the upgrade lands next release" }],
+      ignore: [{ reason: "the upgrade lands next release", text: "deprecated" }],
     });
 
     expect(found.map((one) => one.text)).toEqual(["boom", "x is not defined"]);
@@ -57,22 +57,22 @@ describe("breaches", () => {
 
   it("matches a global RegExp the same way every time", () => {
     const twice = [event("error", "boom"), event("error", "boom")];
-    expect(breaches(twice, { ignore: [{ text: /boom/g, reason: "logged on purpose" }] })).toEqual([]);
+    expect(breaches(twice, { ignore: [{ reason: "logged on purpose", text: /boom/g }] })).toEqual([]);
   });
 });
 
 describe("checkGuard", () => {
   it("refuses an ignore with a blank reason, naming its pattern", () => {
-    expect(() => checkGuard({ ignore: [{ text: /ResizeObserver loop/, reason: " " }] })).toThrow(
+    expect(() => checkGuard({ ignore: [{ reason: " ", text: /ResizeObserver loop/ }] })).toThrow(
       "guard: ignore /ResizeObserver loop/ has no reason; say why the app may log it",
     );
-    expect(() => checkGuard({ ignore: [{ text: "boom", reason: "" }] })).toThrow(
+    expect(() => checkGuard({ ignore: [{ reason: "", text: "boom" }] })).toThrow(
       'guard: ignore "boom" has no reason; say why the app may log it',
     );
   });
 
   it("accepts options whose every ignore says why", () => {
-    const options = { ignore: [{ text: "boom", reason: "logged on purpose" }] };
+    const options = { ignore: [{ reason: "logged on purpose", text: "boom" }] };
     expect(checkGuard(options)).toBe(options);
     expect(checkGuard({})).toEqual({});
   });

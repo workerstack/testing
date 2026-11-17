@@ -68,7 +68,7 @@ describe("runCheck outcomes", () => {
     const { ctx, outcome } = await ran({
       id: "c.noted",
       run: async (view) => {
-        view.findings.backend("c.noted", "note", { summary: "s", detail: "d", evidence: [] });
+        view.findings.backend("c.noted", "note", { detail: "d", evidence: [], summary: "s" });
 
         return { kind: "asserted", note: "one answer was not judged" };
       },
@@ -82,7 +82,7 @@ describe("runCheck outcomes", () => {
     const { ctx, outcome } = await ran({
       id: "c.reported",
       run: async (view) => {
-        view.findings.backend("c.reported", "note", { summary: "s", detail: "d", evidence: [] });
+        view.findings.backend("c.reported", "note", { detail: "d", evidence: [], summary: "s" });
 
         return { kind: "asserted" };
       },

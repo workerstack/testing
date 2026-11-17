@@ -7,7 +7,7 @@
 // as written, so the config is refused, naming the scenario, the step and the name.
 
 import type { ApiConfig } from "../../config/types/config.ts";
-import { placeholderNames } from "../../config/types/placeholder.ts";
+import { bindOrder, placeholderNames } from "../../config/types/placeholder.ts";
 import { isRecord, type RawOf } from "../../config/types/raw.ts";
 
 type Config = RawOf<ApiConfig>;
@@ -85,14 +85,24 @@ function unfilledStep(step: Raw, bound: Set<string>): string | undefined {
   const missing = (value: unknown): string | undefined => placeholderNames(value).find((name) => !bound.has(name));
 
   const bindAll = (entries: unknown): string | undefined => {
-    for (const [name, template] of Object.entries(recordOf(entries))) {
-      const read = missing(template);
+    const record = recordOf(entries);
+
+    const { cyclic, order } = bindOrder(
+      Object.fromEntries(Object.entries(record).map(([name, template]) => [name, JSON.stringify(template)])),
+    );
+
+    // Siblings may read each other in any order the keys were written: each is checked after the ones it reads.
+    for (const name of order) {
+      const read = missing(record[name]);
 
       if (read !== undefined) return read;
       bound.add(name);
     }
 
-    return undefined;
+    // A self-read or a cycle has nothing to start from: it names the sibling it waits on.
+    const stuck = cyclic.at(0);
+
+    return stuck === undefined ? undefined : placeholderNames(record[stuck]).find((name) => cyclic.includes(name));
   };
 
   const read = bindAll(step["bind"]) ?? missing(reads(step)) ?? bindAll(step["saveAs"]);

@@ -46,8 +46,8 @@ function reportVariants(run: EntityRun, createOp: OperationModel, cohort: Seeded
 
   if (cohort.uniqueGap !== undefined) {
     findings.gap("world.seed" satisfies RunFindingId, entity.name, {
-      summary: cohort.uniqueGap,
       detail: cohort.uniqueGap,
+      summary: cohort.uniqueGap,
     });
   }
 
@@ -58,21 +58,21 @@ function reportVariants(run: EntityRun, createOp: OperationModel, cohort: Seeded
 
     if (failed.exchange.status >= 500) {
       findings.backend("create.does-not-error" satisfies RunFindingId, entity.name, {
-        summary: `creating the "${failed.variant}" variant of a "${entity.name}" fails with a server error`,
         detail:
           `${createOp.operationId} returned ${failed.exchange.status} for a body generated from the ` +
           `documented schema (${said}). The other variants were created, so this input is what ` +
           "breaks the handler. Checks that need this variant's data run without it.",
         evidence: [failed.exchange],
+        summary: `creating the "${failed.variant}" variant of a "${entity.name}" fails with a server error`,
       });
       continue;
     }
 
     findings.gap("world.seed" satisfies RunFindingId, entity.name, {
-      summary: `the "${failed.variant}" variant of "${entity.name}" was refused with ${failed.exchange.status}`,
       detail:
         `${createOp.operationId} refused a body the document permits (${said}). Checks that ` +
         "rely on this variant's values run without them.",
+      summary: `the "${failed.variant}" variant of "${entity.name}" was refused with ${failed.exchange.status}`,
     });
   }
 }
@@ -92,11 +92,11 @@ async function worldOf(run: EntityRun, createOp: OperationModel, { cohort, scope
     // extract→table) can seed, but do not assert write-path oracles against a body the API tester never
     // submitted. Adopted, not created: this record is somebody else's to keep.
     findings.gap("world.seed" satisfies RunFindingId, entity.name, {
-      summary: `seeding "${entity.name}" hit a plan limit; using an existing same-tenant record`,
       detail:
         `${createOp.operationId} returned a plan-limit refusal and the list already ` +
         "had a record — likely an earlier x-effects create. Write-path checks stand " +
         "down rather than treat payment_required as a backend defect.",
+      summary: `seeding "${entity.name}" hit a plan limit; using an existing same-tenant record`,
     });
 
     return { ...owned(run, cohort, scope), degraded: true };
@@ -107,12 +107,12 @@ async function worldOf(run: EntityRun, createOp: OperationModel, { cohort, scope
     // unique-conflict checks still run against that row. The seed 409 is not the unique check
     // passing — that check is the explicit second POST.
     findings.gap("world.seed" satisfies RunFindingId, entity.name, {
-      summary: `seeding "${entity.name}" could not insert because of x-unique`,
       detail:
         `${createOp.operationId} returned 409 and the list already had a record. ` +
         `x-unique: ${formatUniqueSets(createOp.unique)}. The create could not insert; ` +
         "unique-conflict checks still run against that row. Write-path oracles that " +
         "need a body the API tester submitted stand down.",
+      summary: `seeding "${entity.name}" could not insert because of x-unique`,
     });
 
     return { ...owned(run, cohort, scope), degraded: true, uniqueAdopted: true };
@@ -163,8 +163,8 @@ function owned(run: EntityRun, cohort: SeededCohort, scope: Scope): World {
  */
 function gatedWorld(run: EntityRun, detail: string): Promise<World | null> {
   run.findings.gap("world.seed" satisfies RunFindingId, run.entity.name, {
-    summary: `seeding "${run.entity.name}" is gated by ${detail}`,
     detail: `${detail}. Checks that need a row the API tester created stand down rather than treat the documented 403 as a defect.`,
+    summary: `seeding "${run.entity.name}" is gated by ${detail}`,
   });
 
   return existingOrBlocked(run, {

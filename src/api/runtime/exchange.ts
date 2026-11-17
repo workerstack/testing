@@ -197,7 +197,7 @@ export function describeRequestBody(body: unknown): unknown {
 
     for (const [name, value] of body.entries()) {
       if (typeof value === "string") parts[name] = value;
-      else parts[name] = { filename: value.name, mediaType: value.type, bytes: value.size };
+      else parts[name] = { bytes: value.size, filename: value.name, mediaType: value.type };
     }
 
     return parts;

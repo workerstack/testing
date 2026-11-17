@@ -1,5 +1,6 @@
 /** The `x-query` declaration on a listing: what may be filtered, sorted, searched and selected. */
 
+import { entriesByName } from "../../config/types/entries-by-name.ts";
 import { QUERY_ENVELOPE_ROLES } from "../../spec/conventions/envelope-names.ts";
 import { publicRole } from "../../spec/conventions/query-params.ts";
 import type { Role } from "../../spec/conventions/roles.ts";
@@ -28,7 +29,7 @@ function queryFieldType(field: FieldDef | undefined): "string" | "number" | "boo
 function filterable(entity: EntityDef, catalog: FilterCatalog | undefined): unknown[] {
   if (catalog?.opsByField === undefined) return fieldsWhere(entity, "filterable");
 
-  return Object.entries(catalog.opsByField).map(([field, ops]) => {
+  return entriesByName(catalog.opsByField).map(([field, ops]) => {
     const def = entity.fields.find((item) => item.name === field);
     const row: Json = { field, ops: [...ops] };
     const type = queryFieldType(def);
@@ -60,7 +61,7 @@ function nestedSelect(entity: EntityDef): Json {
   return {
     select: {
       nested: true,
-      relations: Object.entries(entity.relations).map(([name, relation]) => ({
+      relations: entriesByName(entity.relations).map(([name, relation]) => ({
         fields: [...relation.fields],
         name,
       })),
@@ -76,9 +77,9 @@ function catalogLimits(catalog: FilterCatalog | undefined): Json {
     emptyIn: catalog.emptyIn,
     maxFilterConditions: catalog.maxFilterConditions,
     maxInValues: catalog.maxInValues,
+    maxSortKeys: 3,
     selectUnknown: catalog.selectUnknown,
     sortNulls: ["first", "last"],
-    maxSortKeys: 3,
   };
 }
 
@@ -108,15 +109,15 @@ export function queryDeclaration(ctx: SpecContext, entity: EntityDef, dialect: D
     // Refused, as the listing does — unless the shape clamps silently, which it then says.
     limitOutOfRange: ctx.shape.clampLimit === undefined ? "reject" : "clamp",
     maxLimit: entity.maxLimit,
-    searchable: fieldsWhere(entity, "searchable"),
-    selectable: entity.fields.map((f) => f.name),
-    sortable: sortable(entity, catalog),
-    stableTiebreak: entity.identity,
     // Search semantics stated rather than left to inference: case-insensitive, and a blank
     // term matches everything.
     searchCase: "insensitive",
     searchEmpty: "match-all",
+    searchable: fieldsWhere(entity, "searchable"),
+    selectable: entity.fields.map((f) => f.name),
     sort: { defaultOrder: renderOrder(dialect, entity.defaultOrder) },
+    sortable: sortable(entity, catalog),
+    stableTiebreak: entity.identity,
     ...(dialect.params.searchMode === undefined ? {} : { searchModes: ["contains", "prefix"] }),
     ...nestedSelect(entity),
     ...catalogLimits(catalog),

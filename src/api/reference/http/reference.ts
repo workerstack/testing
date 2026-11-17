@@ -12,7 +12,7 @@
 
 import type { Row } from "../cell.ts";
 import { type DefectSet, DefectSet as Defects } from "../defects/defect-set.ts";
-import { DIALECTS } from "../dialect/presets.ts";
+import { DIALECT_ORDER, DIALECTS } from "../dialect/presets.ts";
 import type { Dialect } from "../dialect/types.ts";
 import { shapedEntities } from "../model/shaped.ts";
 import type { EntityDef } from "../model/types.ts";
@@ -64,10 +64,10 @@ export async function createReference(options: ReferenceOptions, createStore: St
   return {
     close: () => closeStore(state),
     createdIds: () => createdIds(state),
-    issuedTotpSecrets: () => [...state.totpSecrets],
     defects: state.defects,
     // The same handler a listening server runs, without the socket.
     fetch: asFetch((request) => handle(state, request)),
+    issuedTotpSecrets: () => [...state.totpSecrets],
     principals: PRINCIPALS,
     snapshot: () => snapshot(state),
     url: `${IN_PROCESS_ORIGIN}${state.basePath}`,
@@ -77,8 +77,7 @@ export async function createReference(options: ReferenceOptions, createStore: St
 function resolveDialect(name: string | undefined): Dialect {
   const dialect = DIALECTS[name ?? "postgrest"];
 
-  if (dialect === undefined)
-    throw new Error(`unknown dialect "${name}" — expected one of ${Object.keys(DIALECTS).join(", ")}`);
+  if (dialect === undefined) throw new Error(`unknown dialect "${name}" — expected one of ${DIALECT_ORDER.join(", ")}`);
 
   return dialect;
 }
@@ -110,13 +109,13 @@ export async function referenceState(options: ReferenceOptions, createStore: Sto
     listingStore: defects.has("HIDDEN_FROM_CREATOR") ? withoutHidden(defects, store) : store,
     profiles: new Map(),
     readCache: new Map(),
-    totpSecrets: [],
     shape,
     slugOf: new Map(),
     staleSnapshot: new Map(),
     store,
     table: entities.find((entity) => entity.name === "table") as EntityDef,
     throttled: new Set(),
+    totpSecrets: [],
     untagged: options.untagged === true,
     updateMethod: shape.updateMethod ?? "PATCH",
   };

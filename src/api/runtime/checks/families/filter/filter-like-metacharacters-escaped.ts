@@ -16,6 +16,12 @@ export const likeEscaping: Check<{ field: string; likeTerm: Record<string, strin
   field: string;
   likeTerm: Record<string, string>;
 }>({
+  // The tell is "the filtered result equals the whole listing". Where the listing is already
+  // wrong, that comparison is against a set the backend never served correctly.
+  dependsOn: ["query.filter-selects-from-whole-set", "pagination.page-walk-covers-set", "list.read-after-write"],
+  id: "filter.like-metacharacters-escaped",
+  lists: true,
+  needs: "a `filter` parameter supporting a like operator",
   plan: (ctx) => {
     if (!filterable(ctx) || ctx.records.length <= 1) return cannot();
     const field = firstFilterable(ctx, (name) => (ctx.query?.searchable ?? []).includes(name));
@@ -30,13 +36,6 @@ export const likeEscaping: Check<{ field: string; likeTerm: Record<string, strin
 
     return likeTerm === null ? cannot("a filter grammar with a like operator") : ready({ field, likeTerm });
   },
-  // The tell is "the filtered result equals the whole listing". Where the listing is already
-  // wrong, that comparison is against a set the backend never served correctly.
-  dependsOn: ["query.filter-selects-from-whole-set", "pagination.page-walk-covers-set", "list.read-after-write"],
-  id: "filter.like-metacharacters-escaped",
-  lists: true,
-  needs: "a `filter` parameter supporting a like operator",
-  subjects: subjectsOf.list,
   async run(ctx, { field, likeTerm }): Promise<Outcome> {
     const total = await readSet(ctx);
     const probe = await readSet(ctx, likeTerm);
@@ -63,12 +62,13 @@ export const likeEscaping: Check<{ field: string; likeTerm: Record<string, strin
     if (probe.items.length < total.items.length) return ASSERTED;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "LIKE metacharacters in a filter value are not escaped",
       detail:
         `filter=${field}.like.%25 matched all ${probe.items.length} records. "%" is a literal in ` +
         "this grammar; treating it as a wildcard means user input is being interpolated into a " +
         "pattern unescaped.",
       evidence: [total.last.exchange, probe.last.exchange],
+      summary: "LIKE metacharacters in a filter value are not escaped",
     });
   },
+  subjects: subjectsOf.list,
 });

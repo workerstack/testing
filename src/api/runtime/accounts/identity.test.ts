@@ -8,9 +8,9 @@ describe("accountIdentity", () => {
   it("keeps the naming strings a sign-up sent, under each convention, and nothing else", () => {
     const body = {
       address: "d@x.test",
+      "e-mail": "c@x.test",
       email: "a@x.test",
       emailAddress: "b@x.test",
-      "e-mail": "c@x.test",
       handle: "h",
       login: "l",
       nickname: "n",
@@ -23,9 +23,9 @@ describe("accountIdentity", () => {
 
     expect(accountIdentity(body)).toEqual({
       address: "d@x.test",
+      "e-mail": "c@x.test",
       email: "a@x.test",
       emailAddress: "b@x.test",
-      "e-mail": "c@x.test",
       handle: "h",
       login: "l",
       nickname: "n",

@@ -32,7 +32,11 @@ describe("requestUrl, by property", () => {
     fc.assert(
       fc.property(name, flat, (param, value) => {
         const url = requestUrl(BASE, "/p", { query: { [param]: value }, styles: { [param]: { style: "deepObject" } } });
-        expect([...url.searchParams]).toEqual(Object.entries(value).map(([key, item]) => [`${param}[${key}]`, item]));
+        expect([...url.searchParams]).toEqual(
+          Object.keys(value)
+            .toSorted()
+            .map((key) => [`${param}[${key}]`, value[key]]),
+        );
       }),
     );
   });

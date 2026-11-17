@@ -37,6 +37,10 @@ export const declaredInvalidationHappens: Check<{
   foreign: OperationModel[];
   schema: JsonSchema;
 }>({
+  dependsOn: ["pagination.page-walk-covers-set", "list.read-after-write", "create.persists-submitted-fields"],
+  id: "invalidation.declared-route-changes",
+  mutates: true,
+  needs: "a create operation whose x-invalidate names another entity's read route",
   plan: (ctx) => {
     const createOp = ctx.createOp;
 
@@ -60,11 +64,6 @@ export const declaredInvalidationHappens: Check<{
 
     return schema === null ? cannot("a create operation with a request body") : ready({ createOp, foreign, schema });
   },
-  dependsOn: ["pagination.page-walk-covers-set", "list.read-after-write", "create.persists-submitted-fields"],
-  id: "invalidation.declared-route-changes",
-  mutates: true,
-  needs: "a create operation whose x-invalidate names another entity's read route",
-  subjects: subjectsOf.createAndForeignReads,
   async run(ctx, { createOp, foreign, schema }): Promise<Outcome> {
     const probes = fillableProbes(ctx, foreign);
 
@@ -112,7 +111,6 @@ export const declaredInvalidationHappens: Check<{
         ...(graded(ctx, stale.probe.op) ? [stale.probe.op.operationId] : []),
       ])
       .backend(this.id, ctx.entityName, {
-        summary: "a route the document says is invalidated by this write did not change",
         detail:
           `creating a ${ctx.entityName} declares x-invalidate on "${stale.probe.op.route}", but that ` +
           "route returned a byte-identical body before and after the write. Either it serves " +
@@ -120,8 +118,10 @@ export const declaredInvalidationHappens: Check<{
           "or a cached projection nobody refreshed — or the declaration is wrong and every " +
           "client following it is invalidating the wrong cache key.",
         evidence: [created, stale.after],
+        summary: "a route the document says is invalidated by this write did not change",
       });
   },
+  subjects: subjectsOf.createAndForeignReads,
 });
 
 /** A declared route and the path that reads it in this entity's scope. */

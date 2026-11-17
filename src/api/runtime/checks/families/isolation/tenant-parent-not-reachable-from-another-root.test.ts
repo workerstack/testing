@@ -87,7 +87,7 @@ describe("tenant.parent-not-reachable-from-another-root: writes and skipped prob
       [{ bodilessCreate: true }, { readOp: undefined }],
       [{}, { createOp: undefined, records: [{ title: "first" }] }],
     ] satisfies Array<[NotesOptions, NotesFields]>) {
-      const { ctx, sent } = staged(OWN_BOOKS, { options, fields });
+      const { ctx, sent } = staged(OWN_BOOKS, { fields, options });
       expect(await runCheck(foreignParentRejected, ctx)).toEqual({ kind: "asserted" });
       expect(sent.map((s) => s.method)).toEqual(["GET", "GET"]);
     }
@@ -113,11 +113,11 @@ describe("tenant.parent-not-reachable-from-another-root: the other tenant's own 
         "GET /orgs/o2/books/b1/pages": { body: [{ id: "p1" }], status: 200 },
       },
       {
-        parents: [BOOKS, PAGES],
         fields: {
           peerScope: { book_id: "b2", org_id: "o2", page_id: "p2" },
           scope: { book_id: "b1", org_id: "o1", page_id: "p1" },
         },
+        parents: [BOOKS, PAGES],
       },
     );
 
@@ -135,11 +135,11 @@ describe("tenant.parent-not-reachable-from-another-root: the other tenant's own 
         "GET /orgs/o2/books/b1/pages": { body: [{ id: "p2" }], status: 200 },
       },
       {
-        parents: [BOOKS, PAGES],
         fields: {
           peerScope: { book_id: "b2", org_id: "o2", page_id: "p2" },
           scope: { book_id: "b1", org_id: "o1", page_id: "p1" },
         },
+        parents: [BOOKS, PAGES],
       },
     );
 
@@ -187,7 +187,7 @@ describe("tenant.parent-not-reachable-from-another-root: parents without a list"
       [{ create: true, param: "book_id", segment: "books" }, undefined],
       [{ param: "book_id", segment: "books" }, undefined],
     ] as const) {
-      const { ctx, sent } = staged({}, { parents: [parent], options: prefix === undefined ? {} : { prefix } });
+      const { ctx, sent } = staged({}, { options: prefix === undefined ? {} : { prefix }, parents: [parent] });
       expect(await runCheck(foreignParentRejected, ctx)).toEqual({ kind: "asserted" });
       expect(sent[0]?.path).toBe("/orgs/o2/books/b1/notes");
     }
@@ -197,12 +197,12 @@ describe("tenant.parent-not-reachable-from-another-root: parents without a list"
     const { ctx, sent } = staged(
       {},
       {
-        parents: [],
-        options: { prefix: "/{shelf_id}/orgs/{org_id}" },
         fields: {
           peerScope: { org_id: "o2", shelf_id: "s2" },
           scope: { org_id: "o1", shelf_id: "s1" },
         },
+        options: { prefix: "/{shelf_id}/orgs/{org_id}" },
+        parents: [],
       },
     );
 
@@ -220,7 +220,7 @@ describe("tenant.parent-not-reachable-from-another-root planning", () => {
       [{}, { peerScope: { book_id: "b2" } }],
       [{}, { peerScope: { book_id: "b2", org_id: "o1" } }],
     ] as const)
-      expect(foreignParentRejected.plan(staged({}, { options, fields }).ctx)).toEqual({ ok: false });
+      expect(foreignParentRejected.plan(staged({}, { fields, options }).ctx)).toEqual({ ok: false });
   });
 
   it("names what is missing for a flat collection or a parent both tenants share", () => {

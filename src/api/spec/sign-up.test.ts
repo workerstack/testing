@@ -13,11 +13,11 @@ const signsUp = (model: SpecModel, operationId: string): boolean =>
 describe("unmarkedSignUp by name", () => {
   it("is an open POST whose operationId or last path segment ends with register, registration, signup or sign up", () => {
     const model = modelOf({
-      "/v1/register": { post: { operationId: "auth.register", ...OPEN } },
       "/accounts/sign-up": { post: { operationId: "accounts.create", ...OPEN } },
       "/auth/admin-sign-up": { post: { operationId: "signUpAdmin", ...OPEN } },
-      "/users": { post: { operationId: "users.signUp", ...OPEN } },
       "/registration": { post: { operationId: "makeOne", ...OPEN } },
+      "/users": { post: { operationId: "users.signUp", ...OPEN } },
+      "/v1/register": { post: { operationId: "auth.register", ...OPEN } },
     });
 
     for (const id of ["auth.register", "accounts.create", "signUpAdmin", "users.signUp", "makeOne"])
@@ -27,13 +27,13 @@ describe("unmarkedSignUp by name", () => {
   it("is not a device registered, a login, a listing of registrations, or a sign-up that needs a credential", () => {
     const model = modelOf(
       {
-        "/v1/devices/register-device": { post: { operationId: "devices.registerDevice", ...OPEN } },
         "/v1/auth/login": { post: { operationId: "auth.login", ...OPEN } },
-        "/v1/registrations-list": { post: { operationId: "registrations.list", ...OPEN } },
+        "/v1/devices/register-device": { post: { operationId: "devices.registerDevice", ...OPEN } },
         "/v1/register": {
           get: { operationId: "register.read", responses: { "200": { description: "ok" } }, security: [] },
           post: { operationId: "auth.register", responses: { "201": { description: "made" } } },
         },
+        "/v1/registrations-list": { post: { operationId: "registrations.list", ...OPEN } },
       },
       { components: { securitySchemes: { jwt: { scheme: "bearer", type: "http" } } }, security: [{ jwt: [] }] },
     );
@@ -46,9 +46,9 @@ describe("unmarkedSignUp by name", () => {
 describe("unmarkedSignUp by body", () => {
   it("is an open collection create that takes a password or passphrase", () => {
     const model = modelOf({
-      "/users": { post: { operationId: "users.create", ...OPEN, ...body({ email: {}, password: {} }) } },
       "/members": { post: { operationId: "members.create", ...OPEN, ...body({ passphrase: {} }) } },
       "/people": { post: { operationId: "people.add", ...OPEN, ...body({ secret: { format: "password" } }) } },
+      "/users": { post: { operationId: "users.create", ...OPEN, ...body({ email: {}, password: {} }) } },
     });
 
     for (const id of ["users.create", "members.create", "people.add"])
@@ -57,10 +57,10 @@ describe("unmarkedSignUp by body", () => {
 
   it("is not a password reset, forgotten, recovered or changed, though it takes a password", () => {
     const model = modelOf({
-      "/password-reset": { post: { operationId: "passwordReset", ...OPEN, ...body({ password: {}, token: {} }) } },
-      "/password/forgot": { post: { operationId: "forgot.create", ...OPEN, ...body({ password: {} }) } },
       "/accounts/recover": { post: { operationId: "recoverAccount", ...OPEN, ...body({ password: {} }) } },
       "/me/change-password": { post: { operationId: "changes.create", ...OPEN, ...body({ password: {} }) } },
+      "/password-reset": { post: { operationId: "passwordReset", ...OPEN, ...body({ password: {}, token: {} }) } },
+      "/password/forgot": { post: { operationId: "forgot.create", ...OPEN, ...body({ password: {} }) } },
     });
 
     for (const id of ["passwordReset", "forgot.create", "recoverAccount", "changes.create"])
@@ -70,6 +70,8 @@ describe("unmarkedSignUp by body", () => {
   it("is not a sign-in, an item write, or a create that takes no password", () => {
     const model = modelOf({
       "/auth/token": { post: { operationId: "token.create", ...OPEN, ...body({ password: {} }) } },
+      "/blobs": { post: { operationId: "blobs.create", ...OPEN } },
+      "/notes": { post: { operationId: "notes.create", ...OPEN, ...body({ title: {} }) } },
       "/users/{id}": {
         post: {
           operationId: "users.reset",
@@ -78,8 +80,6 @@ describe("unmarkedSignUp by body", () => {
           ...body({ password: {} }),
         },
       },
-      "/notes": { post: { operationId: "notes.create", ...OPEN, ...body({ title: {} }) } },
-      "/blobs": { post: { operationId: "blobs.create", ...OPEN } },
     });
 
     for (const id of ["token.create", "users.reset", "notes.create", "blobs.create"])
@@ -113,14 +113,14 @@ describe("makesAccount on a create of the caller's own record", () => {
 describe("accountMakersOf", () => {
   it("lists every operation that makes an account, marked or not, as the store matches a login step against it", () => {
     const model = modelOf({
+      "/v1/invites": { post: { operationId: "invite.accept", ...OPEN, "x-fresh-principal": true } },
       "/v1/login": { post: { operationId: "auth.login", ...OPEN } },
       "/v1/register": { post: { operationId: "auth.register", ...OPEN } },
-      "/v1/invites": { post: { operationId: "invite.accept", ...OPEN, "x-fresh-principal": true } },
     });
 
     expect(accountMakersOf(model)).toEqual([
-      { method: "POST", operationId: "auth.register", path: "/v1/register" },
       { method: "POST", operationId: "invite.accept", path: "/v1/invites" },
+      { method: "POST", operationId: "auth.register", path: "/v1/register" },
     ]);
   });
 });

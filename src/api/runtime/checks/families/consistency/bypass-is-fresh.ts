@@ -27,6 +27,9 @@ export const bypassIsFresh: Check<{ readOp: OperationModel; bypass: CacheBypass 
   readOp: OperationModel;
   bypass: CacheBypass;
 }>({
+  id: ID,
+  mutates: true,
+  needs: "a read that declares an x-consistency bypass, a create, and an update or a delete",
   plan: (ctx) => {
     const { createOp, readOp } = ctx;
     const bypass = readOp?.consistency?.bypass ?? null;
@@ -39,10 +42,6 @@ export const bypassIsFresh: Check<{ readOp: OperationModel; bypass: CacheBypass 
 
     return ready({ bypass, readOp });
   },
-  mutates: true,
-  id: ID,
-  needs: "a read that declares an x-consistency bypass, a create, and an update or a delete",
-  subjects: subjectsOf.writeAndRead,
   async run(ctx, { bypass, readOp }): Promise<Outcome> {
     const kind = writeKinds(ctx)[0] as "update" | "delete";
     const written = await primedWrite(ctx, { check: ID, kind, readOp });
@@ -68,4 +67,5 @@ export const bypassIsFresh: Check<{ readOp: OperationModel; bypass: CacheBypass 
       summary: "a read sent its declared cache bypass did not skip the cache",
     });
   },
+  subjects: subjectsOf.writeAndRead,
 });

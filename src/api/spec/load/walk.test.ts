@@ -6,9 +6,9 @@ import { DANGLING_KEY, type Dereferencing, walk } from "./walk.ts";
 function start(doc: Record<string, unknown>): Dereferencing {
   return {
     building: new Set(),
+    danglingRefs: new Set(),
     defNames: new Map(),
     doc: doc as OpenApiDocument,
-    danglingRefs: new Set(),
     externalRefs: new Set(),
     memo: new Map(),
   };
@@ -55,12 +55,12 @@ describe("walk", () => {
 describe("walk refs", () => {
   it("lays a ref's siblings over its target, or over nothing when the target is not an object", () => {
     const { out } = walked({
-      list: [1],
-      obj: { type: "string" },
-      text: "t",
       a: { $ref: "#/obj", description: "here" },
       b: { $ref: "#/text", description: "here" },
       c: { $ref: "#/list", description: "here" },
+      list: [1],
+      obj: { type: "string" },
+      text: "t",
     });
 
     expect(out["a"]).toEqual({ description: "here", type: "string" });
@@ -93,19 +93,19 @@ describe("walk refs", () => {
 describe("walk data", () => {
   it("copies data: an `example`, an `examples` array, and an Example Object's `value`", () => {
     const { out } = walked({
-      target: { type: "string" },
+      empty: { examples: null },
+      param: {
+        examples: {
+          inline: { summary: { $ref: "#/target" }, value: { $ref: "#/nowhere" } },
+          linked: { $ref: "#/target" },
+        },
+      },
       schema: {
         example: { $ref: "#/nowhere" },
         examples: [{ $ref: "#/nowhere" }],
         properties: { value: { $ref: "#/target" } },
       },
-      param: {
-        examples: {
-          linked: { $ref: "#/target" },
-          inline: { summary: { $ref: "#/target" }, value: { $ref: "#/nowhere" } },
-        },
-      },
-      empty: { examples: null },
+      target: { type: "string" },
       text: { examples: "none" },
     });
 
@@ -159,16 +159,16 @@ describe("walk discriminators", () => {
   it("names a branch by every mapping value that resolves to it, by pointer or by name", () => {
     const mapping = {
       cat: "#/components/schemas/Cat",
-      kitty: "Cat",
-      kitten: "Kitten",
       dog: "#/components/schemas/Dog",
-      stray: "#/components/schemas/Missing",
       file: "cat.yaml",
+      kitten: "Kitten",
+      kitty: "Cat",
+      stray: "#/components/schemas/Missing",
     };
 
     expect(tags(union({ discriminator: { mapping, propertyName: "kind" } }, ["Kitten", "Dog"]))).toEqual({
       propertyName: "kind",
-      values: [["cat", "kitty", "kitten"], ["dog"]],
+      values: [["cat", "kitten", "kitty"], ["dog"]],
     });
     const partial = { mapping: { cat: "Cat" }, propertyName: "kind" };
     expect(tags(union({ discriminator: partial }))).toEqual({ propertyName: "kind", values: [["cat"], ["Dog"]] });

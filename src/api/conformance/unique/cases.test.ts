@@ -22,7 +22,7 @@ describe("runCase", () => {
       ["unique check still runs after unique-409 adopt", true],
       ["seed 409 is not the unique check passing", true],
     ]);
-    expect(Object.keys(results[0] ?? {})).toEqual(["detail", "name", "ok", "why"]);
+    expect(Object.keys(results[0] ?? {}).toSorted()).toStrictEqual(["detail", "name", "ok", "why"]);
   }, 60_000);
 
   it("fails every result of a run that could not happen, with why", async () => {

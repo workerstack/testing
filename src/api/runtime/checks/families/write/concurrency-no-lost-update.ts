@@ -30,6 +30,16 @@ export const noLostUpdate: Check<{ updateOp: OperationModel; readOp: OperationMo
   updateOp: OperationModel;
   readOp: OperationModel;
 }>({
+  dependsOn: [
+    "list.read-after-write",
+    "patch.minimality",
+    // If writes do not persist at all, "the write was lost" describes a consequence rather
+    // than a concurrency defect.
+    "create.persists-submitted-fields",
+  ],
+  id: "concurrency.no-lost-update",
+  mutates: true,
+  needs: "a create, a PATCH update and two writable string fields",
   plan: (ctx) => {
     const { readOp, updateOp } = ctx;
 
@@ -50,23 +60,12 @@ export const noLostUpdate: Check<{ updateOp: OperationModel; readOp: OperationMo
 
     return ready({ readOp, updateOp });
   },
-  dependsOn: [
-    "list.read-after-write",
-    "patch.minimality",
-    // If writes do not persist at all, "the write was lost" describes a consequence rather
-    // than a concurrency defect.
-    "create.persists-submitted-fields",
-  ],
-  id: "concurrency.no-lost-update",
-  needs: "a create, a PATCH update and two writable string fields",
-  mutates: true,
-  subjects: subjectsOf.update,
   async run(ctx, { readOp, updateOp }): Promise<Outcome> {
     const made = await scratchRecord(ctx, this.id);
 
     if ("outcome" in made) return made.outcome;
     const params = { ...ctx.scope, ...itemParamFor(ctx, made.scratch.id) };
-    const race: Race = { check: this.id, ctx, readPath: fillPath(readOp.path, params), readOp, updateOp };
+    const race: Race = { check: this.id, ctx, readOp, readPath: fillPath(readOp.path, params), updateOp };
 
     const original = await readBack(
       race,
@@ -103,6 +102,7 @@ export const noLostUpdate: Check<{ updateOp: OperationModel; readOp: OperationMo
 
     return raceAndJudge(race, fillPath(updateOp.path, params), [first, second]);
   },
+  subjects: subjectsOf.update,
 });
 
 /** The record a race runs on, and how to reach it. */
@@ -160,12 +160,12 @@ async function raceAndJudge(race: Race, path: string, [first, second]: [string, 
 
   const [firstWrite, secondWrite] = await Promise.all([
     ctx.client.request("PATCH", path, {
-      body: { [first]: RACE_VALUES[0] },
       as: { principal: ctx.actor.id },
+      body: { [first]: RACE_VALUES[0] },
     }),
     ctx.client.request("PATCH", path, {
-      body: { [second]: RACE_VALUES[1] },
       as: { principal: ctx.actor.id },
+      body: { [second]: RACE_VALUES[1] },
     }),
   ]);
 
@@ -186,7 +186,6 @@ async function raceAndJudge(race: Race, path: string, [first, second]: [string, 
   if (lost.length === 0) return ASSERTED;
 
   return ctx.findings.backend(check, ctx.entityName, {
-    summary: "a concurrent write to a different field was silently lost",
     detail:
       `two simultaneous patches set "${first}" and "${second}" — different fields, so neither ` +
       `conflicts with the other — and both returned success, but ${lost.join(" and ")} ` +
@@ -195,6 +194,7 @@ async function raceAndJudge(race: Race, path: string, [first, second]: [string, 
       "commits second reinstates the values it read before the first had committed. Callers " +
       "are told the write succeeded.",
     evidence: [firstWrite, secondWrite, after.exchange],
+    summary: "a concurrent write to a different field was silently lost",
   });
 }
 

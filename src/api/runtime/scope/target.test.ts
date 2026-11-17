@@ -8,7 +8,7 @@ const names = (scope: { entities: readonly { name: string }[] }): string[] => sc
 
 describe("operation scope", () => {
   it("is full when nothing is requested", () => {
-    const scope = resolveTargetScope(referenceModel(), { ops: [" "], only: [] });
+    const scope = resolveTargetScope(referenceModel(), { only: [], ops: [" "] });
     expect(scope.mode).toBe("full");
     expect(names(scope)).toEqual(["api-key", "job", "notice", "overview", "profile", "row", "table", "webhook"]);
     expect(scope.inScope("table.get")).toBe(true);

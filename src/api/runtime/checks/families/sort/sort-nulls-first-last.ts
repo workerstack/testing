@@ -18,6 +18,10 @@ export const sortNullsFirstLast: Check<{
   firstClause: string | null;
   lastClause: string | null;
 }>({
+  dependsOn: ["sort.order-is-applied", "sort.reverse-symmetry"],
+  id: "sort.nulls-first-last",
+  lists: true,
+  needs: "a declared nulls token, a dotted sort grammar, and a null in the cohort",
   plan: (ctx) => {
     if (
       conv(ctx).order === undefined ||
@@ -42,11 +46,6 @@ export const sortNullsFirstLast: Check<{
     // one clause is written.
     return ready({ field, firstClause: placed("first"), lastClause: placed("last") });
   },
-  dependsOn: ["sort.order-is-applied", "sort.reverse-symmetry"],
-  id: "sort.nulls-first-last",
-  lists: true,
-  needs: "a declared nulls token, a dotted sort grammar, and a null in the cohort",
-  subjects: subjectsOf.list,
   async run(ctx, { field, firstClause, lastClause }): Promise<Outcome> {
     const limit = pageSize(ctx);
 
@@ -59,9 +58,9 @@ export const sortNullsFirstLast: Check<{
 
       if (first !== undefined && first[field.field] !== null && first[field.field] !== undefined) {
         return ctx.findings.backend(this.id, ctx.entityName, {
-          summary: "nullsfirst did not put nulls first",
           detail: `order=${clause} started with ${JSON.stringify(first[field.field])}.`,
           evidence: [result.last.exchange],
+          summary: "nullsfirst did not put nulls first",
         });
       }
     }
@@ -80,13 +79,14 @@ export const sortNullsFirstLast: Check<{
 
       if (last !== undefined && last[field.field] !== null && last[field.field] !== undefined) {
         ctx.findings.backend(this.id, ctx.entityName, {
-          summary: "nullslast did not put nulls last",
           detail: `order=${clause} ended with ${JSON.stringify(last[field.field])}.`,
           evidence: [result.last.exchange],
+          summary: "nullslast did not put nulls last",
         });
       }
     }
 
     return ASSERTED;
   },
+  subjects: subjectsOf.list,
 });

@@ -26,7 +26,10 @@ import { judgeRevoke, watchRevoke } from "./revoke-window.ts";
  * at the same check — the timeline is the property.
  */
 export const inviteGrantsThenRevokes: Check<InvitePlan> = defineCheck<InvitePlan>({
+  dependsOn: ["list.read-after-write", "tenant.item-not-readable-cross-tenant"],
+  id: "auth.invite-grants-then-revokes",
   mutates: true,
+  needs: "x-invite naming invite/accept/revoke, a peer principal with inviteAs, and an item or list route",
   plan: (ctx) => {
     const spec = ctx.invite;
     const owner = ctx.actors[0];
@@ -54,10 +57,6 @@ export const inviteGrantsThenRevokes: Check<InvitePlan> = defineCheck<InvitePlan
 
     return ready({ acceptOp, delegate, grantsOp, inviteAs: delegate.inviteAs, inviteOp, owner, revokeOp, spec });
   },
-  dependsOn: ["list.read-after-write", "tenant.item-not-readable-cross-tenant"],
-  id: "auth.invite-grants-then-revokes",
-  needs: "x-invite naming invite/accept/revoke, a peer principal with inviteAs, and an item or list route",
-  subjects: subjectsOf.invite,
   async run(ctx, plan): Promise<Outcome> {
     const flow = inviteFlow(ctx, this.id, plan);
 
@@ -103,6 +102,7 @@ export const inviteGrantsThenRevokes: Check<InvitePlan> = defineCheck<InvitePlan
       if (!flow.revoked && grantId !== undefined) await revoke(flow, grantId).catch(() => {});
     }
   },
+  subjects: subjectsOf.invite,
 });
 
 /**
@@ -115,11 +115,11 @@ async function acceptInvite(flow: Flow, invited: Exchange): Promise<{ exchange: 
 
   if ((await canRead(flow)) === true) {
     const outcome = ctx.findings.backend(check, ctx.entityName, {
-      summary: "an invite grants access before it is accepted",
       detail:
         `inviting ${delegate.id} made ${flow.subjectLabel} readable immediately. The accept ` +
         "step is then theater — anyone who can be named in an invite body is already in.",
       evidence: [invited],
+      summary: "an invite grants access before it is accepted",
     });
 
     return { outcome };
@@ -145,11 +145,11 @@ async function acceptInvite(flow: Flow, invited: Exchange): Promise<{ exchange: 
 
   if ((await canRead(flow)) === false) {
     const outcome = ctx.findings.backend(check, ctx.entityName, {
-      summary: "accepting an invite does not grant access",
       detail:
         `${delegate.id} accepted an invite and still cannot read ${flow.subjectLabel}. ` +
         "The invite flow completed; the grant did not.",
       evidence: [invited, accepted.exchange],
+      summary: "accepting an invite does not grant access",
     });
 
     return { outcome };
@@ -190,11 +190,11 @@ async function revokeGrant(flow: Flow, evidence: [Exchange, Exchange], grantId: 
 
   if ((await canRead(flow)) === true) {
     ctx.findings.backend(check, ctx.entityName, {
-      summary: "revoking an invite does not remove access",
       detail:
         `${plan.delegate.id} can still read ${flow.subjectLabel} after the grant was revoked. ` +
         "A share that cannot be taken back is a standing leak.",
       evidence: [...evidence, revoked],
+      summary: "revoking an invite does not remove access",
     });
   }
 

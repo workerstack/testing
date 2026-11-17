@@ -5,11 +5,11 @@ import { renderFuzz, renderPrecision } from "./render.ts";
 
 const clean: FuzzCase = {
   cascaded: [{ because: "list.read-after-write", defect: "OFF_BY_ONE_PAGE" }],
+  excused: [],
   findings: 1,
   injected: ["STALE_LIST", "OFF_BY_ONE_PAGE"],
   missed: [],
   ok: true,
-  excused: [],
   seed: 11,
   spurious: [],
   unresolved: [{ defect: "ORDER_IGNORED", reason: "one row" }],

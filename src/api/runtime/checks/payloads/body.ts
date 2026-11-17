@@ -1,4 +1,5 @@
 import type { RequestOptions } from "../../../client/types.ts";
+import { isRecord } from "../../../config/types/raw.ts";
 import { requestContent } from "../../../spec/collection/request.ts";
 import type { OperationModel } from "../../../spec/graph/types.ts";
 import { normalizeSchema } from "../../../spec/schema.ts";
@@ -64,8 +65,33 @@ function writeOnlyProperties(ctx: Pick<CheckContext, "model">, op: OperationMode
   return Object.keys(properties).filter((name) => properties[name]?.writeOnly === true);
 }
 
+/** The property names `schema` declares, in its order; none when it declares no properties object. */
+function propertyNames(schema: JsonSchema | null | undefined): string[] {
+  const properties: unknown = schema?.properties;
+
+  return isRecord(properties) ? Object.keys(properties) : [];
+}
+
 /**
- * The first non-empty string field of `record` the update may change: not fixed, not withheld, not
+ * `record`'s fields in the order the document declares them, the item's representation and then the
+ * update's body, and any it declares in neither by name: which field a probe picks follows the
+ * document, never the order a server wrote its answer's keys in.
+ */
+function documentOrder(ctx: CheckContext, record: Record_): string[] {
+  const update = ctx.updateOp === undefined ? null : requestSchemaOf(ctx, ctx.updateOp);
+  const declared = [...propertyNames(itemSchemaOf(ctx)), ...propertyNames(update)];
+
+  const listed = [...new Set(declared)].filter((key) => Object.hasOwn(record, key));
+
+  const rest = Object.keys(record)
+    .filter((key) => !listed.includes(key))
+    .toSorted();
+
+  return [...listed, ...rest];
+}
+
+/**
+ * The first non-empty string field of `record`, in document order, the update may change: not fixed, not withheld, not
  * one the update is known to drop, and one a read can return — never one the create or the update
  * marks writeOnly, a secret say.
  */
@@ -80,7 +106,9 @@ export function pickWritableStringField(ctx: CheckContext, record: Record_): str
     ...updateDrops(ctx),
   ]);
 
-  for (const [key, value] of Object.entries(record)) {
+  for (const key of documentOrder(ctx, record)) {
+    const value = record[key];
+
     if (immutable.has(key) || key === ctx.identity) continue;
 
     if (/_at$|_id$/.test(key)) continue;
@@ -119,13 +147,13 @@ export function validBody(ctx: CheckContext, schema: JsonSchema): Record<string,
 
   // One variant asked for, one member made.
   const [member] = buildCohort(schema, ctx.seed, {
-    variants: ["baseline"],
     defs: ctx.model.defs,
     // Every string carries the body's own salt, not only the unique ones: a server that derives an
     // undeclared key from a name (a slug) refuses a record named like one the cohort holds.
     distinct: new Set([...(ctx.uniqueSets ?? []).flat(), ...stringProperties(schema)]),
     nonce: salt,
     operationId: ctx.createOp?.operationId ?? ctx.entityName,
+    variants: ["baseline"],
   }) as [CohortMember];
 
   let body = member.body;

@@ -102,8 +102,8 @@ describe("runOptionsOf overrides", () => {
 
     expect(options).toMatchObject({
       accountsFile: "/runs/1/accounts.json",
-      baseline,
       baseUrl: "http://other.test",
+      baseline,
       exchangeDir: "/runs/1",
       keepCredentials: true,
       keepFixtures: true,

@@ -17,7 +17,7 @@ describe("the search route", () => {
     const { call } = await api();
 
     const mismatched = [
-      { kind: "card", account: BANK.account },
+      { account: BANK.account, kind: "card" },
       { kind: "bank", last4: CARD.last4 },
       { kind: "wallet", last4: CARD.last4 },
       { last4: CARD.last4 },

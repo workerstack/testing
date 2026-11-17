@@ -101,7 +101,7 @@ export function makesAccount(op: OperationModel, model: SpecModel): boolean {
   return accountMaking(op, model) !== null;
 }
 
-/** Every operation of the document that can make an account, in document order. */
+/** Every operation of the document that can make an account, in the model's order (by path, then method). */
 export function accountMakersOf(model: Pick<SpecModel, "operations" | "rawOperations">): SignupOperation[] {
   return model.operations
     .filter((op) => makesAccount(op, model as SpecModel))

@@ -12,7 +12,7 @@ const dropsUnknown: Responder = () => ({ body: NOTES.map((row) => ({ id: row["id
 
 // Echoes the undeclared name back as a field.
 const echoesUnknown: Responder = () => ({
-  body: NOTES.map((row) => ({ id: row["id"], [UNKNOWN]: null })),
+  body: NOTES.map((row) => ({ [UNKNOWN]: null, id: row["id"] })),
   status: 200,
 });
 

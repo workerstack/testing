@@ -11,6 +11,9 @@ export const createStatusMatchesSpec: Check<{ createOp: OperationModel; success:
   createOp: OperationModel;
   success: string[];
 }>({
+  id: "create.status-matches-document",
+  judgesTranscript: true,
+  needs: "a create operation",
   plan: (ctx) => {
     const createOp = ctx.createOp;
 
@@ -19,10 +22,6 @@ export const createStatusMatchesSpec: Check<{ createOp: OperationModel; success:
 
     return success.length === 0 ? cannot("a success status documented for create") : ready({ createOp, success });
   },
-  id: "create.status-matches-document",
-  judgesTranscript: true,
-  needs: "a create operation",
-  subjects: subjectsOf.create,
   async run(ctx, { createOp, success }): Promise<Outcome> {
     const exchange = await createExchange(ctx);
 
@@ -32,12 +31,13 @@ export const createStatusMatchesSpec: Check<{ createOp: OperationModel; success:
     if (documentsStatus(createOp.statuses, exchange.status)) return ASSERTED;
 
     return ctx.findings.spec(this.id, ctx.entityName, {
-      summary: "create returns a success status the document does not declare",
       detail:
         `${createOp.operationId} returned ${exchange.status}; the document declares ` +
         `${success.join(", ")}. Either the handler or the document is wrong, and clients ` +
         "generated from the spec will not recognize the response.",
       evidence: [exchange],
+      summary: "create returns a success status the document does not declare",
     });
   },
+  subjects: subjectsOf.create,
 });

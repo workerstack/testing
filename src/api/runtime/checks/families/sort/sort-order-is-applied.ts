@@ -9,16 +9,15 @@ import { observeTextOrder, orderIgnored, sortedUnder } from "../../query/order.t
 import { list } from "../../sets/list.ts";
 
 export const orderChangesResult: Check<{ field: string }> = defineCheck<{ field: string }>({
+  dependsOn: ["pagination.limit-bounds-page-size"],
+  id: "sort.order-is-applied",
+  lists: true,
+  needs: "an `order` parameter and a sortable field",
   plan: (ctx) => {
     const field = ctx.query?.sortable.find((f) => f !== ctx.identity) ?? ctx.query?.sortable[0];
 
     return field === undefined || ctx.records.length <= 2 ? cannot() : ready({ field });
   },
-  dependsOn: ["pagination.limit-bounds-page-size"],
-  id: "sort.order-is-applied",
-  lists: true,
-  needs: "an `order` parameter and a sortable field",
-  subjects: subjectsOf.list,
   async run(ctx, { field }): Promise<Outcome> {
     const limit = pageSize(ctx);
     const ascending = await list(ctx, q(ctx, { limit, order: sortTerm(conv(ctx), { direction: "asc", field }) }));
@@ -43,11 +42,11 @@ export const orderChangesResult: Check<{ field: string }> = defineCheck<{ field:
 
       if (descending !== null) {
         return ctx.findings.backend(this.id, ctx.entityName, {
-          summary: "order is accepted but has no effect",
           detail:
             `order=${field}.asc and order=${field}.desc returned the same sequence of "${field}" ` +
             "values. The listing comes back in one fixed order whatever is asked for.",
           evidence: [ascending.exchange, descending.exchange],
+          summary: "order is accepted but has no effect",
         });
       }
 
@@ -57,7 +56,6 @@ export const orderChangesResult: Check<{ field: string }> = defineCheck<{ field:
     }
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "order is accepted but the result is not sorted",
       detail:
         `order=${field}.asc returned records whose "${field}" values are not ascending: ` +
         `${values
@@ -66,6 +64,8 @@ export const orderChangesResult: Check<{ field: string }> = defineCheck<{ field:
           .join(", ")}. A sort parameter the ` +
         "backend ignores silently gives every caller arbitrary ordering.",
       evidence: [ascending.exchange],
+      summary: "order is accepted but the result is not sorted",
     });
   },
+  subjects: subjectsOf.list,
 });

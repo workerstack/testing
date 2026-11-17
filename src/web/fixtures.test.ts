@@ -72,7 +72,7 @@ describe("guardPage", () => {
   });
 
   it("lets through what the test ignores with a reason", async () => {
-    const ignore = [{ text: "boom", reason: "logged on purpose" }];
+    const ignore = [{ reason: "logged on purpose", text: "boom" }];
     await expect(run({ ignore }, (fake) => fake.say("console", message("error", "boom")))).resolves.toHaveLength(1);
   });
 
@@ -83,7 +83,7 @@ describe("guardPage", () => {
   });
 
   it("refuses a reasonless ignore before the test runs", async () => {
-    const ignore = [{ text: "boom", reason: "" }];
+    const ignore = [{ reason: "", text: "boom" }];
     await expect(run({ ignore }, () => {})).rejects.toThrow('guard: ignore "boom" has no reason');
   });
 });
@@ -101,7 +101,7 @@ describe("fixtures", () => {
     await ready({ page }, async (value) => {
       given = value;
     });
-    expect(Object.keys(given as object)).toEqual(["goto", "settle"]);
+    expect(Object.keys(given as object).toSorted()).toStrictEqual(["goto", "settle"]);
   });
 
   it("gives each test a mouse pointer on its page", async () => {
@@ -111,7 +111,7 @@ describe("fixtures", () => {
     await pointer({ page }, async (value) => {
       given = value;
     });
-    expect(Object.keys(given as object)).toEqual(["drag", "dragCenterTo"]);
+    expect(Object.keys(given as object).toSorted()).toStrictEqual(["drag", "dragCenterTo"]);
   });
 });
 

@@ -21,6 +21,22 @@ import { projectionBeside, sortFieldBeside, type Subset, subsetPlan } from "./pl
 export const filterSortSelectCompose: Check<
   Subset & { extra: string; projection: Record<string, string>; sortField: string }
 > = defineCheck<Subset & { extra: string; projection: Record<string, string>; sortField: string }>({
+  dependsOn: [
+    "list.read-after-write",
+    "create.persists-submitted-fields",
+    "filter.equality-selects-exactly-one",
+    "sort.order-is-applied",
+    "select.projection-honored",
+    "pagination.page-walk-covers-set",
+    // Each pair has to hold before "the triple disagrees" means anything. A pair defect
+    // would also break this request, and reporting it again would name the wrong cause.
+    "query.axes-compose",
+    "query.filter-and-select-compose",
+    "query.filter-selects-from-whole-set",
+  ],
+  id: "query.filter-sort-select-compose",
+  lists: true,
+  needs: "a filterable field, a sortable field, a select parameter, and more than two records",
   plan: (ctx) =>
     andThen(
       when(
@@ -40,23 +56,6 @@ export const filterSortSelectCompose: Check<
           return ready({ ...subset, ...projected, sortField: sortFieldBeside(ctx, subset.field) });
         }),
     ),
-  dependsOn: [
-    "list.read-after-write",
-    "create.persists-submitted-fields",
-    "filter.equality-selects-exactly-one",
-    "sort.order-is-applied",
-    "select.projection-honored",
-    "pagination.page-walk-covers-set",
-    // Each pair has to hold before "the triple disagrees" means anything. A pair defect
-    // would also break this request, and reporting it again would name the wrong cause.
-    "query.axes-compose",
-    "query.filter-and-select-compose",
-    "query.filter-selects-from-whole-set",
-  ],
-  id: "query.filter-sort-select-compose",
-  lists: true,
-  needs: "a filterable field, a sortable field, a select parameter, and more than two records",
-  subjects: subjectsOf.list,
   async run(ctx, { extra, field, projection, sortField, term }): Promise<Outcome> {
     const conventions = conv(ctx);
     const limit = pageSize(ctx);
@@ -112,7 +111,6 @@ export const filterSortSelectCompose: Check<
     if (moved !== null) return moved;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "adding a sort and a select together changes which records a filter returns",
       detail:
         `filter on "${field}" alone matched ${alone.size}; the same filter with ` +
         `order=${sortField} desc and select=${[ctx.identity, extra].join(",")} matched ${combined.size}. ${
@@ -122,6 +120,8 @@ export const filterSortSelectCompose: Check<
         }Each pair composes; the triple must too. A filter that only holds until both a ` +
         `sort and a projection are present is one a three-axis query plan is dropping.`,
       evidence: [filtered.last.exchange, triple.last.exchange],
+      summary: "adding a sort and a select together changes which records a filter returns",
     });
   },
+  subjects: subjectsOf.list,
 });

@@ -34,7 +34,7 @@ describe("securityFacts", () => {
     expect(facts.groups.map((group) => group.requirement).toSorted()).toEqual([
       "basic | anonymous",
       "missing",
-      "oauth[read,write] + mtls",
+      "mtls + oauth[read,write]",
     ]);
   });
 

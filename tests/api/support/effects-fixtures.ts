@@ -214,10 +214,10 @@ export function nestedSpec(): OpenApiDocument {
     info: { title: "effects", version: "1" },
     openapi: "3.1.0",
     paths: {
+      "/v1/projects/{project_id}/extract": extractPath(),
       "/v1/projects/{project_id}/tables": tablesPath(),
       "/v1/projects/{project_id}/tables/{table_id}": tablePath(),
       "/v1/projects/{project_id}/tables/{table_id}/rows": rowsPath(),
-      "/v1/projects/{project_id}/extract": extractPath(),
     },
   } as OpenApiDocument;
 }
@@ -253,8 +253,8 @@ export function addOrganizations(paths: Paths): void {
       operationId: "org.create",
       responses: {
         "201": {
-          description: "created",
           content: { "application/json": { schema: { properties: { id: { type: "string" } }, type: "object" } } },
+          description: "created",
         },
       },
       "x-entity": entity("create", "organization"),

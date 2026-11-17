@@ -23,9 +23,9 @@ export function judge(
   if (exchange.status >= 500) {
     grades.graded([op.operationId], CONTRACT_CHECK_ID);
     blame.backend(CONTRACT_CHECK_ID, entity, {
-      summary: `a schema-built request ${describeServerError(exchange)}`,
       detail: `${op.operationId} returned ${exchange.status}: ${snippet(exchange.responseBody)}`,
       evidence: [exchange],
+      summary: `a schema-built request ${describeServerError(exchange)}`,
     });
 
     return;
@@ -52,13 +52,13 @@ export function judge(
   // A documented status with no body schema has nothing more to hold the body to.
   const result = input.validator.documents(raw, exchange.status)
     ? input.validator.validate(op.operationId, raw, exchange)
-    : { ok: true, errors: [] as string[], unchecked: undefined };
+    : { errors: [] as string[], ok: true, unchecked: undefined };
 
   if (result.unchecked === undefined && !result.ok) {
     blame.spec(CONTRACT_CHECK_ID, entity, {
-      summary: "success response does not match its documented schema",
       detail: `${op.operationId} returned ${exchange.status} with a body that fails the declared schema: ${result.errors.join("; ")}`,
       evidence: [exchange],
+      summary: "success response does not match its documented schema",
     });
 
     return;

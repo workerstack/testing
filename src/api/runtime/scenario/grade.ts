@@ -57,9 +57,9 @@ export function gradeScenario(run: ScenarioRun, graded: readonly string[], stopp
       .attributed([...failedOps])
       .ownedBy(check)
       .backend(check, scenario.id, {
-        summary: `${where}: ${failure.message}`,
         detail: failure.message,
         evidence: failure.evidence,
+        summary: `${where}: ${failure.message}`,
       });
   }
 
@@ -69,6 +69,6 @@ export function gradeScenario(run: ScenarioRun, graded: readonly string[], stopp
     input.findings
       .attributed(unreached)
       .ownedBy(check)
-      .blocked(check, scenario.id, { summary: `${where} before calling it`, cause: `${where}: ${failure.message}` });
+      .blocked(check, scenario.id, { cause: `${where}: ${failure.message}`, summary: `${where} before calling it` });
   }
 }

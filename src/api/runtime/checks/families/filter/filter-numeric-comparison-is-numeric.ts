@@ -47,6 +47,15 @@ export const numericComparisonIsNumeric: Check<{
   expected: string[];
   gtTerm: Record<string, string>;
 }>({
+  dependsOn: [
+    "query.filter-selects-from-whole-set",
+    "pagination.page-walk-covers-set",
+    "list.read-after-write",
+    "filter.unknown-field-rejected",
+  ],
+  id: "filter.numeric-comparison-is-numeric",
+  lists: true,
+  needs: "a `filter` parameter and a numeric field",
   plan: (ctx) => {
     const unverified = storedFieldsUnknown(ctx);
 
@@ -74,16 +83,6 @@ export const numericComparisonIsNumeric: Check<{
 
     return ready({ expected, field, gtTerm, threshold });
   },
-  dependsOn: [
-    "query.filter-selects-from-whole-set",
-    "pagination.page-walk-covers-set",
-    "list.read-after-write",
-    "filter.unknown-field-rejected",
-  ],
-  id: "filter.numeric-comparison-is-numeric",
-  lists: true,
-  needs: "a `filter` parameter and a numeric field",
-  subjects: subjectsOf.list,
   async run(ctx, { expected, field, gtTerm, threshold }): Promise<Outcome> {
     // The whole filtered set: a record above the threshold on the second page is not missing.
     const read = await readSet(ctx, gtTerm);
@@ -114,9 +113,6 @@ export const numericComparisonIsNumeric: Check<{
     const comparedAsText = missing.length > 0 && missing.every((id) => lexical.includes(id));
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: comparedAsText
-        ? `"${field}" is compared as text rather than as a number`
-        : `"${field}" comparison does not agree with numeric ordering`,
       detail:
         `filter=${field}.gt.${threshold} returned ${got.length} record(s); ${expected.length} known ` +
         `records hold a greater numeric value. Missing: ${missing.slice(0, 4).join(", ") || "none"}. ` +
@@ -127,8 +123,12 @@ export const numericComparisonIsNumeric: Check<{
             : "The comparison does not agree with numeric ordering."
         }`,
       evidence: [result.exchange],
+      summary: comparedAsText
+        ? `"${field}" is compared as text rather than as a number`
+        : `"${field}" comparison does not agree with numeric ordering`,
     });
   },
+  subjects: subjectsOf.list,
 });
 
 function numericFilterField(ctx: Listed): string | null {

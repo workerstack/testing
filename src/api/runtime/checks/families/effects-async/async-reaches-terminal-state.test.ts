@@ -71,8 +71,8 @@ async function watched(respond: Responder, asyncOps: OperationModel[] = [startJo
   const recordUnidentified = vi.fn<NonNullable<CheckContext["recordUnidentified"]>>();
 
   const stage = contextFor(model, "listWidgets", {
-    respond,
     fields: { asyncOps, recordCreated, recordUnidentified, ...fields },
+    respond,
   });
 
   const running = check.run(stage.ctx, undefined);
@@ -85,7 +85,7 @@ const started = (poll: Handler, start: Answer = { body: { id: "j1" }, status: 20
   routes({ "GET /jobs/j1": poll, "POST /jobs": () => start });
 
 const plan = (asyncOps: OperationModel[]) =>
-  check.plan(contextFor(model, "listWidgets", { respond: () => {}, fields: { asyncOps } }).ctx).ok;
+  check.plan(contextFor(model, "listWidgets", { fields: { asyncOps }, respond: () => {} }).ctx).ok;
 
 describe("plan", () => {
   it("applies when some operation declares x-async", () => {

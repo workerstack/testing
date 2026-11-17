@@ -42,9 +42,13 @@ describe("userSpec security", () => {
     const doc = userSpec();
     expect(doc).toMatchObject(bearerSecurity());
     const model = buildModel(dereference(doc).doc);
-    expect(model.operations.map((op) => [op.operationId, op.security.alternatives, op.security.source])).toEqual([
-      ["auth.registerWithEmail", [[]], "operation"],
-      ["auth.login", [[]], "operation"],
-    ]);
+    expect(
+      Object.fromEntries(
+        model.operations.map((op) => [op.operationId, [op.security.alternatives, op.security.source]]),
+      ),
+    ).toEqual({
+      "auth.login": [[[]], "operation"],
+      "auth.registerWithEmail": [[[]], "operation"],
+    });
   });
 });

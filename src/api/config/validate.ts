@@ -61,9 +61,11 @@ const arrayOf =
 const recordOf =
   (item: Rule): Rule =>
   (value, path) =>
-    object(value, path).length > 0
-      ? object(value, path)
-      : Object.entries(value as Record<string, unknown>).flatMap(([key, entry]) => item(entry, `${path}.${key}`));
+    isRecord(value)
+      ? Object.keys(value)
+          .toSorted()
+          .flatMap((key) => item(value[key], `${path}.${key}`))
+      : object(value, path);
 
 const shape =
   (fields: Record<string, Rule>, required: readonly string[] = []): Rule =>
@@ -76,7 +78,8 @@ const shape =
 
     for (const key of required) if (record[key] === undefined) problems.push(`${path}.${key} is required`);
 
-    for (const [key, entry] of Object.entries(record)) {
+    for (const key of Object.keys(record).toSorted()) {
+      const entry = record[key];
       const rule = fields[key];
 
       if (rule === undefined) problems.push(`${path}.${key} is not a config key`);
@@ -120,13 +123,16 @@ export function configRules(): Record<string, Rule> {
   const overlay = overlayRule();
 
   return {
+    allow: arrayOf(string),
     baseUrl: string,
+    baseline: string,
     cache: shape({ bypass: boolean }),
     // Opt-in checks by id: an unknown id is named, so a misspelled switch never reads as off.
     checks: shape({ "auth.login-throttled": boolean }),
     cohortSize: integer(1),
     entities: recordOf(object),
     externals: shape({ kinds: recordOf(string) }),
+    fence: shape({ failRun: boolean }),
     globalHeaders: recordOf(string),
     hooks: functionsAt("verifyRemoved", "resolveCredential"),
     keepFixtures: boolean,
@@ -147,14 +153,9 @@ export function configRules(): Record<string, Rule> {
         "spec",
       ]),
     ),
-    overlay,
-    allow: arrayOf(string),
-    fence: shape({ failRun: boolean }),
-    teardown: shape({ verify: boolean }),
-    baseline: string,
-    targetVersion: shape({ from: string, operationId: string, path: string, scheme: string }, ["from"]),
     outDir: string,
     outOfBand: shape({ attempts: integer(1), initialMs: integer(0), maxMs: integer(0) }),
+    overlay,
     payloads: oneOf("full", "per-write-path"),
     principals: checkedWhole,
     profile: string,
@@ -167,6 +168,8 @@ export function configRules(): Record<string, Rule> {
     security: checkedWhole,
     seed: integer(Number.MIN_SAFE_INTEGER),
     spec: string,
+    targetVersion: shape({ from: string, operationId: string, path: string, scheme: string }, ["from"]),
+    teardown: shape({ verify: boolean }),
     uploads: object,
     writer: string,
   };

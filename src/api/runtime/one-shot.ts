@@ -86,9 +86,9 @@ export async function runPublicGets(input: {
     // `documentsSuccess` kept only routes that name a 2xx, so this list is never empty.
     const expected = describeSuccess(op.statuses).join(", ");
     findings.backend(PUBLIC_GET_CHECK_ID, op.operationId, {
-      summary: "a public read did not return its success status",
       detail: `${op.operationId} returned ${exchange.status}. The document says ${expected} for a request with no token and no id.`,
       evidence: [exchange],
+      summary: "a public read did not return its success status",
     });
   }
 }

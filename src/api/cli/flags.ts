@@ -14,87 +14,31 @@ export type FlagSpec<Kind extends FlagKind = FlagKind> = {
 
 /** Every flag, once: whether it takes a value, what kind, and what it is for. Parsing and help both read this. */
 export const FLAGS: { readonly [Name in FlagName]: Readonly<FlagSpec<FlagKinds[Name]>> } = {
-  config: { help: "config module (.ts/.js/.mjs/.json) with a default export", kind: "value", value: "<file>" },
-  spec: { help: "OpenAPI document, http(s) URL or filesystem path", kind: "value", value: "<url|file>" },
-  "base-url": { help: "backend under test, overriding the config", kind: "value", value: "<url>" },
-  ops: {
-    help: "comma-separated operationIds to grade (row.*, cdn:asset.get); the rest is support",
+  aggregate: {
+    help: "conformance: judge the proven-check files of a sharded run together; fails on any check none proved",
     kind: "value",
-    value: "<ids>",
+    value: "<dir>",
   },
-  only: {
-    help: "run, plan: comma-separated entities, each grading every operation it owns; conformance: defect names",
-    kind: "value",
-    value: "<names>",
-  },
-  profile: {
-    help: "named profile gating which operations run (built-in: full, cheap)",
-    kind: "value",
-    value: "<name>",
-  },
-  seed: {
-    help: "integer seed for fixture generation (default 1); with --fuzz or --precision, the seed that replays a case",
-    kind: "value",
-    number: "integer",
-    value: "<n>",
-  },
-  out: {
-    help: "run: history root, each run is <out>/<datetime>/ (default ./.testing/api/runs); baseline: the file written; init: the config written (default ./testing.api.config.ts)",
-    kind: "value",
-    value: "<dir|file>",
-  },
-  report: {
-    help: "run: comma-separated reports to write beside the run's own; junit writes junit.xml in the run directory",
-    kind: "value",
-    value: "<names>",
-  },
-  "keep-fixtures": { help: "leave created records in place instead of tearing them down", kind: "boolean" },
-  "keep-credentials": {
-    help: "write the credentials the run held to .testing/api/credentials.json (mode 0600), never under --out",
-    kind: "boolean",
-  },
-  "max-in-flight": {
-    help: "requests allowed in flight at once (default 4)",
-    kind: "value",
-    number: "positive",
-    value: "<n>",
-  },
-  quiet: { help: "no live progress on stderr (progress.log still written)", kind: "boolean" },
-  "save-exchanges": {
-    help: "persist every HTTP exchange under the run dir (default unless --profile cheap)",
-    kind: "boolean",
-  },
-  "no-save-exchanges": { help: "skip the exchange journal (cheap CI)", kind: "boolean" },
-  untagged: { help: "serve (or test) a document with every x-* tag stripped", kind: "boolean" },
-  defects: { help: "serve: comma-separated defects the demo API injects", kind: "value", value: "<names>" },
   backend: {
     help: "conformance and serve storage: memory | sqlite | postgres | d1 (default: all local; d1 is remote and opt-in)",
     kind: "value",
     value: "<name>",
   },
+  "base-url": { help: "backend under test, overriding the config", kind: "value", value: "<url>" },
+  config: { help: "config module (.ts/.js/.mjs/.json) with a default export", kind: "value", value: "<file>" },
+  defects: { help: "serve: comma-separated defects the demo API injects", kind: "value", value: "<names>" },
   dialect: {
     help: "API shape: postgrest | classic | linked | jsonapi | plain | template (default: all)",
     kind: "value",
     value: "<name>",
   },
-  parser: { help: "conformance: the document and suite checks only, without the defect matrix", kind: "boolean" },
+  force: { help: "baseline, init: overwrite an existing --out file", kind: "boolean" },
+  from: { help: "baseline: the run folder (or latest) whose findings become known", kind: "value", value: "<run>" },
   fuzz: {
     help: "conformance: inject random defect combinations instead of one at a time",
     kind: "optional-value",
     number: "positive",
     value: "[n]",
-  },
-  precision: {
-    help: "conformance: vary cohort data against a correct backend; any finding is a false positive",
-    kind: "optional-value",
-    number: "positive",
-    value: "[n]",
-  },
-  "max-defects": {
-    help: "conformance: most defects per combination (default 4)",
-    kind: "value",
-    number: "positive",
-    value: "<n>",
   },
   "fuzz-seed": {
     help: "conformance: seed for the combination pass of a full run (default 1)",
@@ -102,42 +46,139 @@ export const FLAGS: { readonly [Name in FlagName]: Readonly<FlagSpec<FlagKinds[N
     number: "positive",
     value: "<n>",
   },
+  help: { help: "print this help", kind: "boolean" },
   jobs: {
     help: "conformance: legs run at once, each on its own thread (default: CPUs − 1, at most 4)",
     kind: "value",
     number: "positive",
     value: "<n>",
   },
-  "skip-backend": {
-    help: "conformance: comma-separated backends a full run may leave out when unreachable",
-    kind: "value",
-    value: "<names>",
+  json: { help: "machine-readable output, for plan, doctor and diff", kind: "boolean" },
+  "keep-credentials": {
+    help: "write the credentials the run held to .testing/api/credentials.json (mode 0600), never under --out",
+    kind: "boolean",
   },
+  "keep-fixtures": { help: "leave created records in place instead of tearing them down", kind: "boolean" },
   legs: {
     help: "conformance: run only these parts — suites, passes, shapes, recall, scope, fuzz",
     kind: "value",
     value: "<legs>",
   },
-  shapes: {
-    help: "conformance: the shapes the shapes and recall legs judge behind; all when absent",
+  "max-defects": {
+    help: "conformance: most defects per combination (default 4)",
+    kind: "value",
+    number: "positive",
+    value: "<n>",
+  },
+  "max-in-flight": {
+    help: "requests allowed in flight at once (default 4)",
+    kind: "value",
+    number: "positive",
+    value: "<n>",
+  },
+  "no-save-exchanges": { help: "skip the exchange journal (cheap CI)", kind: "boolean" },
+  only: {
+    help: "run, plan: comma-separated entities, each grading every operation it owns; conformance: defect names",
     kind: "value",
     value: "<names>",
+  },
+  ops: {
+    help: "comma-separated operationIds to grade (row.*, cdn:asset.get); the rest is support",
+    kind: "value",
+    value: "<ids>",
+  },
+  out: {
+    help: "run: history root, each run is <out>/<datetime>/ (default ./.testing/api/runs); baseline: the file written; init: the config written (default ./testing.api.config.ts)",
+    kind: "value",
+    value: "<dir|file>",
+  },
+  parser: { help: "conformance: the document and suite checks only, without the defect matrix", kind: "boolean" },
+  precision: {
+    help: "conformance: vary cohort data against a correct backend; any finding is a false positive",
+    kind: "optional-value",
+    number: "positive",
+    value: "[n]",
+  },
+  profile: {
+    help: "named profile gating which operations run (built-in: full, cheap)",
+    kind: "value",
+    value: "<name>",
   },
   "proven-out": {
     help: "conformance: write the checks this run's defects proved to a file, for --aggregate",
     kind: "value",
     value: "<file>",
   },
-  aggregate: {
-    help: "conformance: judge the proven-check files of a sharded run together; fails on any check none proved",
+  quiet: { help: "no live progress on stderr (progress.log still written)", kind: "boolean" },
+  report: {
+    help: "run: comma-separated reports to write beside the run's own; junit writes junit.xml in the run directory",
     kind: "value",
-    value: "<dir>",
+    value: "<names>",
   },
-  json: { help: "machine-readable output, for plan, doctor and diff", kind: "boolean" },
-  from: { help: "baseline: the run folder (or latest) whose findings become known", kind: "value", value: "<run>" },
-  force: { help: "baseline, init: overwrite an existing --out file", kind: "boolean" },
-  help: { help: "print this help", kind: "boolean" },
+  "save-exchanges": {
+    help: "persist every HTTP exchange under the run dir (default unless --profile cheap)",
+    kind: "boolean",
+  },
+  seed: {
+    help: "integer seed for fixture generation (default 1); with --fuzz or --precision, the seed that replays a case",
+    kind: "value",
+    number: "integer",
+    value: "<n>",
+  },
+  shapes: {
+    help: "conformance: the shapes the shapes and recall legs judge behind; all when absent",
+    kind: "value",
+    value: "<names>",
+  },
+  "skip-backend": {
+    help: "conformance: comma-separated backends a full run may leave out when unreachable",
+    kind: "value",
+    value: "<names>",
+  },
+  spec: { help: "OpenAPI document, http(s) URL or filesystem path", kind: "value", value: "<url|file>" },
+  untagged: { help: "serve (or test) a document with every x-* tag stripped", kind: "boolean" },
 };
+
+/**
+ * The help's order: the run flags first, then serve's and conformance's, the report commands', and
+ * --help last. It names every flag once.
+ */
+export const FLAG_ORDER: readonly FlagName[] = [
+  "config",
+  "spec",
+  "base-url",
+  "ops",
+  "only",
+  "profile",
+  "seed",
+  "out",
+  "report",
+  "keep-fixtures",
+  "keep-credentials",
+  "max-in-flight",
+  "quiet",
+  "save-exchanges",
+  "no-save-exchanges",
+  "untagged",
+  "defects",
+  "backend",
+  "dialect",
+  "parser",
+  "fuzz",
+  "precision",
+  "max-defects",
+  "fuzz-seed",
+  "jobs",
+  "skip-backend",
+  "legs",
+  "shapes",
+  "proven-out",
+  "aggregate",
+  "json",
+  "from",
+  "force",
+  "help",
+];
 
 /** A flag some command takes, by name: a misspelled one does not compile. */
 export type FlagName = keyof FlagKinds;
@@ -191,10 +232,11 @@ function usage(): string {
   const column = Math.max(...COMMANDS.map((command) => command.usage.length)) + 3;
   const commands = COMMANDS.map((command) => `  testing api ${command.usage.padEnd(column)}${command.help}`);
 
-  const named = Object.entries(SPECS).map(([name, spec]) => [
-    `--${name}${spec.value === undefined ? "" : ` ${spec.value}`}`,
-    spec.help,
-  ]);
+  const named = FLAG_ORDER.map((name) => {
+    const spec: FlagSpec = FLAGS[name];
+
+    return [`--${name}${spec.value === undefined ? "" : ` ${spec.value}`}`, spec.help];
+  });
 
   const width = Math.max(...named.map(([flag]) => (flag as string).length)) + 2;
   const flags = named.map(([flag, help]) => `  ${(flag as string).padEnd(width)}${help}`);

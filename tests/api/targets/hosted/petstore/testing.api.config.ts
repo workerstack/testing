@@ -7,16 +7,16 @@
 import { defineConfig, env } from "../../../../../src/api/index.ts";
 
 export default defineConfig({
-  spec: "https://petstore3.swagger.io/api/v3/openapi.json",
   baseUrl: "https://petstore3.swagger.io/api/v3",
   maxRps: 2,
-  security: {
-    // oauth2 implicit, sent as Authorization: Bearer; the API tester performs only clientCredentials and password grants
-    petstore_auth: { holds: ["read:pets", "write:pets"], static: env("TESTING_API_PETSTORE_AUTH_TOKEN") },
-    // apiKey in header api_key; the demo documents "special-key"
-    api_key: { static: env("TESTING_API_PETSTORE_API_KEY") },
-  },
   principals: {
     alpha: {},
   },
+  security: {
+    // apiKey in header api_key; the demo documents "special-key"
+    api_key: { static: env("TESTING_API_PETSTORE_API_KEY") },
+    // oauth2 implicit, sent as Authorization: Bearer; the API tester performs only clientCredentials and password grants
+    petstore_auth: { holds: ["read:pets", "write:pets"], static: env("TESTING_API_PETSTORE_AUTH_TOKEN") },
+  },
+  spec: "https://petstore3.swagger.io/api/v3/openapi.json",
 });

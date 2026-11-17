@@ -12,11 +12,11 @@ const app = await appServer({
 });
 
 export default defineWebConfig({
+  fullyParallel: true,
+  outputDir: join(import.meta.dirname, "..", "..", "..", ".tmp", "playwright-server"),
+  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  retries: 0,
   server: app,
   testDir: "server-specs",
-  outputDir: join(import.meta.dirname, "..", "..", "..", ".tmp", "playwright-server"),
-  fullyParallel: true,
   workers: 2,
-  retries: 0,
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
 });

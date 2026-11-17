@@ -52,7 +52,7 @@ async function listen(handler: (req: IncomingMessage, res: ServerResponse) => vo
 
 describe("readPointer / occupancy", () => {
   it("reads dot paths, JSON pointers, and escapes", () => {
-    const body = { items: [{ id: "a" }], "a/b": { "~": 1 } };
+    const body = { "a/b": { "~": 1 }, items: [{ id: "a" }] };
     expect(readPointer(body, "$.items.0.id")).toBe("a");
     expect(readPointer(body, "/items/0/id")).toBe("a");
     expect(readPointer(body, "/")).toEqual(body);
@@ -134,8 +134,8 @@ function waitOn(url: string, options: Pick<WaitOptions, "spec"> & Partial<WaitOp
       credentials: { resolve: async () => ({ kind: "anonymous" }) },
       redactor: new Redactor(),
     }),
-    principal: "alpha",
     pollOp: model.byOperationId.get(options.spec.operationId)!,
+    principal: "alpha",
     record: null,
     scope: {},
     writeOpId: "job.create",
@@ -265,6 +265,12 @@ const JOB_SPEC = {
   info: { title: "wait-run", version: "1" },
   openapi: "3.1.0",
   paths: {
+    "/inbox": {
+      get: {
+        operationId: "inbox.list",
+        responses: { "200": { description: "ok" } },
+      },
+    },
     "/jobs": {
       get: {
         operationId: "job.list",
@@ -302,12 +308,6 @@ const JOB_SPEC = {
         },
         "x-entity": { action: "create", identity: "id", name: "job" },
         "x-wait": { operationId: "inbox.list", timeoutMs: 30, until: "$.items.0" },
-      },
-    },
-    "/inbox": {
-      get: {
-        operationId: "inbox.list",
-        responses: { "200": { description: "ok" } },
       },
     },
   },

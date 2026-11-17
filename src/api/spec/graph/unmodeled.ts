@@ -11,7 +11,7 @@ import type { OperationModel } from "./types.ts";
 
 // The keys of a map the document declares; anything that is not a map declares none.
 function keysOf(value: unknown): string[] {
-  return value !== null && typeof value === "object" && !Array.isArray(value) ? Object.keys(value) : [];
+  return value !== null && typeof value === "object" && !Array.isArray(value) ? Object.keys(value).toSorted() : [];
 }
 
 // One member of an untyped object, or undefined when there is no object to read.
@@ -45,7 +45,10 @@ function recordCallsOut(doc: OpenApiDocument, gaps: GapCollector): void {
 
 // OAS 3.2 methods outside the fixed Path Item fields, keyed as they are sent.
 function recordAdditionalOperations(doc: OpenApiDocument, gaps: GapCollector): void {
-  for (const [path, item] of Object.entries(doc.paths ?? {})) {
+  const paths = new Map<string, unknown>(Object.entries(doc.paths ?? {}));
+
+  for (const path of [...paths.keys()].toSorted()) {
+    const item = paths.get(path);
     const additional = member(item, "additionalOperations");
 
     for (const method of keysOf(additional)) {

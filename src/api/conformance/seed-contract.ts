@@ -20,7 +20,7 @@ import { projectBackend } from "./seed-contract/project.ts";
 import { userBackend } from "./seed-contract/users.ts";
 
 /** Who a case's run acts as, and how each principal gets its credential. */
-type Credentials = Pick<RunOptions, "principals" | "security">;
+type Credentials = Pick<RunOptions, "principals" | "security" | "writer">;
 
 /** One case: what it reports when it cannot run, and how it runs, adding what it found to `results`. */
 type ContractCase = {
@@ -86,13 +86,14 @@ async function profiles(via: Via, results: ParserResult[]): Promise<void> {
   });
 }
 
-/** An owner in each of two orgs, each with its own bearer token; beta is invited as its email. */
+/** An owner in each of two orgs, each with its own bearer token; beta is invited as its email, and alpha writes. */
 const INVITE: Credentials = {
   principals: {
     alpha: { scope: { org_id: "org_1" }, tenant: "org_1", token: "a" },
     beta: { inviteAs: "beta@x.test", scope: { org_id: "org_2" }, tenant: "org_2", token: "b" },
   },
   security: { bearer: { static: "{principal.token}" } },
+  writer: "alpha",
 };
 
 async function inviteOnly(via: Via, results: ParserResult[]): Promise<void> {

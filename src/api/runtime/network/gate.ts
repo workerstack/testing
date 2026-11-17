@@ -87,15 +87,6 @@ export function createNetworkGate(options: NetworkGateOptions): NetworkGate {
   let inflight: Promise<boolean> | undefined;
 
   return {
-    get exhausted() {
-      return state.exhausted;
-    },
-    get lastKind() {
-      return state.lastKind;
-    },
-    get waitedMs() {
-      return state.waitedMs;
-    },
     awaitRecovery(error) {
       if (state.exhausted) return Promise.resolve(false);
 
@@ -105,6 +96,15 @@ export function createNetworkGate(options: NetworkGateOptions): NetworkGate {
       });
 
       return inflight;
+    },
+    get exhausted() {
+      return state.exhausted;
+    },
+    get lastKind() {
+      return state.lastKind;
+    },
+    get waitedMs() {
+      return state.waitedMs;
     },
   };
 }

@@ -56,7 +56,7 @@ describe("present", () => {
     const wrapped = await api({ shape: "wrapped-records" });
     expect(present(wrapped.state, wrapped.state.table, { ID: 3 })).toEqual({ ID: 3, Status: { ID: 1, Name: "open" } });
     const plain = await api({ shape: { relatedRecord: true } });
-    expect(present(plain.state, plain.state.table, { id: "t" })).toEqual({ Status: { id: 1, Name: "open" }, id: "t" });
+    expect(present(plain.state, plain.state.table, { id: "t" })).toEqual({ Status: { Name: "open", id: 1 }, id: "t" });
   });
 });
 

@@ -165,7 +165,7 @@ export async function goldenRun(target: GoldenTarget, extraFlags: readonly strin
 
     const outDir = join(dir, "out", "latest");
 
-    return { code, output, outDir, read: (file) => readFile(join(outDir, file), "utf8") };
+    return { code, outDir, output, read: (file) => readFile(join(outDir, file), "utf8") };
   } finally {
     await server.close();
   }

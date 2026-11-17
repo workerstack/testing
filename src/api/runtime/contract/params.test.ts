@@ -52,9 +52,9 @@ describe("seenValue", () => {
     redactor.registerSecret("ref-1a2b3c4d5e");
 
     const transcript = [
-      exchange("GET", "/invites", { body: { token: "inv-0001", refresh_token: "plain-77" }, status: 200 }),
+      exchange("GET", "/invites", { body: { refresh_token: "plain-77", token: "inv-0001" }, status: 200 }),
       exchange("POST", "/auth/login", {
-        body: { session: { token: "acc-9f8e7d6c5b" }, refresh_token: "ref-1a2b3c4d5e", access_token: "acc-9f8e7d6c5b" },
+        body: { access_token: "acc-9f8e7d6c5b", refresh_token: "ref-1a2b3c4d5e", session: { token: "acc-9f8e7d6c5b" } },
         status: 200,
       }),
     ];

@@ -104,7 +104,7 @@ function statedGrammar(declared: unknown): FilterConventions | undefined {
   const template = typeof declared === "object" ? parseFilterGrammar(declared) : null;
 
   return template?.ok === true
-    ? { grammar: "template", filterGrammar: template.spec, grammarDeclared: true }
+    ? { filterGrammar: template.spec, grammar: "template", grammarDeclared: true }
     : undefined;
 }
 
@@ -133,15 +133,15 @@ function declaredSort(declared: unknown, order: ParameterObject | undefined): So
 /** The parameter playing each role, for the roles the endpoint has, in a fixed order. */
 function roles(found: ResolvedRoles["roles"]): RoleConventions {
   const ordered: Record<keyof RoleConventions, string | undefined> = {
+    cursor: found.cursor,
     filter: found.filter,
+    limit: found.limit,
+    offset: found.offset,
     order: found.order,
-    select: found.select,
+    page: found.page,
     search: found.search,
     searchMode: found.searchMode,
-    cursor: found.cursor,
-    limit: found.limit,
-    page: found.page,
-    offset: found.offset,
+    select: found.select,
   };
 
   return Object.fromEntries(Object.entries(ordered).filter(([, name]) => name !== undefined)) as RoleConventions;

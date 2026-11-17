@@ -32,6 +32,28 @@ const noteWrite = {
 
 function notePaths(): Record<string, unknown> {
   return {
+    "/v1/checkout": {
+      post: { operationId: "checkout.open", responses: { "200": { content: json, description: "ok" } } },
+    },
+    "/v1/forms": {
+      post: {
+        operationId: "form.send",
+        requestBody: {
+          content: {
+            "application/x-www-form-urlencoded": {
+              schema: { properties: { text: { type: "string" } }, type: "object" },
+            },
+            "multipart/form-data": {
+              schema: {
+                properties: { file: { format: "binary", type: "string" }, text: { type: "string" } },
+                type: "object",
+              },
+            },
+          },
+        },
+        responses: { "200": { content: json, description: "ok" } },
+      },
+    },
     "/v1/notes": {
       get: { operationId: "notes.list", responses: { "200": { content: noteList, description: "ok" } } },
       post: {
@@ -51,43 +73,11 @@ function notePaths(): Record<string, unknown> {
     "/v1/stats": {
       get: { operationId: "stats.get", responses: { "200": { content: json, description: "ok" } } },
     },
-    "/v1/checkout": {
-      post: { operationId: "checkout.open", responses: { "200": { content: json, description: "ok" } } },
-    },
-    "/v1/forms": {
-      post: {
-        operationId: "form.send",
-        requestBody: {
-          content: {
-            "multipart/form-data": {
-              schema: {
-                properties: { file: { format: "binary", type: "string" }, text: { type: "string" } },
-                type: "object",
-              },
-            },
-            "application/x-www-form-urlencoded": {
-              schema: { properties: { text: { type: "string" } }, type: "object" },
-            },
-          },
-        },
-        responses: { "200": { content: json, description: "ok" } },
-      },
-    },
   };
 }
 
 function flowPaths(): Record<string, unknown> {
   return {
-    "/v1/token": {
-      post: { operationId: "token.mint", responses: { "200": { content: json, description: "ok" } } },
-    },
-    "/v1/users/{user_id}": {
-      get: {
-        operationId: "user.get",
-        parameters: [{ in: "path", name: "user_id", required: true, schema: { type: "string" } }],
-        responses: { "200": { content: json, description: "ok" } },
-      },
-    },
     "/v1/ceremony/options": {
       post: { operationId: "ceremony.options", responses: { "200": { content: json, description: "ok" } } },
     },
@@ -102,6 +92,16 @@ function flowPaths(): Record<string, unknown> {
       post: {
         operationId: "checkout.confirm",
         requestBody: { content: { "application/json": { schema: { type: "object" } } } },
+        responses: { "200": { content: json, description: "ok" } },
+      },
+    },
+    "/v1/token": {
+      post: { operationId: "token.mint", responses: { "200": { content: json, description: "ok" } } },
+    },
+    "/v1/users/{user_id}": {
+      get: {
+        operationId: "user.get",
+        parameters: [{ in: "path", name: "user_id", required: true, schema: { type: "string" } }],
         responses: { "200": { content: json, description: "ok" } },
       },
     },
@@ -195,7 +195,7 @@ const ROUTES: readonly Route[] = [
     path: "/v1/checkout",
   },
   {
-    handle: (_store, exchange) => exchange.send(200, { type: exchange.type, body: exchange.raw }),
+    handle: (_store, exchange) => exchange.send(200, { body: exchange.raw, type: exchange.type }),
     method: "POST",
     path: "/v1/forms",
   },

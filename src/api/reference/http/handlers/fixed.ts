@@ -8,7 +8,7 @@ import type { Account, Principal } from "../auth/types.ts";
 import { readJson, requireJson } from "../body.ts";
 import { HttpError } from "../errors.ts";
 import type { Profile, ReferenceState } from "../state.ts";
-import { type ReferenceRequest, type ReferenceResponse, respond } from "../wire.ts";
+import { type ReferenceRequest, type ReferenceResponse, respond, respondAsBuilt } from "../wire.ts";
 
 /** A route: its answer, or `undefined` when the request is not one of its. */
 export type Route = (state: ReferenceState, request: ReferenceRequest) => Promise<ReferenceResponse | undefined>;
@@ -20,7 +20,10 @@ export const document: Route = async (state, request) => {
   if (request.url.pathname !== "/v1/openapi/spec") return undefined;
   const context = { entities: state.entities, shape: state.shape };
 
-  return respond(200, state.untagged ? buildUntaggedSpec(state.dialect, context) : buildSpec(state.dialect, context));
+  return respondAsBuilt(
+    200,
+    state.untagged ? buildUntaggedSpec(state.dialect, context) : buildSpec(state.dialect, context),
+  );
 };
 
 export const health: Route = async (state, request) => {

@@ -74,12 +74,16 @@ export function sendableCapabilities(
     return [];
   };
 
+  // Withholding records each row as it goes, so these two run in the order the report states them.
+  const searchable = strings("searchable", c.search !== undefined);
+  const selectable = strings("selectable", c.select !== undefined);
+
   return {
     capabilities: {
       ...caps,
       filterable,
-      searchable: strings("searchable", c.search !== undefined),
-      selectable: strings("selectable", c.select !== undefined),
+      searchable,
+      selectable,
       sortable: c.order === undefined ? [] : caps.sortable,
     },
     withheld,

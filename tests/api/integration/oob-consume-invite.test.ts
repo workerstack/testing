@@ -11,6 +11,20 @@ function inviteDoc(): OpenApiDocument {
     info: { title: "inv", version: "1" },
     openapi: "3.1.0",
     paths: {
+      "/v1/invites/accept": {
+        post: {
+          operationId: "invite.accept",
+          responses: { "200": { description: "ok" } },
+          "x-entity": { action: "action", identity: "id", name: "member" },
+        },
+      },
+      "/v1/invites/revoke": {
+        post: {
+          operationId: "invite.revoke",
+          responses: { "200": { description: "ok" } },
+          "x-entity": { action: "action", identity: "id", name: "member" },
+        },
+      },
       "/v1/orgs/{org_id}/members": {
         get: {
           operationId: "member.list",
@@ -39,20 +53,6 @@ function inviteDoc(): OpenApiDocument {
             revoke: "invite.revoke",
             tokenFrom: "outOfBand",
           },
-        },
-      },
-      "/v1/invites/accept": {
-        post: {
-          operationId: "invite.accept",
-          responses: { "200": { description: "ok" } },
-          "x-entity": { action: "action", identity: "id", name: "member" },
-        },
-      },
-      "/v1/invites/revoke": {
-        post: {
-          operationId: "invite.revoke",
-          responses: { "200": { description: "ok" } },
-          "x-entity": { action: "action", identity: "id", name: "member" },
         },
       },
     },

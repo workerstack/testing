@@ -4,6 +4,7 @@
  * run instead of testing something they did not ask for.
  */
 
+import { entriesByName } from "../config/types/entries-by-name.ts";
 import type { QueryEnvelopeNames, QueryParamNames } from "../config/types/query.ts";
 import { UsageError } from "../errors/usage-error.ts";
 import { isQueryEnvelopeRole, QUERY_ENVELOPE_ROLES } from "./conventions/envelope-names.ts";
@@ -24,6 +25,11 @@ export function buildConfiguredModel(doc: OpenApiDocument, config: ModelConfig):
   return model;
 }
 
+// A names object's entries by role, so the first bad one never depends on how the config wrote its keys.
+function namesByRole(names: Record<string, string> | undefined): [string, string][] {
+  return entriesByName(names ?? {});
+}
+
 /**
  * Stops on a config name no model of the run declares. Config is run-wide, read against the primary
  * document and each origin's, so a name only an origin declares is not a typo.
@@ -31,12 +37,12 @@ export function buildConfiguredModel(doc: OpenApiDocument, config: ModelConfig):
 export function assertQueryNamesDeclared(config: ModelConfig, models: readonly SpecModel[]): void {
   const operations = models.flatMap((model) => model.operations);
 
-  for (const [role, name] of Object.entries(config.query?.params ?? {})) {
+  for (const [role, name] of namesByRole(config.query?.params)) {
     if (!operations.some((op) => op.queryParamNames.includes(name)))
       throw new UsageError(`query.params.${role} names "${name}", which no operation declares`);
   }
 
-  for (const [role, name] of Object.entries(config.query?.envelope ?? {})) {
+  for (const [role, name] of namesByRole(config.query?.envelope)) {
     if (!operations.some((op) => op.collection?.envelopeKeys.includes(name) === true))
       throw new UsageError(`query.envelope.${role} names "${name}", which no list response declares`);
   }
@@ -66,7 +72,11 @@ function readNames<T>(raw: unknown, { isRole, key, names, roles }: Names): T | u
   if (raw === null || typeof raw !== "object" || Array.isArray(raw))
     throw new UsageError(`query.${key} must be an object of role names`);
 
-  for (const [role, name] of Object.entries(raw)) {
+  const byRole = new Map<string, unknown>(Object.entries(raw));
+
+  for (const role of [...byRole.keys()].toSorted()) {
+    const name = byRole.get(role);
+
     if (!isRole(role))
       throw new UsageError(`query.${key} names an unknown role "${role}"; the roles are ${roles.join(", ")}`);
 

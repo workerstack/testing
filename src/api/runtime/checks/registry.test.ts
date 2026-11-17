@@ -82,8 +82,8 @@ describe("registering the precondition checks", () => {
     const model = modelOf(judgedDocument());
 
     const { ctx } = contextFor(model, "listWidgets", {
-      respond: widgetApi(new Map([["w1", { id: "w1", name: "n" }]])),
       fields: { createOp: op(model, "createWidget"), readOp: op(model, "getWidget") },
+      respond: widgetApi(new Map([["w1", { id: "w1", name: "n" }]])),
     });
 
     for (const [path, operationId] of [

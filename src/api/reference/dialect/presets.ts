@@ -158,6 +158,7 @@ export const PLAIN: Dialect = {
  * finds `tally` or `more_ahead`, so every walk that reads one read it off `x-query.envelope`.
  */
 export const TEMPLATE: Dialect = {
+  declaresNames: true,
   envelope: {
     collection: "results",
     hasMore: "more_ahead",
@@ -178,9 +179,6 @@ export const TEMPLATE: Dialect = {
   },
   grammar: "template",
   name: "template",
-  sortGrammar: "template",
-  sortTemplate: { asc: "ascending", desc: "descending", join: ",", term: "{field}_{direction}" },
-  declaresNames: true,
   params: {
     filter: "filter_by",
     limit: "take",
@@ -189,13 +187,18 @@ export const TEMPLATE: Dialect = {
     search: "needle",
     select: "pick",
   },
+  sortGrammar: "template",
+  sortTemplate: { asc: "ascending", desc: "descending", join: ",", term: "{field}_{direction}" },
 };
 
 export const DIALECTS: Record<string, Dialect> = {
-  jsonapi: JSONAPI,
-  plain: PLAIN,
   classic: CLASSIC,
+  jsonapi: JSONAPI,
   linked: LINKED,
+  plain: PLAIN,
   postgrest: POSTGREST,
   template: TEMPLATE,
 };
+
+/** The presets' names in the order a refusal lists them. */
+export const DIALECT_ORDER: readonly string[] = ["jsonapi", "plain", "classic", "linked", "postgrest", "template"];

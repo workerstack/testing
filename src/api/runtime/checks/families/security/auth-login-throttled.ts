@@ -63,7 +63,6 @@ export const loginThrottled: OperationCheck<Record<string, unknown>> = defineChe
         : ready(schema);
     });
   },
-  subject: "operation",
   async run(ctx, schema) {
     const { method, operationId, path } = ctx.operation;
 
@@ -106,4 +105,5 @@ export const loginThrottled: OperationCheck<Record<string, unknown>> = defineChe
       summary: "repeated failed logins are never throttled",
     });
   },
+  subject: "operation",
 });

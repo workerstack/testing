@@ -343,7 +343,7 @@ describe("specView", () => {
 
 describe("globalHeaders, against where credentials go", () => {
   it("refuse a header a declared scheme places its credential in, whatever its case", () => {
-    const globalHeaders = { "x-auth-email": "a@x.test", "X-Request-Id": "r" };
+    const globalHeaders = { "X-Request-Id": "r", "x-auth-email": "a@x.test" };
     expect(securityProblems({ globalHeaders, principals: { alpha } }, view(cloudflare))).toEqual([
       'globalHeaders.x-auth-email is where scheme "api_email" places its credential; remove it and declare security.api_email',
     ]);

@@ -35,7 +35,7 @@ type Setup = {
 /** Judges `effects` of a succeeded `actOnWidget` against a server answering through `respond`. */
 async function judge(respond: Responder, effects: EffectSpec[], setup: Setup = {}) {
   const recordCreated = vi.fn<NonNullable<CheckContext["recordCreated"]>>();
-  const stage = contextFor(model, "listWidgets", { respond, fields: setup.tracked === false ? {} : { recordCreated } });
+  const stage = contextFor(model, "listWidgets", { fields: setup.tracked === false ? {} : { recordCreated }, respond });
 
   const action: ActionRun = {
     befores: new Map(Object.entries(setup.befores ?? {})),

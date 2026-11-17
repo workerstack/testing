@@ -32,8 +32,8 @@ export async function list(
   if (stale !== undefined) return stale;
 
   const result = await runListing(state.listingStore, {
+    defects,
     entity,
-    request: listingRequest(state, request.url, call),
     options: {
       clampLimit: state.shape.clampLimit,
       conventions: state.conventions,
@@ -45,7 +45,7 @@ export async function list(
       // listing does.
       transform: (record) => shown(state, entity, skewForList(defects, record)),
     },
-    defects,
+    request: listingRequest(state, request.url, call),
   });
 
   // An unknown parameter read as a filter nothing matches.

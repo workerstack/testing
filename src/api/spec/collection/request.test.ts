@@ -21,7 +21,7 @@ describe("requestContent", () => {
     });
     const { "multipart/form-data": _multipart, ...rest } = content;
     expect(requestContent(body(rest))?.mediaType).toBe("application/x-www-form-urlencoded");
-    expect(requestContent(body({ "text/csv": {}, "application/json": {} }))?.mediaType).toBe("application/json");
+    expect(requestContent(body({ "application/json": {}, "text/csv": {} }))?.mediaType).toBe("application/json");
     expect(requestContent(body({ "text/csv": {}, "text/plain": {} }))).toEqual({ mediaType: "text/csv", schema: {} });
   });
 

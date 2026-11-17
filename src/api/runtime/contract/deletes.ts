@@ -52,8 +52,8 @@ async function readBack(input: ConfirmInput, target: ReadBack): Promise<Exchange
 
     if (error.kind === "blocked") {
       attributed.blocked("auth.blocked" satisfies RunFindingId, entity, {
-        summary: blockedCheckSummary(DELETE_CHECK_ID),
         cause: `${error.reason}. ${read.operationId} was not sent to read ${path} back after ${op.operationId}.`,
+        summary: blockedCheckSummary(DELETE_CHECK_ID),
       });
 
       return null;
@@ -138,9 +138,9 @@ function judgeReadBack(input: ConfirmInput, target: ReadBack, after: Exchange): 
     .attributed([op.operationId])
     .ownedBy(DELETE_CHECK_ID)
     .backend(DELETE_CHECK_ID, op.entity ?? op.operationId, {
-      summary: "a deleted record is still readable",
       detail: `${op.operationId} returned ${call.status}, and ${read.operationId} on the same path then returned ${after.status} with no deletion marker.`,
       evidence: [call, after],
+      summary: "a deleted record is still readable",
     });
 }
 

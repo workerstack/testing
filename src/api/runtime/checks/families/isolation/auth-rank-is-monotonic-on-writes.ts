@@ -27,6 +27,10 @@ const judgeWrite = (exchange: Exchange): WriteVerdict => ({
  * try: creates go through the create operation, updates and deletes hit a scratch record each.
  */
 export const rankIsMonotonicOnWrites: Check<{ home: Actor[] }> = defineCheck<{ home: Actor[] }>({
+  dependsOn: ["list.read-after-write", "auth.rank-is-monotonic"],
+  id: "auth.rank-is-monotonic-on-writes",
+  mutates: true,
+  needs: "two same-tenant principals at different ranks, and a create",
   plan: (ctx) => {
     const primary = ctx.actors[0];
 
@@ -37,11 +41,6 @@ export const rankIsMonotonicOnWrites: Check<{ home: Actor[] }> = defineCheck<{ h
 
     return ready({ home });
   },
-  dependsOn: ["list.read-after-write", "auth.rank-is-monotonic"],
-  id: "auth.rank-is-monotonic-on-writes",
-  mutates: true,
-  needs: "two same-tenant principals at different ranks, and a create",
-  subjects: (entity) => declared(entity.create, entity.update, entity.delete),
   async run(ctx, { home }): Promise<Outcome> {
     const writes = new Map<string, Map<string, WriteVerdict>>();
     const untested: string[] = [];
@@ -64,17 +63,18 @@ export const rankIsMonotonicOnWrites: Check<{ home: Actor[] }> = defineCheck<{ h
       const { hi, higher, lo, lower } = inverted;
 
       return ctx.findings.backend(this.id, ctx.entityName, {
-        summary: `a lower-ranked role can ${kind} where a higher-ranked role cannot`,
         detail:
           `${lower.id} (rank ${lower.rank}) was allowed to ${kind} ${ctx.entityName} ` +
           `(${lo.exchange.status}); ${higher.id} (rank ${higher.rank}) was refused ` +
           `(${hi.exchange.status}). Privilege must be monotonic on writes as on reads.`,
         evidence: [lo.exchange, hi.exchange],
+        summary: `a lower-ranked role can ${kind} where a higher-ranked role cannot`,
       });
     }
 
     return untested.length === 0 ? ASSERTED : asserted(untested.join("; "));
   },
+  subjects: (entity) => declared(entity.create, entity.update, entity.delete),
 });
 
 // Each verdict, and why a create was never sent, when it was not.

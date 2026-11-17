@@ -19,7 +19,7 @@ describe("readRequiredQuery", () => {
   it("takes each required query parameter's declared value, in order of preference", () => {
     const parameters: ParameterObject[] = [
       required("a", { example: "schema", type: "string" }, { example: "param" }),
-      required("b", { type: "integer" }, { examples: { none: null, empty: {}, one: { value: 7 } } }),
+      required("b", { type: "integer" }, { examples: { empty: {}, none: null, one: { value: 7 } } }),
       required("c", { example: "schema", examples: ["listed"] }),
       required("d", { const: "fixed", example: "schema" }),
       required("e", { const: true, enum: ["x"] }),

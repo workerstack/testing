@@ -84,7 +84,6 @@ function comparablePrefixes(
 }
 
 export const cursorAgreesWithPage: Check = defineCheck({
-  plan: (ctx) => when(conv(ctx).cursor !== undefined && pageable(ctx) && ctx.records.length > 2),
   dependsOn: [
     "pagination.page-walk-covers-set",
     // Sorting by a field whose value never persisted is degenerate, so a pagination
@@ -97,7 +96,7 @@ export const cursorAgreesWithPage: Check = defineCheck({
   id: "pagination.cursor-agrees-with-page",
   lists: true,
   needs: "both `cursor` and `page` parameters",
-  subjects: subjectsOf.list,
+  plan: (ctx) => when(conv(ctx).cursor !== undefined && pageable(ctx) && ctx.records.length > 2),
   async run(ctx): Promise<Outcome> {
     // Walk under an explicit text sort.
     const sortField = textSortField(ctx);
@@ -114,12 +113,12 @@ export const cursorAgreesWithPage: Check = defineCheck({
 
     if (repeated.length > 0) {
       return ctx.findings.backend(this.id, ctx.entityName, {
-        summary: "cursor pagination re-serves records the previous page already returned",
         detail:
           `walking by cursor returned ${repeated.length} record(s) more than once ` +
           `(${repeated.slice(0, 3).join(", ")}) while the offset walk returned each exactly once. ` +
           "The cursor is resolving to the wrong boundary.",
         evidence: repeatEvidence(ctx, cursorWalk, repeated),
+        summary: "cursor pagination re-serves records the previous page already returned",
       });
     }
 
@@ -137,13 +136,14 @@ export const cursorAgreesWithPage: Check = defineCheck({
     const onlyCursor = cursorSet.filter((id) => !pageSet.includes(id));
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "cursor pagination and offset pagination disagree",
       detail:
         `offset walk yielded ${pageSet.length} distinct records, cursor walk yielded ${cursorSet.length}. ` +
         `Only in offset: ${onlyPage.slice(0, 3).join(", ") || "—"}. ` +
         `Only in cursor: ${onlyCursor.slice(0, 3).join(", ") || "—"}. ` +
         "Both traverse the same collection, so one of them is losing or repeating rows.",
       evidence: [...pageWalk.exchanges.slice(0, 2), ...cursorWalk.exchanges.slice(0, 2)],
+      summary: "cursor pagination and offset pagination disagree",
     });
   },
+  subjects: subjectsOf.list,
 });

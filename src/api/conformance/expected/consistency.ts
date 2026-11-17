@@ -14,7 +14,8 @@ type ConsistencyDefect = Extract<
 
 /** The defects whose primary check is in the consistency family, and the check each must trip. */
 export const CONSISTENCY_EXPECTED: Record<ConsistencyDefect, FindingId | FindingId[]> = {
-  PARENT_PROJECTION_STALE: "invalidation.declared-route-changes",
+  BYPASS_IGNORED: "consistency.bypass-is-fresh",
+  LISTED_GET_DIFFERS: "list.item-matches-listed-row",
   LIST_DETAIL_DISAGREE: [
     "consistency.projections-agree",
     // A listing serving a different value for a searchable field also breaks every predicate
@@ -27,8 +28,7 @@ export const CONSISTENCY_EXPECTED: Record<ConsistencyDefect, FindingId | Finding
     // The listing's suffix carries a name at its maxLength past it: a value its schema forbids.
     "schema.read-response-matches-document",
   ],
+  PARENT_PROJECTION_STALE: "invalidation.declared-route-changes",
   STALE_LIST: "list.read-after-write",
-  LISTED_GET_DIFFERS: "list.item-matches-listed-row",
   STALE_PAST_BOUND: "consistency.staleness-within-bound",
-  BYPASS_IGNORED: "consistency.bypass-is-fresh",
 };

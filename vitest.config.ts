@@ -8,33 +8,33 @@ import { COVERAGE_EXCLUDE, COVERAGE_INCLUDE } from "./tests/api/support/coverage
 // which exercise whole runs and so would inflate any module's coverage without testing it.
 export default defineConfig({
   test: {
-    globalSetup: ["tests/api/support/temp-root.ts"],
-    // GitHub Actions sets this for the test step itself; a test that runs `testing api run` must not append to
-    // CI's own job summary. A test of the summary sets its own path.
-    env: { GITHUB_STEP_SUMMARY: "" },
-    testTimeout: 20_000,
-    execArgv: ["--expose-gc"],
-    projects: [
-      { extends: true, test: { name: "unit", include: ["src/**/*.test.ts", "lint/**/*.test.ts"] } },
-      {
-        extends: true,
-        test: {
-          name: "integration",
-          include: ["tests/{api/integration,api/regression,structure}/**/*.test.ts"],
-          // A hook here starts a server or runs the API tester whole (a golden run takes seconds); under a
-          // loaded host the 10s default timed one out with nothing wrong. 120s is over ten times
-          // the slowest such hook, so only a hang reaches it.
-          hookTimeout: 120_000,
-        },
-      },
-    ],
     coverage: {
-      provider: "v8",
-      include: [...COVERAGE_INCLUDE],
       exclude: [...COVERAGE_EXCLUDE],
+      include: [...COVERAGE_INCLUDE],
+      provider: "v8",
       // Per file, measured from unit tests alone: a floor is raised as tests land, never lowered,
       // and reaches 100 for a directory when it joins the ratchet.
       thresholds: floors,
     },
+    // GitHub Actions sets this for the test step itself; a test that runs `testing api run` must not append to
+    // CI's own job summary. A test of the summary sets its own path.
+    env: { GITHUB_STEP_SUMMARY: "" },
+    execArgv: ["--expose-gc"],
+    globalSetup: ["tests/api/support/temp-root.ts"],
+    projects: [
+      { extends: true, test: { include: ["src/**/*.test.ts", "lint/**/*.test.ts"], name: "unit" } },
+      {
+        extends: true,
+        test: {
+          // A hook here starts a server or runs the API tester whole (a golden run takes seconds); under a
+          // loaded host the 10s default timed one out with nothing wrong. 120s is over ten times
+          // the slowest such hook, so only a hang reaches it.
+          hookTimeout: 120_000,
+          include: ["tests/{api/integration,api/regression,structure}/**/*.test.ts"],
+          name: "integration",
+        },
+      },
+    ],
+    testTimeout: 20_000,
   },
 });

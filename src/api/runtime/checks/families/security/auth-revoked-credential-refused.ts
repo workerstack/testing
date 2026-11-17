@@ -16,7 +16,6 @@ export const revokedCredentialRefused: OperationCheck<Lifecycle[]> = defineCheck
   mutatesCredentials: true,
   needs: "a recipe that declares a revoke, and a GET the credential authenticates",
   plan: (ctx) => lifecyclePlan(ctx, "revoke"),
-  subject: "operation",
   async run(ctx, planned) {
     const outcomes: SchemeOutcome[] = [];
 
@@ -24,6 +23,7 @@ export const revokedCredentialRefused: OperationCheck<Lifecycle[]> = defineCheck
 
     return settle(outcomes);
   },
+  subject: "operation",
 });
 
 const CHECK = "auth.revoked-credential-refused";

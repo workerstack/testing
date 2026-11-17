@@ -1,5 +1,6 @@
 /** A response body as the transcript keeps it once the request is over. */
 
+import { sortedJson } from "../../spec/sorted-json.ts";
 import { type BodyRef, isBodyRef, isFormSnapshot } from "../exchange.ts";
 import { bytesOf, utf8Encode } from "../exchanges/bytes.ts";
 import { INLINE_BODY_LIMIT, isBinaryMediaType, primaryMediaType } from "../exchanges/media.ts";
@@ -15,7 +16,7 @@ function refOf(bytes: Uint8Array, type: string, digest: BodyDigest | undefined):
 
 function compactFrames(frames: readonly SseEvent[], mediaType: string): unknown {
   const compact = sseFramesOf(frames);
-  const bytes = utf8Encode(JSON.stringify(compact));
+  const bytes = utf8Encode(sortedJson(compact));
 
   return bytes.byteLength <= INLINE_BODY_LIMIT
     ? compact
@@ -74,7 +75,7 @@ export async function compactResponseBody(
 
   if (body !== null && typeof body === "object") {
     if (knownBytes !== undefined && knownBytes <= INLINE_BODY_LIMIT) return body;
-    const bytes = utf8Encode(JSON.stringify(body));
+    const bytes = utf8Encode(sortedJson(body));
 
     return bytes.byteLength <= INLINE_BODY_LIMIT
       ? body

@@ -40,8 +40,8 @@ export function matrixViewFromParts(parts: MatrixParts): MatrixView {
     entity: parts.entity,
     failed: slice.counts.failed,
     generatedAt: parts.generatedAt,
-    passed: slice.counts.passed,
     nodes,
+    passed: slice.counts.passed,
     readSurface: parts.readSurface,
     skipped: slice.counts.skipped,
   };

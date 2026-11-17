@@ -1,4 +1,5 @@
 import { requestLines, sumRequests } from "../../conformance/harness/counting.ts"
+import { sortedJson } from "../../spec/sorted-json.ts"
 import type { Toolkit } from "../commands/conformance-toolkit.ts"
 
 /*
@@ -47,19 +48,20 @@ export function fakeToolkit(options: ToolkitOptions = {}): { toolkit: Toolkit; l
 	}
 	const toolkit = {
 		defects: {
+			DEFECT_ORDER: options.defectNames ?? ["A", "B", "C"],
 			DEFECTS: Object.fromEntries((options.defectNames ?? ["A", "B", "C"]).map((name) => [name, {}])),
 			isDefectName: (name: string) => (options.defectNames ?? ["A", "B", "C"]).includes(name),
 		},
-		dialect: { DIALECTS: { classic: {}, postgrest: {} } },
+		dialect: { DIALECT_ORDER: ["classic", "postgrest"], DIALECTS: { classic: {}, postgrest: {} } },
 		effects: { runEffectsSuite: async () => suite("effects")() },
 		featureGate: { runFeatureGateSuite: async () => suite("featureGate")() },
 		fuzz: {
 			runFuzz: async ({ via, ...input }: { via?: unknown }) => (
 				via === undefined ? undefined : reachedBySocket(via),
-				log.push(`fuzz ${JSON.stringify(input)}`),
+				log.push(`fuzz ${sortedJson(input)}`),
 				cases
 			),
-			runPrecision: async (input: unknown) => (log.push(`precision ${JSON.stringify(input)}`), cases),
+			runPrecision: async (input: unknown) => (log.push(`precision ${sortedJson(input)}`), cases),
 		},
 		fuzzRender: {
 			renderFuzz: (results: Case[]) => rendered(results),

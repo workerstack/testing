@@ -14,6 +14,10 @@ export const selectRequestedFieldsPresent: Check<{
   requested: string[];
   projection: Record<string, string>;
 }>({
+  dependsOn: ["select.projection-honored"],
+  id: "select.requested-fields-present",
+  lists: true,
+  needs: "a select parameter and at least one selectable field",
   plan: (ctx) => {
     const requested = [
       ctx.identity,
@@ -27,11 +31,6 @@ export const selectRequestedFieldsPresent: Check<{
       ? cannot()
       : ready({ projection, requested });
   },
-  dependsOn: ["select.projection-honored"],
-  id: "select.requested-fields-present",
-  lists: true,
-  needs: "a select parameter and at least one selectable field",
-  subjects: subjectsOf.list,
   async run(ctx, { projection, requested }): Promise<Outcome> {
     const result = await list(ctx, { ...q(ctx, { limit: 5 }), ...projection });
 
@@ -55,9 +54,10 @@ export const selectRequestedFieldsPresent: Check<{
     }
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "a requested select field is missing from the projection",
       detail: `select=${requested.join(",")} omitted ${missing.join(", ")}.`,
       evidence: [result.exchange],
+      summary: "a requested select field is missing from the projection",
     });
   },
+  subjects: subjectsOf.list,
 });

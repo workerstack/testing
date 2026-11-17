@@ -54,14 +54,14 @@ describe("formPairs, objects", () => {
 
   // OAS 3.1 §4.8.12.4, the style examples for color = {R:100,G:200,B:150} with explode=false.
   it("joins a non-exploded object with the style's delimiter, as the OAS style table writes it", () => {
-    const color = { R: 100, G: 200, B: 150 };
+    const color = { B: 150, G: 200, R: 100 };
     const wire = (style: string) => encodeUrlencoded({ color }, { color: { explode: false, style } }).toString();
-    expect(wire("form")).toBe("color=R%2C100%2CG%2C200%2CB%2C150");
-    expect(wire("pipeDelimited")).toBe("color=R%7C100%7CG%7C200%7CB%7C150");
+    expect(wire("form")).toBe("color=B%2C150%2CG%2C200%2CR%2C100");
+    expect(wire("pipeDelimited")).toBe("color=B%7C150%7CG%7C200%7CR%7C100");
     // The table's %20; a urlencoded body writes a space as "+".
-    expect(wire("spaceDelimited")).toBe("color=R+100+G+200+B+150");
+    expect(wire("spaceDelimited")).toBe("color=B+150+G+200+R+100");
     expect(formPairs("color", color, { explode: false, style: "spaceDelimited" })).toEqual([
-      ["color", decodeURIComponent("R%20100%20G%20200%20B%20150")],
+      ["color", decodeURIComponent("B%20150%20G%20200%20R%20100")],
     ]);
   });
 });

@@ -87,9 +87,9 @@ export function pathParams(world: World, entity: Entity, item: boolean): Json[] 
 
 export function itemSchema(entity: Entity): Json {
   const properties: Json = {
+    created_at: { type: "integer" },
     id: { type: "string" },
     org_id: { type: "string" },
-    created_at: { type: "integer" },
     updated_at: { type: "integer" },
   };
 

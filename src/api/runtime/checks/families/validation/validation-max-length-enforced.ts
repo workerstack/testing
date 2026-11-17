@@ -13,6 +13,9 @@ import { type ConstrainedField, type CreateBody, createBodyPlan, findConstrained
 export const maxLengthValidated: Check<CreateBody & { target: ConstrainedField }> = defineCheck<
   CreateBody & { target: ConstrainedField }
 >({
+  id: "validation.max-length-enforced",
+  mutates: true,
+  needs: "a request schema with a maxLength constraint",
   plan: (ctx) =>
     andThen(createBodyPlan(ctx), (create) => {
       const target = findConstrained(
@@ -22,10 +25,6 @@ export const maxLengthValidated: Check<CreateBody & { target: ConstrainedField }
 
       return target === null ? cannot("a request field that declares a maxLength") : ready({ ...create, target });
     }),
-  mutates: true,
-  id: "validation.max-length-enforced",
-  needs: "a request schema with a maxLength constraint",
-  subjects: subjectsOf.create,
   async run(ctx, { createOp, schema, target }): Promise<Outcome> {
     const max = target.schema.maxLength as number;
     const over = overMaxLength(target.schema);
@@ -46,11 +45,12 @@ export const maxLengthValidated: Check<CreateBody & { target: ConstrainedField }
     if (refused !== null) return refused;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "a string longer than the declared maxLength was accepted",
       detail:
         `"${target.name}" declares maxLength ${max} but a ${value.length}-character value was stored ` +
         `(${exchange.status}). The constraint exists in the document only.`,
       evidence: [exchange],
+      summary: "a string longer than the declared maxLength was accepted",
     });
   },
+  subjects: subjectsOf.create,
 });

@@ -19,8 +19,8 @@ import { exchange, scratch } from "../support/exchanges-fixtures.ts";
 
 describe("resolveSaveExchanges", () => {
   it("lets the CLI win, then config, then off only for cheap", () => {
-    expect(resolveSaveExchanges({ flag: false, config: true, profile: "full" })).toBe(false);
-    expect(resolveSaveExchanges({ flag: true, config: false, profile: "cheap" })).toBe(true);
+    expect(resolveSaveExchanges({ config: true, flag: false, profile: "full" })).toBe(false);
+    expect(resolveSaveExchanges({ config: false, flag: true, profile: "cheap" })).toBe(true);
     expect(resolveSaveExchanges({ config: false, profile: "full" })).toBe(false);
     expect(resolveSaveExchanges({ config: true, profile: "cheap" })).toBe(true);
     expect(resolveSaveExchanges({ profile: "cheap" })).toBe(false);
@@ -39,15 +39,15 @@ describe("redaction helpers", () => {
     expect(isSecretHeaderName("x-api-key")).toBe(true);
     expect(isSecretHeaderName("X-Client-Secret")).toBe(true);
     expect(isSecretHeaderName("content-type")).toBe(false);
-    expect(new Redactor().headers({ Authorization: "Bearer secret", Accept: "application/json" })).toEqual({
+    expect(new Redactor().headers({ Accept: "application/json", Authorization: "Bearer secret" })).toEqual({
       Accept: "application/json",
       Authorization: "Bearer <redacted>",
     });
     expect(
       new Redactor().json({
         access_token: "aaa.bbb.ccc",
-        nested: { refresh_token: "r", keep: 1 },
-        items: [{ password: "p", id_token: "i", token: "t", secret: "s", api_key: "k" }],
+        items: [{ api_key: "k", id_token: "i", password: "p", secret: "s", token: "t" }],
+        nested: { keep: 1, refresh_token: "r" },
       }),
     ).toEqual({
       access_token: "<redacted>",
@@ -157,7 +157,7 @@ async function writesJoinableJson(): Promise<void> {
       fixture: "invoice.pdf",
       method: "POST",
       operationId: "thing.create",
-      requestBody: { name: "n", access_token: "eyJhbGciOiJ" },
+      requestBody: { access_token: "eyJhbGciOiJ", name: "n" },
       requestHeaders: { authorization: "Bearer super-secret", "content-type": "application/json" },
       requestId: "req-json",
       responseBody: { id: "1", name: "n" },

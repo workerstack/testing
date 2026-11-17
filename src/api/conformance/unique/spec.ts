@@ -54,7 +54,7 @@ function json(schema: unknown): Record<string, unknown> {
 }
 
 function createBody(): Record<string, unknown> {
-  return { email: { type: "string" }, name: { type: "string", maxLength: 128 }, slug: { type: "string" } };
+  return { email: { type: "string" }, name: { maxLength: 128, type: "string" }, slug: { type: "string" } };
 }
 
 function createOperation(options: SpecOptions): Record<string, unknown> {

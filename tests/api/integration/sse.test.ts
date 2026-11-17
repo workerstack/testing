@@ -44,8 +44,8 @@ function acceptsOnlySse(): void {
   expect(sseEvents([{ data: "x", event: 1 }])).toBeNull();
   expect(sseEvents([{ event: "x" }])).toBeNull();
   expect(isSseFrameList("no")).toBe(false);
-  expect(isSseFrameList([{ event: "batch", data: { n: 1 } }])).toBe(true);
-  expect(sseEvents([{ event: "batch", data: { batch_id: "b_1" } }])).toEqual([
+  expect(isSseFrameList([{ data: { n: 1 }, event: "batch" }])).toBe(true);
+  expect(sseEvents([{ data: { batch_id: "b_1" }, event: "batch" }])).toEqual([
     { data: { batch_id: "b_1" }, event: "batch", raw: '{"batch_id":"b_1"}' },
   ]);
   expect(sseEvents([{ data: "hello", event: "message" }])?.[0]?.raw).toBe("hello");

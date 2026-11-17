@@ -1,5 +1,6 @@
 /** Routes about the caller: its profile, its account, its own project, a register and a logout. */
 
+import { inOrder } from "../../spec/in-order.ts";
 import type { JsonSchema } from "../../spec/types.ts";
 import { PHONE_PATTERN, STRING_GUARD } from "../model/string-guard.ts";
 import { errorResponses } from "./errors.ts";
@@ -33,7 +34,19 @@ export function callerProfilePaths(ctx: SpecContext): Json {
   };
 
   return {
-    "/v1/me": {
+    "/v1/me": inOrder(["get", "patch", "delete"], {
+      delete: {
+        operationId: "profile.delete",
+        responses: {
+          [ok(ctx, 204)]: { description: "The caller's account is gone" },
+          ...errorResponses(ctx, [401]),
+        },
+        summary: "Delete the signed-up caller's own account",
+        tags: ["Profile"],
+        "x-destructive": true,
+        "x-entity": { action: "delete", identity: "self", name: "profile" },
+        "x-invalidate": ["GET /v1/me"],
+      },
       get: {
         operationId: "profile.get",
         responses: {
@@ -59,19 +72,7 @@ export function callerProfilePaths(ctx: SpecContext): Json {
         "x-entity": { action: "update", identity: "self", name: "profile" },
         "x-invalidate": ["GET /v1/me"],
       },
-      delete: {
-        operationId: "profile.delete",
-        responses: {
-          [ok(ctx, 204)]: { description: "The caller's account is gone" },
-          ...errorResponses(ctx, [401]),
-        },
-        summary: "Delete the signed-up caller's own account",
-        tags: ["Profile"],
-        "x-destructive": true,
-        "x-entity": { action: "delete", identity: "self", name: "profile" },
-        "x-invalidate": ["GET /v1/me"],
-      },
-    },
+    }),
     ...(ctx.shape.totpSetup === true ? { "/v1/me/2fa": { post: totpSetupOperation(ctx) } } : {}),
   };
 }
@@ -265,12 +266,15 @@ function accountDeleteOperation(ctx: SpecContext): Json {
  * user, the accounts the register made, and an admin's delete of one.
  */
 export function callerRootPaths(ctx: SpecContext): Json {
-  return {
-    "/v1/signups": { get: signupListOperation(ctx) },
-    "/v1/signups/{account_id}": { delete: accountDeleteOperation(ctx) },
-    "/v1/logout": { post: logoutOperation(ctx) },
-    "/v1/me/account": { put: accountUpdateOperation(ctx) },
-    "/v1/projects/{project_id}/overview": { get: overviewOperation(ctx) },
-    "/v1/register": { post: registerOperation(ctx) },
-  };
+  // In the order the document lists them.
+  const routes: readonly (readonly [string, Json])[] = [
+    ["/v1/signups", { get: signupListOperation(ctx) }],
+    ["/v1/signups/{account_id}", { delete: accountDeleteOperation(ctx) }],
+    ["/v1/logout", { post: logoutOperation(ctx) }],
+    ["/v1/me/account", { put: accountUpdateOperation(ctx) }],
+    ["/v1/projects/{project_id}/overview", { get: overviewOperation(ctx) }],
+    ["/v1/register", { post: registerOperation(ctx) }],
+  ];
+
+  return Object.fromEntries(routes);
 }

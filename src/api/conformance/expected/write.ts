@@ -28,19 +28,11 @@ type WriteDefect = Extract<
 
 /** The defects whose primary check is in the write family, and the check each must trip. */
 export const WRITE_EXPECTED: Record<WriteDefect, FindingId | FindingId[]> = {
-  CREATED_201_AS_200: "create.status-matches-document",
-  IDEMPOTENCY_IGNORED: "idempotency.replay-does-not-duplicate",
-  UNIQUE_NOT_ENFORCED: ["create.unique-conflict-rejected", "update.unique-conflict-rejected"],
-  DELETE_MISSING_OK: "delete.absent-record-returns-404",
-  IMMUTABLE_WRITABLE: "patch.immutable-field-rejected",
-  // The replacing patch resets every unsent field to a blank default; behind rich-schema those blanks
-  // break the record's own constraints (a date-time, a minimum, a const), and the reads serve them.
-  PATCH_REPLACES: ["patch.minimality", "consistency.projections-agree", "schema.read-response-matches-document"],
-  SOFT_DELETE_LEAK: "softdelete.absent-from-default-list",
-  CREATE_DROPS_FIELD: "create.persists-submitted-fields",
-  UPDATE_DROPS_FIELD: "update.persists-submitted-fields",
-  READ_DROPS_FIELD: ["payload.string-survives", "consistency.projections-agree"],
-  STRING_PAYLOAD_MANGLED: "payload.string-survives",
+  // A table stored under an id the client was never told cannot parent the rows seeded under it.
+  // A server that ignores the client's id accepts a create repeating an existing id: the unique
+  // check on the identity is that same loss, seen from the other side.
+  CLIENT_ID_IGNORED: ["create.keeps-submitted-identity", "world.seed", "create.unique-conflict-rejected"],
+  CLIENT_ID_OVERWRITES: "create.unique-conflict-rejected",
   COLUMN_NAME_MISMATCH: [
     "create.persists-submitted-fields",
     "list.read-after-write",
@@ -69,16 +61,7 @@ export const WRITE_EXPECTED: Record<WriteDefect, FindingId | FindingId[]> = {
     // positive.
     "patch.minimality",
   ],
-  ETAG_IGNORED: "concurrency.if-match-enforced",
-  DELETE_KEEPS_ROW: "delete.absent-record-returns-404",
-  IDEMPOTENT_REPLAY_INSERTS: "idempotency.replay-does-not-duplicate",
-  // A table stored under an id the client was never told cannot parent the rows seeded under it.
-  // A server that ignores the client's id accepts a create repeating an existing id: the unique
-  // check on the identity is that same loss, seen from the other side.
-  CLIENT_ID_IGNORED: ["create.keeps-submitted-identity", "world.seed", "create.unique-conflict-rejected"],
-  CLIENT_ID_OVERWRITES: "create.unique-conflict-rejected",
-  // The payload probe's control write is what hides the row: reading it back finds nothing.
-  HIDDEN_FROM_CREATOR: "payload.string-survives",
+  CREATED_201_AS_200: "create.status-matches-document",
   CREATE_500_ON_NON_ASCII: [
     "create.does-not-error",
     // The probes that write non-ASCII strings hit the same crash on their own creates.
@@ -86,4 +69,21 @@ export const WRITE_EXPECTED: Record<WriteDefect, FindingId | FindingId[]> = {
     "response.status-is-documented",
     "response.no-server-error",
   ],
+  CREATE_DROPS_FIELD: "create.persists-submitted-fields",
+  DELETE_KEEPS_ROW: "delete.absent-record-returns-404",
+  DELETE_MISSING_OK: "delete.absent-record-returns-404",
+  ETAG_IGNORED: "concurrency.if-match-enforced",
+  // The payload probe's control write is what hides the row: reading it back finds nothing.
+  HIDDEN_FROM_CREATOR: "payload.string-survives",
+  IDEMPOTENCY_IGNORED: "idempotency.replay-does-not-duplicate",
+  IDEMPOTENT_REPLAY_INSERTS: "idempotency.replay-does-not-duplicate",
+  IMMUTABLE_WRITABLE: "patch.immutable-field-rejected",
+  // The replacing patch resets every unsent field to a blank default; behind rich-schema those blanks
+  // break the record's own constraints (a date-time, a minimum, a const), and the reads serve them.
+  PATCH_REPLACES: ["patch.minimality", "consistency.projections-agree", "schema.read-response-matches-document"],
+  READ_DROPS_FIELD: ["payload.string-survives", "consistency.projections-agree"],
+  SOFT_DELETE_LEAK: "softdelete.absent-from-default-list",
+  STRING_PAYLOAD_MANGLED: "payload.string-survives",
+  UNIQUE_NOT_ENFORCED: ["create.unique-conflict-rejected", "update.unique-conflict-rejected"],
+  UPDATE_DROPS_FIELD: "update.persists-submitted-fields",
 };

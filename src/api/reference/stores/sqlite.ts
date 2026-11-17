@@ -22,10 +22,10 @@ import type { SqliteDriver, SqlRow, SqlValue } from "./sqlite-driver.ts";
 
 /** SQLite storage class per declared field type. */
 const AFFINITY: Record<FieldDef["type"], string> = {
+  array: "TEXT",
   boolean: "INTEGER",
   integer: "INTEGER",
   number: "REAL",
-  array: "TEXT",
   object: "TEXT",
   string: "TEXT",
 };

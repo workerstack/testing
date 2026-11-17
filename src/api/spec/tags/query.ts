@@ -45,7 +45,9 @@ function sortGrammar(value: unknown): string | null {
 function params(value: unknown): string | null {
   if (!isObject(value)) return "must be an object of role names";
 
-  for (const [role, name] of Object.entries(value)) {
+  for (const role of Object.keys(value).toSorted()) {
+    const name = value[role];
+
     if (!isQueryParamRole(role))
       return `names an unknown role "${role}"; the roles are ${QUERY_PARAM_ROLES.join(", ")}`;
 
@@ -59,7 +61,9 @@ function params(value: unknown): string | null {
 function envelope(value: unknown): string | null {
   if (!isObject(value)) return "must be an object of role names";
 
-  for (const [role, name] of Object.entries(value)) {
+  for (const role of Object.keys(value).toSorted()) {
+    const name = value[role];
+
     if (!isQueryEnvelopeRole(role))
       return `names an unknown role "${role}"; the roles are ${QUERY_ENVELOPE_ROLES.join(", ")}`;
 
@@ -102,39 +106,39 @@ const X_QUERY = {
   aliases: textMap,
   defaultOrder: text,
   emptyIn: (value) => oneOf(value, ["reject", "match-none"]),
-  limitOutOfRange: (value) => oneOf(value, ["reject", "clamp"]),
+  envelope,
   filterable: (value) => checkAxis(value, FILTERABLE_ROW),
   filterableFrom: harvest,
   grammar: filterGrammar,
   identityFilter: text,
-  sortGrammar,
+  limitOutOfRange: (value) => oneOf(value, ["reject", "clamp"]),
   maxFilterConditions: integer,
   maxInValues: integer,
   maxLimit: integer,
   maxSortKeys: integer,
   operators: texts,
-  params,
-  envelope,
   operatorsByType: (value) =>
     isObject(value) && Object.values(value).every((ops) => texts(ops) === null)
       ? null
       : "must map type names to arrays of operators",
-  searchable: (value) => checkAxis(value, FIELD_ROW),
-  searchableFrom: harvest,
+  params,
   searchCase: (value) => oneOf(value, ["sensitive", "insensitive"]),
   searchEmpty: (value) => oneOf(value, ["ignore", "match-all", "reject"]),
   searchModes: texts,
-  selectable: (value) => checkAxis(value, FIELD_ROW),
-  selectableFrom: harvest,
+  searchable: (value) => checkAxis(value, FIELD_ROW),
+  searchableFrom: harvest,
   select: (value) => checkShape(value, SELECT_BLOCK),
   selectNested: flag,
   selectUnknown: (value) => oneOf(value, ["reject", "ignore"]),
+  selectable: (value) => checkAxis(value, FIELD_ROW),
+  selectableFrom: harvest,
   sort: (value) => checkShape(value, SORT_BLOCK),
-  sortable: (value) => checkAxis(value, SORTABLE_ROW),
-  sortableFrom: harvest,
   sortCollation: (value) => oneOf(value, ["binary", "case-insensitive", "locale"]),
   sortDefaultNulls: (value) => oneOf(value, ["first", "last"]),
+  sortGrammar,
   sortNulls: texts,
+  sortable: (value) => checkAxis(value, SORTABLE_ROW),
+  sortableFrom: harvest,
   stableTiebreak: text,
 } satisfies FieldsOf<QueryTag>;
 

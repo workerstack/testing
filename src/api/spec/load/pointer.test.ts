@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { decodeSegment, resolvePointer } from "./pointer.ts";
 
 const doc = {
-  a: { "b/c": 1, "d~e": 2, "{x}": 3, "%E0%A4%A": 4, list: ["zero", "one"] },
+  a: { "%E0%A4%A": 4, "b/c": 1, "d~e": 2, list: ["zero", "one"], "{x}": 3 },
   nothing: null,
 };
 

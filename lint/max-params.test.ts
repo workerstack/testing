@@ -65,9 +65,9 @@ describe("testing/max-params", () => {
 describe("testing/max-params reach", () => {
   it("holds tests, scripts and labs to it too", () => {
     const fixture = {
-      "src/api/runtime/a.test.ts": "const f = (a, b, c, d) => a\n",
-      "scripts/x.ts": "function f(a, b, c, d) {}\n",
       "labs/api/kit/y.ts": "function f(a, b, c, d) {}\n",
+      "scripts/x.ts": "function f(a, b, c, d) {}\n",
+      "src/api/runtime/a.test.ts": "const f = (a, b, c, d) => a\n",
     };
 
     expect(reportsOf(rule, fixture)).toHaveLength(3);

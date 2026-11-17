@@ -31,8 +31,8 @@ function read(spec: TargetVersionSpec, respond: Responder = answers) {
 
   const result = readTargetVersion({
     client,
-    principal: "alpha",
     model,
+    principal: "alpha",
     roots: { projectId: "p 1" },
     spec,
   });
@@ -81,8 +81,8 @@ describe("readTargetVersion", () => {
   it("reports a path id the roots lack, and a request the client refused", async () => {
     const bare = await readTargetVersion({
       client: fakeClient(answers).client,
-      principal: "alpha",
       model,
+      principal: "alpha",
       roots: {},
       spec: { from: "$.build", operationId: "meta.version" },
     });
@@ -91,8 +91,8 @@ describe("readTargetVersion", () => {
 
     const refused = await readTargetVersion({
       client: { get: () => Promise.reject(new Error("blocked by the fence")) },
-      principal: "alpha",
       model,
+      principal: "alpha",
       roots: {},
       spec: { from: "$.build", path: "/version" },
     });

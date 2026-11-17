@@ -121,8 +121,8 @@ function storeOf(recipe: Recipe, parts: StoreParts = {}): CredentialStore {
   const ports: CredentialPorts = {
     operations: { call: unused },
     records: { gone: unused, removed: () => false },
-    steps: steps ?? { run: unused },
     secrets: { register: () => {} },
+    steps: steps ?? { run: unused },
     tokens: { post: unused },
     ...(resolveCredential === undefined ? {} : { resolveCredential }),
   };

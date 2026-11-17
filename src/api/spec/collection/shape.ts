@@ -61,7 +61,9 @@ function propertyEntries(schema: JsonSchema): Entry[] | null {
 
   if (props === null || typeof props !== "object") return null;
 
-  return Object.entries(props as Record<string, unknown>).map(([name, value]) => [name, effective(asSchema(value))]);
+  const byName = new Map(Object.entries(props));
+
+  return [...byName.keys()].toSorted().map((name) => [name, effective(asSchema(byName.get(name)))]);
 }
 
 /**

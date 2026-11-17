@@ -53,17 +53,17 @@ const created = (body: unknown) => seen("item.create", { body, status: 201 });
 describe("response.write-only-not-returned plan", () => {
   it("needs a property the record's schema or a write's body marks writeOnly", () => {
     const model = modelOfItems(RECORD);
-    const { ctx } = contextFor(model, "item.list", { respond: () => {}, fields: itemOperations(model) });
+    const { ctx } = contextFor(model, "item.list", { fields: itemOperations(model), respond: () => {} });
     const planned = writeOnlyNotReturned.plan(ctx);
     expect(planned.ok && [...planned.value.fields.keys()].toSorted()).toEqual(["nickname", "password"]);
     const plain = modelOfItems();
-    const bare = contextFor(plain, "item.list", { respond: () => {}, fields: itemOperations(plain) });
+    const bare = contextFor(plain, "item.list", { fields: itemOperations(plain), respond: () => {} });
     expect(writeOnlyNotReturned.plan(bare.ctx).ok).toBe(false);
   });
 
   it("reads a write's body for writeOnly fields though the record's schema declares none, and grades the read and the listing", () => {
-    const model = modelOfItems({ record: OPEN, read: { properties: { id: { type: "string" } }, type: "object" } });
-    const { ctx } = contextFor(model, "item.list", { respond: () => {}, fields: itemOperations(model) });
+    const model = modelOfItems({ read: { properties: { id: { type: "string" } }, type: "object" }, record: OPEN });
+    const { ctx } = contextFor(model, "item.list", { fields: itemOperations(model), respond: () => {} });
     const narrow = { ...ctx, listOp: undefined, updateOp: undefined } as unknown as typeof ctx;
     // The read answers no writeOnly field; the create's body declares both, and the read is there to judge.
     const planned = writeOnlyNotReturned.plan(narrow);
@@ -78,7 +78,7 @@ describe("response.write-only-not-returned plan", () => {
 describe("response.write-only-not-returned scope", () => {
   it("does not apply to an entity with neither an item read nor a listing", () => {
     const model = modelOfItems(RECORD);
-    const { ctx } = contextFor(model, "item.list", { respond: () => {}, fields: itemOperations(model) });
+    const { ctx } = contextFor(model, "item.list", { fields: itemOperations(model), respond: () => {} });
     const writesOnly = { ...ctx, listOp: undefined, readOp: undefined } as unknown as typeof ctx;
     expect(writeOnlyNotReturned.plan(writesOnly).ok).toBe(false);
   });

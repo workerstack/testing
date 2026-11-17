@@ -97,11 +97,11 @@ function reportOperation(input: ServerErrorInput, key: string, exchanges: Exchan
     .attributed(operations)
     .ownedBy(SERVER_ERROR_CHECK_ID)
     .backend(SERVER_ERROR_CHECK_ID, op?.entity ?? "run", {
-      summary: `${key} ${describeServerError(last)}`,
       detail:
         `${exchanges.length} request(s) to ${key} returned ${statuses}. A server error is a failure ` +
         "even where the document lists it, and even when the check that sent the request could " +
         "only report what it was then unable to verify.",
       evidence: exchanges.slice(0, EVIDENCE_PER_OPERATION),
+      summary: `${key} ${describeServerError(last)}`,
     });
 }

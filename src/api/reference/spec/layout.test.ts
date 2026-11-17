@@ -17,9 +17,9 @@ describe("hoistPathParameters", () => {
 
     expect(hoisted).toEqual({
       "/things/{id}": {
-        parameters: [ID],
         delete: { operationId: "delete", parameters: [] },
         get: { operationId: "get", parameters: [QUERY] },
+        parameters: [ID],
         patch: { operationId: "patch", parameters: [] },
       },
     });

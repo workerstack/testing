@@ -59,8 +59,8 @@ const grants = secured(
     code: { ...flows("authorizationCode", { authorizationUrl: "/authorize" }), type: "oauth2" },
     pw: { ...flows("password", { tokenUrl: "https://auth.test/token" }), type: "oauth2" },
     token: { description: "First line.\nSecond line.", scheme: "bearer", type: "http" },
-    weird: { scheme: "negotiate", type: "http" },
     untyped: { name: "x" },
+    weird: { scheme: "negotiate", type: "http" },
   },
   {
     "admin.get": [{ code: ["admin"] }],
@@ -275,8 +275,8 @@ describe("renderInitConfig's grants and line wrapping", () => {
 		},
 		// http bearer in header Authorization: Bearer {credential}. First line.
 		token: { static: env("TESTING_API_TOKEN_TOKEN") },
-		// weird: http negotiate, not sent by the API tester — http scheme "negotiate" is not one the API tester can send. ${UNTESTED}
 		// untyped: no type, not sent by the API tester — scheme type "undefined" is not one the API tester knows. ${UNTESTED}
+		// weird: http negotiate, not sent by the API tester — http scheme "negotiate" is not one the API tester can send. ${UNTESTED}
 	},
 ${PRINCIPALS}`);
     expect(config.env).not.toContain("TESTING_API_PW_CLIENT_SECRET");
@@ -391,5 +391,25 @@ describe("renderInitConfig and a relative server", () => {
     expect(servedAt("./v4", remote)).toContain('baseUrl: "https://petstore.test/api/v3/v4",');
     expect(servedAt("v4", remote)).toContain('baseUrl: "https://petstore.test/api/v3/v4",');
     expect(servedAt("/api/v3", "./openapi.json")).toContain('baseUrl: env("TESTING_API_BASE_URL"),');
+  });
+});
+
+// The scheme names a config lists, for apiKey schemes the document declares in `declared`'s order.
+function listedSchemes(declared: string[]): (string | undefined)[] {
+  const schemes = Object.fromEntries(
+    declared.map((name) => [name, { in: "header", name: `X-${name}`, type: "apiKey" }]),
+  );
+
+  return [...render(secured(schemes)).text.matchAll(/^\t\t(\w+): \{/gm)].map((match) => match[1]);
+}
+
+describe("renderInitConfig and the order the schemes were written in", () => {
+  it("lists the security schemes by name, whichever order the document declares them", () => {
+    // The last `alpha` is the principal's stub, after the schemes.
+    const listed = ["alpha", "mid", "zed", "alpha"];
+
+    expect(listedSchemes(["zed", "alpha", "mid"])).toStrictEqual(listed);
+    expect(listedSchemes(["alpha", "mid", "zed"])).toStrictEqual(listed);
+    expect(listedSchemes(["mid", "zed", "alpha"])).toStrictEqual(listed);
   });
 });

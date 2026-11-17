@@ -3,20 +3,16 @@ import type { NamedShape } from "./types.ts";
 /** Every named shape the conformance suite serves the clean baseline behind. */
 export const SHAPES: readonly NamedShape[] = [
   {
+    cannotExhibit: ["CURSOR_DRIFT", "COLLATION_INCONSISTENT", "HASMORE_ALWAYS_FALSE"],
     cannotRun: {
       "pagination.cursor-agrees-with-page": "there is no cursor",
       "pagination.has-more-is-accurate": "there is no more-pages flag to judge",
     },
-    cannotExhibit: ["CURSOR_DRIFT", "COLLATION_INCONSISTENT", "HASMORE_ALWAYS_FALSE"],
     name: "page-total",
     shape: { pagination: "page-total" },
     why: "page numbers and a total, with no more-pages flag",
   },
   {
-    cannotRun: {
-      "pagination.cursor-agrees-with-page": "there is no page number or offset to agree with",
-      "pagination.has-more-is-accurate": "there is no more-pages flag to judge",
-    },
     cannotExhibit: [
       "OFF_BY_ONE_PAGE",
       "HASMORE_ALWAYS_FALSE",
@@ -28,15 +24,15 @@ export const SHAPES: readonly NamedShape[] = [
       // There is no page number to go past the end with.
       "PAGE_PAST_END_REPEATS",
     ],
+    cannotRun: {
+      "pagination.cursor-agrees-with-page": "there is no page number or offset to agree with",
+      "pagination.has-more-is-accurate": "there is no more-pages flag to judge",
+    },
     name: "cursor-only",
     shape: { pagination: "cursor-only" },
     why: "a forward cursor and nothing else to page by",
   },
   {
-    cannotRun: {
-      "pagination.cursor-agrees-with-page": "there is no cursor",
-      "pagination.has-more-is-accurate": "there is no more-pages flag to judge",
-    },
     cannotExhibit: [
       "CURSOR_DRIFT",
       "COLLATION_INCONSISTENT",
@@ -44,17 +40,15 @@ export const SHAPES: readonly NamedShape[] = [
       // There is no page number to go past the end with.
       "PAGE_PAST_END_REPEATS",
     ],
+    cannotRun: {
+      "pagination.cursor-agrees-with-page": "there is no cursor",
+      "pagination.has-more-is-accurate": "there is no more-pages flag to judge",
+    },
     name: "offset-total",
     shape: { pagination: "offset-total", prepopulate: 12 },
     why: "rows skipped and taken (skip / take) under a bounded page size, with only a total in a { data, totalCount } envelope",
   },
   {
-    cannotRun: {
-      "pagination.cursor-agrees-with-page": "there is no cursor",
-      "pagination.has-more-is-accurate": "there is no more-pages flag to judge",
-      "sort.nulls-first-last": "the sort template has no token that places nulls",
-      "spec.declared-sortable-nulls-accepted": "the sort template has no token that places nulls",
-    },
     cannotExhibit: [
       "CURSOR_DRIFT",
       "COLLATION_INCONSISTENT",
@@ -63,8 +57,15 @@ export const SHAPES: readonly NamedShape[] = [
       // No nulls token to ignore.
       "SORT_NULLS_MODIFIER_IGNORED",
     ],
+    cannotRun: {
+      "pagination.cursor-agrees-with-page": "there is no cursor",
+      "pagination.has-more-is-accurate": "there is no more-pages flag to judge",
+      "sort.nulls-first-last": "the sort template has no token that places nulls",
+      "spec.declared-sortable-nulls-accepted": "the sort template has no token that places nulls",
+    },
     name: "wrapped-records",
     shape: {
+      bareIdParams: true,
       identityField: "ID",
       ids: "integer",
       pagination: "offset-total",
@@ -72,7 +73,6 @@ export const SHAPES: readonly NamedShape[] = [
       recordEnvelope: true,
       relatedRecord: true,
       repeatedSort: true,
-      bareIdParams: true,
     },
     why: "an upper-case integer ID, records wrapped on create and read, writes answered without the record, rows beside a fields sidecar, a related record nested in each, and several sort keys as the parameter repeated",
   },
@@ -82,11 +82,11 @@ export const SHAPES: readonly NamedShape[] = [
     why: "each listed row wraps its record under document beside its highlights, as a search engine answers",
   },
   {
+    cannotExhibit: ["LIMIT_OUT_OF_RANGE_SERVED"],
     // It clamps a page size rather than refusing it, and its document says so.
     cannotRun: {
       "pagination.limit-bounds-enforced": "the page size is clamped, as the document declares, not refused",
     },
-    cannotExhibit: ["LIMIT_OUT_OF_RANGE_SERVED"],
     name: "clamped-limit",
     shape: { clampLimit: 3 },
     why: "the server serves at most 3 per page whatever is asked, and does not document it",
@@ -120,12 +120,12 @@ export const SHAPES: readonly NamedShape[] = [
     why: "a create answers 201 with an empty body, naming the new record only in its Location header",
   },
   {
+    // Nothing is declared unique, so there is no declared uniqueness to stop enforcing.
+    cannotExhibit: ["UNIQUE_NOT_ENFORCED"],
     cannotRun: {
       "create.unique-conflict-rejected": "the document declares nothing unique",
       "update.unique-conflict-rejected": "the document declares nothing unique",
     },
-    // Nothing is declared unique, so there is no declared uniqueness to stop enforcing.
-    cannotExhibit: ["UNIQUE_NOT_ENFORCED"],
     name: "tenant-slugs",
     shape: { tableKey: "slug" },
     why: "a table is named by a slug derived from its name, unique only within its project",

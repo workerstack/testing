@@ -48,10 +48,10 @@ export const roleEnforced: OperationCheck<RoleProbe> = defineCheck<RoleProbe>({
       return andThen(readOnlyOf(ctx, target), (readOnly) => ready({ readOnly, send, target }));
     });
   },
-  subject: "operation",
   async run(ctx, planned) {
     return settle([await unlessUnsatisfied(`${planned.readOnly.id}'s write`, () => writeAs(ctx, planned))]);
   },
+  subject: "operation",
 });
 
 const CHECK = "auth.role-enforced";

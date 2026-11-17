@@ -3,11 +3,11 @@ import { describe, expect, it } from "vitest";
 
 // The built `./web/dom` stubs in real Chromium, where every API they replace already exists.
 const native = {
+  PointerEvent: window.PointerEvent,
+  ResizeObserver: window.ResizeObserver,
   animate: Element.prototype.animate,
   getClientRects: Range.prototype.getClientRects,
   matchMedia: window.matchMedia,
-  PointerEvent: window.PointerEvent,
-  ResizeObserver: window.ResizeObserver,
 };
 
 describe("stubs in Chromium", () => {

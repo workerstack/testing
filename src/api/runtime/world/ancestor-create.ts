@@ -34,12 +34,12 @@ function ancestorBody(
   try {
     // One variant asked for, one member made: buildCohort maps the variants it is given.
     member = buildCohort(schema ?? {}, options.seed, {
-      variants: ["baseline"],
       defs: model.defs,
       // A parent made as scaffolding carries the nonce in every string, not only the unique ones:
       // a server that derives an undeclared key from a name (a slug) must never see the name the
       // entity's own cohort, another tenant's parent, existing data or a later run takes.
       distinct: new Set([...(createOp.unique ?? []).flat(), ...stringProperties(schema)]),
+      variants: ["baseline"],
       ...(options.nonce === undefined ? {} : { nonce: options.nonce }),
       operationId: createOp.operationId,
     })[0] as CohortMember;

@@ -15,7 +15,6 @@ function stage(respond: Responder, options: WidgetDocOptions = {}, fields: Parti
   const model = modelOf(widgetDoc(options));
 
   return contextFor(model, "listWidgets", {
-    respond,
     fields: {
       createOp: op(model, "createWidget"),
       deleteOp: model.byOperationId.get("deleteWidget"),
@@ -23,6 +22,7 @@ function stage(respond: Responder, options: WidgetDocOptions = {}, fields: Parti
       updateOp: model.byOperationId.get("updateWidget"),
       ...fields,
     },
+    respond,
   });
 }
 

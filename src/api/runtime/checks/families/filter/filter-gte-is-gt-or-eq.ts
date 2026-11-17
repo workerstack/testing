@@ -6,7 +6,6 @@ import { FOUNDATIONS } from "../../query/capabilities.ts";
 import { assertRangeUnion, rangePlan, type RangeProbe } from "./range.ts";
 
 export const filterGteIsGtOrEq: Check<RangeProbe> = defineCheck<RangeProbe>({
-  plan: (ctx) => rangePlan(ctx, "gte", "gt"),
   dependsOn: [
     "query.filter-selects-from-whole-set",
     ...FOUNDATIONS,
@@ -16,8 +15,9 @@ export const filterGteIsGtOrEq: Check<RangeProbe> = defineCheck<RangeProbe>({
   id: "filter.gte-is-gt-or-eq",
   lists: true,
   needs: "an ordered field that allows `gte` and `gt`",
-  subjects: subjectsOf.list,
+  plan: (ctx) => rangePlan(ctx, "gte", "gt"),
   async run(ctx, probe): Promise<Outcome> {
     return assertRangeUnion(ctx, this.id, probe);
   },
+  subjects: subjectsOf.list,
 });

@@ -82,7 +82,7 @@ function addColumnUpdate(paths: Paths): void {
       },
       responses: { "200": { description: "ok" } },
       "x-before": "column.add",
-      "x-bind": { path: { col_id: "$.columns_json[0].id" }, body: { name: "kept" } },
+      "x-bind": { body: { name: "kept" }, path: { col_id: "$.columns_json[0].id" } },
       "x-effects": [{ entity: "table", op: "update" }],
       "x-entity": entity("action", "table"),
     },
@@ -104,7 +104,7 @@ function columnRoutes(seen: string[]): Route[] {
     ({ method, res, url }) =>
       url.pathname.endsWith("/tables") &&
       method === "GET" &&
-      reply(res, 200, { tables: [{ id: "t1", columns_json: [{ id: "c1" }] }] }),
+      reply(res, 200, { tables: [{ columns_json: [{ id: "c1" }], id: "t1" }] }),
     ({ method, res, url }) =>
       url.pathname.endsWith("/tables") &&
       method === "POST" &&
@@ -316,8 +316,6 @@ function preludeInviteSpec(): OpenApiDocument {
     info: { title: "prelude-invite", version: "1" },
     openapi: "3.1.0",
     paths: {
-      "/v1/orgs/{org_id}/members": inviteMembersPath(params),
-      "/v1/orgs/{org_id}/members/{member_id}": inviteMemberPath([...params, pathParam("member_id")]),
       "/v1/invites/{token}/accept": {
         post: {
           operationId: "member.accept",
@@ -325,6 +323,8 @@ function preludeInviteSpec(): OpenApiDocument {
           responses: { "200": { description: "accepted" } },
         },
       },
+      "/v1/orgs/{org_id}/members": inviteMembersPath(params),
+      "/v1/orgs/{org_id}/members/{member_id}": inviteMemberPath([...params, pathParam("member_id")]),
     },
   } as unknown as OpenApiDocument;
 }

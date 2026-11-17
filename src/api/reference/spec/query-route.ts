@@ -4,12 +4,21 @@ import { errorResponses } from "./errors.ts";
 import { jsonResponse, ok } from "./operation.ts";
 import type { Json, SpecContext } from "./types.ts";
 
+/** The payment branches in the order the document declares them. */
+export const PAYMENT_BRANCHES = ["Card", "Bank"] as const;
+
 /**
  * The payment methods the search reads, by component name: each branch is closed and requires its
  * tag, so a body whose fields fit one branch fits the other only when the tag is ignored.
  */
-export function paymentSchemas(): Record<"Bank" | "Card", Json> {
+export function paymentSchemas(): Record<(typeof PAYMENT_BRANCHES)[number], Json> {
   return {
+    Bank: {
+      additionalProperties: false,
+      properties: { account: { maxLength: 34, minLength: 1, type: "string" }, kind: { type: "string" } },
+      required: ["kind", "account"],
+      type: "object",
+    },
     Card: {
       additionalProperties: false,
       properties: {
@@ -17,12 +26,6 @@ export function paymentSchemas(): Record<"Bank" | "Card", Json> {
         last4: { maxLength: 4, minLength: 4, pattern: "^[0-9]{4}$", type: "string" },
       },
       required: ["kind", "last4"],
-      type: "object",
-    },
-    Bank: {
-      additionalProperties: false,
-      properties: { account: { maxLength: 34, minLength: 1, type: "string" }, kind: { type: "string" } },
-      required: ["kind", "account"],
       type: "object",
     },
   };

@@ -22,6 +22,10 @@ export const filterMalformedTermRejected: Check<{
   field: string;
   malformed: Record<string, string>;
 }>({
+  dependsOn: ["list.read-after-write", "filter.unknown-field-rejected", "error.malformed-filter-not-5xx"],
+  id: "filter.malformed-term-rejected",
+  lists: true,
+  needs: "a declared filter grammar whose terms carry a conjunction or an operator",
   plan: (ctx) => {
     const conventions = conv(ctx);
 
@@ -45,11 +49,6 @@ export const filterMalformedTermRejected: Check<{
 
     return cannot("a declared grammar whose terms carry a conjunction or an operator to leave out");
   },
-  dependsOn: ["list.read-after-write", "filter.unknown-field-rejected", "error.malformed-filter-not-5xx"],
-  id: "filter.malformed-term-rejected",
-  lists: true,
-  needs: "a declared filter grammar whose terms carry a conjunction or an operator",
-  subjects: subjectsOf.list,
   async run(ctx, { control, field, malformed }): Promise<Outcome> {
     const accepted = await list(ctx, { ...q(ctx, { limit: pageSize(ctx) }), ...control });
 
@@ -65,9 +64,9 @@ export const filterMalformedTermRejected: Check<{
 
     if (result.exchange.status >= 500) {
       return ctx.findings.backend(this.id, ctx.entityName, {
-        summary: "a malformed filter term produces a server error",
         detail: `${Object.values(malformed).join("&")} returned ${result.exchange.status}; a rejected input should be 4xx.`,
         evidence: [result.exchange],
+        summary: "a malformed filter term produces a server error",
       });
     }
 
@@ -90,11 +89,12 @@ export const filterMalformedTermRejected: Check<{
     }
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "a malformed filter term is accepted",
       detail: `${Object.values(malformed).join("&")} returned ${result.exchange.status}${
         same ? " with the unfiltered set, so the term was dropped" : ""
       }. A term the declared grammar cannot parse must be rejected.`,
       evidence: [baseline.exchange, result.exchange],
+      summary: "a malformed filter term is accepted",
     });
   },
+  subjects: subjectsOf.list,
 });

@@ -38,6 +38,11 @@ export const foreignParentRejected: Check<{
   tenantParam: string;
   parents: string[];
 }>({
+  dependsOn: ["list.read-after-write", "tenant.item-not-readable-cross-tenant"],
+  id: "tenant.parent-not-reachable-from-another-root",
+  lists: true,
+  mutates: true,
+  needs: "a second tenant, and a collection nested under a parent below the tenant",
   plan: (ctx) => {
     const { peer, peerScope } = ctx;
     const tenantParam = ctx.listOp.tenantParam ?? undefined;
@@ -59,18 +64,12 @@ export const foreignParentRejected: Check<{
 
     return ready({ mixed, parents, peer: peer.id, tenantParam });
   },
-  dependsOn: ["list.read-after-write", "tenant.item-not-readable-cross-tenant"],
-  id: "tenant.parent-not-reachable-from-another-root",
-  lists: true,
-  mutates: true,
-  needs: "a second tenant, and a collection nested under a parent below the tenant",
-  subjects: (entity) => declared(entity.list, entity.read, entity.create),
   async run(ctx, { mixed, parents, peer, tenantParam }): Promise<Outcome> {
     const path = `${ctx.listOp.path} with another tenant's ${parents.join(", ")} under its own ${tenantParam}`;
 
     const breach = (summary: string, detail: string, evidence: Exchange[]): Outcome =>
       ctx.listOp.tenantSource === "tag"
-        ? ctx.findings.security(this.id, ctx.entityName, { summary, detail, evidence })
+        ? ctx.findings.security(this.id, ctx.entityName, { detail, evidence, summary })
         : ctx.findings.report({
             check: this.id,
             detail: `${detail} the API tester inferred the tenant from "${tenantParam}"; declare x-tenant to make this SECURITY.`,
@@ -136,6 +135,7 @@ export const foreignParentRejected: Check<{
 
     return ASSERTED;
   },
+  subjects: (entity) => declared(entity.list, entity.read, entity.create),
 });
 
 /**

@@ -35,19 +35,19 @@ describe("parseFilterGrammar", () => {
         term: "{conj}_{field}_{op}_{value}",
       },
     });
-    expect(Object.keys(result.ok ? result.spec : {})).toEqual([
+    expect(Object.keys(result.ok ? result.spec : {}).toSorted()).toStrictEqual([
       "and",
+      "conj",
       "escape",
       "likeWildcard",
+      "list",
       "mixed",
+      "null",
       "ops",
       "or",
       "param",
       "reserved",
       "term",
-      "conj",
-      "list",
-      "null",
     ]);
   });
 
@@ -110,7 +110,7 @@ describe("parseFilterGrammar: errors", () => {
       [{ ...EXAMPLE, likeMatches: "glob" }, "likeMatches"],
       [{ ...EXAMPLE, escape: { __: "~" } }, "escape"],
       [{ ...EXAMPLE, or: { group: "or({field})" } }, "or"],
-      [{ ...EXAMPLE, null: "x", list: "" }, "null"],
+      [{ ...EXAMPLE, list: "", null: "x" }, "null"],
     ] as const) {
       const result = parseFilterGrammar(raw);
       expect({ key, ok: result.ok }).toEqual({ key, ok: false });

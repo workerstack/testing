@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { exchange } from "../checks/__fixtures__/harness.ts";
 import { expected, holds, shownValue, type Want, wantsOf } from "./want.ts";
 
-const scope = { name: "Ada", n: "2" };
+const scope = { n: "2", name: "Ada" };
 
 describe("expected", () => {
   it("fills `{name}` in the path and the value, for each mode", () => {

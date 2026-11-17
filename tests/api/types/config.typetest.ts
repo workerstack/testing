@@ -11,12 +11,12 @@ import type { ApiConfig, PrincipalEntry, Recipe } from "../../../src/api/index.t
 // Each recipe kind alone, with the options every kind takes.
 const recipes: Recipe[] = [
   { static: "token" },
-  { static: { password: "p", username: "u" }, holds: ["read"] },
-  { hook: true, expiresIn: 3600 },
-  { login: { from: "$.access_token", steps: [{ operationId: "auth.login" }] }, expiresIn: { from: "$.expires_in" } },
-  { mint: { from: "$.key", operationId: "keys.create", with: "jwt" }, format: "ApiKey {credential}" },
+  { holds: ["read"], static: { password: "p", username: "u" } },
+  { expiresIn: 3600, hook: true },
+  { expiresIn: { from: "$.expires_in" }, login: { from: "$.access_token", steps: [{ operationId: "auth.login" }] } },
+  { format: "ApiKey {credential}", mint: { from: "$.key", operationId: "keys.create", with: "jwt" } },
   { oauth2: { clientId: "id", clientSecret: "s", flow: "clientCredentials" } },
-  { static: "t", placements: [{ in: "query", name: "api_key" }] },
+  { placements: [{ in: "query", name: "api_key" }], static: "t" },
 ];
 
 expectTypeOf(recipes).toEqualTypeOf<Recipe[]>();

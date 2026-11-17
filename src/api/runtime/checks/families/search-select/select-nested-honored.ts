@@ -17,6 +17,10 @@ export const selectNestedHonored: Check<{
   first: string;
   projection: Record<string, string>;
 }>({
+  dependsOn: ["select.projection-honored"],
+  id: "select.nested-honored",
+  lists: true,
+  needs: "select.nested and a named relation",
   plan: (ctx) => {
     if (resolvedCaps(ctx).select?.nested !== true) return cannot();
     const relation = resolvedCaps(ctx).select?.relations?.[0];
@@ -27,11 +31,6 @@ export const selectNestedHonored: Check<{
 
     return projection === null ? cannot() : ready({ first, projection, relation });
   },
-  dependsOn: ["select.projection-honored"],
-  id: "select.nested-honored",
-  lists: true,
-  needs: "select.nested and a named relation",
-  subjects: subjectsOf.list,
   async run(ctx, { first, projection, relation }): Promise<Outcome> {
     const result = await list(ctx, { ...q(ctx, { limit: 5 }), ...projection });
 
@@ -51,9 +50,9 @@ export const selectNestedHonored: Check<{
 
       if (scalar !== undefined) {
         return ctx.findings.backend(this.id, ctx.entityName, {
-          summary: "nested select did not return the relation as records",
           detail: `select=${relation.name}(${first}) left "${relation.name}" holding ${JSON.stringify(scalar)}.`,
           evidence: [result.exchange],
+          summary: "nested select did not return the relation as records",
         });
       }
 
@@ -63,14 +62,16 @@ export const selectNestedHonored: Check<{
     if (related.length === 0)
       return ctx.findings.unresolved(this.id, ctx.entityName, `no listed record has a "${relation.name}" to project`);
 
-    const keys = [...new Set(related.flatMap((row) => Object.keys(row)))];
+    // By name: the fields named are the answer's, whose key order no document promises.
+    const keys = [...new Set(related.flatMap((row) => Object.keys(row)))].toSorted();
 
     if (keys.every((key) => key === first)) return ASSERTED;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "nested select did not restrict the relation to the requested field",
       detail: `select=${relation.name}(${first}) returned ${keys.join(", ")}.`,
       evidence: [result.exchange],
+      summary: "nested select did not restrict the relation to the requested field",
     });
   },
+  subjects: subjectsOf.list,
 });

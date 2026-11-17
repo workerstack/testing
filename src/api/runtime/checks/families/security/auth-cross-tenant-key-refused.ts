@@ -43,7 +43,6 @@ export const crossTenantKeyRefused: OperationCheck<CrossTenant> = defineCheck<Cr
       andThen(paths(ctx, peer), ({ foreign, own }) => ready({ foreign, own, peer, schemes })),
     );
   },
-  subject: "operation",
   async run(ctx, planned) {
     const outcomes: SchemeOutcome[] = [];
 
@@ -54,6 +53,7 @@ export const crossTenantKeyRefused: OperationCheck<CrossTenant> = defineCheck<Cr
 
     return settle(outcomes);
   },
+  subject: "operation",
 });
 
 const CHECK = "auth.cross-tenant-key-refused";

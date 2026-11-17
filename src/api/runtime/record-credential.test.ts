@@ -35,16 +35,16 @@ const DOCUMENT = {
   info: { title: "tenants", version: "1" },
   openapi: "3.1.0",
   paths: {
+    "/notes": { post: create("note.create") },
     "/orgs": { post: create("org.create", adopts("org")) },
     "/orgs/{org_id}": { get: read("org.get", ["org_id"]) },
     "/orgs/{org_id}/projects": {
       post: create("project.create", { parameters: [param("org_id")], ...adopts("project") }),
     },
     "/orgs/{org_id}/projects/{project_id}": { get: read("project.get", ["org_id", "project_id"]) },
+    "/regions/{region}/teams/{team_id}": { get: read("team.get", ["region", "team_id"]) },
     "/spaces/": { post: create("space.create", adopts("space")) },
     "/teams": { post: create("team.create", adopts("team")) },
-    "/regions/{region}/teams/{team_id}": { get: read("team.get", ["region", "team_id"]) },
-    "/notes": { post: create("note.create") },
   },
 } as unknown as OpenApiDocument;
 
@@ -57,11 +57,11 @@ function adopterOf(mapping?: Record<string, string>) {
   const model = buildModel(DOCUMENT);
 
   const adopter = createRecordAdopter({
+    mapping,
     model,
     records,
     relativePath,
     store,
-    mapping,
   });
 
   return { adopter, records, store };

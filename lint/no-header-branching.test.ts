@@ -27,12 +27,12 @@ describe("testing/no-header-branching", () => {
     const source = 'export const h = "authorization"\nexport const v = `Bearer ${t}`\n';
 
     const fixture = {
-      "src/api/security/credential-names.ts": source,
-      "src/api/spec/security/placement.ts": source,
-      "src/api/credentials/store.ts": source,
       "src/api/client/credentials.ts": source,
+      "src/api/credentials/store.ts": source,
       "src/api/reference/http/access.ts": source,
       "src/api/runtime/auth.test.ts": source,
+      "src/api/security/credential-names.ts": source,
+      "src/api/spec/security/placement.ts": source,
       "tests/api/integration/auth.test.ts": source,
     };
 

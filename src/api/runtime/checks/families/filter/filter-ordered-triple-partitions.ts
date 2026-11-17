@@ -25,6 +25,15 @@ export const filterOrderedTriplePartitions: Check<{
   eq: Record<string, string>;
   gt: Record<string, string>;
 }>({
+  dependsOn: [
+    "query.filter-selects-from-whole-set",
+    ...FOUNDATIONS,
+    "filter.equality-selects-exactly-one",
+    "filter.numeric-comparison-is-numeric",
+  ],
+  id: "filter.ordered-triple-partitions",
+  lists: true,
+  needs: "an ordered field that allows `lt`, `eq`, and `gt`",
   plan: (ctx) => {
     const unverified = storedFieldsUnknown(ctx);
 
@@ -45,16 +54,6 @@ export const filterOrderedTriplePartitions: Check<{
 
     return ready({ eq, field, gt, lt, threshold });
   },
-  dependsOn: [
-    "query.filter-selects-from-whole-set",
-    ...FOUNDATIONS,
-    "filter.equality-selects-exactly-one",
-    "filter.numeric-comparison-is-numeric",
-  ],
-  id: "filter.ordered-triple-partitions",
-  lists: true,
-  needs: "an ordered field that allows `lt`, `eq`, and `gt`",
-  subjects: subjectsOf.list,
   async run(ctx, { eq, field, gt, lt }): Promise<Outcome> {
     const partitions = (reads: SetRead[]): boolean => {
       const [a, l, e, h] = reads as [SetRead, SetRead, SetRead, SetRead];
@@ -97,9 +96,9 @@ export const filterOrderedTriplePartitions: Check<{
 
     if (overlap.length > 0) {
       return ctx.findings.backend(this.id, ctx.entityName, {
-        summary: "lt / eq / gt are not pairwise disjoint",
         detail: `${overlap.length} record(s) appear in more than one of ${field} lt/eq/gt.`,
         evidence: [lower.last.exchange, equal.last.exchange, higher.last.exchange],
+        summary: "lt / eq / gt are not pairwise disjoint",
       });
     }
 
@@ -116,11 +115,12 @@ export const filterOrderedTriplePartitions: Check<{
     if (missing.length === 0) return ASSERTED;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "lt ∪ eq ∪ gt does not cover the numeric set",
       detail: `${missing.length} numeric record(s) match none of the three predicates.`,
       evidence: [all.last.exchange, lower.last.exchange, equal.last.exchange, higher.last.exchange],
+      summary: "lt ∪ eq ∪ gt does not cover the numeric set",
     });
   },
+  subjects: subjectsOf.list,
 });
 
 /** The records the first pair of sets shares, taking pairs in order; empty when all are disjoint. */

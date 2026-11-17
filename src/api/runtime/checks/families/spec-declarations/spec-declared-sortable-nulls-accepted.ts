@@ -11,6 +11,10 @@ import { conv, q, resolvedCaps } from "../../query/capabilities.ts";
 import { list } from "../../sets/list.ts";
 
 export const declaredSortableNullsAccepted: Check = defineCheck({
+  dependsOn: ["sort.order-is-applied"],
+  id: "spec.declared-sortable-nulls-accepted",
+  lists: true,
+  needs: "a declared nulls token on a sortable field",
   plan: (ctx) =>
     when(
       conv(ctx).order !== undefined &&
@@ -20,11 +24,6 @@ export const declaredSortableNullsAccepted: Check = defineCheck({
             fieldAllowsNulls(field, resolvedCaps(ctx), "first") || fieldAllowsNulls(field, resolvedCaps(ctx), "last"),
         ),
     ),
-  dependsOn: ["sort.order-is-applied"],
-  id: "spec.declared-sortable-nulls-accepted",
-  lists: true,
-  needs: "a declared nulls token on a sortable field",
-  subjects: subjectsOf.list,
   async run(ctx): Promise<Outcome> {
     const rejected: string[] = [];
     const refusedBy: Exchange[] = [];
@@ -59,9 +58,10 @@ export const declaredSortableNullsAccepted: Check = defineCheck({
     if (rejected.length === 0) return ASSERTED;
 
     return ctx.findings.spec(this.id, ctx.entityName, {
-      summary: "the document declares a nulls sort token the backend rejects",
       detail: `rejected: ${rejected.join(", ")}.`,
       evidence: refusedBy.slice(0, 3),
+      summary: "the document declares a nulls sort token the backend rejects",
     });
   },
+  subjects: subjectsOf.list,
 });

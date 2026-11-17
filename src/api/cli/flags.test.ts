@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { DIALECTS } from "../reference/dialect/presets.ts";
-import { COMMANDS, FLAGS, type FlagSpec, isKnownFlag, list, parseArgs, str, USAGE } from "./flags.ts";
+import { COMMANDS, FLAG_ORDER, FLAGS, type FlagSpec, isKnownFlag, list, parseArgs, str, USAGE } from "./flags.ts";
 
 // The command line from one table: argv parses against it, and the help is printed from it, so a
 // flag the parser knows cannot be missing from the help.
@@ -13,16 +13,16 @@ describe("USAGE", () => {
     for (const [name, spec] of Object.entries<FlagSpec>(FLAGS)) {
       const flag = `--${name}${spec.value === undefined ? "" : ` ${spec.value}`}`;
       const line = USAGE.split("\n").find((text) => text.trimStart().startsWith(`${flag} `));
-      expect({ name, line }).toEqual({ name, line: expect.stringContaining(spec.help) });
+      expect({ line, name }).toEqual({ line: expect.stringContaining(spec.help), name });
     }
   });
 
   it("sets every command's help apart from its usage, however long the longest usage is", () => {
     for (const { usage, help } of COMMANDS) {
       const line = USAGE.split("\n").find((text) => text.startsWith(`  testing api ${usage} `)) ?? "";
-      expect({ usage, gap: line.slice(`  testing api ${usage}`.length) }).toEqual({
-        usage,
+      expect({ gap: line.slice(`  testing api ${usage}`.length), usage }).toEqual({
         gap: expect.stringMatching(/^ {2,}\S/),
+        usage,
       });
       expect(line.endsWith(help)).toBe(true);
     }
@@ -38,6 +38,21 @@ describe("USAGE", () => {
     const line = USAGE.split("\n").find((text) => text.trimStart().startsWith("--dialect")) ?? "";
 
     for (const name of Object.keys(DIALECTS)) expect(line).toContain(name);
+  });
+});
+
+describe("USAGE flag order", () => {
+  // The help reads in a reader's order, the run flags first and --help last, whatever order the
+  // table was written in.
+  it("lists the flags in the help's order, which names every flag once", () => {
+    const listed = USAGE.split("\n")
+      .filter((text) => text.startsWith("  --"))
+      .map((text) => text.trim().split(" ")[0]);
+
+    expect(listed.slice(0, 4)).toStrictEqual(["--config", "--spec", "--base-url", "--ops"]);
+    expect(listed.at(-1)).toBe("--help");
+    expect(listed).toStrictEqual(FLAG_ORDER.map((name) => `--${name}`));
+    expect([...FLAG_ORDER].toSorted()).toStrictEqual(Object.keys(FLAGS).toSorted());
   });
 });
 

@@ -62,7 +62,7 @@ describe("buildCohort on nested and cyclic schemas", () => {
         type: "object",
       },
       1,
-      { variants: ["baseline"], operationId: "table.create" },
+      { operationId: "table.create", variants: ["baseline"] },
     );
 
     expect(members[0]?.body).toBeDefined();
@@ -94,7 +94,7 @@ describe("buildCohort on nested and cyclic schemas", () => {
     )?.post?.requestBody?.content?.["application/json"]?.schema as Record<string, unknown>;
 
     expect(() =>
-      buildCohort(schema ?? {}, 1, { variants: ["baseline"], defs: documentDefs(doc), operationId: "table.create" }),
+      buildCohort(schema ?? {}, 1, { defs: documentDefs(doc), operationId: "table.create", variants: ["baseline"] }),
     ).not.toThrow();
   });
 });
@@ -108,7 +108,7 @@ describe("buildCohort strings", () => {
         type: "object",
       },
       1,
-      { variants: ["unicode"], operationId: "table.create" },
+      { operationId: "table.create", variants: ["unicode"] },
     );
 
     const name = String(member?.body["name"] ?? "");
@@ -151,7 +151,7 @@ describe("buildCohort string formats", () => {
         type: "object",
       },
       1,
-      { variants: ["baseline"], operationId: "user.create" },
+      { operationId: "user.create", variants: ["baseline"] },
     );
 
     expect(member?.body["email"]).toMatch(/^[^@]+@[^@]+\.[^@]+$/);
@@ -165,7 +165,7 @@ describe("buildCohort string formats", () => {
         type: "object",
       },
       1,
-      { variants: COHORT, operationId: "thing.create" },
+      { operationId: "thing.create", variants: COHORT },
     );
 
     expect(members).toHaveLength(COHORT.length);
@@ -182,7 +182,7 @@ describe("buildCohort string formats", () => {
         type: "object",
       },
       1,
-      { variants: COHORT, operationId: "user.create" },
+      { operationId: "user.create", variants: COHORT },
     );
 
     const re = new RegExp(pattern);
@@ -220,7 +220,7 @@ describe("buildCohort padding", () => {
         type: "object",
       },
       1,
-      { variants: ["baseline"], operationId: "user.create" },
+      { operationId: "user.create", variants: ["baseline"] },
     );
 
     const email = String(member?.body["email"] ?? "");
@@ -236,7 +236,7 @@ describe("buildCohort padding", () => {
         type: "object",
       },
       1,
-      { variants: COHORT, operationId: "thing.create" },
+      { operationId: "thing.create", variants: COHORT },
     );
 
     expect(failing(members, "name", (value) => codePointCount(String(value ?? "")) >= 5)).toEqual([]);
@@ -280,10 +280,10 @@ function throwing(key: string): Record<string, unknown> {
 describe("buildCohort on a schema that cannot be read", () => {
   it("reports it as an overflow with the error, never a crash", () => {
     expect(() =>
-      buildCohort(throwing("properties"), 1, { variants: ["baseline"], operationId: "note.create" }),
+      buildCohort(throwing("properties"), 1, { operationId: "note.create", variants: ["baseline"] }),
     ).toThrow(FixtureOverflow);
     expect(() =>
-      buildCohort(throwing("properties"), 1, { variants: ["baseline"], operationId: "note.create" }),
+      buildCohort(throwing("properties"), 1, { operationId: "note.create", variants: ["baseline"] }),
     ).toThrow(/boom/);
   });
 });
@@ -330,7 +330,7 @@ describe("buildCohort's self-check", () => {
 
   it("refuses a body the schema rejects, and accepts anything for a vacuous one", () => {
     expect(() =>
-      buildCohort({ not: {}, type: "object" }, 1, { variants: ["baseline"], operationId: "x.create" }),
+      buildCohort({ not: {}, type: "object" }, 1, { operationId: "x.create", variants: ["baseline"] }),
     ).toThrow("cannot generate a valid body for x.create at /: (root) must NOT be valid");
     expect(() => buildCohort({ type: "string" }, 1, { variants: ["baseline"] })).toThrow(/\(root\) must be string/);
     expect(buildCohort(true, 1)).toHaveLength(COHORT.length);
@@ -425,7 +425,7 @@ describe("ensureDistinctUniqueValues", () => {
 
   it("redraws a colliding column until every tuple differs", () => {
     const members = cohort({ code: "a", n: 1 }, { code: "a", n: 1 }, { code: "b", n: 1 });
-    const result = ensureDistinctUniqueValues(members, [["code"], ["n", "code"]], { schema, nonce: "r" });
+    const result = ensureDistinctUniqueValues(members, [["code"], ["n", "code"]], { nonce: "r", schema });
     expect(result.gap).toBeNull();
     expect(new Set(result.members.map((member) => member.body["code"])).size).toBe(3);
     expect(result.members.map((member) => member.variant)).toEqual(COHORT.slice(0, 3));
@@ -433,7 +433,7 @@ describe("ensureDistinctUniqueValues", () => {
 
   it("drops the members a schema cannot tell apart, and says so", () => {
     const members = cohort({ kind: "only" }, { kind: "only" }, { other: 1 }, { other: 1 });
-    const result = ensureDistinctUniqueValues(members, [["kind"], ["other"]], { schema, defs: {} });
+    const result = ensureDistinctUniqueValues(members, [["kind"], ["other"]], { defs: {}, schema });
     expect(result.members.map((member) => member.body)).toEqual([{ kind: "only" }, { other: 1 }]);
     expect(result.gap).toBe(
       "x-unique cannot express distinct values for [kind]; [other] within the schema; extra variants skipped",

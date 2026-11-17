@@ -26,20 +26,20 @@ const DOCUMENT = {
       requestBody: { content: { "application/json": { schema: { type: "object" } } } },
     }),
     "/broken": get("broken.get"),
+    // A parameter mid-segment names no entity, so only the path rule keeps it out.
+    "/download/{token}.zip": get("download.get", {
+      parameters: [{ in: "path", name: "token", required: true, schema: { type: "string" } }],
+    }),
     "/health": get("health.get"),
     "/hook": { post: { operationId: "hook.post", responses: ok() } },
     "/items": get("item.list", { "x-entity": { action: "list", name: "item" } }),
     "/moved": get("moved.get"),
     "/ping": { head: { operationId: "ping.head", responses: ok("2XX"), security: [] } },
-    // No requirement here or at the root: the document says nothing about a token.
-    "/undeclared": { get: { operationId: "undeclared.get", responses: ok() } },
-    // A parameter mid-segment names no entity, so only the path rule keeps it out.
-    "/download/{token}.zip": get("download.get", {
-      parameters: [{ in: "path", name: "token", required: true, schema: { type: "string" } }],
-    }),
     "/search": get("search.get", { parameters: [{ in: "query", name: "q", schema: { type: "string" } }] }),
     "/secure": get("secure.get", { security: [{ bearer: [] }] }),
     "/teapot": get("teapot.get", { responses: ok("418") }),
+    // No requirement here or at the root: the document says nothing about a token.
+    "/undeclared": { get: { operationId: "undeclared.get", responses: ok() } },
   },
 } as unknown as OpenApiDocument;
 

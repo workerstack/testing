@@ -20,11 +20,11 @@ function stage(respond: Responder, options: WidgetDocOptions = {}, create: Parti
   const model = modelOf(widgetDoc({ createParameters: [KEY_HEADER], ...options }));
 
   return contextFor(model, "listWidgets", {
-    respond,
     fields: {
       createOp: { ...op(model, "createWidget"), ...create },
       readOp: op(model, "getWidget"),
     },
+    respond,
   });
 }
 

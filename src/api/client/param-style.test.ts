@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { serializeParam, unencodedPairs } from "./param-style.ts";
 
 // OAS 3.1 §4.8.12.4, the style examples: color = "blue", ["blue","black","brown"], {R:100,G:200,B:150}.
-const VALUES = ["blue", ["blue", "black", "brown"], { R: 100, G: 200, B: 150 }] as const;
+const VALUES = ["blue", ["blue", "black", "brown"], { B: 150, G: 200, R: 100 }] as const;
 
 const query = (style: string, explode: boolean) => (value: unknown) =>
   serializeParam({ explode, in: "query", name: "color", style }, value)
@@ -15,35 +15,46 @@ const path = (style: string, explode: boolean) => (value: unknown) =>
 
 describe("serializeParam, the OAS style table", () => {
   it.each([
-    ["matrix", false, [";color=blue", ";color=blue,black,brown", ";color=R,100,G,200,B,150"]],
-    ["matrix", true, [";color=blue", ";color=blue;color=black;color=brown", ";R=100;G=200;B=150"]],
-    ["label", false, [".blue", ".blue,black,brown", ".R,100,G,200,B,150"]],
-    ["label", true, [".blue", ".blue.black.brown", ".R=100.G=200.B=150"]],
-    ["simple", false, ["blue", "blue,black,brown", "R,100,G,200,B,150"]],
-    ["simple", true, ["blue", "blue,black,brown", "R=100,G=200,B=150"]],
+    ["matrix", false, [";color=blue", ";color=blue,black,brown", ";color=B,150,G,200,R,100"]],
+    ["matrix", true, [";color=blue", ";color=blue;color=black;color=brown", ";B=150;G=200;R=100"]],
+    ["label", false, [".blue", ".blue,black,brown", ".B,150,G,200,R,100"]],
+    ["label", true, [".blue", ".blue.black.brown", ".B=150.G=200.R=100"]],
+    ["simple", false, ["blue", "blue,black,brown", "B,150,G,200,R,100"]],
+    ["simple", true, ["blue", "blue,black,brown", "B=150,G=200,R=100"]],
   ] as const)("writes a path parameter in %s style, explode %s", (style, explode, wire) => {
     expect(VALUES.map(path(style, explode))).toEqual(wire);
   });
 
   it.each([
-    ["form", false, ["color=blue", "color=blue,black,brown", "color=R,100,G,200,B,150"]],
-    ["form", true, ["color=blue", "color=blue&color=black&color=brown", "R=100&G=200&B=150"]],
-    ["spaceDelimited", false, ["color=blue", "color=blue%20black%20brown", "color=R%20100%20G%20200%20B%20150"]],
-    ["spaceDelimited", true, ["color=blue", "color=blue&color=black&color=brown", "R=100&G=200&B=150"]],
-    ["pipeDelimited", false, ["color=blue", "color=blue|black|brown", "color=R|100|G|200|B|150"]],
-    ["pipeDelimited", true, ["color=blue", "color=blue&color=black&color=brown", "R=100&G=200&B=150"]],
+    ["form", false, ["color=blue", "color=blue,black,brown", "color=B,150,G,200,R,100"]],
+    ["form", true, ["color=blue", "color=blue&color=black&color=brown", "B=150&G=200&R=100"]],
+    ["spaceDelimited", false, ["color=blue", "color=blue%20black%20brown", "color=B%20150%20G%20200%20R%20100"]],
+    ["spaceDelimited", true, ["color=blue", "color=blue&color=black&color=brown", "B=150&G=200&R=100"]],
+    ["pipeDelimited", false, ["color=blue", "color=blue|black|brown", "color=B|150|G|200|R|100"]],
+    ["pipeDelimited", true, ["color=blue", "color=blue&color=black&color=brown", "B=150&G=200&R=100"]],
     [
       "deepObject",
       false,
-      ["color=blue", "color=blue&color=black&color=brown", "color[R]=100&color[G]=200&color[B]=150"],
+      ["color=blue", "color=blue&color=black&color=brown", "color[B]=150&color[G]=200&color[R]=100"],
     ],
     [
       "deepObject",
       true,
-      ["color=blue", "color=blue&color=black&color=brown", "color[R]=100&color[G]=200&color[B]=150"],
+      ["color=blue", "color=blue&color=black&color=brown", "color[B]=150&color[G]=200&color[R]=100"],
     ],
   ] as const)("writes a query parameter in %s style, explode %s", (style, explode, wire) => {
     expect(VALUES.map(query(style, explode))).toEqual(wire);
+  });
+
+  it("writes an object's entries by name, whatever order its keys were written in", () => {
+    const reversed = Object.fromEntries([
+      ["R", 100],
+      ["G", 200],
+      ["B", 150],
+    ]);
+
+    expect(path("simple", false)(reversed)).toBe("B,150,G,200,R,100");
+    expect(query("form", true)(reversed)).toBe("B=150&G=200&R=100");
   });
 
   it("writes an empty value as the table does", () => {
@@ -61,11 +72,11 @@ describe("serializeParam, defaults and locations", () => {
       ["color", "brown"],
     ]);
     expect(serializeParam({ in: "cookie", name: "color" }, record)).toEqual([
-      ["R", "100"],
-      ["G", "200"],
       ["B", "150"],
+      ["G", "200"],
+      ["R", "100"],
     ]);
-    expect(serializeParam({ in: "path", name: "color" }, record)).toBe("R,100,G,200,B,150");
+    expect(serializeParam({ in: "path", name: "color" }, record)).toBe("B,150,G,200,R,100");
     expect(serializeParam({ in: "header", name: "X-Color" }, list)).toBe("blue,black,brown");
   });
 

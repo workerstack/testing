@@ -37,7 +37,7 @@ export function resolveProfile(
   const spec = configured?.[activeName] ?? BUILTIN_PROFILES[activeName];
 
   if (spec === undefined) {
-    const known = [...new Set([...Object.keys(BUILTIN_PROFILES), ...Object.keys(configured ?? {})])];
+    const known = [...new Set([...Object.keys(BUILTIN_PROFILES), ...Object.keys(configured ?? {})])].toSorted();
     throw new UsageError(`testing api: profile "${activeName}" is not defined. Known: ${known.join(", ")}`);
   }
 

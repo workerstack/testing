@@ -24,6 +24,17 @@ describe("listEndpoints", () => {
     ]);
   });
 
+  // The document's path order is its author's, and the run's: a check samples "the first in document
+  // order", so the list keeps it rather than sorting by name.
+  it("keeps the order the document lists its paths in", () => {
+    const paths = Object.fromEntries([
+      ["/zebras", { get: { operationId: "zebra.list" } }],
+      ["/apples", { get: { operationId: "apple.list" } }],
+    ]);
+
+    expect(listEndpoints(doc(paths)).map((e) => e.operationId)).toStrictEqual(["zebra.list", "apple.list"]);
+  });
+
   it("lists an OAS 3.2 query operation and a trace operation like any other", () => {
     const endpoints = listEndpoints(doc({ "/search": { query: {}, trace: {} } }));
     expect(endpoints.map((e) => e.operationId)).toEqual(["TRACE /search", "QUERY /search"]);

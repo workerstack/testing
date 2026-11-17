@@ -25,6 +25,10 @@ export const filterIlikeIsCaseInsensitive: Check<{
   likeTerm: Record<string, string>;
   ilikeTerm: Record<string, string>;
 }>({
+  dependsOn: ["query.filter-selects-from-whole-set", ...FOUNDATIONS, "filter.like-metacharacters-escaped"],
+  id: "filter.ilike-is-case-insensitive",
+  lists: true,
+  needs: "a field that allows both `ilike` and `like`, and a string with a letter",
   plan: (ctx) => {
     const unverified = storedFieldsUnknown(ctx);
 
@@ -47,11 +51,6 @@ export const filterIlikeIsCaseInsensitive: Check<{
 
     return ready({ field, flipped, ilikeTerm, likeTerm, sample });
   },
-  dependsOn: ["query.filter-selects-from-whole-set", ...FOUNDATIONS, "filter.like-metacharacters-escaped"],
-  id: "filter.ilike-is-case-insensitive",
-  lists: true,
-  needs: "a field that allows both `ilike` and `like`, and a string with a letter",
-  subjects: subjectsOf.list,
   async run(ctx, { field, flipped, ilikeTerm, likeTerm, sample }): Promise<Outcome> {
     const limit = pageSize(ctx);
     const like = await listAll(ctx, { ...q(ctx, { limit }), ...likeTerm });
@@ -81,9 +80,10 @@ export const filterIlikeIsCaseInsensitive: Check<{
     }
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "ilike is not case-insensitive relative to like",
       detail: `ilike on ${JSON.stringify(flipped)} did not select the record whose ${field.field} is ${JSON.stringify(sample)}.`,
       evidence: [like.exchange, ilike.exchange],
+      summary: "ilike is not case-insensitive relative to like",
     });
   },
+  subjects: subjectsOf.list,
 });

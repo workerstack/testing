@@ -59,13 +59,6 @@ export default defineConfig({
           "which this reads as a path that returns nothing; " +
           "switch-exhaustiveness-check and tsc's noImplicitReturns hold it",
       },
-      {
-        files: ["**"],
-        rules: ["eslint/sort-keys"],
-        reason:
-          "key order is output here: its fix reorders style objects, " +
-          "so src/api/client/param-style.test.ts writes B,G,R for R,G,B",
-      },
     ],
   },
   knip: {

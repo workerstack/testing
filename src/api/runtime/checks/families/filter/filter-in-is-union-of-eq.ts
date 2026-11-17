@@ -25,6 +25,10 @@ export const filterInIsUnionOfEq: Check<{
   eqA: Record<string, string>;
   eqB: Record<string, string>;
 }>({
+  dependsOn: ["query.filter-selects-from-whole-set", ...FOUNDATIONS, "filter.equality-selects-exactly-one"],
+  id: "filter.in-is-union-of-eq",
+  lists: true,
+  needs: "a field that allows `in` and at least two distinct values",
   plan: (ctx) => {
     const picked = filterable(ctx) ? pickFieldForOp(ctx, "in", 2) : null;
     const [a, b] = picked?.values ?? [];
@@ -40,11 +44,6 @@ export const filterInIsUnionOfEq: Check<{
 
     return ready({ a, b, eqA, eqB, field, inTerm });
   },
-  dependsOn: ["query.filter-selects-from-whole-set", ...FOUNDATIONS, "filter.equality-selects-exactly-one"],
-  id: "filter.in-is-union-of-eq",
-  lists: true,
-  needs: "a field that allows `in` and at least two distinct values",
-  subjects: subjectsOf.list,
   async run(ctx, { a, b, eqA, eqB, field, inTerm }): Promise<Outcome> {
     const union = (left: SetRead, right: SetRead): Set<string> =>
       new Set([...ids(left.items, ctx.identity), ...ids(right.items, ctx.identity)]);
@@ -70,11 +69,12 @@ export const filterInIsUnionOfEq: Check<{
     if (sameSet(expected, got)) return ASSERTED;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "in() is not the union of the equalities it lists",
       detail:
         `${field}.in.(${String(a)},${String(b)}) returned ${got.size} record(s); ` +
         `eq on each value together match ${expected.size}.`,
       evidence: [together.last.exchange, onlyA.last.exchange, onlyB.last.exchange],
+      summary: "in() is not the union of the equalities it lists",
     });
   },
+  subjects: subjectsOf.list,
 });

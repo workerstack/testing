@@ -87,7 +87,6 @@ async function occurred(respond: Responder, ids: string[], fields: Partial<Liste
   const effectOps = ids.map((id): OperationModel => op(model, id));
 
   const stage = contextFor(model, "listWidgets", {
-    respond,
     fields: {
       effectOps,
       recordCreated,
@@ -95,6 +94,7 @@ async function occurred(respond: Responder, ids: string[], fields: Partial<Liste
       records: [{ id: "w1", name: "w1" }],
       ...fields,
     },
+    respond,
   });
 
   const outcome = await check.run(stage.ctx, undefined);
@@ -106,7 +106,7 @@ async function occurred(respond: Responder, ids: string[], fields: Partial<Liste
 describe("plan", () => {
   it("applies when some operation declares x-effects", () => {
     const plan = (effectOps: OperationModel[]) =>
-      check.plan(contextFor(model, "listWidgets", { respond: () => {}, fields: { effectOps } }).ctx).ok;
+      check.plan(contextFor(model, "listWidgets", { fields: { effectOps }, respond: () => {} }).ctx).ok;
 
     expect(plan([])).toBe(false);
     expect(plan([op(model, "cloneWidget")])).toBe(true);

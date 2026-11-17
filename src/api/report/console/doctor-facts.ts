@@ -83,23 +83,23 @@ export function doctorFacts(model: SpecModel, config?: DoctorConfig): DoctorFact
 
   return {
     adopting: adoptingCreates(model).filter((op) => !authCreates.has(op.operationId)),
-    bypass: bypassGroups(model, config?.cacheBypass ?? true),
     blocking: untestable.length + (roots.required.length > 0 ? 1 : 0) + security.blocking,
+    bypass: bypassGroups(model, config?.cacheBypass ?? true),
     entities,
     featureGates: model.operations
       .filter((op) => op.featureGate !== null)
-      .map((op) => ({ operationId: op.operationId, featureGate: op.featureGate })),
+      .map((op) => ({ featureGate: op.featureGate, operationId: op.operationId })),
     gaps,
     gapsByTag: gapsByTag(gaps),
     inviting: entities.filter(hasInvite),
     listable: testable.filter((e) => e.list !== undefined),
+    roots,
+    security,
     testable,
     trackable: entities.filter((e) => e.trackable && e.readSurface.length > 0),
     uniqueConstraints: entities
       .filter((entity) => entity.unique !== null)
       .map((entity) => ({ entity: entity.name, unique: entity.unique })),
-    roots,
-    security,
     untestable,
     ...entityQueryCatalogs(model, config),
   };

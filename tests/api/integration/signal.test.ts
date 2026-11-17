@@ -117,8 +117,8 @@ async function interrupted(signal: NodeJS.Signals, phase: string, twice = false)
     JSON.stringify({
       baseUrl: base,
       principals: PRINCIPALS,
-      security: SECURITY,
       scenarios: [SCENARIO],
+      security: SECURITY,
       seed: 42,
       spec: `${base}/v1/openapi/spec`,
     }),

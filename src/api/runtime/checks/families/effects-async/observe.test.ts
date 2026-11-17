@@ -12,11 +12,11 @@ describe("currentRecords", () => {
     const respond = routes({ "GET /widgets/w1": () => ({ body: { id: "w1", name: "renamed" }, status: 200 }) });
 
     const { ctx, sent } = contextFor(model, "listWidgets", {
-      respond,
       fields: {
         readOp: op(model, "getWidget"),
         records: seeded,
       },
+      respond,
     });
 
     expect(await currentRecords(ctx, { id: "w1" })).toEqual([{ id: "w1", name: "renamed" }, ...seeded]);
@@ -24,15 +24,15 @@ describe("currentRecords", () => {
   });
 
   it("keeps the seeded records when there is no read, or the scope cannot name the instance", async () => {
-    const { ctx, sent } = contextFor(model, "listWidgets", { respond: () => {}, fields: { records: seeded } });
+    const { ctx, sent } = contextFor(model, "listWidgets", { fields: { records: seeded }, respond: () => {} });
     expect(await currentRecords(ctx, { id: "w1" })).toBe(seeded);
 
     const unnamed = contextFor(model, "listWidgets", {
-      respond: () => {},
       fields: {
         readOp: op(model, "getWidget"),
         records: seeded,
       },
+      respond: () => {},
     });
 
     expect(await currentRecords(unnamed.ctx, {})).toBe(seeded);
@@ -46,11 +46,11 @@ describe("currentRecords", () => {
     ["a scalar body", { body: "w1", status: 200 }],
   ])("keeps the seeded records after %s", async (_, answer) => {
     const { ctx } = contextFor(model, "listWidgets", {
-      respond: () => answer,
       fields: {
         readOp: op(model, "getWidget"),
         records: seeded,
       },
+      respond: () => answer,
     });
 
     expect(await currentRecords(ctx, { id: "w1" })).toBe(seeded);
@@ -77,7 +77,7 @@ describe("observe", () => {
 
   it("reads the context's scope by default, and reads afresh each time", async () => {
     const respond = routes({ "GET /boards/b1/cards": () => ({ body: [], status: 200 }) });
-    const { ctx, sent } = contextFor(model, "listWidgets", { respond, fields: { scope: { board_id: "b1" } } });
+    const { ctx, sent } = contextFor(model, "listWidgets", { fields: { scope: { board_id: "b1" } }, respond });
     await observe(ctx, op(model, "listCards"));
     await observe(ctx, op(model, "listCards"));
     expect(sent).toHaveLength(2);

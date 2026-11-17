@@ -1,6 +1,7 @@
 /** A request body as the transcript keeps it once the request is over. */
 
 import type { Redactor } from "../../security/redact.ts";
+import { sortedJson } from "../../spec/sorted-json.ts";
 import { type FormPart, isBodyRef, isFormData, isFormSnapshot, isURLSearchParams } from "../exchange.ts";
 import { bytesOf, sha256Hex, utf8Encode } from "../exchanges/bytes.ts";
 import { formFieldPart, formFilePart } from "../exchanges/form-parts.ts";
@@ -41,7 +42,7 @@ function compactSentValue(body: unknown, knownBytes: number | undefined, digest:
   if (body !== null && typeof body === "object") {
     // The size it went out at is already known; serializing again only to measure is waste.
     if (knownBytes !== undefined && knownBytes <= INLINE_BODY_LIMIT) return body;
-    const bytes = utf8Encode(JSON.stringify(body));
+    const bytes = utf8Encode(sortedJson(body));
 
     return bytes.byteLength <= INLINE_BODY_LIMIT ? body : bodyRef(bytes, "application/json");
   }

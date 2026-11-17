@@ -40,12 +40,12 @@ function stage(respond: Responder, options: WidgetDocOptions = {}, declared: Dec
   const model = modelOf(preconditionDoc(options, declared));
 
   return contextFor(model, "listWidgets", {
-    respond,
     fields: {
       createOp: op(model, "createWidget"),
       readOp: model.byOperationId.get("getWidget"),
       updateOp: model.byOperationId.get("updateWidget"),
     },
+    respond,
   });
 }
 

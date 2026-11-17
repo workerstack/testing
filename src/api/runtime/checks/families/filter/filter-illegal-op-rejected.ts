@@ -41,6 +41,10 @@ type IllegalOpProbe = {
 };
 
 export const filterIllegalOpRejected: Check<{ probes: IllegalOpProbe[] }> = defineCheck<{ probes: IllegalOpProbe[] }>({
+  dependsOn: ["list.read-after-write", "filter.unknown-field-rejected", "error.malformed-filter-not-5xx"],
+  id: "filter.illegal-op-rejected",
+  lists: true,
+  needs: "a field with a closed operator list, or a declared filter grammar",
   plan: (ctx) => {
     const probes: IllegalOpProbe[] = [];
 
@@ -85,11 +89,6 @@ export const filterIllegalOpRejected: Check<{ probes: IllegalOpProbe[] }> = defi
 
     return probes.length === 0 ? cannot() : ready({ probes });
   },
-  dependsOn: ["list.read-after-write", "filter.unknown-field-rejected", "error.malformed-filter-not-5xx"],
-  id: "filter.illegal-op-rejected",
-  lists: true,
-  needs: "a field with a closed operator list, or a declared filter grammar",
-  subjects: subjectsOf.list,
   async run(ctx, { probes }): Promise<Outcome> {
     // A refusal proves the operator is policed only when the field itself is accepted: a field
     // the backend will not filter on at all refuses every operator, illegal or not.
@@ -118,9 +117,9 @@ export const filterIllegalOpRejected: Check<{ probes: IllegalOpProbe[] }> = defi
 
     if (result.exchange.status >= 500) {
       return ctx.findings.backend(this.id, ctx.entityName, {
-        summary: "an illegal filter operator produces a server error",
         detail: `${field.field}.${op} returned ${result.exchange.status}; a rejected operator should be 4xx.`,
         evidence: [result.exchange],
+        summary: "an illegal filter operator produces a server error",
       });
     }
 
@@ -130,7 +129,6 @@ export const filterIllegalOpRejected: Check<{ probes: IllegalOpProbe[] }> = defi
     const same = ids(result.items, ctx.identity).join(",") === ids(baseline.items, ctx.identity).join(",");
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "an illegal filter operator is accepted",
       detail: `${field.field}.${op} returned ${result.exchange.status}${
         same ? " with the unfiltered set, so the operator was ignored" : ""
       }${
@@ -139,8 +137,10 @@ export const filterIllegalOpRejected: Check<{ probes: IllegalOpProbe[] }> = defi
           : ". The declared grammar has no such operator, so the term must be rejected, not dropped."
       }`,
       evidence: [baseline.exchange, result.exchange],
+      summary: "an illegal filter operator is accepted",
     });
   },
+  subjects: subjectsOf.list,
 });
 
 /** An operator token no filter grammar has. */

@@ -23,14 +23,6 @@ import { sortFieldBeside, type Subset, subsetPlan } from "./plans.ts";
  * A sort is not a predicate, and it must not behave as one.
  */
 export const queryAxesCompose: Check<Subset & { sortField: string }> = defineCheck<Subset & { sortField: string }>({
-  plan: (ctx) => {
-    if (!filterable(ctx) || conv(ctx).order === undefined || ctx.records.length <= 2) return cannot();
-
-    if ((ctx.query?.sortable.length ?? 0) === 0) return cannot();
-    const subset = subsetPlan(ctx);
-
-    return subset.ok ? ready({ ...subset.value, sortField: sortFieldBeside(ctx, subset.value.field) }) : subset;
-  },
   dependsOn: [
     "query.filter-selects-from-whole-set",
     "list.read-after-write",
@@ -45,7 +37,14 @@ export const queryAxesCompose: Check<Subset & { sortField: string }> = defineChe
   id: "query.axes-compose",
   lists: true,
   needs: "a filterable field, a sortable field, and more than two records",
-  subjects: subjectsOf.list,
+  plan: (ctx) => {
+    if (!filterable(ctx) || conv(ctx).order === undefined || ctx.records.length <= 2) return cannot();
+
+    if ((ctx.query?.sortable.length ?? 0) === 0) return cannot();
+    const subset = subsetPlan(ctx);
+
+    return subset.ok ? ready({ ...subset.value, sortField: sortFieldBeside(ctx, subset.value.field) }) : subset;
+  },
   async run(ctx, { field, sortField, term }): Promise<Outcome> {
     const conventions = conv(ctx);
     const limit = pageSize(ctx);
@@ -90,7 +89,6 @@ export const queryAxesCompose: Check<Subset & { sortField: string }> = defineChe
     if (moved !== null) return moved;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "adding a sort changes which records a filter returns",
       detail:
         `filter on "${field}" alone matched ${alone.size} record(s); the same filter with ` +
         `order=${sortField} desc matched ${combined.size}. ${
@@ -100,6 +98,8 @@ export const queryAxesCompose: Check<Subset & { sortField: string }> = defineChe
         }Ordering must reorder a result, never change its membership — a filter that only ` +
         `holds while unsorted is one an index or query plan is silently dropping.`,
       evidence: [filtered.last.exchange, both.last.exchange],
+      summary: "adding a sort changes which records a filter returns",
     });
   },
+  subjects: subjectsOf.list,
 });

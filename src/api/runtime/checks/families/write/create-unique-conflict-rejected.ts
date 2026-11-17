@@ -58,6 +58,12 @@ export const uniqueConflictCreate: Check<{
   schema: JsonSchema;
   sets: string[][];
 }>({
+  // Reads whole sets across pages, so a walk that skips or repeats records corrupts them.
+  dependsOn: ["pagination.page-walk-covers-set"],
+  id: "create.unique-conflict-rejected",
+  lists: true,
+  mutates: true,
+  needs: "x-unique on create with at least one probeable column set, and a known row",
   plan: (ctx) => {
     const createOp = ctx.uniqueCreateOp;
     const [first] = ctx.records;
@@ -71,13 +77,6 @@ export const uniqueConflictCreate: Check<{
 
     return sets.length === 0 ? cannot() : ready({ createOp, first, schema, sets });
   },
-  // Reads whole sets across pages, so a walk that skips or repeats records corrupts them.
-  dependsOn: ["pagination.page-walk-covers-set"],
-  id: "create.unique-conflict-rejected",
-  lists: true,
-  mutates: true,
-  needs: "x-unique on create with at least one probeable column set, and a known row",
-  subjects: subjectsOf.create,
   async run(ctx, { createOp, first, schema, sets }): Promise<Outcome> {
     const bodyCols = bodyPropertyNames(createOp, ctx.model);
     const path = fillPath(createOp.path, ctx.scope);
@@ -107,6 +106,7 @@ export const uniqueConflictCreate: Check<{
 
     return ASSERTED;
   },
+  subjects: subjectsOf.create,
 });
 
 /** What every unique probe on one create shares; `evidence` gathers across the sets. */
@@ -152,9 +152,9 @@ async function sendCollision(
   if (body === null) return null;
 
   const headers = uniqueProbeHeaders({
+    fresh: `testing-unique-${ctx.entityName}-${ctx.seed}-${index}`,
     header: createOp.idempotencyHeader,
     required: probe.required,
-    fresh: `testing-unique-${ctx.entityName}-${ctx.seed}-${index}`,
   });
 
   const encoded = await encodeOpBody(ctx, createOp, body);
@@ -178,10 +178,10 @@ async function probeCreateSet(ctx: Listed<Client>, probe: CreateProbe, set: stri
 
   if (isPlanLimitResponse(sent.status, sent.responseBody)) {
     ctx.findings.gap(check, ctx.entityName, {
-      summary: `${createOp.operationId} did not apply`,
       detail:
         `${createOp.operationId} returned ${sent.status} (plan limit) on a unique-conflict ` +
         "probe, so uniqueness was not observed.",
+      summary: `${createOp.operationId} did not apply`,
     });
 
     return;
@@ -208,12 +208,12 @@ async function judgeCreateProbe(
 
     if (leaked.length > 0) {
       ctx.findings.backend(check, ctx.entityName, {
-        summary: "a unique-conflict 409 still grew the collection",
         detail:
           `POST colliding ${set.join(", ")} returned 409 but the list grew from ` +
           `${before.items.length} to ${after.items.length}, by ${leaked.slice(0, 3).join(", ")}, ` +
           `which holds the colliding values.`,
         evidence: [before.exchange, sent, after.exchange],
+        summary: "a unique-conflict 409 still grew the collection",
       });
     }
 
@@ -225,11 +225,11 @@ async function judgeCreateProbe(
 
     if (id !== undefined) await teardownCreatedId(ctx, id);
     ctx.findings.backend(check, ctx.entityName, {
-      summary: "a duplicate unique-set create was accepted",
       detail:
         `${createOp.operationId} returned ${sent.status} for a second create colliding ` +
         `${set.join(", ")}. A documented unique constraint must be 409, not 2xx.`,
       evidence: probe.evidence.slice(-3),
+      summary: "a duplicate unique-set create was accepted",
     });
 
     return;
@@ -237,11 +237,11 @@ async function judgeCreateProbe(
 
   if (sent.status >= 500) {
     ctx.findings.backend(check, ctx.entityName, {
-      summary: "a duplicate unique-set create drew a server error",
       detail:
         `${createOp.operationId} returned ${sent.status} for a second create colliding ` +
         `${set.join(", ")}. A documented unique constraint must be refused with 409, not crash.`,
       evidence: [sent],
+      summary: "a duplicate unique-set create drew a server error",
     });
 
     return;

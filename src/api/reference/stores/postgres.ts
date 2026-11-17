@@ -36,10 +36,10 @@ export function connectPostgres(database: string, max: number): ReturnType<typeo
 }
 
 const PG_TYPE: Record<FieldDef["type"], string> = {
+  array: "text",
   boolean: "boolean",
   integer: "bigint",
   number: "double precision",
-  array: "text",
   object: "text",
   string: "text",
 };

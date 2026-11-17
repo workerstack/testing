@@ -142,7 +142,7 @@ async function outcomeOf(
     const name = loop.run.entity.name;
     const detail = messageOf(error);
 
-    return view.findings.gap(check.id, name, { summary: `check "${check.id}" could not complete`, detail });
+    return view.findings.gap(check.id, name, { detail, summary: `check "${check.id}" could not complete` });
   }
 }
 
@@ -172,8 +172,8 @@ export async function unresolvedBy(stopped: Stopped, error: unknown): Promise<st
 
   if (error instanceof FencedError) {
     attributed.blocked("fence", name, {
-      summary: `${checkId} was fenced: ${error.request.reason}`,
       cause: `${error.message}. The request was never sent, so ${checkId} could not complete.`,
+      summary: `${checkId} was fenced: ${error.request.reason}`,
     });
 
     return "a request was fenced";
@@ -186,8 +186,8 @@ export async function unresolvedBy(stopped: Stopped, error: unknown): Promise<st
   // No credential meets the operation's security: untested, with the reason.
   if (error.kind === "unsatisfied") return error.reason;
   attributed.blocked("auth.blocked" satisfies RunFindingId, name, {
-    summary: blockedCheckSummary(checkId),
     cause: `${error.reason}. ${checkId} could not complete.`,
+    summary: blockedCheckSummary(checkId),
   });
 
   return "a credential is BLOCKED";

@@ -10,6 +10,7 @@ import { recipeKind } from "../../credentials/recipes/acquire.ts";
 import { satisfy } from "../../credentials/satisfy.ts";
 import { writerFirst } from "../../credentials/writer.ts";
 import type { OperationModel, SpecModel } from "../../spec/graph/types.ts";
+import { inOrder } from "../../spec/in-order.ts";
 import { placementOf } from "../../spec/security/placement.ts";
 import type { Requirement, ResolvedSecurity } from "../../spec/security/requirements.ts";
 import type { SecurityScheme } from "../../spec/security/schemes.ts";
@@ -117,22 +118,35 @@ function recipeOf(name: string, credentials: SecurityCredentials): Partial<Recip
     .find((override) => override !== undefined);
 }
 
+/** A scheme's fields in the order the JSON states them. */
+const SCHEME_FACT_ORDER = [
+  "name",
+  "kind",
+  "bearerFormat",
+  "deprecated",
+  "placement",
+  "extraPlacements",
+  "recipe",
+  "format",
+  "why",
+] as const;
+
 function schemeFact(scheme: SecurityScheme, credentials: SecurityCredentials | undefined): SchemeFact {
   const recipe = credentials === undefined ? undefined : recipeOf(scheme.name, credentials);
   const placed = placementOf(scheme);
   const format = recipe?.format;
 
-  return {
-    name: scheme.name,
+  return inOrder(SCHEME_FACT_ORDER, {
     kind: scheme.kind,
+    name: scheme.name,
     ...(scheme.kind === "bearer" && scheme.bearerFormat !== undefined ? { bearerFormat: scheme.bearerFormat } : {}),
     deprecated: scheme.deprecated,
-    placement: placed === null ? null : { in: placed.in, name: placed.name, template: format ?? placed.template },
     extraPlacements: recipe?.placements?.length ?? 0,
+    placement: placed === null ? null : { in: placed.in, name: placed.name, template: format ?? placed.template },
     recipe: (recipe === undefined ? undefined : recipeKind(recipe)) ?? null,
     ...(format === undefined ? {} : { format }),
     ...(scheme.kind === "unsupported" ? { why: scheme.unsupported } : {}),
-  };
+  });
 }
 
 // Who sends the operation: the first principal `satisfy` accepts, with the first one's reason when it is not it.
@@ -170,13 +184,23 @@ function satisfaction(op: OperationModel, credentials: SecurityCredentials): Par
   return { unsatisfied: reasons[0] as string };
 }
 
+/** An operation's fields in the order the JSON states them. */
+const OPERATION_FACT_ORDER = [
+  "operationId",
+  "source",
+  "alternatives",
+  "satisfiedBy",
+  "alphaUnsatisfied",
+  "unsatisfied",
+] as const;
+
 function operationFact(op: OperationModel, credentials: SecurityCredentials | undefined): OperationFact {
-  return {
+  return inOrder(OPERATION_FACT_ORDER, {
+    alternatives: op.security.alternatives,
     operationId: op.operationId,
     source: op.security.source,
-    alternatives: op.security.alternatives,
     ...(credentials === undefined ? {} : satisfaction(op, credentials)),
-  };
+  });
 }
 
 /** Who sends an operation, as printed: undefined without a config, or when anyone may call it. */
@@ -244,7 +268,6 @@ export function securityFacts(model: SpecModel, credentials?: SecurityCredential
 
   return {
     alpha,
-    writerFrom: writerFrom(alpha, credentials),
     blocking: operations.filter((op) => op.unsatisfied !== undefined).length,
     configured: credentials !== undefined,
     groups: groupsOf(operations, alpha),
@@ -265,6 +288,7 @@ export function securityFacts(model: SpecModel, credentials?: SecurityCredential
         ? [{ name: scheme.name, operations: needingOnly(model.operations, scheme.name), why: scheme.unsupported }]
         : [],
     ),
+    writerFrom: writerFrom(alpha, credentials),
   };
 }
 
@@ -276,11 +300,11 @@ export function securityJson(facts: SecurityFacts): {
   unsupported: Array<SchemeCount & { why: string }>;
   undeclared: SchemeCount[];
 } {
-  return {
-    schemes: facts.schemes,
+  return inOrder(["schemes", "operations", "noRecipe", "unsupported", "undeclared"], {
     operations: facts.operations,
+    schemes: facts.schemes,
     ...(facts.configured ? { noRecipe: facts.noRecipe } : {}),
-    unsupported: facts.unsupported,
     undeclared: facts.undeclared,
-  };
+    unsupported: facts.unsupported,
+  });
 }

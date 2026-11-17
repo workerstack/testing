@@ -26,6 +26,7 @@ export const siteFixtures: Fixtures<
   PlaywrightTestArgs & PlaywrightTestOptions,
   PlaywrightWorkerArgs & PlaywrightWorkerOptions
 > = {
+  baseURL: async ({ site }, use) => use(site.url),
   site: [
     async ({}, use) => {
       const { close, port } = await servePages({ host: "127.0.0.1", port: 0 });
@@ -38,7 +39,6 @@ export const siteFixtures: Fixtures<
     },
     { scope: "worker" },
   ],
-  baseURL: async ({ site }, use) => use(site.url),
 };
 
 export const test: TestType<

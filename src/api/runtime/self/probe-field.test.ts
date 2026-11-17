@@ -101,7 +101,7 @@ describe("probeField under a guard pattern on every string", () => {
   it("skips a field whose own pattern or minLength, in or beside an allOf, refuses the probe values", () => {
     expect(probeField(object({ phone_number: phone }))).toBeNull();
     expect(probeField(object({ password: { minLength: 8, type: "string" } }))).toBeNull();
-    expect(probeField(object({ phone_number: phone, first_name: { pattern: guard, type: "string" } }))?.name).toBe(
+    expect(probeField(object({ first_name: { pattern: guard, type: "string" }, phone_number: phone }))?.name).toBe(
       "first_name",
     );
   });

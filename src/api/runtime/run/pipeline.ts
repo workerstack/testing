@@ -95,8 +95,8 @@ async function secondaryOrigins(ctx: RunContext, runs: OriginRuns): Promise<void
     await runSecondaryOrigins(ctx, runs);
   } catch (error) {
     ctx.findings.blocked("run.error" satisfies RunFindingId, "origins", {
-      summary: "the secondary origins stopped on an unexpected error",
       cause: errorText(error),
+      summary: "the secondary origins stopped on an unexpected error",
     });
   }
 }

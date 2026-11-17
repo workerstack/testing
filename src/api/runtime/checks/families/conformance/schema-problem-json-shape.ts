@@ -24,10 +24,9 @@ const STRING_MEMBERS = ["title", "detail", "instance"] as const;
  * refusal is right to be one, and still wrong to describe itself falsely.
  */
 export const problemJsonShape: Check = defineCheck({
-  plan: () => ready(undefined),
   id: "schema.problem-json-shape",
   judgesTranscript: true,
-  subjects: (entity, model) => ownOps(entity, model, () => true),
+  plan: () => ready(undefined),
   async run(ctx): Promise<Outcome> {
     const judged = new Set<string>();
     const flawed = new Set<string>();
@@ -56,13 +55,14 @@ export const problemJsonShape: Check = defineCheck({
     if (lines.length === 0) return ASSERTED;
 
     return ctx.findings.attributed([...flawed]).backend(this.id, ctx.entityName, {
-      summary: "a problem detail is not shaped as RFC 9457 defines it",
       detail:
         `${lines.join(". ")}. A client reads a problem detail by the members RFC 9457 defines, so a ` +
         "member of the wrong type, or a status other than the response's, misleads it about the failure.",
       evidence,
+      summary: "a problem detail is not shaped as RFC 9457 defines it",
     });
   },
+  subjects: (entity, model) => ownOps(entity, model, () => true),
 });
 
 /** The operation a problem-detail answer judges: one of this entity's, graded by this run. */

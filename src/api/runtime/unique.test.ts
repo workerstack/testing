@@ -71,12 +71,12 @@ describe("a unique conflict", () => {
 
 describe("idempotency headers", () => {
   it("a probe sends a fresh key only where the document requires one", () => {
-    expect(uniqueProbeHeaders({ header: "Idempotency-Key", required: false, fresh: "new" })).toEqual({});
-    expect(uniqueProbeHeaders({ header: "Idempotency-Key", required: true, fresh: "new" })).toEqual({
+    expect(uniqueProbeHeaders({ fresh: "new", header: "Idempotency-Key", required: false })).toEqual({});
+    expect(uniqueProbeHeaders({ fresh: "new", header: "Idempotency-Key", required: true })).toEqual({
       "Idempotency-Key": "new",
     });
-    expect(uniqueProbeHeaders({ header: null, required: true, fresh: "new" })).toEqual({});
-    expect(uniqueProbeHeaders({ header: "", required: true, fresh: "new" })).toEqual({});
+    expect(uniqueProbeHeaders({ fresh: "new", header: null, required: true })).toEqual({});
+    expect(uniqueProbeHeaders({ fresh: "new", header: "", required: true })).toEqual({});
   });
 
   it("is required only where the document marks the header parameter required", () => {

@@ -62,9 +62,9 @@ function itemSchema(): JsonSchema {
 
 function entityPaths(name: string, plural: string): NonNullable<OpenApiDocument["paths"]> {
   const collection = {
-    type: "object",
     properties: { items: { items: itemSchema(), type: "array" } },
     required: ["items"],
+    type: "object",
   };
 
   return {

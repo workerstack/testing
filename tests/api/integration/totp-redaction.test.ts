@@ -35,7 +35,7 @@ function setupAnswer(normal: string, shown: string, uriFirst: boolean): Record<s
   const uri = `otpauth://totp/testing:ada?secret=${normal}&issuer=testing`;
   const qr = `data:image/png;base64,${Buffer.from(uri).toString("base64")}`;
 
-  return uriFirst ? { otpauth_uri: uri, qr_code: qr, secret: shown } : { secret: shown, qr_code: qr, otpauth_uri: uri };
+  return uriFirst ? { otpauth_uri: uri, qr_code: qr, secret: shown } : { otpauth_uri: uri, qr_code: qr, secret: shown };
 }
 
 // Everything every serializer wrote once the redactor saw the answer.

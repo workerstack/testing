@@ -1,29 +1,33 @@
 import { describe, expect, it } from "vitest";
 
-import { PRINCIPALS, SECURITY } from "./principals.ts";
+import type { PrincipalEntry } from "../../config/types/security.ts";
+import { PRINCIPAL_ORDER, PRINCIPALS, SECURITY } from "./principals.ts";
+
+function entries(): [string, PrincipalEntry][] {
+  return PRINCIPAL_ORDER.flatMap((id) => {
+    const principal = PRINCIPALS[id];
+
+    return principal === undefined ? [] : [[id, principal]];
+  });
+}
 
 describe("PRINCIPALS", () => {
   it("are two tenants' owners and the first tenant's lower ranks, each with its own key", () => {
-    expect(
-      Object.entries(PRINCIPALS).map(([id, p]) => [
-        id,
-        p["key"],
-        p.rank,
-        p.tenant,
-        p.scope?.["project_id"],
-        p.inviteAs,
-      ]),
-    ).toEqual([
+    expect(entries().map(([id, p]) => [id, p["key"], p.rank, p.tenant, p.scope?.["project_id"], p.inviteAs])).toEqual([
       ["alpha", "key_alpha", 2, "proj_alpha", "proj_alpha", undefined],
       ["beta", "key_beta", 2, "proj_beta", "proj_beta", "key_beta"],
       ["alpha_member", "key_alpha_member", 1, "proj_alpha", "proj_alpha", undefined],
       ["alpha_viewer", "key_alpha_viewer", 0, "proj_alpha", "proj_alpha", undefined],
     ]);
     expect(
-      Object.entries(PRINCIPALS)
+      entries()
         .filter(([, p]) => p.readOnly === true)
         .map(([id]) => id),
     ).toEqual(["alpha_viewer"]);
+  });
+
+  it("lists exactly the principals, each once", () => {
+    expect([...PRINCIPAL_ORDER].toSorted()).toStrictEqual(Object.keys(PRINCIPALS).toSorted());
   });
 });
 

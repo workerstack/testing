@@ -85,7 +85,7 @@ describe("spooled bodies on disk", () => {
 
     try {
       const spool = new BodySpool({ dir: root, memoryBytes: 100 });
-      const login = { access_token: "acc-9f8e7d6c5b", refresh_token: "ref-1a2b3c4d5e", pad: "p".repeat(80) };
+      const login = { access_token: "acc-9f8e7d6c5b", pad: "p".repeat(80), refresh_token: "ref-1a2b3c4d5e" };
       const first: Exchange = { ...exchange(1, login), requestBody: { key: "key_alpha" }, requestBytes: 20 };
       await spool.keep(first);
       await spool.keep(exchange(2, { rows: "b".repeat(80) }));

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { CORE_DEFECTS } from "./core.ts";
+import { CORE_DEFECT_ORDER, CORE_DEFECTS } from "./core.ts";
 
 describe("CORE_DEFECTS", () => {
   it("holds the family of sessions, listings, writes and tenancy, in the table's order", () => {
-    const names = Object.keys(CORE_DEFECTS);
+    const names = CORE_DEFECT_ORDER;
     expect(names.slice(0, 3)).toEqual(["DISPOSABLE_KILLS_CALLER", "ROOT_READ_OPEN", "UNSTABLE_SORT"]);
     expect(names.at(-1)).toBe("LIST_DETAIL_DISAGREE");
   });

@@ -19,8 +19,8 @@ describe("forOperation", () => {
   it("attributes what is reported through it to the operation, into the same collector", () => {
     const { ctx, findings } = contextFor(model, "listWidgets", { respond: () => {} });
     forOperation(ctx, create).findings.gap("effects.declared-effect-occurs", "widget", {
-      summary: "summary",
       detail: "detail",
+      summary: "summary",
     });
     expect(findings.findings).toHaveLength(1);
     expect(findings.findings[0]?.operations).toEqual(["createWidget"]);
@@ -37,13 +37,13 @@ describe("bodyForOp", () => {
 
   it("puts a peer from another tenant in the invite's grantee field before one from the owner's", () => {
     const actors = [actor("owner", "a"), actor("same", "a", "same@test"), actor("other", "b", "other@test")];
-    const { ctx } = contextFor(model, "listWidgets", { respond: () => {}, fields: { actors, invite } });
+    const { ctx } = contextFor(model, "listWidgets", { fields: { actors, invite }, respond: () => {} });
     expect(bodyForOp(ctx, create)["email"]).toBe("other@test");
   });
 
   it("falls back to a peer in the owner's tenant when no other tenant has an invitee", () => {
     const actors = [actor("owner", "a", "owner@test"), actor("same", "a", "same@test")];
-    const { ctx } = contextFor(model, "listWidgets", { respond: () => {}, fields: { actors, invite } });
+    const { ctx } = contextFor(model, "listWidgets", { fields: { actors, invite }, respond: () => {} });
     expect(bodyForOp(ctx, create)["email"]).toBe("same@test");
   });
 
@@ -51,18 +51,18 @@ describe("bodyForOp", () => {
     const own = { ...create, invite: { granteeField: "key" } as InviteSpec };
 
     const { ctx } = contextFor(model, "listWidgets", {
-      respond: () => {},
       fields: {
         actors: [actor("owner", undefined), actor("peer", undefined, "peer@test")],
         invite,
       },
+      respond: () => {},
     });
 
     expect(bodyForOp(ctx, own)).toMatchObject({ key: "peer@test" });
 
     const lonely = contextFor(model, "listWidgets", {
-      respond: () => {},
       fields: { actors: [actor("owner", undefined)], invite },
+      respond: () => {},
     });
 
     expect(bodyForOp(lonely.ctx, own)).not.toHaveProperty("key");

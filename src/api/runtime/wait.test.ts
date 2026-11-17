@@ -42,8 +42,8 @@ function wait(answer: Answer, more: Partial<Omit<WaitDrive, "spec">> & { spec?: 
 
   const outcome = driveWait({
     client,
-    principal: "alpha",
     pollOp: POLL,
+    principal: "alpha",
     record: { id: "r1" },
     scope: { user: "u1" },
     spec: { operationId: "inbox.list", pollIntervalMs: 1, timeoutMs: 1_000, ...spec },

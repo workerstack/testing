@@ -10,11 +10,11 @@ import { defineConfig, env } from "../../../../src/api/index.ts";
 // that scope is called, even as support.
 
 const login = {
-  steps: [{ operationId: "login", body: { email: "{principal.email}", password: "{principal.password}" } }] as [
-    { operationId: string; body: Record<string, string> },
-  ],
   from: "$.accessToken",
   revoke: "logout",
+  steps: [{ body: { email: "{principal.email}", password: "{principal.password}" }, operationId: "login" }] as [
+    { operationId: string; body: Record<string, string> },
+  ],
 };
 
 const albums = ["createAlbum", "getAllAlbums", "getAlbumInfo", "updateAlbumInfo", "deleteAlbum", "getAlbumStatistics"];
@@ -33,22 +33,8 @@ const apiKeys = [
 const me = ["getMyUser", "updateMyUser", "getMyPreferences", "updateMyPreferences"];
 
 export default defineConfig({
-  spec: "./openapi.json",
-  baseUrl: env("IMMICH_URL"),
-  security: {
-    bearer: { login },
-    cookie: { login },
-    api_key: {
-      mint: {
-        with: "bearer",
-        operationId: "createApiKey",
-        body: { name: "testing", permissions: ["all"] },
-        from: "$.secret",
-        revoke: "deleteApiKey",
-      },
-    },
-  },
   allow: ["login", "logout", ...albums, ...tags, ...apiKeys, ...me],
+  baseUrl: env("IMMICH_URL"),
   ops: [...albums, ...tags, ...apiKeys, ...me, "logout"],
   overlay: {
     // The server stamps updatedAt on every write; the API tester treats only snake_case timestamps as such.
@@ -56,14 +42,28 @@ export default defineConfig({
     schemas: {
       // Optional fields that take the id of an existing user, asset or parent tag; the API tester has none to send.
       CreateAlbumDto: { properties: { albumUsers: null, assetIds: null } },
-      UpdateAlbumDto: { properties: { albumThumbnailAssetId: null } },
       TagCreateDto: { properties: { parentId: null } },
+      UpdateAlbumDto: { properties: { albumThumbnailAssetId: null } },
       // A write to these locks the principal out of its own login for the rest of the run.
       UserUpdateMeDto: { properties: { email: null, password: null } },
     },
   },
   principals: {
-    alpha: { tenant: "alpha", email: env("IMMICH_ALPHA_EMAIL"), password: env("IMMICH_ALPHA_PASSWORD") },
-    beta: { tenant: "beta", email: env("IMMICH_BETA_EMAIL"), password: env("IMMICH_BETA_PASSWORD") },
+    alpha: { email: env("IMMICH_ALPHA_EMAIL"), password: env("IMMICH_ALPHA_PASSWORD"), tenant: "alpha" },
+    beta: { email: env("IMMICH_BETA_EMAIL"), password: env("IMMICH_BETA_PASSWORD"), tenant: "beta" },
   },
+  security: {
+    api_key: {
+      mint: {
+        body: { name: "testing", permissions: ["all"] },
+        from: "$.secret",
+        operationId: "createApiKey",
+        revoke: "deleteApiKey",
+        with: "bearer",
+      },
+    },
+    bearer: { login },
+    cookie: { login },
+  },
+  spec: "./openapi.json",
 });

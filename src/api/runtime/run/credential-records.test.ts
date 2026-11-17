@@ -47,14 +47,14 @@ const MODEL = modelOf({
     "/orgs/{org_id}/tokens/{token_id}/revoke": {
       post: { operationId: "tokens.revoke", parameters: [param("org_id"), param("token_id")], responses: ok },
     },
-    "/widgets": { get: { operationId: "widgets.list", responses: { "200": { ...rows, description: "ok" } } } },
-    "/widgets/{widget_id}": {
-      delete: { operationId: "widgets.delete", parameters: [param("widget_id")], responses: ok },
-    },
     "/pins": { get: { operationId: "pins.list", responses: ok } },
     "/pins/{pin_id}": { delete: { operationId: "pins.delete", parameters: [param("pin_id")], responses: ok } },
     "/session": { delete: { operationId: "session.end", responses: ok } },
     "/things/{thing_id}": { delete: { operationId: "things.delete", parameters: [param("thing_id")], responses: ok } },
+    "/widgets": { get: { operationId: "widgets.list", responses: { "200": { ...rows, description: "ok" } } } },
+    "/widgets/{widget_id}": {
+      delete: { operationId: "widgets.delete", parameters: [param("widget_id")], responses: ok },
+    },
   },
 } as unknown as OpenApiDocument);
 

@@ -203,7 +203,7 @@ export function queryValues(
   grades: GradeLedger,
   { op, params, bind }: Pick<ContractCall, "bind" | "op" | "params">,
 ): Record<string, unknown> | null {
-  const bound = applyActionBind(bind, { records: [], beforeBody: undefined }, undefined).query;
+  const bound = applyActionBind(bind, { beforeBody: undefined, records: [] }, undefined).query;
   const query: Record<string, unknown> = {};
 
   for (const param of params) {
@@ -251,14 +251,14 @@ export function bodyOf(
   // The schema `requestSchemaOf` reads, from the same raw operation. One variant asked for, one
   // member back, and its body is always an object.
   const [member] = buildCohort(content.schema, input.seed, {
-    variants: ["baseline"],
     defs: model.defs,
     // By operation, not by how many requests came before: the same run sends the same body.
     nonce: `${input.nonce}c${op.operationId}`,
     operationId: op.operationId,
+    variants: ["baseline"],
   }) as [CohortMember];
 
-  const body = applyActionBind(bind, { records: [], beforeBody: undefined }, member.body).body;
+  const body = applyActionBind(bind, { beforeBody: undefined, records: [] }, member.body).body;
   const fields = input.credentials.identityFields.get(op.operationId) ?? [];
 
   for (const path of fields) placeIdentity(body, { nonce: input.nonce, path, schema: content.schema });

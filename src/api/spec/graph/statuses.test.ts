@@ -4,7 +4,7 @@ import { describeSuccess, documentsStatus, readStatuses } from "./statuses.ts";
 
 describe("readStatuses", () => {
   it("reads exact codes, ranges and default, each sorted, ignoring anything else", () => {
-    expect(readStatuses({ "201": {}, "200": {}, "4xx": {}, "2XX": {}, default: {}, "600": {}, "2X": {} })).toEqual({
+    expect(readStatuses({ "200": {}, "201": {}, "2X": {}, "2XX": {}, "4xx": {}, "600": {}, default: {} })).toEqual({
       default: true,
       exact: [200, 201],
       ranges: [2, 4],

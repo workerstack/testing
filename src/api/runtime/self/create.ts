@@ -82,8 +82,8 @@ function callerBody(
   try {
     // One variant asked for, one member made: buildCohort maps the variants it is given.
     const member = buildCohort(required, input.seed ?? 1, {
-      variants: ["baseline"],
       distinct: propertyNames(required),
+      variants: ["baseline"],
       ...(input.nonce === undefined ? {} : { nonce: input.nonce }),
       operationId,
     })[0] as CohortMember;
@@ -127,16 +127,16 @@ export async function createCaller(
     body = await applyResolveInput(body, input.resolveInput, { operationId: createOp.operationId, schema });
 
   const exchange = await input.client.request(createOp.method, createPath, {
-    body,
     as: { principal: input.principal },
+    body,
     operationId: createOp.operationId,
   });
 
   if (exchange.status < 200 || exchange.status >= 300) {
     return findings.backend(SELF_CHECK_ID, input.entity.name, {
-      summary: "creating the caller failed",
       detail: `${createOp.operationId} returned ${exchange.status} for the signed-up caller.`,
       evidence: [exchange],
+      summary: "creating the caller failed",
     });
   }
 

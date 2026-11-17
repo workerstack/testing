@@ -20,12 +20,11 @@ import { bodyForOp, forOperation, subject } from "./requests.ts";
  * (or `awaitSideEffect` returns true). Timeout is a backend finding, not a coverage gap.
  */
 export const sideEffectArrives: Check = defineCheck({
-  plan: (ctx) => when(ctx.waitOps.length > 0),
   dependsOn: ["list.read-after-write"],
-  mutates: true,
   id: "effects.side-effect-arrives",
+  mutates: true,
   needs: "an operation declaring x-wait",
-  subjects: subjectsOf.waits,
+  plan: (ctx) => when(ctx.waitOps.length > 0),
   async run(all): Promise<Outcome> {
     const notes: string[] = [];
 
@@ -38,8 +37,8 @@ export const sideEffectArrives: Check = defineCheck({
 
       if (pollOp === undefined) {
         ctx.findings.gap(this.id, ctx.entityName, {
-          summary: `${op.operationId} x-wait names "${spec.operationId}", which is not in the document`,
           detail: "the side effect cannot be observed, so it is not verified",
+          summary: `${op.operationId} x-wait names "${spec.operationId}", which is not in the document`,
         });
         continue;
       }
@@ -51,6 +50,7 @@ export const sideEffectArrives: Check = defineCheck({
 
     return notes.length === 0 ? ASSERTED : asserted([...new Set(notes)].join("; "));
   },
+  subjects: subjectsOf.waits,
 });
 
 /** One invocation of one write declaring x-wait: what every step reports against. */
@@ -74,7 +74,7 @@ async function invokeAndWait(run: Invocation, uploads: UploadContext): Promise<v
     as: { principal: ctx.actor.id },
     operationId: op.operationId,
     ...(fixture === undefined ? {} : { fixture }),
-    ...(body === undefined ? {} : await encodeOpBody(ctx, op, body, { variant: "baseline", index: 0, uploads })),
+    ...(body === undefined ? {} : await encodeOpBody(ctx, op, body, { index: 0, uploads, variant: "baseline" })),
   });
 
   if (standDownForFeatureGate(ctx, op, invoked, run.check)) return;
@@ -83,9 +83,9 @@ async function invokeAndWait(run: Invocation, uploads: UploadContext): Promise<v
 
   if (invoked.status >= 400) {
     ctx.findings.gap(run.check, subject(ctx.entityName, op.operationId, fixture), {
-      summary: `${op.operationId} could not be invoked`,
       detail: `returned ${invoked.status}; its declared x-wait is unverified`,
       fixture,
+      summary: `${op.operationId} could not be invoked`,
     });
 
     return;
@@ -117,7 +117,6 @@ async function invokeAndWait(run: Invocation, uploads: UploadContext): Promise<v
   }
 
   ctx.findings.backend(run.check, subject(ctx.entityName, op.operationId, fixture), {
-    summary: `${op.operationId} side effect did not appear within ${spec.timeoutMs}ms`,
     detail:
       `x-wait polls ${spec.operationId}${
         spec.until === undefined ? "" : ` until ${spec.until} is non-empty`
@@ -126,6 +125,7 @@ async function invokeAndWait(run: Invocation, uploads: UploadContext): Promise<v
       `missed delivery, not a coverage gap.`,
     evidence: [invoked, ...outcome.exchanges.slice(-2)],
     fixture,
+    summary: `${op.operationId} side effect did not appear within ${spec.timeoutMs}ms`,
   });
 }
 

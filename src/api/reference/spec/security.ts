@@ -1,14 +1,15 @@
 /** The document's security: a bearer JWT everywhere by default, or an entity-scoped API key on record routes. */
 
+import { inOrder } from "../../spec/in-order.ts";
 import { SAFE } from "../../spec/methods.ts";
 import type { EntityDef } from "../model/types.ts";
 import type { Json } from "./types.ts";
 
 /** The schemes: a bearer JWT, and an API key sent in Authorization as `ApiKey <key>`. */
-export const SECURITY_SCHEMES: Json = {
+export const SECURITY_SCHEMES: Json = /* @__PURE__ */ inOrder(["apiKey", "jwt"], {
   apiKey: { description: "ApiKey <key>", in: "header", name: "Authorization", type: "apiKey" },
   jwt: { bearerFormat: "JWT", scheme: "bearer", type: "http" },
-};
+});
 
 /** What every operation needs unless it says otherwise: the JWT. */
 export const ROOT_SECURITY: Json[] = [{ jwt: [] }];

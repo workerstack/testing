@@ -27,8 +27,8 @@ describe("removeOne", () => {
     expect(state.report.removed).toBe(1);
 
     const moved = unwindOf(store(), [note], {
-      model,
       ledger: { movedAway: () => "moved to t2", seenByCreator: () => true, sighted: () => {} },
+      model,
     });
 
     await removeOne(moved, note);
@@ -38,7 +38,7 @@ describe("removeOne", () => {
   it("retries a denial with a stronger credential, and stops at anything else", async () => {
     const note = disposable("note", "n1", { by: "beta" });
     const held = store({ alpha: ["n1"] }, { answers: {} });
-    const state = unwindOf(held, [note], { model, fallbacks: () => [owner("member"), owner("root")] });
+    const state = unwindOf(held, [note], { fallbacks: () => [owner("member"), owner("root")], model });
     held.answers["DELETE /notes/n1"] = (options) => {
       const who = actorOf(options);
 
@@ -54,8 +54,8 @@ describe("removeOne", () => {
     expect(state.report.removed).toBe(1);
 
     const failing = unwindOf(store({}, { answers: { "DELETE /notes/n1": { status: 500 } } }), [note], {
-      model,
       fallbacks: () => [owner("root")],
+      model,
     });
 
     await removeOne(failing, note);
@@ -68,8 +68,8 @@ describe("removeOne: other ways a record goes or stays", () => {
     const note = disposable("note", "n1");
 
     const state = unwindOf(store({}, { answers: { "DELETE /notes/n1": { status: 403 } } }), [note], {
-      model,
       deletedEarlier: (path) => path === "/notes/n1",
+      model,
     });
 
     await removeOne(state, note);
@@ -194,7 +194,7 @@ describe("removeOne: a deleter whose credential is BLOCKED", () => {
       return { status: 204 };
     };
 
-    const state = unwindOf(held, [note], { model, fallbacks: () => [owner("member"), owner("root")] });
+    const state = unwindOf(held, [note], { fallbacks: () => [owner("member"), owner("root")], model });
     await removeOne(state, note);
     expect(state.sent.map((request) => request.options.as)).toEqual([
       { principal: "beta" },
@@ -202,7 +202,7 @@ describe("removeOne: a deleter whose credential is BLOCKED", () => {
       { principal: "root" },
     ]);
     expect(state.report.removed).toBe(1);
-    const stuck = unwindOf(held, [note], { model, fallbacks: () => [owner("member")] });
+    const stuck = unwindOf(held, [note], { fallbacks: () => [owner("member")], model });
     await removeOne(stuck, note);
     expect(stuck.report.failed).toEqual([
       leftover(

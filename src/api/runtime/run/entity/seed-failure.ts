@@ -25,8 +25,8 @@ export async function seedFailed(run: EntityRun, createOp: OperationModel, error
 
   if (error instanceof FencedError) {
     findings.blocked("world.seed" satisfies RunFindingId, entity.name, {
-      summary: `seeding "${entity.name}" was fenced: ${error.request.reason}`,
       cause: `${error.message}. The request was never sent, so "${entity.name}" has no cohort to test.`,
+      summary: `seeding "${entity.name}" was fenced: ${error.request.reason}`,
     });
 
     return null;
@@ -35,8 +35,8 @@ export async function seedFailed(run: EntityRun, createOp: OperationModel, error
   if (isOverflowError(error)) {
     const overflow = overflowFrom(error, createOp.operationId);
     findings.gap("world.seed" satisfies RunFindingId, entity.name, {
-      summary: overflow.message,
       detail: overflow.message,
+      summary: overflow.message,
     });
 
     return existingOrBlocked(run, {
@@ -74,13 +74,13 @@ async function createFailed(run: EntityRun, createOp: OperationModel, error: unk
     run.ctx.findings
       .attributed([failure.failedOp])
       .backend("create.does-not-error" satisfies RunFindingId, entity.name, {
-        summary: `creating a "${entity.name}" fails with a server error`,
         detail:
           `${failure.message}. The request body was generated from the documented schema, so ` +
           "either the handler rejects input the document permits, or it is failing " +
           "outright. Everything downstream of this entity is untestable until it is " +
           "fixed.",
         evidence: failure.evidence,
+        summary: `creating a "${entity.name}" fails with a server error`,
       });
   }
 
@@ -96,8 +96,8 @@ async function createFailed(run: EntityRun, createOp: OperationModel, error: unk
 
   if (world === null) return null;
   findings.gap("world.seed" satisfies RunFindingId, entity.name, {
-    summary: `seeding "${entity.name}" failed; running read-only checks against existing records`,
     detail: `${failure.cause}: ${failure.message}. Write-path and lifecycle checks are skipped for this entity.`,
+    summary: `seeding "${entity.name}" failed; running read-only checks against existing records`,
   });
 
   return world;

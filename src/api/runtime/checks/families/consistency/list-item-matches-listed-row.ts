@@ -36,6 +36,9 @@ export const listedRowIsTheGet: Check<{ id: string; listed: Record<string, unkno
   id: string;
   listed: Record<string, unknown>;
 }>({
+  id: "list.item-matches-listed-row",
+  lists: true,
+  needs: "a list with no create and one listed row",
   plan: (ctx) => {
     if (ctx.readOp === undefined || ctx.createOp !== undefined) return cannot();
     const listed = ctx.records[0];
@@ -46,10 +49,6 @@ export const listedRowIsTheGet: Check<{ id: string; listed: Record<string, unkno
 
     return ready({ id: String(id), listed });
   },
-  id: "list.item-matches-listed-row",
-  lists: true,
-  needs: "a list with no create and one listed row",
-  subjects: (entity) => (entity.read === undefined ? [] : [entity.read]),
   async run(ctx, { id, listed }): Promise<Outcome> {
     const op = ctx.readOp;
 
@@ -62,9 +61,9 @@ export const listedRowIsTheGet: Check<{ id: string; listed: Record<string, unkno
 
     if (item.status >= 300) {
       return ctx.findings.backend(this.id, ctx.entityName, {
-        summary: "the listed row is not returned by its get",
         detail: `${op.operationId} returned ${item.status} for ${ctx.entityName} ${id}`,
         evidence: [item],
+        summary: "the listed row is not returned by its get",
       });
     }
 
@@ -75,12 +74,13 @@ export const listedRowIsTheGet: Check<{ id: string; listed: Record<string, unkno
       const named = differ.slice(0, 4).join("; ") + (differ.length > 4 ? `; and ${differ.length - 4} more` : "");
 
       return ctx.findings.backend(this.id, ctx.entityName, {
-        summary: "the get body is not the listed row",
         detail: `${op.operationId} returned a body that does not contain the row ${ctx.listOp.operationId} already returned for ${id}${named === "" ? "" : `: ${named}`}`,
         evidence: [item],
+        summary: "the get body is not the listed row",
       });
     }
 
     return ASSERTED;
   },
+  subjects: (entity) => (entity.read === undefined ? [] : [entity.read]),
 });

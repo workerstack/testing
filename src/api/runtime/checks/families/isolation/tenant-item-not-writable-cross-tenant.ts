@@ -31,6 +31,10 @@ export const crossTenantItemWrite: Check<{
   updateOp: OperationModel | undefined;
   deleteOp: OperationModel | undefined;
 }>({
+  dependsOn: ["list.read-after-write", "tenant.item-not-readable-cross-tenant"],
+  id: "tenant.item-not-writable-cross-tenant",
+  mutates: true,
+  needs: "a second principal in a different tenant, a create, and a tenant-scoped update or delete",
   plan: (ctx) => {
     const { peer, readOp } = ctx;
 
@@ -42,11 +46,6 @@ export const crossTenantItemWrite: Check<{
 
     return ready({ deleteOp, peer, readOp, updateOp });
   },
-  dependsOn: ["list.read-after-write", "tenant.item-not-readable-cross-tenant"],
-  id: "tenant.item-not-writable-cross-tenant",
-  mutates: true,
-  needs: "a second principal in a different tenant, a create, and a tenant-scoped update or delete",
-  subjects: (entity) => declared(entity.update, entity.delete),
   async run(ctx, { deleteOp, peer, readOp, updateOp }): Promise<Outcome> {
     const made = await scratchRecord(ctx, this.id);
 
@@ -76,6 +75,7 @@ export const crossTenantItemWrite: Check<{
 
     return deleted ?? ASSERTED;
   },
+  subjects: (entity) => declared(entity.update, entity.delete),
 });
 
 /** One scratch record, and how the other tenant addresses it. */
@@ -102,9 +102,9 @@ function breach(
 
   if (op.tenantSource === "tag") {
     return ctx.findings.security(check, ctx.entityName, {
-      summary,
       detail: `${detail} The operation declares x-tenant: "${op.tenantParam}".`,
       evidence,
+      summary,
     });
   }
 

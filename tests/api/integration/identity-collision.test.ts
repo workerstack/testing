@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { run } from "../../../src/api/runtime/run/index.ts";
 import type { OpenApiDocument } from "../../../src/api/spec/types.ts";
+import { readJson, send } from "../support/effects-fixtures.ts";
 
 // A create that takes the record's id from the client and silently overwrites a record that
 // already has it (a config store keyed by id). Nothing declares the id unique, so only the API tester's own
@@ -75,22 +76,8 @@ function spec(): OpenApiDocument {
   } as OpenApiDocument;
 }
 
-async function readJson(req: IncomingMessage): Promise<unknown> {
-  const chunks: Buffer[] = [];
-
-  for await (const chunk of req) chunks.push(chunk as Buffer);
-  const raw = Buffer.concat(chunks).toString("utf8");
-
-  return raw === "" ? undefined : JSON.parse(raw);
-}
-
-function send(res: ServerResponse, status: number, body: unknown): void {
-  res.writeHead(status, { "content-type": "application/json" });
-  res.end(JSON.stringify(body));
-}
-
 async function createNote(rows: Map<number, Row>, req: IncomingMessage, res: ServerResponse): Promise<void> {
-  const body = (await readJson(req)) as Partial<Row> | undefined;
+  const body = await readJson<Partial<Row> | undefined>(req);
 
   if (typeof body?.id !== "number" || typeof body.name !== "string" || body.name === "")
     return send(res, 400, { success: false });

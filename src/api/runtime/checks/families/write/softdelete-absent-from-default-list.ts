@@ -11,19 +11,18 @@ import { ids } from "../../sets/list.ts";
 import { readSet } from "../../sets/read.ts";
 
 export const softDeleteHidden: Check<{ deleteOp: OperationModel }> = defineCheck<{ deleteOp: OperationModel }>({
-  plan: (ctx) => {
-    if (ctx.deleteOp === undefined || ctx.softDelete === null || ctx.createOp === undefined) return cannot();
-
-    return ready({ deleteOp: ctx.deleteOp });
-  },
-  mutates: true,
   // The evidence for a tombstone leak is the record still being *in the listing*. On a backend
   // whose listing already omits records it should contain, "absent" proves nothing.
   dependsOn: ["pagination.page-walk-covers-set", "list.read-after-write"],
   id: "softdelete.absent-from-default-list",
   lists: true,
+  mutates: true,
   needs: "a create, a delete operation and x-soft-delete",
-  subjects: subjectsOf.deleteAndList,
+  plan: (ctx) => {
+    if (ctx.deleteOp === undefined || ctx.softDelete === null || ctx.createOp === undefined) return cannot();
+
+    return ready({ deleteOp: ctx.deleteOp });
+  },
   async run(ctx, { deleteOp }): Promise<Outcome> {
     const made = await scratchRecord(ctx, this.id);
 
@@ -58,11 +57,12 @@ export const softDeleteHidden: Check<{ deleteOp: OperationModel }> = defineCheck
     }
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "soft-deleted record still appears in the default listing",
       detail:
         `${ctx.entityName} ${id} was deleted (tombstoned via "${ctx.softDelete}") but the default ` +
         "list still returns it. Tombstones must be excluded unless explicitly requested.",
       evidence: [deleted, after.last.exchange],
+      summary: "soft-deleted record still appears in the default listing",
     });
   },
+  subjects: subjectsOf.deleteAndList,
 });

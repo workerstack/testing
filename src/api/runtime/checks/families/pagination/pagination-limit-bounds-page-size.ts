@@ -7,12 +7,11 @@ import { conv, q } from "../../query/capabilities.ts";
 import { list } from "../../sets/list.ts";
 
 export const limitBoundsPageSize: Check = defineCheck({
-  plan: (ctx) => when(conv(ctx).limit !== undefined && ctx.records.length > 2),
   dependsOn: ["list.read-after-write"],
   id: "pagination.limit-bounds-page-size",
   lists: true,
   needs: "a page-size query parameter named `limit`",
-  subjects: subjectsOf.list,
+  plan: (ctx) => when(conv(ctx).limit !== undefined && ctx.records.length > 2),
   async run(ctx): Promise<Outcome> {
     const result = await list(ctx, q(ctx, { limit: 2 }));
 
@@ -22,11 +21,12 @@ export const limitBoundsPageSize: Check = defineCheck({
     if (result.items.length <= 2) return ASSERTED;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "limit does not bound the number of records returned",
       detail:
         `limit=2 returned ${result.items.length} records. A page size the backend accepts and ` +
         "ignores means callers cannot bound response size, and every paging loop is wrong.",
       evidence: [result.exchange],
+      summary: "limit does not bound the number of records returned",
     });
   },
+  subjects: subjectsOf.list,
 });

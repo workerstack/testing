@@ -27,8 +27,8 @@ function document(secured: boolean) {
     openapi: "3.1.0",
     paths: {
       "/projects/{project_id}/overview": rootRead("project.overview"),
-      "/projects/{project_id}/usage": rootRead("project.usage", ["from", "to"]),
       "/projects/{project_id}/since": rootRead("project.since", ["from"]),
+      "/projects/{project_id}/usage": rootRead("project.usage", ["from", "to"]),
     },
     ...(secured
       ? { components: { securitySchemes: { bearer: { scheme: "bearer", type: "http" } } }, security: [{ bearer: [] }] }

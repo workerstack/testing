@@ -36,8 +36,8 @@ describe("query.unknown-parameter-consistent passes", () => {
     });
     expect(staged.sent.map((sent) => sent.options.query)).toEqual([
       { limit: 50 },
-      { limit: 50, [PLAIN]: "1" },
-      { limit: 50, [TYPO]: "1" },
+      { [PLAIN]: "1", limit: 50 },
+      { [TYPO]: "1", limit: 50 },
     ]);
   });
 

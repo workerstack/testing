@@ -64,9 +64,9 @@ export async function existingOrBlocked(run: EntityRun, blocked: Blocked): Promi
 
   if (existing.records.length > 0) return degradedWorld(existing);
   run.findings.blocked(blocked.check, run.entity.name, {
-    summary: blocked.summary,
     cause: blocked.detail,
     evidence: blocked.evidence,
+    summary: blocked.summary,
   });
 
   return null;

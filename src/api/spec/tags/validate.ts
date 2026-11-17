@@ -108,9 +108,9 @@ function entity(value: unknown): string | null {
 
 // In the order their gaps are reported.
 const OPERATION_TAGS: Readonly<Record<string, Check>> = {
+  "x-async": (value) => checkShape(value, ASYNC, ["poll"]),
   "x-before": text,
   "x-bind": (value) => checkShape(value, BIND),
-  "x-async": (value) => checkShape(value, ASYNC, ["poll"]),
   "x-cleanup": route,
   "x-consistency": (value) => checkShape(value, CONSISTENCY),
   "x-cost": (value) => oneOf(value, ["low", "medium", "high"]),
@@ -138,8 +138,10 @@ const OPERATION_TAGS: Readonly<Record<string, Check>> = {
 export function validateTags(op: OperationObject, operationId: string, gaps: GapCollector): void {
   const record = op as Record<string, unknown>;
 
-  for (const [tag, check] of Object.entries(OPERATION_TAGS)) {
-    if (record[tag] === undefined) continue;
+  for (const tag of Object.keys(OPERATION_TAGS).toSorted()) {
+    const check = OPERATION_TAGS[tag];
+
+    if (check === undefined || record[tag] === undefined) continue;
     const problem = check(record[tag]);
 
     if (problem !== null) gaps.record(operationId, tag, `${tag} ${problem}; the API tester cannot use it`);

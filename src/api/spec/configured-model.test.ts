@@ -8,11 +8,6 @@ import { dereference } from "./load/dereference.ts";
 // Three lists, one filtering by `filter_by`, one by `where`, one answering its next cursor as `next_before`, and a read.
 const searched = dereference(
   doc({
-    "/v1/notes": {
-      get: { operationId: "notes.list", parameters: [query("filter_by")], responses: ok(list(member)) },
-    },
-    "/v1/tags": { get: { operationId: "tags.list", parameters: [query("where")], responses: ok(list(member)) } },
-    "/v1/me": { get: { operationId: "me.read", responses: ok(member) } },
     "/v1/events": {
       get: {
         operationId: "events.list",
@@ -20,6 +15,11 @@ const searched = dereference(
         responses: ok({ properties: { events: list(member), next_before: { type: "integer" } }, type: "object" }),
       },
     },
+    "/v1/me": { get: { operationId: "me.read", responses: ok(member) } },
+    "/v1/notes": {
+      get: { operationId: "notes.list", parameters: [query("filter_by")], responses: ok(list(member)) },
+    },
+    "/v1/tags": { get: { operationId: "tags.list", parameters: [query("where")], responses: ok(list(member)) } },
   }),
 ).doc;
 
@@ -108,5 +108,21 @@ describe("buildConfiguredModel envelope names", () => {
     );
     expect(enveloped({ total: 3 })).toThrow("query.envelope.total must be a field name");
     expect(enveloped({ total: "" })).toThrow("query.envelope.total must be a field name");
+  });
+});
+
+// Params naming `nope` for each role, written in `roles`' order.
+function nopeFor(roles: string[]) {
+  return { params: Object.fromEntries(roles.map((role) => [role, role === "cursor" ? "before" : "nope"])) };
+}
+
+describe("assertQueryNamesDeclared, roles written in any order", () => {
+  it("reports the first bad role by name, whichever order config wrote them in", () => {
+    const first = 'query.params.filter names "nope", which no operation declares';
+
+    expect(checked(nopeFor(["sort", "filter"]))).toThrow(first);
+    expect(checked(nopeFor(["filter", "sort"]))).toThrow(first);
+    expect(checked(nopeFor(["cursor", "filter", "sort"]))).toThrow(first);
+    expect(checked(nopeFor(["sort", "cursor", "filter"]))).toThrow(first);
   });
 });

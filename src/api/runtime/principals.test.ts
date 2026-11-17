@@ -86,8 +86,8 @@ describe("snapshotPrincipal identity", () => {
     redactor.registerSecret("pin-123456");
 
     const identity = {
-      api_key: "k-1",
       apiKey: "k-2",
+      api_key: "k-1",
       email: "a@x.test",
       name: "Alpha",
       password: "alpha-password",

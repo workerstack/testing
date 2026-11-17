@@ -18,6 +18,13 @@ export const successSchemaHonored: Check<{
   validator: SchemaValidator;
   raw: OperationObject;
 }>({
+  // The body is validated against the schema declared *for the status that came back*. When the
+  // status itself is undocumented there is no schema to validate against, and the right finding
+  // is the status one — not silence.
+  dependsOn: ["create.status-matches-document"],
+  id: "schema.success-response-matches-document",
+  judgesTranscript: true,
+  needs: "a documented success schema on create",
   plan: (ctx) => {
     const { createOp, validator } = ctx;
 
@@ -26,14 +33,6 @@ export const successSchemaHonored: Check<{
 
     return raw === undefined ? cannot() : ready({ createOp, raw, validator });
   },
-  // The body is validated against the schema declared *for the status that came back*. When the
-  // status itself is undocumented there is no schema to validate against, and the right finding
-  // is the status one — not silence.
-  dependsOn: ["create.status-matches-document"],
-  id: "schema.success-response-matches-document",
-  judgesTranscript: true,
-  needs: "a documented success schema on create",
-  subjects: subjectsOf.create,
   async run(ctx, { createOp, raw, validator }): Promise<Outcome> {
     const exchange = await createExchange(ctx);
 
@@ -59,22 +58,23 @@ export const successSchemaHonored: Check<{
 
     if (result.unchecked !== undefined) {
       return ctx.findings.gap(this.id, ctx.entityName, {
-        summary: `${createOp.operationId} ${exchange.status} has a schema that cannot be compiled`,
         detail: `AJV refused the documented schema, so the body was not validated: ${result.unchecked}`,
+        summary: `${createOp.operationId} ${exchange.status} has a schema that cannot be compiled`,
       });
     }
 
     if (result.ok) return ASSERTED;
 
     return ctx.findings.spec(this.id, ctx.entityName, {
-      summary: "success response does not match its documented schema",
       detail:
         `${createOp.operationId} returned ${exchange.status} with a body that fails the declared ` +
         `schema: ${result.errors.join("; ")}. Either the handler returns more than it promises ` +
         "or the document is out of date — both break generated clients.",
       evidence: [exchange],
+      summary: "success response does not match its documented schema",
     });
   },
+  subjects: subjectsOf.create,
 });
 
 function emptyBody(body: unknown): boolean {

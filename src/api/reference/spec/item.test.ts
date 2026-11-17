@@ -20,12 +20,12 @@ function item(shape: ReferenceShape, entity = TABLE): Item {
 
 describe("itemPathItem", () => {
   it("declares a delete, a read and a PATCH update", () => {
-    expect(Object.keys(item({}))).toEqual(["delete", "get", "patch"]);
+    expect(Object.keys(item({})).toSorted()).toStrictEqual(["delete", "get", "patch"]);
   });
 
   it("declares a PUT update that replaces the record under the put shape", () => {
     const put = item({ updateMethod: "PUT" });
-    expect(Object.keys(put)).toEqual(["delete", "get", "put"]);
+    expect(Object.keys(put).toSorted()).toStrictEqual(["delete", "get", "put"]);
     expect(put["put"]?.requestBody.content["application/json"]?.schema.required).toContain("name");
     expect(item({})["patch"]?.requestBody.content["application/json"]?.schema.required).toEqual([]);
   });

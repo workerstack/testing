@@ -178,7 +178,7 @@ const records = (disposable: string | { blocked: string }): OwnRecords => ({
 });
 
 describe("runSelfIdentity and what the caller signs in with", () => {
-  const ACCOUNT = { properties: { password: { type: "string" }, bio: { type: "string" } }, type: "object" };
+  const ACCOUNT = { properties: { bio: { type: "string" }, password: { type: "string" } }, type: "object" };
   const ONLY_PASSWORD = { properties: { password: { type: "string" } }, type: "object" };
   const SIGNS_UP = { properties: { email: { type: "string" } }, required: ["email"], type: "object" };
   const NONE = { blocked: "the document marks no x-fresh-principal operation" };

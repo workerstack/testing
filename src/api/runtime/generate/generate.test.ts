@@ -24,19 +24,9 @@ const VARIANTS: Variant[] = [
 
 /** Schemas real documents contain, each once as written for OpenAPI 3.0 or 3.1. */
 const SCHEMAS: Record<string, Record<string, unknown>> = {
-  "rich create body": {
-    properties: {
-      due_at: { format: "date-time", type: "string" },
-      end: { $ref: "#/components/schemas/Point" },
-      kind: { const: "table" },
-      start: { $ref: "#/components/schemas/Point" },
-      weight: { maximum: 10, minimum: 1, multipleOf: 0.5, type: "number" },
-    },
-    required: ["due_at", "weight", "kind", "start", "end"],
-    type: "object",
-  },
   "bounds and formats": {
     properties: {
+      at: { format: "time", type: "string" },
       born: { format: "date", type: "string" },
       code: { maxLength: 6, minLength: 6, pattern: "^[A-Z]{3}[0-9]{3}$", type: "string" },
       count: { exclusiveMaximum: 5, exclusiveMinimum: 0, type: "integer" },
@@ -44,7 +34,6 @@ const SCHEMAS: Record<string, Record<string, unknown>> = {
       host: { format: "hostname", type: "string" },
       id: { format: "uuid", type: "string" },
       ip: { format: "ipv4", type: "string" },
-      at: { format: "time", type: "string" },
       ratio: { maximum: 1, minimum: 0, type: "number" },
       site: { format: "uri", type: "string" },
       step: { minimum: 3, multipleOf: 7, type: "integer" },
@@ -58,6 +47,7 @@ const SCHEMAS: Record<string, Record<string, unknown>> = {
       { properties: { status: { enum: ["a", "b"], type: "string" } }, required: ["status"] },
     ],
     properties: {
+      note: { anyOf: [{ maxLength: 20, type: "string" }, { type: "null" }] },
       pet: {
         oneOf: [
           { properties: { bark: { type: "boolean" } }, required: ["bark"], type: "object" },
@@ -67,7 +57,6 @@ const SCHEMAS: Record<string, Record<string, unknown>> = {
         required: ["kind"],
       },
       tags: { items: { enum: ["x", "y", "z"] }, maxItems: 3, minItems: 2, type: "array", uniqueItems: true },
-      note: { anyOf: [{ maxLength: 20, type: "string" }, { type: "null" }] },
     },
     type: "object",
   },
@@ -80,17 +69,28 @@ const SCHEMAS: Record<string, Record<string, unknown>> = {
     required: ["limit", "nick"],
     type: "object",
   },
-  recursive: {
-    properties: { root: { $ref: "#/components/schemas/Node" } },
-    required: ["root"],
-    type: "object",
-  },
   "read-only fields are not sent": {
     properties: {
       id: { readOnly: true, type: "string" },
       name: { type: "string" },
     },
     required: ["id", "name"],
+    type: "object",
+  },
+  recursive: {
+    properties: { root: { $ref: "#/components/schemas/Node" } },
+    required: ["root"],
+    type: "object",
+  },
+  "rich create body": {
+    properties: {
+      due_at: { format: "date-time", type: "string" },
+      end: { $ref: "#/components/schemas/Point" },
+      kind: { const: "table" },
+      start: { $ref: "#/components/schemas/Point" },
+      weight: { maximum: 10, minimum: 1, multipleOf: 0.5, type: "number" },
+    },
+    required: ["due_at", "weight", "kind", "start", "end"],
     type: "object",
   },
 };

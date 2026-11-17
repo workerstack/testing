@@ -63,12 +63,6 @@ function spec(): OpenApiDocument {
         },
       },
       "/notes/{noteId}": {
-        put: {
-          operationId: "note.update",
-          parameters: idParam,
-          requestBody: { content: { "application/json": { schema: note } }, required: true },
-          responses: { "200": ack, "400": { description: "invalid" }, "404": { description: "missing" } },
-        },
         delete: {
           operationId: "note.delete",
           parameters: idParam,
@@ -81,6 +75,12 @@ function spec(): OpenApiDocument {
             "200": { content: { "application/json": { schema: note } }, description: "ok" },
             "404": { description: "missing" },
           },
+        },
+        put: {
+          operationId: "note.update",
+          parameters: idParam,
+          requestBody: { content: { "application/json": { schema: note } }, required: true },
+          responses: { "200": ack, "400": { description: "invalid" }, "404": { description: "missing" } },
         },
       },
     },

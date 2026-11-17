@@ -10,6 +10,9 @@ import { subjectsOf } from "../../planning/subjects.ts";
 import { type CreateBody, createBodyPlan } from "./bodies.ts";
 
 export const requiredValidated: Check<CreateBody & { field: string }> = defineCheck<CreateBody & { field: string }>({
+  id: "validation.required-enforced",
+  mutates: true,
+  needs: "a request schema with a required field",
   plan: (ctx) =>
     andThen(createBodyPlan(ctx), (create) => {
       const required = Array.isArray(create.schema.required) ? (create.schema.required as string[]) : [];
@@ -17,10 +20,6 @@ export const requiredValidated: Check<CreateBody & { field: string }> = defineCh
 
       return field === undefined ? cannot("a request body with a required field") : ready({ ...create, field });
     }),
-  mutates: true,
-  id: "validation.required-enforced",
-  needs: "a request schema with a required field",
-  subjects: subjectsOf.create,
   async run(ctx, { createOp, field, schema }): Promise<Outcome> {
     const { [field]: _omitted, ...body } = validBody(ctx, schema);
 
@@ -36,12 +35,13 @@ export const requiredValidated: Check<CreateBody & { field: string }> = defineCh
     if (refused !== null) return refused;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "create succeeded without a required field",
       detail:
         `"${field}" is listed in the schema's required array, but omitting it returned ` +
         `${exchange.status}. Either the handler does not validate it or the document ` +
         "overstates the requirement.",
       evidence: [exchange],
+      summary: "create succeeded without a required field",
     });
   },
+  subjects: subjectsOf.create,
 });

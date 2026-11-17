@@ -9,6 +9,10 @@ import { conv, filterable, filterIdentity, identityIsFilterable, pageSize, q } f
 import { list } from "../../sets/list.ts";
 
 export const zeroMatchFilter: Check<{ term: Record<string, string> }> = defineCheck<{ term: Record<string, string> }>({
+  dependsOn: ["query.filter-selects-from-whole-set", "list.read-after-write"],
+  id: "filter.zero-match-returns-none",
+  lists: true,
+  needs: "a `filter` parameter that accepts the identity field",
   plan: (ctx) => {
     if (!filterable(ctx) || !identityIsFilterable(ctx)) return cannot();
     const missing = absentId(ctx);
@@ -18,11 +22,6 @@ export const zeroMatchFilter: Check<{ term: Record<string, string> }> = defineCh
 
     return term === null ? cannot("a filter grammar that can express equality on the identity") : ready({ term });
   },
-  dependsOn: ["query.filter-selects-from-whole-set", "list.read-after-write"],
-  id: "filter.zero-match-returns-none",
-  lists: true,
-  needs: "a `filter` parameter that accepts the identity field",
-  subjects: subjectsOf.list,
   async run(ctx, { term }): Promise<Outcome> {
     const result = await list(ctx, { ...q(ctx, { limit: pageSize(ctx) }), ...term });
 
@@ -32,11 +31,12 @@ export const zeroMatchFilter: Check<{ term: Record<string, string> }> = defineCh
     if (result.items.length === 0) return ASSERTED;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "filter that cannot match returns records anyway",
       detail:
         `a filter on a value no record holds returned ${result.items.length} records, so the ` +
         "predicate is not being applied",
       evidence: [result.exchange],
+      summary: "filter that cannot match returns records anyway",
     });
   },
+  subjects: subjectsOf.list,
 });

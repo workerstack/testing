@@ -13,8 +13,8 @@ const BOOTSTRAP_KEY = "testing-bootstrap-key";
 
 // One schema for both tenants: every field the run filters or sorts on is indexed for it.
 const BOOK_FIELDS = [
-  { name: "title", type: "string", sort: true },
-  { name: "author", type: "string", facet: true },
+  { name: "title", sort: true, type: "string" },
+  { facet: true, name: "author", type: "string" },
   { name: "year", type: "int32" },
   { name: "rating", type: "float" },
   { name: "in_stock", type: "bool" },
@@ -54,7 +54,6 @@ function scopedSearchKey(parent: string, embedded: Record<string, unknown>): str
 
 const target: Target = {
   baseUrl: "http://127.0.0.1:18108",
-  readyWithinMs: 120_000,
   async prepare(baseUrl) {
     await answers(`${baseUrl}/health`, 120_000, (status) => status === 200);
 
@@ -68,16 +67,17 @@ const target: Target = {
     });
 
     return {
-      TYPESENSE_URL: baseUrl,
       TYPESENSE_ADMIN_KEY: BOOTSTRAP_KEY,
       TYPESENSE_BETA_KEY: await scopedKey(baseUrl, {
         actions: ["documents:*", "collections:get"],
         collections: ["beta_.*"],
         description: "the API tester beta",
       }),
+      TYPESENSE_URL: baseUrl,
       TYPESENSE_VIEWER_KEY: scopedSearchKey(searchOnly, { filter_by: "in_stock:true" }),
     };
   },
+  readyWithinMs: 120_000,
 };
 
 export default target;

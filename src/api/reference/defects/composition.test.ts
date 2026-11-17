@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { COMPOSITION_DEFECTS } from "./composition.ts";
+import { COMPOSITION_DEFECT_ORDER, COMPOSITION_DEFECTS } from "./composition.ts";
 
 describe("COMPOSITION_DEFECTS", () => {
   it("holds the family of axes that break once combined, in the table's order", () => {
-    const names = Object.keys(COMPOSITION_DEFECTS);
+    const names = COMPOSITION_DEFECT_ORDER;
     expect(names.slice(0, 3)).toEqual([
       "FILTER_DROPPED_WHEN_SORTED",
       "FILTER_DROPPED_WHEN_SELECTED",

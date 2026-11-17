@@ -16,13 +16,13 @@ function stage(respond: Responder, fields: Partial<Listed> = {}, doc = notesDoc(
   const model = modelOf(doc);
 
   return contextFor(model, "notes.list", {
-    respond,
     fields: {
       createOp: op(model, "notes.create"),
       readOp: op(model, "notes.get"),
       records: [created],
       ...fields,
     },
+    respond,
   });
 }
 

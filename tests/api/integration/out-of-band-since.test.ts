@@ -23,8 +23,8 @@ const spec: OpenApiDocument = {
   info: { title: "mail", version: "1" },
   openapi: "3.1.0",
   paths: {
-    "/v1/invite": { post: { operationId: "invite.send", responses: ok } },
     "/v1/accept": { post: { operationId: "invite.accept", responses: ok } },
+    "/v1/invite": { post: { operationId: "invite.send", responses: ok } },
   },
 } as OpenApiDocument;
 

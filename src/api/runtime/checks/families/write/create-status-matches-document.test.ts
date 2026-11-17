@@ -8,7 +8,7 @@ import { createStatusMatchesSpec } from "./create-status-matches-document.ts";
 function stage(respond: Responder, options: WidgetDocOptions = {}) {
   const model = modelOf(widgetDoc(options));
 
-  return contextFor(model, "listWidgets", { respond, fields: { createOp: op(model, "createWidget") } });
+  return contextFor(model, "listWidgets", { fields: { createOp: op(model, "createWidget") }, respond });
 }
 
 /** What the transcript holds once the run's own create has gone through. */

@@ -25,8 +25,8 @@ describe("defineExternals", () => {
   };
 
   const registry = defineExternals<Ctx, { kind: "computed" | "device" }>()({
-    totp: { kind: "computed", resolve: (input: { secret: string }, ctx) => `${input.secret}${ctx.offset}` },
     consent: { kind: "device", resolve: async () => "granted" },
+    totp: { kind: "computed", resolve: (input: { secret: string }, ctx) => `${input.secret}${ctx.offset}` },
   });
 
   it("returns the entries as given, metadata included", async () => {

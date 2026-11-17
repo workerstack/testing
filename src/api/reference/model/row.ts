@@ -7,8 +7,8 @@ export const ROW: EntityDef = {
   defaultLimit: 20,
   defaultOrder: "created_at.desc",
   fields: [
-    { generated: true, immutable: true, name: "id", required: true, sortable: true, filterable: true, type: "string" },
-    { generated: true, immutable: true, name: "table_id", required: true, filterable: true, type: "string" },
+    { filterable: true, generated: true, immutable: true, name: "id", required: true, sortable: true, type: "string" },
+    { filterable: true, generated: true, immutable: true, name: "table_id", required: true, type: "string" },
     {
       filterable: true,
       maxLength: 128,
@@ -21,11 +21,11 @@ export const ROW: EntityDef = {
     { filterable: true, name: "amount", sortable: true, type: "number" },
     {
       filterable: true,
+      maxLength: 256,
       name: "note",
       nullable: true,
       searchable: true,
       sortable: true,
-      maxLength: 256,
       type: "string",
     },
     { filterable: true, name: "active", sortable: true, type: "boolean" },
@@ -36,7 +36,6 @@ export const ROW: EntityDef = {
   ],
   identity: "id",
   itemParam: "row_id",
-  relations: { table: { entity: "table", fields: ["name", "status"], via: "table_id" } },
   itemPath: "/v1/projects/{project_id}/tables/{table_id}/rows/{row_id}",
   // Deliberately below the default cohort size so the cap is observable at all — a limit
   // ceiling no request can reach cannot be tested.
@@ -44,4 +43,5 @@ export const ROW: EntityDef = {
   name: "row",
   parents: ["project_id", "table_id"],
   plural: "rows",
+  relations: { table: { entity: "table", fields: ["name", "status"], via: "table_id" } },
 };

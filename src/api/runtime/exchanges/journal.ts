@@ -14,10 +14,12 @@ import { appendFile, mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import type { Redactor } from "../../security/redact.ts";
+import { inOrder } from "../../spec/in-order.ts";
 import type { RedirectHop } from "../cookies/redirect.ts";
 import type { Exchange, RetryAfterExceeded } from "../exchange.ts";
 import { createBlobStore } from "./blobs.ts";
 import { exchangeFileStem } from "./files.ts";
+import { FILE_ORDER, LINE_ORDER } from "./journal-order.ts";
 import { persistRequestBody, persistResponseBody } from "./persist.ts";
 
 /** Index lines buffered before one append. */
@@ -64,7 +66,7 @@ export type JournalExchangeFile = {
 };
 
 function exchangeFile(exchange: Exchange, bodies: PersistedBodies, redactor: Redactor): JournalExchangeFile {
-  return {
+  return inOrder(FILE_ORDER, {
     at: exchange.at,
     durationMs: exchange.durationMs,
     ...(exchange.fixture === undefined ? {} : { fixture: exchange.fixture }),
@@ -89,7 +91,7 @@ function exchangeFile(exchange: Exchange, bodies: PersistedBodies, redactor: Red
     seq: exchange.seq,
     status: exchange.status,
     url: redactor.url(exchange.url),
-  };
+  });
 }
 
 /** What an index line carries beside the exchange: its tags, and the file the exchange is in. */
@@ -143,7 +145,7 @@ function indexLine(exchange: Exchange, meta: IndexMeta, redactor: Redactor): Jou
 
   if (meta.phase !== undefined) line.phase = meta.phase;
 
-  return line;
+  return inOrder(LINE_ORDER, line);
 }
 
 /** A file name no exchange in this journal, or on disk from an earlier one, has taken. */

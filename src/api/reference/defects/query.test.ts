@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { QUERY_DEFECTS } from "./query.ts";
+import { QUERY_DEFECT_ORDER, QUERY_DEFECTS } from "./query.ts";
 
 describe("QUERY_DEFECTS", () => {
   it("holds the family of what a filter, a sort or a select means, in the table's order", () => {
-    const names = Object.keys(QUERY_DEFECTS);
+    const names = QUERY_DEFECT_ORDER;
     expect(names.slice(0, 3)).toEqual(["SPEC_OVERCLAIMS_FILTERABLE", "FILTER_IN_FIRST_ONLY", "FILTER_GTE_IS_GT"]);
     expect(names.at(-1)).toBe("SPEC_OVERCLAIMS_SELECTABLE");
   });

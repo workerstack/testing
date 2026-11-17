@@ -77,9 +77,9 @@ const json = (schema: unknown) => ({ "application/json": { schema } });
 
 function ok(schema: unknown, code = "200"): Record<string, unknown> {
   return {
-    [code]: { content: json(schema), description: "ok" },
     "401": { description: "unauthorized" },
     "404": { description: "missing" },
+    [code]: { content: json(schema), description: "ok" },
   };
 }
 
@@ -92,17 +92,6 @@ const idParam = [{ in: "path", name: "note_id", required: true, schema: { type: 
 
 function notePaths(names: Names): Record<string, unknown> {
   return {
-    [`/v1/${names.notes}`]: {
-      get: {
-        operationId: names.ops.list,
-        responses: ok({
-          properties: { items: { items: noteSchema, type: "array" } },
-          required: ["items"],
-          type: "object",
-        }),
-      },
-      post: { operationId: names.ops.create, requestBody: textBody, responses: ok(noteSchema, "201") },
-    },
     [`/v1/${names.notes}/{note_id}`]: {
       delete: {
         operationId: names.ops.delete,
@@ -114,6 +103,17 @@ function notePaths(names: Names): Record<string, unknown> {
         },
       },
       get: { operationId: names.ops.get, parameters: idParam, responses: ok(noteSchema) },
+    },
+    [`/v1/${names.notes}`]: {
+      get: {
+        operationId: names.ops.list,
+        responses: ok({
+          properties: { items: { items: noteSchema, type: "array" } },
+          required: ["items"],
+          type: "object",
+        }),
+      },
+      post: { operationId: names.ops.create, requestBody: textBody, responses: ok(noteSchema, "201") },
     },
   };
 }

@@ -9,12 +9,11 @@ import { conv, q } from "../../query/capabilities.ts";
 import { ids, list } from "../../sets/list.ts";
 
 export const sortUnknownFieldRejected: Check = defineCheck({
-  plan: (ctx) => when(conv(ctx).order !== undefined),
   dependsOn: ["error.malformed-filter-not-5xx"],
   id: "sort.unknown-field-rejected",
   lists: true,
   needs: "an order parameter",
-  subjects: subjectsOf.list,
+  plan: (ctx) => when(conv(ctx).order !== undefined),
   async run(ctx): Promise<Outcome> {
     const result = await list(
       asProbe(ctx),
@@ -23,9 +22,9 @@ export const sortUnknownFieldRejected: Check = defineCheck({
 
     if (result.exchange.status >= 500) {
       return ctx.findings.backend(this.id, ctx.entityName, {
-        summary: "unknown sort field produces a server error",
         detail: `ordering on an undeclared field returned ${result.exchange.status}; a rejected input should be 4xx.`,
         evidence: [result.exchange],
+        summary: "unknown sort field produces a server error",
       });
     }
 
@@ -36,11 +35,12 @@ export const sortUnknownFieldRejected: Check = defineCheck({
     const same = ids(result.items, ctx.identity).join(",") === ids(baseline.items, ctx.identity).join(",");
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "unknown sort field is silently ignored",
       detail: `order on an undeclared field returned ${result.exchange.status}${
         same ? " with the default order, so the field was dropped" : ""
       }.`,
       evidence: [baseline.exchange, result.exchange],
+      summary: "unknown sort field is silently ignored",
     });
   },
+  subjects: subjectsOf.list,
 });

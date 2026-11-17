@@ -74,8 +74,8 @@ export async function assertRangeUnion(
   if (sameSet(expected, got)) return ASSERTED;
 
   return ctx.findings.backend(check, ctx.entityName, {
-    summary: `${closed} is not ${open} ∪ eq`,
     detail: `${field}.${closed}.${threshold} returned ${got.size}; ${open} ∪ eq is ${expected.size}.`,
     evidence: [closedSet.last.exchange, openSet.last.exchange, eqSet.last.exchange],
+    summary: `${closed} is not ${open} ∪ eq`,
   });
 }

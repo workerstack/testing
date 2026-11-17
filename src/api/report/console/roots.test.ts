@@ -15,12 +15,12 @@ const op = (operationId: string, path: string, rootParams: string[] = []) => ({
 });
 
 const MODEL = {
+  entities: new Map(),
   operations: [
     op("table.list", "/orgs/{org_id}/projects/{project_id}/tables", ["org_id"]),
     op("row.get", "/projects/{project_id}/rows/{row_id}"),
     op("invite.accept", "/invites/{token}/accept"),
   ],
-  entities: new Map(),
   roots: ["org_id", "project_id", "token"],
 } as unknown as Pick<SpecModel, "operations" | "entities" | "roots">;
 

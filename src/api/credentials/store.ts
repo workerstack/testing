@@ -67,7 +67,6 @@ export function createStore(options: StoreOptions): CredentialStore {
   return {
     acquire: (key) => acquire(ctx, key),
     acquireDedicated: (key, use) => acquireDedicated(ctx, key, use),
-    lapsed: (key, value) => lapsed(ctx, key, value),
     adopt: (input) => adopt(ctx, input),
     block: (key, reason) => {
       ctx.blocked.set(pairOf(key), { blocked: reason });
@@ -76,12 +75,13 @@ export function createStore(options: StoreOptions): CredentialStore {
       ctx.principals[id] = entry;
     },
     identityOf: (principal) => identityOf(ctx, principal),
+    lapsed: (key, value) => lapsed(ctx, key, value),
+    lastHeld: async () => (await ctx.entries.lastHeld()).map((entry) => entry.key),
     principals: ctx.principals,
     refresh: (request) => refresh(ctx, request),
     revokeAll: () => revokeAll(ctx),
     revokeSessions: (of) => revokeSessions(ctx, of),
     snapshot: () => snapshot(ctx),
-    lastHeld: async () => (await ctx.entries.lastHeld()).map((entry) => entry.key),
   };
 }
 

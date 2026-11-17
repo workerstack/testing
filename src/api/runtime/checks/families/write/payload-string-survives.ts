@@ -38,6 +38,10 @@ export const stringPayloadSurvives: Check<{
   readOp: OperationModel;
   field: PayloadField;
 }>({
+  dependsOn: ["list.read-after-write"],
+  id: "payload.string-survives",
+  mutates: true,
+  needs: "an update or create+delete, an item route, and a writable unconstrained string",
   plan: (ctx) => {
     const writeOp = ctx.updateOp ?? ctx.createOp;
     const readOp = ctx.readOp;
@@ -51,11 +55,6 @@ export const stringPayloadSurvives: Check<{
 
     return ready({ field, readOp, writeOp });
   },
-  dependsOn: ["list.read-after-write"],
-  id: "payload.string-survives",
-  mutates: true,
-  needs: "an update or create+delete, an item route, and a writable unconstrained string",
-  subjects: subjectsOf.writeAndRead,
   async run(ctx, { field, readOp, writeOp }): Promise<Outcome> {
     // A payload sent into a field the update never stores proves nothing about the payload.
     if (ctx.updateOp !== undefined && updateDrops(ctx).has(field.name))
@@ -97,6 +96,7 @@ export const stringPayloadSurvives: Check<{
         'Set `payloads: "full"` to send every case to every field.',
     );
   },
+  subjects: subjectsOf.writeAndRead,
 });
 
 /** Why the ASCII control write does not let the payload cases be judged, or `undefined` when it does. */
@@ -127,9 +127,9 @@ async function controlRefusal(probe: PayloadProbe, control: Exchange): Promise<O
   if (control.status < 500) return undefined;
 
   return ctx.findings.backend(check, ctx.entityName, {
-    summary: "an ordinary ASCII write returned 5xx",
     detail: `PATCH/POST of "${ASCII_PAYLOAD_PROBE}" on "${field.name}" returned ${control.status}.`,
     evidence: [control],
+    summary: "an ordinary ASCII write returned 5xx",
   });
 }
 
@@ -157,11 +157,11 @@ async function controlFailure(probe: PayloadProbe): Promise<Outcome | undefined>
   if (controlRead.value === ASCII_PAYLOAD_PROBE) return undefined;
 
   return ctx.findings.backend(check, ctx.entityName, {
-    summary: "an ordinary ASCII write did not persist exactly",
     detail:
       `"${field.name}" was sent ${JSON.stringify(ASCII_PAYLOAD_PROBE)} and read back ` +
       `${JSON.stringify(controlRead.value)}.`,
     evidence: [control, controlRead.exchange],
+    summary: "an ordinary ASCII write did not persist exactly",
   });
 }
 
@@ -190,12 +190,12 @@ function verdict(probe: PayloadProbe, results: ReadonlyArray<CaseResult | undefi
   if (failed.length === 0) return ASSERTED;
 
   return ctx.findings.backend(check, ctx.entityName, {
-    summary: "a documented-valid string did not survive a write",
     detail:
       `"${field.name}" failed ${failed.length} payload case(s): ${failed.slice(0, 6).join("; ")}${
         failed.length > 6 ? `; and ${failed.length - 6} more` : ""
       }. The document accepts these as strings; refusing or mutating them is silent corruption ` +
       `or an undocumented constraint.`,
     evidence,
+    summary: "a documented-valid string did not survive a write",
   });
 }

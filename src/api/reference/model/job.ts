@@ -10,8 +10,8 @@ export const JOB: EntityDef = {
   defaultLimit: 20,
   defaultOrder: "created_at.desc",
   fields: [
-    { generated: true, immutable: true, name: "id", required: true, sortable: true, filterable: true, type: "string" },
-    { generated: true, immutable: true, name: "project_id", required: true, filterable: true, type: "string" },
+    { filterable: true, generated: true, immutable: true, name: "id", required: true, sortable: true, type: "string" },
+    { filterable: true, generated: true, immutable: true, name: "project_id", required: true, type: "string" },
     {
       filterable: true,
       maxLength: 128,

@@ -1,3 +1,4 @@
+import { entriesByName } from "../../config/types/entries-by-name.ts";
 import { rootsOf } from "../../report/console/roots.ts";
 import { listEndpoints } from "../../spec/endpoints.ts";
 import { buildModel } from "../../spec/graph/build.ts";
@@ -296,7 +297,7 @@ export function renderInitConfig(doc: OpenApiDocument, where: { spec: string; ou
   const unsupported: UnsupportedScheme[] = [];
   const security: Field[] = [];
 
-  for (const scheme of schemes.values()) {
+  for (const [, scheme] of entriesByName(Object.fromEntries(schemes))) {
     if (scheme.kind === "unsupported") {
       const type = declaredType(declared[scheme.name]);
       unsupported.push({ name: scheme.name, type, why: scheme.unsupported });

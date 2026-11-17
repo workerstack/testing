@@ -33,7 +33,7 @@ describe("validateBody", () => {
 
   it("refuses an unknown field, and a generated or immutable one unless IMMUTABLE_WRITABLE", () => {
     expect(() => validateBody({ name: "a", nope: 1 }, CREATE)).toThrow('unknown field "nope"');
-    expect(() => validateBody({ name: "a", id: "x" }, CREATE)).toThrow('field "id" is not writable');
+    expect(() => validateBody({ id: "x", name: "a" }, CREATE)).toThrow('field "id" is not writable');
     expect(validateBody({ id: "x", name: "a" }, { ...CREATE, defects: defects("IMMUTABLE_WRITABLE") })).toEqual({
       id: "x",
       name: "a",

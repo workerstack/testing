@@ -13,11 +13,11 @@ const source = () =>
     {
       "/notes": {
         get: { operationId: "notes.list", tags: ["a"], "x-cost": "high", "x-query": { maxLimit: 10, sortable: ["a"] } },
-        post: { summary: "unnamed" },
         parameters: [],
+        post: { summary: "unnamed" },
       },
-      "/skip": "not a path item",
       "/other": { put: { operationId: "other.put" } },
+      "/skip": "not a path item",
     },
     { components: { schemas: { Note: { properties: { id: { type: "string" } }, required: ["id"] } } } },
   );

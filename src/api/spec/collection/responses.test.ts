@@ -9,8 +9,8 @@ describe("successSchema", () => {
   it("takes the first JSON schema among the success codes, in order", () => {
     const op = {
       responses: {
+        "200": { content: { "application/problem+json": {}, "text/plain": { schema: { type: "string" } } } },
         "201": json({ type: "object" }),
-        "200": { content: { "text/plain": { schema: { type: "string" } }, "application/problem+json": {} } },
         default: json({ type: "array" }),
       },
     } as OperationObject;

@@ -23,9 +23,15 @@ const documentOf = (root: Declared | undefined, schemes: string[]): OpenApiDocum
 
 const operationOf = (security: Declared | undefined): OperationObject => (security === undefined ? {} : { security });
 
-// The alternatives a declared array reads as, written independently: each set's entries in order.
+// The alternatives a declared array reads as, written independently: each set's entries by scheme name.
 const expected = (sets: Declared) =>
-  sets.length === 0 ? [[]] : sets.map((set) => Object.keys(set).map((scheme) => ({ scheme, scopes: set[scheme] })));
+  sets.length === 0
+    ? [[]]
+    : sets.map((set) =>
+        Object.keys(set)
+          .toSorted()
+          .map((scheme) => ({ scheme, scopes: set[scheme] })),
+      );
 
 describe("resolveSecurity, by property", () => {
   it("lets a declared operation requirement win over any root", () => {

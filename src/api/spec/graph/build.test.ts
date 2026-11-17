@@ -27,21 +27,21 @@ describe("buildModel", () => {
   it("indexes operations by id and route, keeps the raw operations, and lists the roots", () => {
     const model = modelOf(
       {
-        "/v1/auth/login": { post: { operationId: "auth.login", responses: ok({ type: "object" }) } },
         "/orgs/{org_id}/notes": {
           get: { operationId: "notes.list", responses: ok(list(member)) },
           post: { operationId: "notes.create", responses: ok(member) },
         },
         "/orgs/{org_id}/notes/{note_id}": { get: { operationId: "notes.get", responses: ok(member) } },
+        "/v1/auth/login": { post: { operationId: "auth.login", responses: ok({ type: "object" }) } },
       },
       { components: { securitySchemes: { jwt: { scheme: "bearer", type: "http" } } } },
     );
 
-    expect([...model.byRoute.keys()]).toEqual([
-      "POST /v1/auth/login",
+    expect([...model.byRoute.keys()].toSorted()).toEqual([
       "GET /orgs/{org_id}/notes",
-      "POST /orgs/{org_id}/notes",
       "GET /orgs/{org_id}/notes/{note_id}",
+      "POST /orgs/{org_id}/notes",
+      "POST /v1/auth/login",
     ]);
     expect(model.byOperationId.get("notes.get")?.route).toBe("GET /orgs/{org_id}/notes/{note_id}");
     expect(model.rawOperations.get("notes.list")?.operationId).toBe("notes.list");

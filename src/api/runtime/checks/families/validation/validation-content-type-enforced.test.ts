@@ -8,8 +8,8 @@ const schema = { properties: { name: { type: "string" } }, required: ["name"], t
 const documented = { responses: { "201": { description: "made" }, "415": { description: "unsupported" } } };
 
 const gated = {
-  "x-feature-gate": "pro",
   responses: { ...documented.responses, "403": { description: "gated" } },
+  "x-feature-gate": "pro",
 };
 
 async function probe(answer: Answer, create: Record<string, unknown> = documented, mediaType?: string) {

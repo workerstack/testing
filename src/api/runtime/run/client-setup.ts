@@ -62,9 +62,9 @@ export function connect(loaded: Loaded): Connected {
 
   const client = new Client({
     baseUrl: options.baseUrl,
+    cacheBypass: options.cache?.bypass ?? true,
     credentials: primaryCredentials(loaded, { records, store }),
     fence,
-    cacheBypass: options.cache?.bypass ?? true,
     headers: options.globalHeaders ?? {},
     httpHooks: progress.httpHooks,
     maxInFlight: options.maxInFlight ?? 4,

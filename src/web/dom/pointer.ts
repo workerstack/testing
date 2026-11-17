@@ -101,8 +101,8 @@ const nextFrame = (): Promise<void> => new Promise((resolve) => requestAnimation
 
 const PAGE: Surface = {
   frame: nextFrame,
-  hold,
   hit: ({ x, y }) => document.elementFromPoint(x, y) ?? document.body,
+  hold,
   send: (target, type, init) => {
     target.dispatchEvent(
       type === "click" ? new MouseEvent(type, { ...FLAGS, ...init }) : new PointerEvent(type, { ...FLAGS, ...init }),

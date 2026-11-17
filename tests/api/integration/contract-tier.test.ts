@@ -46,6 +46,10 @@ const notePath = { in: "path", name: "note_id", required: true, schema: { type: 
 // The operations no entity owns: each is graded by the contract tier alone.
 function loosePaths(): Record<string, unknown> {
   return {
+    "/v1/broken": { get: { operationId: "broken.get", responses: ok(versionBody) } },
+    "/v1/crash": { get: { operationId: "crash.get", responses: ok(versionBody) } },
+    "/v1/feedback": { post: { operationId: "feedback.send", requestBody: feedback, responses: ok(accepted, "202") } },
+    "/v1/picky": { post: { operationId: "picky.send", requestBody: feedback, responses: ok(accepted, "202") } },
     "/v1/signups/{account_id}/badge": {
       get: {
         operationId: "badge.get",
@@ -53,10 +57,6 @@ function loosePaths(): Record<string, unknown> {
         responses: ok(versionBody),
       },
     },
-    "/v1/broken": { get: { operationId: "broken.get", responses: ok(versionBody) } },
-    "/v1/crash": { get: { operationId: "crash.get", responses: ok(versionBody) } },
-    "/v1/feedback": { post: { operationId: "feedback.send", requestBody: feedback, responses: ok(accepted, "202") } },
-    "/v1/picky": { post: { operationId: "picky.send", requestBody: feedback, responses: ok(accepted, "202") } },
     "/v1/version": { get: { operationId: "version.get", responses: ok(versionBody) } },
   };
 }

@@ -31,8 +31,6 @@ const spec: OpenApiDocument = {
   openapi: "3.1.0",
   paths: {
     "/v1/health": { get: { operationId: "health.get", responses: ok } },
-    "/v1/notify": { post: { operationId: "notify.send", responses: ok } },
-    "/v1/uuid": { post: { operationId: "uuid.generate", responses: ok, "x-effects": [] } },
     "/v1/notes": {
       get: {
         operationId: "note.list",
@@ -74,6 +72,8 @@ const spec: OpenApiDocument = {
         responses: { "200": { content: { "application/json": { schema: item } }, description: "ok" } },
       },
     },
+    "/v1/notify": { post: { operationId: "notify.send", responses: ok } },
+    "/v1/uuid": { post: { operationId: "uuid.generate", responses: ok, "x-effects": [] } },
   },
 } as OpenApiDocument;
 

@@ -45,6 +45,21 @@ export const projectionsAgree: Check<{
   target: Record_;
   readOp: OperationModel;
 }>({
+  dependsOn: [
+    "query.filter-selects-from-whole-set",
+    "pagination.page-walk-covers-set",
+    "list.read-after-write",
+    "create.persists-submitted-fields",
+    // Each projection is exercised elsewhere. When one is already known broken, its
+    // disagreement here is that same defect seen a second time.
+    "filter.equality-selects-exactly-one",
+    "select.projection-honored",
+    "select.requested-fields-present",
+    "sort.order-is-applied",
+  ],
+  id: "consistency.projections-agree",
+  lists: true,
+  needs: "an item route and a record with a comparable field",
   plan: (ctx) => {
     const target = ctx.records[0];
     const readOp = ctx.readOp;
@@ -75,22 +90,6 @@ export const projectionsAgree: Check<{
 
     return id === undefined ? cannot(NO_IDENTITY) : ready({ field, id, readOp, target });
   },
-  dependsOn: [
-    "query.filter-selects-from-whole-set",
-    "pagination.page-walk-covers-set",
-    "list.read-after-write",
-    "create.persists-submitted-fields",
-    // Each projection is exercised elsewhere. When one is already known broken, its
-    // disagreement here is that same defect seen a second time.
-    "filter.equality-selects-exactly-one",
-    "select.projection-honored",
-    "select.requested-fields-present",
-    "sort.order-is-applied",
-  ],
-  id: "consistency.projections-agree",
-  lists: true,
-  needs: "an item route and a record with a comparable field",
-  subjects: subjectsOf.readAndList,
   async run(ctx, { field, id, readOp }): Promise<Outcome> {
     const detail = await ctx.client.get(fillPath(readOp.path, { ...ctx.scope, ...itemParamFor(ctx, id) }), {
       as: { principal: ctx.actor.id },
@@ -116,7 +115,6 @@ export const projectionsAgree: Check<{
 
     if (disagreeing.length > 0) {
       return ctx.findings.backend(this.id, ctx.entityName, {
-        summary: "the same record carries different values depending on how it is read",
         detail:
           `${ctx.entityName} ${id} has "${field}" = ${JSON.stringify(value)} on the record the API tester ` +
           `created, but ${disagreeing
@@ -124,11 +122,13 @@ export const projectionsAgree: Check<{
             .join(", and ")}. At least one read path is serving something the others are not; ` +
           "a client's view of a record then depends on which route it happened to use.",
         evidence: [detail, plain.exchange],
+        summary: "the same record carries different values depending on how it is read",
       });
     }
 
     return filterMembership(ctx, this.id, { detail, field, id, value });
   },
+  subjects: subjectsOf.readAndList,
 });
 
 /** What one projection returned for the field. */
@@ -212,11 +212,11 @@ async function filterMembership(
   }
 
   return ctx.findings.backend(check, ctx.entityName, {
-    summary: "a record is missing from a filter matching its own field value",
     detail:
       `${ctx.entityName} ${id} carries "${field}" = ${JSON.stringify(value)} on every read path, ` +
       `yet filtering for exactly that value does not return it. The record and the predicate ` +
       "agree; the index or query that answers the filter does not.",
     evidence: [detail, included.last.exchange],
+    summary: "a record is missing from a filter matching its own field value",
   });
 }

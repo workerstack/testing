@@ -27,7 +27,7 @@ function offByOne(body: ReturnType<typeof page>, query: Record<string, unknown>)
   if (query["page"] === 1) return { body, status: 200 };
 
   return {
-    body: page(rows, { ...query, page: undefined, offset: ((query["page"] as number) - 1) * 2 + 1 }),
+    body: page(rows, { ...query, offset: ((query["page"] as number) - 1) * 2 + 1, page: undefined }),
     status: 200,
   };
 }

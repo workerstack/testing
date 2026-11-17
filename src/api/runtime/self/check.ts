@@ -13,17 +13,17 @@ export const selfIdentityCheck: UnlistedCheck<void> = {
     const entity = ctx.model.entities.get(ctx.entityName);
 
     if (entity === undefined || !entityIsSelf(entity))
-      return { ok: false as const, needs: "x-entity.identity: self, and a read or an update" };
+      return { needs: "x-entity.identity: self, and a read or an update", ok: false as const };
 
     return { ok: true as const, value: undefined };
   },
   async run(ctx: WriteContext): Promise<Outcome> {
     return runSelfIdentity({
-      principal: ctx.actor.id,
       client: ctx.client,
       entity: ctx.model.entities.get(ctx.entityName) as EntityModel,
       findings: ctx.findings,
       model: ctx.model,
+      principal: ctx.actor.id,
       ...(ctx.ownRecords === undefined ? {} : { ownRecords: ctx.ownRecords }),
     });
   },

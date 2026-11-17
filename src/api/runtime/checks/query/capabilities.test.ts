@@ -124,7 +124,7 @@ describe("the identity as a filter", () => {
     expect(identityIsFilterable(ctx)).toBe(false);
     const query = ctx.query as QueryTag;
     expect(
-      identityIsFilterable({ ...ctx, query: { ...query, filterable: ["id"], filterFields: [{ field: "id" }] } }),
+      identityIsFilterable({ ...ctx, query: { ...query, filterFields: [{ field: "id" }], filterable: ["id"] } }),
     ).toBe(true);
     const caps = resolvedCaps(ctx);
     const aliased = { ...caps, filterable: [...caps.filterable, { field: "noteId" }], identityFilter: "noteId" };

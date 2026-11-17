@@ -11,6 +11,7 @@ import { readSaveAs } from "../cookies/save-as.ts";
 import { cookiesFromRecordedHeaders } from "../cookies/set-cookie.ts";
 import type { Exchange } from "../exchange.ts";
 import type { PassEvidence } from "../grades.ts";
+import { bindEntries } from "../steps/bind-entries.ts";
 import { interpolate } from "../steps/interpolate.ts";
 import { blamed, StepFailure } from "./failure.ts";
 import { keep, tagOf } from "./lineage.ts";
@@ -51,10 +52,10 @@ function keepAccountOf(run: ScenarioRun, passed: Passed, tag: AccountEntry | und
 
   if (tag !== undefined && accounts !== undefined) return accounts.keepAccount(tag, run.scenario.id);
   findings.gap(scenarioCheckId(run.scenario), run.scenario.id, {
-    summary: `scenario "${run.scenario.id}" kept no account at exchange #${passed.exchange.seq}`,
     detail:
       "keepAccount: the answer descends from no account the run made, so there is none to keep. Mark the " +
       "step that signs the account up, or one that sends only values that account's sign-up answered.",
+    summary: `scenario "${run.scenario.id}" kept no account at exchange #${passed.exchange.seq}`,
   });
 }
 
@@ -64,7 +65,7 @@ function saveValues(run: ScenarioRun, passed: Passed): void {
   const { objects, scope } = run;
   const cookies = exchange.cookies ?? cookiesFromRecordedHeaders(exchange.responseHeaders);
 
-  for (const [name, template] of Object.entries(step.saveAs ?? {})) {
+  for (const [name, template] of bindEntries(step.saveAs, "saveAs")) {
     const path = String(interpolate(template, scope));
 
     const value = readSaveAs(path, {

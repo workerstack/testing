@@ -351,8 +351,8 @@ describe("create.persists-submitted-fields plan", () => {
 
     const planned = createPersistsFields.plan({
       ...ctx,
-      readOp: undefined,
       listOp: undefined,
+      readOp: undefined,
     } as unknown as typeof ctx);
 
     expect(planned.ok && planned.value.declared).toBeUndefined();

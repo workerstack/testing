@@ -100,9 +100,9 @@ describe("testing/web-boundaries", () => {
     const source = 'import { x } from "../api/index.ts"\n';
 
     const fixture = {
-      "src/web/ready.test.ts": source,
-      "src/web/__fixtures__/page.ts": source,
       "src/api/index.ts": 'import { x } from "lodash"\n',
+      "src/web/__fixtures__/page.ts": source,
+      "src/web/ready.test.ts": source,
       "tests/web/browser/runner.test.ts": source,
     };
 

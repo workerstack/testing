@@ -109,7 +109,7 @@ function refusal(flags: Args["flags"], toolkit: Toolkit): string | undefined {
   const dialect = str(flags, "dialect");
 
   if (dialect !== undefined && !Object.hasOwn(dialects, dialect))
-    return `unknown --dialect "${dialect}" — expected ${Object.keys(dialects).join(", ")}`;
+    return `unknown --dialect "${dialect}" — expected ${toolkit.dialect.DIALECT_ORDER.join(", ")}`;
 
   return listRefusal(flags, toolkit);
 }

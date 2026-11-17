@@ -8,7 +8,7 @@ describe("the tag tables", () => {
     const promised = Object.values(TAG_UNLOCKS).flat();
     expect(new Set(promised).size).toBe(promised.length);
     expect(Object.values(TAG_UNLOCKS).every((checks) => checks.length > 0)).toBe(true);
-    expect(Object.keys(TAG_SHARPENS)).toEqual(["x-query", "x-tenant"]);
+    expect(Object.keys(TAG_SHARPENS).toSorted()).toStrictEqual(["x-query", "x-tenant"]);
     expect(Object.values(TAG_REMEDY).every((remedy) => remedy.length > 20)).toBe(true);
   });
 

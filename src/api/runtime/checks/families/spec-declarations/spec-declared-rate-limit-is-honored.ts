@@ -18,16 +18,15 @@ import { ownOps } from "../../planning/subjects.ts";
  * wrong", once, not one finding for every request that category serves.
  */
 export const declaredRateLimitHonored: Check = defineCheck({
+  id: "spec.declared-rate-limit-is-honored",
+  judgesTranscript: true,
+  needs: "an operation on this entity with a rate declared by x-rate-limit",
   plan: (ctx) =>
     when(
       ctx.model.operations.some(
         (op) => op.entity === ctx.entityName && op.rateLimit !== null && op.rateLimit.rps !== null,
       ),
     ),
-  id: "spec.declared-rate-limit-is-honored",
-  judgesTranscript: true,
-  needs: "an operation on this entity with a rate declared by x-rate-limit",
-  subjects: (entity, model) => ownOps(entity, model, (op) => op.rateLimit !== null && op.rateLimit.rps !== null),
   async run(ctx): Promise<Outcome> {
     const byCategory = new Map<string, Exchange[]>();
     // Only a route something actually sent was paced and judged. Claiming the rest would mark
@@ -46,7 +45,6 @@ export const declaredRateLimitHonored: Check = defineCheck({
 
     for (const [category, exchanges] of byCategory) {
       ctx.findings.spec(this.id, ctx.entityName, {
-        summary: `the declared "${category}" rate limit is not honored`,
         detail:
           `${exchanges.length} request(s) to the "${category}" category returned 429 despite the API tester ` +
           "pacing them within the rate x-rate-limit declares — each had a free token in its own " +
@@ -54,6 +52,7 @@ export const declaredRateLimitHonored: Check = defineCheck({
           `the declared rate is wrong, or the backend enforces a stricter one than "${category}" ` +
           "documents.",
         evidence: exchanges.slice(0, 3),
+        summary: `the declared "${category}" rate limit is not honored`,
       });
     }
 
@@ -61,6 +60,7 @@ export const declaredRateLimitHonored: Check = defineCheck({
 
     return ASSERTED;
   },
+  subjects: (entity, model) => ownOps(entity, model, (op) => op.rateLimit !== null && op.rateLimit.rps !== null),
 });
 
 /** The operation `exchange` was sent to, when the document declares a rate for it. */

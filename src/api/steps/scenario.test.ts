@@ -28,7 +28,8 @@ describe("scenario", () => {
   it("copies the principal and the origin only when given", () => {
     const built = scenario({ covers: [], id: "cdn-files", origin: "cdn", principal: "admin", steps: [] });
     expect(built).toStrictEqual({ covers: [], id: "cdn-files", origin: "cdn", principal: "admin", steps: [] });
-    expect(Object.keys(scenario({ covers: [], id: "x", steps: [] }))).toEqual(["covers", "id", "steps"]);
+    const bare = scenario({ covers: [], id: "x", steps: [] });
+    expect(Object.keys(bare).toSorted()).toStrictEqual(["covers", "id", "steps"]);
   });
 });
 

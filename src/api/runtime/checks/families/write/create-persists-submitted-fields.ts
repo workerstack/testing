@@ -33,6 +33,10 @@ type Plan = {
  * create, with no record to read back, gives nothing to judge.
  */
 export const createPersistsFields: Check<Plan> = defineCheck<Plan>({
+  dependsOn: ["list.read-after-write"],
+  id: "create.persists-submitted-fields",
+  judgesTranscript: true,
+  needs: "a create operation that echoes the record back, or an item read to read it back by",
   plan: (ctx) => {
     const createOp = ctx.createOp;
 
@@ -45,11 +49,6 @@ export const createPersistsFields: Check<Plan> = defineCheck<Plan>({
 
     return ready({ createOp, properties, ...(declared === undefined ? {} : { declared }) });
   },
-  dependsOn: ["list.read-after-write"],
-  id: "create.persists-submitted-fields",
-  judgesTranscript: true,
-  needs: "a create operation that echoes the record back, or an item read to read it back by",
-  subjects: subjectsOf.create,
   async run(ctx, { createOp, properties, declared }): Promise<Outcome> {
     const sent = await createExchange(ctx);
 
@@ -89,14 +88,15 @@ export const createPersistsFields: Check<Plan> = defineCheck<Plan>({
       read === undefined ? "the create response does not carry back" : `the record ${read.via} does not hold`;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "create silently discards submitted fields",
       detail: `${where} ${dropped.length} submitted field(s): ${dropped
         .slice(0, 4)
         .map(([key, value]) => `${key} sent ${JSON.stringify(value)}, got ${JSON.stringify(shown[key])}`)
         .join("; ")}. A write that reports success and drops data is worse than one that fails.`,
       evidence: back.exchange === undefined ? [sent] : [sent, back.exchange],
+      summary: "create silently discards submitted fields",
     });
   },
+  subjects: subjectsOf.create,
 });
 
 /** Whether `record` holds the submitted field as it was sent. */

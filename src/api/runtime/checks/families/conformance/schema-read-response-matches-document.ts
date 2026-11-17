@@ -28,6 +28,9 @@ type Judged = { exchange: Exchange; errors: string[] } | { exchange: Exchange; u
  * captured, and that verdict is the one read.
  */
 export const readSchemaHonored: Check<{ validator: SchemaValidator }> = defineCheck<{ validator: SchemaValidator }>({
+  id: READ_SCHEMA,
+  judgesTranscript: true,
+  needs: "an item read or a listing with a documented success schema",
   plan: (ctx) => {
     const { validator } = ctx;
 
@@ -35,10 +38,6 @@ export const readSchemaHonored: Check<{ validator: SchemaValidator }> = defineCh
 
     return ready({ validator });
   },
-  id: READ_SCHEMA,
-  judgesTranscript: true,
-  needs: "an item read or a listing with a documented success schema",
-  subjects: subjectsOf.readAndList,
   async run(ctx, { validator }): Promise<Outcome> {
     const { judged, departed } = await survey(ctx, validator);
 
@@ -50,6 +49,7 @@ export const readSchemaHonored: Check<{ validator: SchemaValidator }> = defineCh
 
     return outcome;
   },
+  subjects: subjectsOf.readAndList,
 });
 
 /** What the run's answers say: the operations judged, and the first departure of each. */
@@ -91,20 +91,20 @@ function reportDeparture(ctx: CheckContext, operationId: string, found: Judged):
 
   if ("unchecked" in found) {
     findings.gap(READ_SCHEMA, ctx.entityName, {
-      summary: `${operationId} ${exchange.status} has a schema that cannot be compiled`,
       detail: `AJV refused the documented schema, so the body was not validated: ${found.unchecked}`,
+      summary: `${operationId} ${exchange.status} has a schema that cannot be compiled`,
     });
 
     return undefined;
   }
 
   return findings.spec(READ_SCHEMA, ctx.entityName, {
-    summary: `${operationId} answered a body its documented schema does not describe`,
     detail:
       `${operationId} returned ${exchange.status} with a body that fails the declared schema: ` +
       `${found.errors.slice(0, QUOTED_ERRORS).join("; ")}. Either the handler answers other than it ` +
       "promises or the document is out of date — both break generated clients.",
     evidence: [exchange],
+    summary: `${operationId} answered a body its documented schema does not describe`,
   });
 }
 

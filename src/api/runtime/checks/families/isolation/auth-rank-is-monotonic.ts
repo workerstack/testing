@@ -23,6 +23,9 @@ export const rankIsMonotonic: Check<{ id: string; readOp: OperationModel; home: 
   readOp: OperationModel;
   home: Actor[];
 }>({
+  dependsOn: ["list.read-after-write"],
+  id: "auth.rank-is-monotonic",
+  needs: "two same-tenant principals at different ranks, and an item route",
   plan: (ctx) => {
     const target = ctx.records[0];
     const primary = ctx.actors[0];
@@ -36,10 +39,6 @@ export const rankIsMonotonic: Check<{ id: string; readOp: OperationModel; home: 
 
     return id === undefined ? cannot(NO_IDENTITY) : ready({ home, id, readOp });
   },
-  dependsOn: ["list.read-after-write"],
-  id: "auth.rank-is-monotonic",
-  needs: "two same-tenant principals at different ranks, and an item route",
-  subjects: subjectsOf.read,
   async run(ctx, { home, id, readOp }): Promise<Outcome> {
     const seen = new Map<string, Exchange>();
 
@@ -74,17 +73,18 @@ export const rankIsMonotonic: Check<{ id: string; readOp: OperationModel; home: 
         if (lo !== "allow" || hi !== "deny") continue;
 
         return ctx.findings.backend(this.id, ctx.entityName, {
-          summary: "a lower-ranked role can read a record a higher-ranked role cannot",
           detail:
             `${lower.id} (rank ${lower.rank}) was served ${ctx.entityName} ${id}; ` +
             `${higher.id} (rank ${higher.rank}) was denied. Privilege must be ` +
             "monotonic — a member who can see what an owner cannot is the lattice inverted, " +
             "not a finer policy.",
           evidence: [seen.get(lower.id), seen.get(higher.id)].filter((exchange) => exchange !== undefined),
+          summary: "a lower-ranked role can read a record a higher-ranked role cannot",
         });
       }
     }
 
     return ASSERTED;
   },
+  subjects: subjectsOf.read,
 });

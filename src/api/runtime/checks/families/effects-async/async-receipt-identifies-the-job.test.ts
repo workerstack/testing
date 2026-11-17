@@ -30,7 +30,7 @@ async function judged(
   send: (ctx: WriteContext) => Promise<unknown>,
   asyncOps: OperationModel[] = [startJob],
 ) {
-  const stage = contextFor(model, "listWidgets", { respond, fields: { asyncOps } });
+  const stage = contextFor(model, "listWidgets", { fields: { asyncOps }, respond });
   await send(stage.ctx);
   const outcome = await check.run(stage.ctx, undefined);
 
@@ -45,7 +45,7 @@ const acknowledged = () => ({ body: {}, status: 202 });
 describe("plan", () => {
   it("applies only when some async operation names where its job id is", () => {
     const plan = (asyncOps: OperationModel[]) =>
-      check.plan(contextFor(model, "listWidgets", { respond: () => {}, fields: { asyncOps } }).ctx).ok;
+      check.plan(contextFor(model, "listWidgets", { fields: { asyncOps }, respond: () => {} }).ctx).ok;
 
     expect(plan([])).toBe(false);
     expect(plan([op(model, "startExport")])).toBe(false);

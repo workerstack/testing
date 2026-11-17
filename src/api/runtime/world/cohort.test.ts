@@ -16,7 +16,6 @@ function cohortRun(respond: Responder, document: NotesOptions = {}, options: Par
 
   const run: CohortRun = {
     acknowledged: false,
-    unverified: undefined,
     createOp: op(model, "note.create"),
     existingIds: [],
     failedVariants: [],
@@ -32,15 +31,16 @@ function cohortRun(respond: Responder, document: NotesOptions = {}, options: Par
       client: fake.client,
       model,
       options: {
-        principal: "alpha",
         onCreate: (entity, id) => events.push(`created ${entity} ${id}`),
         onUnidentified: (entity, operationId) => events.push(`unidentified ${entity} ${operationId}`),
+        principal: "alpha",
         roots: { projectId: "p1" },
         seed: 1,
         ...options,
       },
     },
     uniqueGap: undefined,
+    unverified: undefined,
   };
 
   return { events, run, sent: fake.sent };

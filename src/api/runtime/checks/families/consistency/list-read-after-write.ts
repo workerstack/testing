@@ -14,18 +14,17 @@ import { type ListResult } from "../../sets/list.ts";
 // -------------------------------------------------------------------- checks
 
 export const readAfterWrite: Check<{ id: string }> = defineCheck<{ id: string }>({
+  // A record stored under an id the client was never told cannot be found by it: that is the cause.
+  dependsOn: ["create.keeps-submitted-identity"],
+  id: "list.read-after-write",
+  lists: true,
+  mutates: true,
+  needs: "a create operation and at least one seeded record",
   plan: (ctx) => {
     const id = idOf(ctx.records[0], ctx.identity);
 
     return ctx.createOp === undefined || id === undefined ? cannot(NO_IDENTITY) : ready({ id });
   },
-  mutates: true,
-  // A record stored under an id the client was never told cannot be found by it: that is the cause.
-  dependsOn: ["create.keeps-submitted-identity"],
-  id: "list.read-after-write",
-  lists: true,
-  needs: "a create operation and at least one seeded record",
-  subjects: subjectsOf.createAndList,
   async run(ctx, { id }): Promise<Outcome> {
     const walkSize = pageSize(ctx);
     let located = await locate(ctx, id, walkSize);
@@ -51,6 +50,7 @@ export const readAfterWrite: Check<{ id: string }> = defineCheck<{ id: string }>
 
     return reportLostWrite(ctx, this.id, id, located.last);
   },
+  subjects: subjectsOf.createAndList,
 });
 
 /** Where one walk of the list found the record. */
@@ -114,8 +114,8 @@ async function reportLostWrite(ctx: CheckContext, check: string, id: string, las
   }
 
   return ctx.findings.backend(check, ctx.entityName, {
-    summary: "list projection does not reflect a completed write",
     detail,
     evidence,
+    summary: "list projection does not reflect a completed write",
   });
 }

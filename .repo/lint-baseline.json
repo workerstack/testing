@@ -1207,12 +1207,12 @@
   "src/api/config/validate.ts": {
     "eslint(func-style)": 13,
     "eslint(max-lines-per-function)": 1,
-    "repo(as-needs-reason)": 6,
+    "repo(as-needs-reason)": 5,
     "repo(no-known-value-widening)": 2,
     "repo(no-runtime-typeof)": 6,
     "repo(no-shape-in-symbol-names)": 13,
     "repo(no-unknown-parameters)": 2,
-    "repo(no-unsafe-dictionary-type)": 4
+    "repo(no-unsafe-dictionary-type)": 3
   },
   "src/api/conformance/effects.test.ts": {
     "eslint(func-style)": 3,
@@ -1504,7 +1504,6 @@
     "vitest(prefer-strict-equal)": 6
   },
   "src/api/conformance/matrix/defects.ts": {
-    "repo(as-needs-reason)": 1,
     "repo(magic-string)": 1
   },
   "src/api/conformance/matrix/engines.test.ts": {
@@ -1912,7 +1911,7 @@
   },
   "src/api/conformance/unique/cases.test.ts": {
     "eslint(max-nested-callbacks)": 1,
-    "vitest(prefer-strict-equal)": 3
+    "vitest(prefer-strict-equal)": 2
   },
   "src/api/conformance/unique/cases.ts": {
     "eslint(max-lines)": 1
@@ -2319,7 +2318,7 @@
     "eslint(func-style)": 3,
     "repo(max-line-width)": 1,
     "repo(no-unsafe-dictionary-type)": 1,
-    "vitest(prefer-strict-equal)": 25
+    "vitest(prefer-strict-equal)": 24
   },
   "src/api/credentials/validate/scenario-placeholders.ts": {
     "eslint(func-style)": 5,
@@ -2407,22 +2406,13 @@
     "repo(duplicate-code)": 5,
     "vitest(prefer-strict-equal)": 1
   },
-  "src/api/reference/defects/catalog.ts": {
-    "repo(filename-matches-export)": 1
-  },
   "src/api/reference/defects/composition.test.ts": {
     "repo(duplicate-code)": 1,
     "vitest(prefer-strict-equal)": 1
   },
-  "src/api/reference/defects/composition.ts": {
-    "repo(filename-matches-export)": 1
-  },
   "src/api/reference/defects/core.test.ts": {
     "repo(duplicate-code)": 1,
     "vitest(prefer-strict-equal)": 1
-  },
-  "src/api/reference/defects/core.ts": {
-    "repo(filename-matches-export)": 1
   },
   "src/api/reference/defects/defect-set.test.ts": {
     "vitest(prefer-strict-equal)": 3
@@ -2433,15 +2423,11 @@
   "src/api/reference/defects/freshness.test.ts": {
     "vitest(prefer-strict-equal)": 1
   },
-  "src/api/reference/defects/freshness.ts": {
-    "repo(filename-matches-export)": 1
-  },
   "src/api/reference/defects/query.test.ts": {
     "repo(duplicate-code)": 1,
     "vitest(prefer-strict-equal)": 1
   },
   "src/api/reference/defects/query.ts": {
-    "repo(filename-matches-export)": 1,
     "repo(max-line-width)": 1
   },
   "src/api/reference/defects/records.test.ts": {
@@ -2449,17 +2435,10 @@
     "vitest(prefer-strict-equal)": 1
   },
   "src/api/reference/defects/records.ts": {
-    "repo(filename-matches-export)": 1,
     "repo(max-line-width)": 1
   },
   "src/api/reference/defects/security.test.ts": {
     "repo(duplicate-code)": 1,
-    "vitest(prefer-strict-equal)": 1
-  },
-  "src/api/reference/defects/security.ts": {
-    "repo(filename-matches-export)": 1
-  },
-  "src/api/reference/defects/table.test.ts": {
     "vitest(prefer-strict-equal)": 1
   },
   "src/api/reference/dialect/canonical.ts": {
@@ -3431,7 +3410,7 @@
   "src/api/reference/spec/item.test.ts": {
     "repo(as-needs-reason)": 2,
     "repo(no-shape-in-symbol-names)": 6,
-    "vitest(prefer-strict-equal)": 10
+    "vitest(prefer-strict-equal)": 8
   },
   "src/api/reference/spec/item.ts": {
     "repo(filename-matches-export)": 1,
@@ -3691,7 +3670,7 @@
     "repo(as-needs-reason)": 2,
     "repo(no-unsafe-dictionary-type)": 1,
     "unicorn(no-await-expression-member)": 1,
-    "vitest(prefer-strict-equal)": 11
+    "vitest(prefer-strict-equal)": 10
   },
   "src/api/report/console/catalog.ts": {
     "eslint(complexity)": 2,
@@ -3746,7 +3725,7 @@
     "vitest(prefer-strict-equal)": 7
   },
   "src/api/report/console/doctor-text.ts": {
-    "repo(as-needs-reason)": 2,
+    "repo(as-needs-reason)": 1,
     "repo(magic-number)": 7
   },
   "src/api/report/console/doctor.test.ts": {
@@ -3841,14 +3820,13 @@
     "eslint(max-lines-per-function)": 1,
     "repo(as-needs-reason)": 4,
     "repo(magic-string)": 1,
-    "repo(no-known-value-widening)": 1,
     "typescript(strict-boolean-expressions)": 1,
     "unicorn(no-array-sort)": 1
   },
   "src/api/report/console/tags.test.ts": {
     "eslint(max-lines-per-function)": 1,
     "unicorn(no-await-expression-member)": 2,
-    "vitest(prefer-strict-equal)": 2
+    "vitest(prefer-strict-equal)": 1
   },
   "src/api/report/console/tags.ts": {
     "eslint(complexity)": 1,
@@ -4027,7 +4005,6 @@
   },
   "src/api/report/render/json.ts": {
     "repo(magic-number)": 1,
-    "repo(no-known-value-widening)": 5,
     "repo(no-unsafe-dictionary-type)": 5
   },
   "src/api/report/render/junit.property.test.ts": {
@@ -4814,7 +4791,6 @@
     "eslint(complexity)": 1,
     "eslint(max-lines-per-function)": 2,
     "eslint(no-await-in-loop)": 1,
-    "repo(duplicate-code)": 1,
     "repo(magic-number)": 4,
     "repo(no-module-side-effects)": 1,
     "repo(no-unknown-parameters)": 1,
@@ -4882,7 +4858,6 @@
     "eslint(max-lines-per-function)": 1,
     "eslint(max-params)": 1,
     "eslint(no-await-in-loop)": 1,
-    "repo(duplicate-code)": 1,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 2,
     "repo(no-known-value-widening)": 1,
@@ -5113,7 +5088,6 @@
   "src/api/runtime/checks/families/filter/filter-malformed-term-rejected.ts": {
     "eslint(func-style)": 1,
     "eslint(max-lines-per-function)": 1,
-    "repo(duplicate-code)": 2,
     "repo(magic-number)": 2,
     "repo(max-line-width)": 1,
     "repo(naming-convention)": 1,
@@ -5571,7 +5545,7 @@
   },
   "src/api/runtime/checks/families/search-select/search-mode-accepted.ts": {
     "eslint(no-await-in-loop)": 1,
-    "repo(duplicate-code)": 5,
+    "repo(duplicate-code)": 2,
     "repo(magic-number)": 2,
     "repo(no-module-side-effects)": 1
   },
@@ -5615,7 +5589,6 @@
     "vitest(prefer-strict-equal)": 9
   },
   "src/api/runtime/checks/families/search-select/select-projection-honored.ts": {
-    "repo(duplicate-code)": 1,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 3,
     "repo(no-module-side-effects)": 1
@@ -5626,7 +5599,6 @@
   },
   "src/api/runtime/checks/families/search-select/select-requested-fields-present.ts": {
     "repo(as-needs-reason)": 1,
-    "repo(duplicate-code)": 1,
     "repo(magic-number)": 3,
     "repo(no-module-side-effects)": 1
   },
@@ -5979,7 +5951,6 @@
     "vitest(prefer-strict-equal)": 12
   },
   "src/api/runtime/checks/families/sort/sort-invalid-direction-rejected.ts": {
-    "repo(duplicate-code)": 1,
     "repo(magic-number)": 1,
     "repo(naming-convention)": 1,
     "repo(no-module-side-effects)": 1
@@ -6062,7 +6033,6 @@
     "vitest(prefer-strict-equal)": 8
   },
   "src/api/runtime/checks/families/sort/sort-unknown-field-rejected.ts": {
-    "repo(duplicate-code)": 1,
     "repo(magic-number)": 3,
     "repo(naming-convention)": 1,
     "repo(no-module-side-effects)": 1
@@ -6074,13 +6044,10 @@
     "vitest(prefer-strict-equal)": 19
   },
   "src/api/runtime/checks/families/spec-declarations/spec-declared-filterable-is-filterable.ts": {
-    "eslint(complexity)": 1,
-    "eslint(max-lines-per-function)": 1,
     "eslint(max-params)": 1,
     "repo(as-needs-reason)": 1,
-    "repo(duplicate-code)": 5,
     "repo(filename-matches-export)": 1,
-    "repo(magic-number)": 2,
+    "repo(magic-number)": 1,
     "repo(magic-string)": 1,
     "repo(no-module-side-effects)": 1,
     "repo(no-runtime-typeof)": 1,
@@ -6125,11 +6092,9 @@
     "vitest(prefer-strict-equal)": 12
   },
   "src/api/runtime/checks/families/spec-declarations/spec-declared-selectable-is-selectable.ts": {
-    "eslint(complexity)": 1,
-    "eslint(max-lines-per-function)": 1,
-    "repo(duplicate-code)": 5,
+    "repo(duplicate-code)": 1,
     "repo(filename-matches-export)": 1,
-    "repo(magic-number)": 2,
+    "repo(magic-number)": 1,
     "repo(no-module-side-effects)": 1
   },
   "src/api/runtime/checks/families/spec-declarations/spec-declared-sortable-is-sortable.test.ts": {
@@ -6139,10 +6104,9 @@
     "vitest(prefer-strict-equal)": 12
   },
   "src/api/runtime/checks/families/spec-declarations/spec-declared-sortable-is-sortable.ts": {
-    "eslint(max-lines-per-function)": 1,
-    "repo(duplicate-code)": 4,
+    "repo(duplicate-code)": 1,
     "repo(filename-matches-export)": 1,
-    "repo(magic-number)": 2,
+    "repo(magic-number)": 1,
     "repo(no-module-side-effects)": 1
   },
   "src/api/runtime/checks/families/spec-declarations/spec-declared-sortable-nulls-accepted.test.ts": {
@@ -6154,7 +6118,7 @@
   "src/api/runtime/checks/families/spec-declarations/spec-declared-sortable-nulls-accepted.ts": {
     "eslint(max-lines-per-function)": 1,
     "eslint(no-await-in-loop)": 1,
-    "repo(duplicate-code)": 2,
+    "repo(duplicate-code)": 1,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 2,
     "repo(no-module-side-effects)": 1
@@ -6252,7 +6216,7 @@
   },
   "src/api/runtime/checks/families/validation/validation-enum-enforced.ts": {
     "repo(as-needs-reason)": 1,
-    "repo(duplicate-code)": 3,
+    "repo(duplicate-code)": 2,
     "repo(filename-matches-export)": 1,
     "repo(no-module-side-effects)": 1
   },
@@ -6267,7 +6231,7 @@
   },
   "src/api/runtime/checks/families/validation/validation-max-length-enforced.ts": {
     "repo(as-needs-reason)": 3,
-    "repo(duplicate-code)": 3,
+    "repo(duplicate-code)": 2,
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 1,
     "repo(no-module-side-effects)": 1,
@@ -6713,7 +6677,6 @@
     "vitest(prefer-strict-equal)": 3
   },
   "src/api/runtime/checks/planning/declarations.ts": {
-    "repo(filename-matches-export)": 1,
     "repo(magic-number)": 3
   },
   "src/api/runtime/checks/planning/refusal.test.ts": {
@@ -8724,8 +8687,7 @@
     "repo(as-needs-reason)": 1,
     "repo(filename-matches-export)": 1,
     "repo(magic-regex)": 1,
-    "repo(no-unsafe-dictionary-type)": 1,
-    "typescript(no-unnecessary-condition)": 1
+    "repo(no-unsafe-dictionary-type)": 1
   },
   "src/api/runtime/scenario/types.ts": {
     "repo(max-line-width)": 1
@@ -9735,12 +9697,11 @@
   "src/api/spec/collection/shape.ts": {
     "eslint(complexity)": 1,
     "eslint(func-style)": 1,
-    "repo(as-needs-reason)": 3,
+    "repo(as-needs-reason)": 2,
     "repo(magic-number)": 1,
     "repo(magic-string)": 5,
     "repo(no-runtime-typeof)": 1,
-    "repo(no-shape-in-symbol-names)": 4,
-    "repo(no-unsafe-dictionary-type)": 1
+    "repo(no-shape-in-symbol-names)": 4
   },
   "src/api/spec/configured-model.test.ts": {
     "eslint(func-style)": 4,
@@ -9764,7 +9725,7 @@
     "repo(max-line-width)": 2,
     "repo(no-chained-type-assertions)": 1,
     "repo(no-shape-in-symbol-names)": 10,
-    "vitest(prefer-strict-equal)": 12
+    "vitest(prefer-strict-equal)": 11
   },
   "src/api/spec/conventions/derive.ts": {
     "repo(as-needs-reason)": 4,
@@ -9801,7 +9762,7 @@
     "vitest(prefer-strict-equal)": 7
   },
   "src/api/spec/conventions/query-params.ts": {
-    "repo(as-needs-reason)": 4,
+    "repo(as-needs-reason)": 3,
     "repo(no-runtime-typeof)": 2,
     "repo(no-unknown-parameters)": 1
   },
@@ -9840,7 +9801,7 @@
     "repo(no-runtime-typeof)": 3,
     "repo(no-unknown-parameters)": 1,
     "repo(no-unsafe-dictionary-type)": 1,
-    "typescript(no-unnecessary-condition)": 2
+    "typescript(no-unnecessary-condition)": 1
   },
   "src/api/spec/extensions/async.test.ts": {
     "eslint(func-style)": 1,
@@ -10044,7 +10005,7 @@
     "repo(as-needs-reason)": 3,
     "repo(filename-matches-export)": 1,
     "repo(no-chained-type-assertions)": 1,
-    "repo(no-runtime-typeof)": 5,
+    "repo(no-runtime-typeof)": 3,
     "repo(no-unknown-parameters)": 3,
     "repo(no-unsafe-dictionary-type)": 6,
     "unicorn(no-array-for-each)": 1
@@ -10088,7 +10049,7 @@
   },
   "src/api/spec/graph/naming.test.ts": {
     "eslint(func-style)": 2,
-    "eslint(max-lines-per-function)": 2,
+    "eslint(max-lines-per-function)": 1,
     "repo(no-unsafe-dictionary-type)": 1,
     "unicorn(no-array-sort)": 1,
     "vitest(prefer-strict-equal)": 6
@@ -10534,7 +10495,7 @@
   "src/api/spec/render/filter-parse.test.ts": {
     "eslint(max-lines-per-function)": 2,
     "repo(duplicate-code)": 2,
-    "vitest(prefer-strict-equal)": 4
+    "vitest(prefer-strict-equal)": 3
   },
   "src/api/spec/render/filter-parse.ts": {
     "eslint(func-style)": 1,
@@ -10767,9 +10728,6 @@
     "repo(filename-matches-export)": 1,
     "repo(magic-number)": 2
   },
-  "src/api/steps/scenario.test.ts": {
-    "vitest(prefer-strict-equal)": 1
-  },
   "src/api/steps/scenario.ts": {
     "eslint(func-style)": 1,
     "repo(as-needs-reason)": 1,
@@ -10915,7 +10873,7 @@
     "repo(no-chained-type-assertions)": 4,
     "repo(no-known-value-widening)": 2,
     "repo(no-unknown-parameters)": 4,
-    "vitest(prefer-strict-equal)": 7
+    "vitest(prefer-strict-equal)": 5
   },
   "src/web/fixtures.ts": {
     "eslint(func-style)": 1,
@@ -11093,7 +11051,7 @@
     "eslint(no-await-in-loop)": 1,
     "eslint(require-await)": 1,
     "repo(as-needs-reason)": 5,
-    "repo(duplicate-code)": 18,
+    "repo(duplicate-code)": 17,
     "repo(no-known-value-widening)": 2,
     "repo(no-runtime-typeof)": 1,
     "repo(no-unknown-parameters)": 2,
@@ -11118,7 +11076,7 @@
     "eslint(no-await-in-loop)": 1,
     "eslint(require-await)": 2,
     "repo(as-needs-reason)": 5,
-    "repo(duplicate-code)": 16,
+    "repo(duplicate-code)": 14,
     "repo(no-unknown-parameters)": 1,
     "repo(no-unknown-returns)": 1,
     "vitest(prefer-strict-equal)": 2
@@ -11485,11 +11443,9 @@
     "eslint(max-lines-per-function)": 1,
     "eslint(no-await-in-loop)": 1,
     "eslint(require-await)": 1,
-    "repo(as-needs-reason)": 4,
+    "repo(as-needs-reason)": 2,
     "repo(duplicate-code)": 11,
-    "repo(no-runtime-typeof)": 2,
-    "repo(no-unknown-parameters)": 1,
-    "repo(no-unknown-returns)": 1
+    "repo(no-runtime-typeof)": 2
   },
   "tests/api/integration/identity-envelope.test.ts": {
     "eslint(complexity)": 1,
@@ -11568,12 +11524,10 @@
     "eslint(max-lines-per-function)": 1,
     "eslint(no-await-in-loop)": 1,
     "eslint(require-await)": 1,
-    "repo(as-needs-reason)": 4,
-    "repo(duplicate-code)": 11,
+    "repo(as-needs-reason)": 2,
+    "repo(duplicate-code)": 10,
     "repo(naming-convention)": 1,
     "repo(no-runtime-typeof)": 2,
-    "repo(no-unknown-parameters)": 1,
-    "repo(no-unknown-returns)": 1,
     "vitest(prefer-strict-equal)": 2
   },
   "tests/api/integration/large-body-schema.test.ts": {

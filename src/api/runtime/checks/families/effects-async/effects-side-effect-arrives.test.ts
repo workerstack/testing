@@ -55,7 +55,7 @@ afterEach(() => {
 });
 
 async function waited(respond: Responder, waitOps: OperationModel[] = [sendNote], fields: Partial<Listed> = {}) {
-  const stage = contextFor(model, "listWidgets", { respond, fields: { waitOps, ...fields } });
+  const stage = contextFor(model, "listWidgets", { fields: { waitOps, ...fields }, respond });
   const running = check.run(stage.ctx, undefined);
   await vi.runAllTimersAsync();
 
@@ -71,7 +71,7 @@ const delivered = { body: { items: ["n1"] }, status: 200 };
 const empty = { body: { items: [] }, status: 200 };
 
 const plan = (waitOps: OperationModel[]) =>
-  check.plan(contextFor(model, "listWidgets", { respond: () => {}, fields: { waitOps } }).ctx).ok;
+  check.plan(contextFor(model, "listWidgets", { fields: { waitOps }, respond: () => {} }).ctx).ok;
 
 describe("plan", () => {
   it("applies when some operation declares x-wait", () => {

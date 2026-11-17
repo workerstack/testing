@@ -16,7 +16,7 @@ test("a page error fails the test", async ({ page }) => {
 });
 
 test.describe(() => {
-  test.use({ guard: { ignore: [{ text: /ResizeObserver loop/, reason: "browser noise, no app impact" }] } });
+  test.use({ guard: { ignore: [{ reason: "browser noise, no app impact", text: /ResizeObserver loop/ }] } });
 
   test("noise passes when an ignore says why", async ({ page }) => {
     await page.goto("/noise.html");
@@ -32,7 +32,7 @@ test.describe(() => {
 });
 
 test.describe(() => {
-  test.use({ guard: { ignore: [{ text: /ResizeObserver loop/, reason: " " }] } });
+  test.use({ guard: { ignore: [{ reason: " ", text: /ResizeObserver loop/ }] } });
 
   test("an ignore with a blank reason fails before the test runs", async ({ page }) => {
     await page.goto("/noise.html");

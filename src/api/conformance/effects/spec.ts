@@ -75,6 +75,7 @@ export function extractSpec(): OpenApiDocument {
     info: { title: "extract-effects", version: "1" },
     openapi: "3.1.0",
     paths: {
+      "/v1/projects/{project_id}/extract": extract(),
       "/v1/projects/{project_id}/tables": tables(),
       "/v1/projects/{project_id}/tables/{table_id}": {
         get: {
@@ -92,7 +93,6 @@ export function extractSpec(): OpenApiDocument {
           ...entity("list", "row"),
         },
       },
-      "/v1/projects/{project_id}/extract": extract(),
     },
     ...bearerSecurity(),
   } as OpenApiDocument;

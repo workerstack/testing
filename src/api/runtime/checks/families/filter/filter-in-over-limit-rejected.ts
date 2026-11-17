@@ -18,6 +18,10 @@ export const filterInOverLimitRejected: Check<{
   max: number;
   term: Record<string, string>;
 }>({
+  dependsOn: [...FOUNDATIONS, "error.malformed-filter-not-5xx"],
+  id: "filter.in-over-limit-rejected",
+  lists: true,
+  needs: "`maxInValues` declared and a field that allows `in`",
   plan: (ctx) => {
     const max = resolvedCaps(ctx).maxInValues;
     const picked = pickFieldForOp(ctx, "in", 1);
@@ -30,11 +34,6 @@ export const filterInOverLimitRejected: Check<{
       ? cannot("a filter grammar that can express in()")
       : ready({ field: picked.field.field, max, term });
   },
-  dependsOn: [...FOUNDATIONS, "error.malformed-filter-not-5xx"],
-  id: "filter.in-over-limit-rejected",
-  lists: true,
-  needs: "`maxInValues` declared and a field that allows `in`",
-  subjects: subjectsOf.list,
   async run(ctx, { field, max, term }): Promise<Outcome> {
     const result = await list(asProbe(ctx), { ...q(ctx, { limit: 5 }), ...term });
     const refused = judgeRefusal(ctx, this.id, ["validation"], result.exchange);
@@ -42,9 +41,10 @@ export const filterInOverLimitRejected: Check<{
     if (refused !== null) return refused;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "an over-limit in() list was accepted",
       detail: `maxInValues=${max} but ${field}.in with ${max + 1} members returned ${result.exchange.status}.`,
       evidence: [result.exchange],
+      summary: "an over-limit in() list was accepted",
     });
   },
+  subjects: subjectsOf.list,
 });

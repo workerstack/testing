@@ -92,8 +92,8 @@ describe("config validation by kind of key", () => {
     };
 
     expect(configProblems({ ...valid, ...wrong })).toEqual([
-      "config.baseUrl must be a string",
       "config.allow must be an array",
+      "config.baseUrl must be a string",
       "config.entities must be an object",
       "config.fence must be an object",
       "config.globalHeaders.accept must be a string",
@@ -133,7 +133,7 @@ describe("the 0.25.0 credentials config", () => {
   it("accepts recipes, mapped origin schemes, a credential hook and extra secret header names", () => {
     const config = {
       ...valid,
-      globalHeaders: { "x-ia-tester-key": "k", "X-Request-Id": "r" },
+      globalHeaders: { "X-Request-Id": "r", "x-ia-tester-key": "k" },
       hooks: { resolveCredential: () => Promise.resolve("t") },
       origins: [{ baseUrl: "http://cdn.test", id: "cdn", security: { bearer: "jwt" }, spec: "cdn.json" }],
       principals: { alpha: { email: "a@x.test", scope: { project_id: "p1" }, tenant: "t1" } },
@@ -195,7 +195,7 @@ describe("what 0.25.0 removed, with what replaces it", () => {
   });
 
   it("refuses a credential header in globalHeaders, whatever its case", () => {
-    const globalHeaders = { Authorization: "Bearer t", cookie: "sid=1", "X-Request-Id": "r" };
+    const globalHeaders = { Authorization: "Bearer t", "X-Request-Id": "r", cookie: "sid=1" };
     expect(configProblems({ ...valid, globalHeaders })).toEqual([
       "config.globalHeaders.Authorization was removed in 0.25.0: a credential is sent by its scheme; declare security.<scheme>",
       "config.globalHeaders.cookie was removed in 0.25.0: a credential is sent by its scheme; declare security.<scheme>",
@@ -250,9 +250,9 @@ describe("external kinds and the profiles that leave them out", () => {
 
   it("names a kind that is not a string, an unknown externals key, and excluded kinds that are not strings", () => {
     const profiles = { default: { excludeExternalKinds: "device" }, other: { excludeExternalKinds: [1] } };
-    expect(configProblems({ ...valid, externals: { kinds: { consent: 1 }, kind: {} }, profiles })).toEqual([
-      "config.externals.kinds.consent must be a string",
+    expect(configProblems({ ...valid, externals: { kind: {}, kinds: { consent: 1 } }, profiles })).toEqual([
       "config.externals.kind is not a config key",
+      "config.externals.kinds.consent must be a string",
       "config.profiles.default.excludeExternalKinds must be an array",
       "config.profiles.other.excludeExternalKinds[0] must be a string",
     ]);

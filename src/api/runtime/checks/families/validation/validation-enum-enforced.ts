@@ -13,16 +13,15 @@ import { type ConstrainedField, type CreateBody, createBodyPlan, findConstrained
 export const enumValidated: Check<CreateBody & { target: ConstrainedField }> = defineCheck<
   CreateBody & { target: ConstrainedField }
 >({
+  id: "validation.enum-enforced",
+  mutates: true,
+  needs: "a request schema with an enum field",
   plan: (ctx) =>
     andThen(createBodyPlan(ctx), (create) => {
       const target = findConstrained(create.schema, (s) => Array.isArray(s.enum) && s.enum.length > 0);
 
       return target === null ? cannot("a request field that declares an enum") : ready({ ...create, target });
     }),
-  mutates: true,
-  id: "validation.enum-enforced",
-  needs: "a request schema with an enum field",
-  subjects: subjectsOf.create,
   async run(ctx, { createOp, schema, target }): Promise<Outcome> {
     const outside = outsideEnum(target.schema);
 
@@ -43,12 +42,13 @@ export const enumValidated: Check<CreateBody & { target: ConstrainedField }> = d
     const declaredValues = (target.schema.enum as unknown[]).map((v) => JSON.stringify(v)).join(", ");
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "a value outside the declared enum was accepted",
       detail:
         `"${target.name}" declares [${declaredValues}] but the backend accepted ${JSON.stringify(outside.value)} ` +
         `with ${exchange.status}. Clients generated from this document will assume the field ` +
         "only ever holds a declared member.",
       evidence: [exchange],
+      summary: "a value outside the declared enum was accepted",
     });
   },
+  subjects: subjectsOf.create,
 });

@@ -1,4 +1,5 @@
 import type { PrincipalsConfig, SecurityConfig } from "../../config/types/security.ts";
+import { inOrder } from "../../spec/in-order.ts";
 
 /**
  * The reference's schemes: the jwt is what `auth.token` issues for the principal's key, rotated at
@@ -38,10 +39,14 @@ export const SECURITY: SecurityConfig = {
   },
 };
 
+/** The principals in the order a reader sees them: alpha acts, so it is first. */
+export const PRINCIPAL_ORDER = ["alpha", "beta", "alpha_member", "alpha_viewer"] as const;
+
+const OWNER_RANK = 2;
+
 /** Two tenants' owners, then the first tenant's member and its read-only viewer; alpha comes first, so it acts. */
-export const PRINCIPALS: PrincipalsConfig = {
-  alpha: { key: "key_alpha", rank: 2, scope: { project_id: "proj_alpha" }, tenant: "proj_alpha" },
-  beta: { inviteAs: "key_beta", key: "key_beta", rank: 2, scope: { project_id: "proj_beta" }, tenant: "proj_beta" },
+export const PRINCIPALS: PrincipalsConfig = /* @__PURE__ */ inOrder(PRINCIPAL_ORDER, {
+  alpha: { key: "key_alpha", rank: OWNER_RANK, scope: { project_id: "proj_alpha" }, tenant: "proj_alpha" },
   alpha_member: { key: "key_alpha_member", rank: 1, scope: { project_id: "proj_alpha" }, tenant: "proj_alpha" },
   alpha_viewer: {
     key: "key_alpha_viewer",
@@ -50,4 +55,11 @@ export const PRINCIPALS: PrincipalsConfig = {
     scope: { project_id: "proj_alpha" },
     tenant: "proj_alpha",
   },
-};
+  beta: {
+    inviteAs: "key_beta",
+    key: "key_beta",
+    rank: OWNER_RANK,
+    scope: { project_id: "proj_beta" },
+    tenant: "proj_beta",
+  },
+});

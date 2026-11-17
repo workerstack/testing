@@ -13,16 +13,15 @@ export const searchEmptyQ: Check<{
 }> = defineCheck<{
   policy: NonNullable<EffectiveQueryCapabilities["searchEmpty"]>;
 }>({
+  dependsOn: ["pagination.page-walk-covers-set", "search.q-narrows-result"],
+  id: "search.empty-q",
+  lists: true,
+  needs: "`searchEmpty` declared",
   plan: (ctx) => {
     const policy = resolvedCaps(ctx).searchEmpty;
 
     return conv(ctx).search === undefined || policy === undefined ? cannot() : ready({ policy });
   },
-  dependsOn: ["pagination.page-walk-covers-set", "search.q-narrows-result"],
-  id: "search.empty-q",
-  lists: true,
-  needs: "`searchEmpty` declared",
-  subjects: subjectsOf.list,
   async run(ctx, { policy }): Promise<Outcome> {
     const limit = pageSize(ctx);
     const baseline = await listAll(ctx, q(ctx, { limit }));
@@ -34,9 +33,9 @@ export const searchEmptyQ: Check<{
       if (refused !== null) return refused;
 
       return ctx.findings.backend(this.id, ctx.entityName, {
-        summary: "empty q was not rejected",
         detail: `searchEmpty=reject but q= returned ${empty.exchange.status}.`,
         evidence: [empty.exchange],
+        summary: "empty q was not rejected",
       });
     }
 
@@ -52,9 +51,10 @@ export const searchEmptyQ: Check<{
     if (moved !== null) return moved;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "empty q did not match the unfiltered set",
       detail: `searchEmpty=${policy} but q= returned ${empty.items.length} of ${baseline.items.length} records.`,
       evidence: [baseline.exchange, empty.exchange],
+      summary: "empty q did not match the unfiltered set",
     });
   },
+  subjects: subjectsOf.list,
 });

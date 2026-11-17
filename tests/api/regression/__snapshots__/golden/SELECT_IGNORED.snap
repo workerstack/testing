@@ -930,7 +930,7 @@
       "added": [
         {
           "check": "select.projection-honored",
-          "detail": "select=id,project_id returned 12 fields, including name, slug, status, position, description. Accepting a projection and ignoring it silently inflates every response and leaks fields a caller deliberately excluded.",
+          "detail": "select=id,project_id returned 12 fields, including created_at, deleted_at, description, name, position. Accepting a projection and ignoring it silently inflates every response and leaks fields a caller deliberately excluded.",
           "entity": "table",
           "operations": [
             "table.list"
@@ -947,7 +947,7 @@
         },
         {
           "check": "select.projection-honored",
-          "detail": "select=id,project_id returned 9 fields, including name, note, kind, created_at, updated_at. Accepting a projection and ignoring it silently inflates every response and leaks fields a caller deliberately excluded.",
+          "detail": "select=id,project_id returned 9 fields, including created_at, kind, name, note, progress. Accepting a projection and ignoring it silently inflates every response and leaks fields a caller deliberately excluded.",
           "entity": "job",
           "operations": [
             "job.list"
@@ -964,7 +964,7 @@
         },
         {
           "check": "select.projection-honored",
-          "detail": "select=id,table_id returned 9 fields, including label, amount, note, active, tags. Accepting a projection and ignoring it silently inflates every response and leaks fields a caller deliberately excluded.",
+          "detail": "select=id,table_id returned 9 fields, including active, amount, created_at, label, note. Accepting a projection and ignoring it silently inflates every response and leaks fields a caller deliberately excluded.",
           "entity": "row",
           "operations": [
             "row.list"

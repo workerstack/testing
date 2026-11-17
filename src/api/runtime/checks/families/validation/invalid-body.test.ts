@@ -70,9 +70,9 @@ describe("invalidChoice: what it never breaks", () => {
   });
 
   it("chooses the same body every time: the choice reads the schema alone", () => {
-    const schema = { properties: { b: { type: "boolean" }, a: { type: "string" } }, type: "object" };
+    const schema = { properties: { a: { type: "string" }, b: { type: "boolean" } }, type: "object" };
     expect(invalidChoice(schema)).toEqual(invalidChoice(structuredClone(schema)));
-    expect(invalidChoice(schema)).toEqual({ field: "b", kind: "wrong-type", value: 7 });
+    expect(invalidChoice(schema)).toEqual({ field: "a", kind: "wrong-type", value: 7 });
   });
 
   it("is null for a schema with nothing to break: no properties, or none typed", () => {
@@ -109,5 +109,21 @@ describe("invalidated", () => {
   it("sets the wrong-typed property, whether or not the body held it", () => {
     expect(invalidated({ name: "n" }, { field: "name", kind: "wrong-type", value: 7 })).toEqual({ name: 7 });
     expect(invalidated({}, { field: "count", kind: "wrong-type", value: "x" })).toEqual({ count: "x" });
+  });
+});
+
+// An object schema whose string properties are declared in `names`' order.
+function declared(names: string[]) {
+  return {
+    properties: Object.fromEntries(names.map((name) => [name, { type: "string" }])),
+    type: "object",
+  };
+}
+
+describe("invalidChoice, properties declared in any order", () => {
+  it("breaks the first property the schema declares, whatever its name", () => {
+    expect(invalidChoice(declared(["c", "b", "a"]))).toStrictEqual({ field: "c", kind: "wrong-type", value: 7 });
+    expect(invalidChoice(declared(["a", "b", "c"]))).toStrictEqual({ field: "a", kind: "wrong-type", value: 7 });
+    expect(invalidChoice(declared(["b", "c", "a"]))).toStrictEqual({ field: "b", kind: "wrong-type", value: 7 });
   });
 });

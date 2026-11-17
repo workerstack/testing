@@ -54,6 +54,9 @@ type Write = Awaited<ReturnType<typeof updateRequest>>;
  * back with afterwards.
  */
 export const ifMatchEnforced: Check<Plan> = defineCheck<Plan>({
+  id: "concurrency.if-match-enforced",
+  mutates: true,
+  needs: "a create, an item read that declares an ETag, and an update that declares If-Match",
   plan: (ctx) => {
     const { readOp, updateOp } = ctx;
 
@@ -65,10 +68,6 @@ export const ifMatchEnforced: Check<Plan> = defineCheck<Plan>({
 
     return ready({ header: updateOp.ifMatch, readOp, updateOp });
   },
-  id: "concurrency.if-match-enforced",
-  needs: "a create, an item read that declares an ETag, and an update that declares If-Match",
-  mutates: true,
-  subjects: subjectsOf.writeAndRead,
   async run(ctx, plan): Promise<Outcome> {
     const made = await scratchRecord(ctx, this.id);
 
@@ -83,6 +82,7 @@ export const ifMatchEnforced: Check<Plan> = defineCheck<Plan>({
       updatePath: fillPath(plan.updateOp.path, params),
     });
   },
+  subjects: subjectsOf.writeAndRead,
 });
 
 /** Moves the record past the version it was read at, then updates it again under that version. */
@@ -159,9 +159,6 @@ async function judgeStale(versions: Versions, { after, before, stale }: Stale): 
     "longer has, ";
 
   return ctx.findings.backend(check, ctx.entityName, {
-    summary: refused
-      ? "an update refused with 412 was applied anyway"
-      : "an update naming a stale ETag in If-Match was applied",
     detail: refused
       ? `${history}answered 412 Precondition Failed, yet the record's ETag moved from ${after.etag} to ` +
         `${last.etag}: the write the server refused still landed.`
@@ -169,6 +166,9 @@ async function judgeStale(versions: Versions, { after, before, stale }: Stale): 
         "requires a 412 when If-Match names no current version, so a client relying on it to keep from " +
         "overwriting another's change overwrites it, and is told the write succeeded.",
     evidence: [stale, last.exchange],
+    summary: refused
+      ? "an update refused with 412 was applied anyway"
+      : "an update naming a stale ETag in If-Match was applied",
   });
 }
 

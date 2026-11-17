@@ -55,7 +55,7 @@ describe("main", () => {
     expect(await main(["run"], { writer })).toBe(2);
     expect(
       await main(["conformance", "--backend", "nope"], {
-        toolkit: async () => ({ dialect: { DIALECTS: {} } }) as never,
+        toolkit: async () => ({ dialect: { DIALECTS: {}, DIALECT_ORDER: [] } }) as never,
         writer,
       }),
     ).toBe(2);

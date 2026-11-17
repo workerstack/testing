@@ -77,21 +77,21 @@ const SPEC = {
   info: { title: "auth-refresh", version: "1" },
   openapi: "3.1.0",
   paths: {
-    "/v1/auth/register": {
-      post: {
-        operationId: "auth.register",
-        "x-fresh-principal": true,
-        requestBody: { content: { "application/json": { schema: { type: "object" } } } },
-        responses: { "200": { description: "ok" } },
-        security: [],
-      },
-    },
     "/v1/auth/refresh": {
       post: {
         operationId: "auth.refreshToken",
         requestBody: { content: { "application/json": { schema: { type: "object" } } } },
         responses: { "200": { description: "ok" } },
         security: [],
+      },
+    },
+    "/v1/auth/register": {
+      post: {
+        operationId: "auth.register",
+        requestBody: { content: { "application/json": { schema: { type: "object" } } } },
+        responses: { "200": { description: "ok" } },
+        security: [],
+        "x-fresh-principal": true,
       },
     },
     "/v1/auth/token": {
@@ -154,11 +154,11 @@ class AuthBackend {
       refreshHits: [],
       registerHits: [],
       resourceAuth: [],
-      tokenBodies: [],
-      tokenWho: [],
       setGetStatus: (status) => {
         this.#getStatus = status;
       },
+      tokenBodies: [],
+      tokenWho: [],
       url: "",
     };
   }
@@ -299,8 +299,8 @@ function stackOf(harness: Harness, recipe: Recipe): Stack {
   const ports: CredentialPorts = {
     operations: { call: unused },
     records: { gone: unused, removed: () => false },
-    steps: { run: (list, at) => steps().run(list, at) },
     secrets: { register: () => {} },
+    steps: { run: (list, at) => steps().run(list, at) },
     tokens: { post: unused },
   };
 

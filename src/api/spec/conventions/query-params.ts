@@ -5,19 +5,29 @@ import type { NamedRoles, Role } from "./roles.ts";
 
 /** The role each public name stands for; the public vocabulary says `sort`, the conventions `order`. */
 const ROLE_OF: Readonly<Record<QueryParamRole, Role>> = {
+  cursor: "cursor",
   filter: "filter",
-  sort: "order",
-  select: "select",
+  limit: "limit",
+  offset: "offset",
+  page: "page",
   search: "search",
   searchMode: "searchMode",
-  limit: "limit",
-  page: "page",
-  offset: "offset",
-  cursor: "cursor",
+  select: "select",
+  sort: "order",
 };
 
 /** The role names a `params` object may hold, for the message that lists them. */
-export const QUERY_PARAM_ROLES = /* @__PURE__ */ Object.keys(ROLE_OF) as QueryParamRole[];
+export const QUERY_PARAM_ROLES: readonly (keyof typeof ROLE_OF)[] = [
+  "filter",
+  "sort",
+  "select",
+  "search",
+  "searchMode",
+  "limit",
+  "page",
+  "offset",
+  "cursor",
+];
 
 export function isQueryParamRole(key: string): key is QueryParamRole {
   return Object.hasOwn(ROLE_OF, key);

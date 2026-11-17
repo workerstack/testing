@@ -38,7 +38,7 @@ describe("dereference", () => {
 
   it("gives the same result whatever order the document lists its keys in", () => {
     const before = { components: { schemas: { Node: node } }, openapi: "3.1.0", paths } as OpenApiDocument;
-    const after = { openapi: "3.1.0", paths, components: { schemas: { Node: node } } } as OpenApiDocument;
+    const after = { components: { schemas: { Node: node } }, openapi: "3.1.0", paths } as OpenApiDocument;
     expect(sorted(dereference(before).doc.paths)).toBe(sorted(dereference(after).doc.paths));
   });
 

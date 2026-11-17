@@ -86,8 +86,8 @@ describe("doctor as JSON", () => {
       listableEntities: 4,
       testableEntities: 8,
       trackableEntities: 8,
-      untestableEntities: [],
       unknownEntities: ["ghost"],
+      untestableEntities: [],
     });
     expect(text.endsWith("}\n")).toBe(true);
   });

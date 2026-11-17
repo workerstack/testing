@@ -17,7 +17,6 @@ function stage(respond: Responder, fields: Partial<Listed> = {}, doc = notesDoc(
   const listOp = op(model, "notes.list");
 
   return contextFor(model, "notes.list", {
-    respond,
     fields: {
       createOp: op(model, "notes.create"),
       query: listOp.query,
@@ -25,6 +24,7 @@ function stage(respond: Responder, fields: Partial<Listed> = {}, doc = notesDoc(
       records: [{ id: "n1", status: "open", title: "alpha" }],
       ...fields,
     },
+    respond,
   });
 }
 

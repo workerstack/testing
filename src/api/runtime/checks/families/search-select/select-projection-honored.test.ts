@@ -37,6 +37,23 @@ describe("select.projection-honored judges", () => {
   });
 });
 
+describe("select.projection-honored lists by name", () => {
+  it("names the fields it was not asked for by name, whatever order the answer wrote them in", async () => {
+    const row = Object.fromEntries([
+      ["title", "t"],
+      ["zone", "z"],
+      ["id", "n1"],
+      ["author", "a"],
+    ]);
+
+    const staged = stage(selectProjection, { respond: () => ({ body: [row], status: 200 }) });
+
+    await staged.run();
+
+    expect(staged.findings.findings[0]?.detail).toContain("returned 4 fields, including author, zone.");
+  });
+});
+
 describe("select.projection-honored gives up", () => {
   it("is unresolved when the projected listing is refused or empty", async () => {
     const reason = "the projected listing was rejected or empty";

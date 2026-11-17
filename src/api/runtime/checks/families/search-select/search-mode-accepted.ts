@@ -9,16 +9,15 @@ import { conv, q, resolvedCaps } from "../../query/capabilities.ts";
 import { list } from "../../sets/list.ts";
 
 export const searchModeAccepted: Check = defineCheck({
+  id: "search.mode-accepted",
+  lists: true,
+  needs: "declared searchModes and a search-mode parameter",
   plan: (ctx) =>
     when(
       conv(ctx).searchMode !== undefined &&
         (resolvedCaps(ctx).searchModes?.length ?? 0) > 0 &&
         conv(ctx).search !== undefined,
     ),
-  id: "search.mode-accepted",
-  lists: true,
-  needs: "declared searchModes and a search-mode parameter",
-  subjects: subjectsOf.list,
   async run(ctx): Promise<Outcome> {
     const rejected: string[] = [];
     const refusedBy: Exchange[] = [];
@@ -47,9 +46,10 @@ export const searchModeAccepted: Check = defineCheck({
     if (rejected.length === 0) return ASSERTED;
 
     return ctx.findings.spec(this.id, ctx.entityName, {
-      summary: "a declared search mode is rejected",
       detail: `rejected: ${rejected.join(", ")}.`,
       evidence: refusedBy.slice(0, 3),
+      summary: "a declared search mode is rejected",
     });
   },
+  subjects: subjectsOf.list,
 });

@@ -23,12 +23,12 @@ describe("testing/no-console", () => {
 
   it("allows the writer, tests and code outside src", () => {
     const fixture = {
+      "labs/api/demo.ts": 'console.log("x")\n',
       "src/api/cli/writer.ts": 'process.stdout.write("x")\nconsole.error("x")\n',
       "src/api/runtime/a.test.ts": 'console.log("x")\n',
-      "tests/api/integration/a.test.ts": 'console.log("x")\n',
-      "labs/api/demo.ts": 'console.log("x")\n',
       "src/api/runtime/b.ts":
         "export const n = process.env\nexport const c = logger.console\nexport const s = proc.stdout\n",
+      "tests/api/integration/a.test.ts": 'console.log("x")\n',
     };
 
     expect(reportsOf(rule, fixture)).toEqual([]);

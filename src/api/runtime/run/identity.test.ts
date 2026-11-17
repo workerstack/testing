@@ -6,8 +6,8 @@ describe("boundOf", () => {
   it("splits a principal's identity into its tenant, its scope and the data recipes interpolate", () => {
     const held = {
       email: "a@x.test",
-      "scope.project_id": "p9",
       scope: { org_id: "o1", project_id: "p1" },
+      "scope.project_id": "p9",
       tenant: "t1",
     };
 
@@ -19,7 +19,7 @@ describe("boundOf", () => {
   });
 
   it("has no tenant unless one is a string, and keeps only string parameters", () => {
-    expect(boundOf({ "scope.n": 3, scope: ["x"], tenant: 4 })).toEqual({ identity: {}, scope: {} });
+    expect(boundOf({ scope: ["x"], "scope.n": 3, tenant: 4 })).toEqual({ identity: {}, scope: {} });
     expect(boundOf({ scope: { a: "1", b: 2 } })).toEqual({ identity: {}, scope: { a: "1" } });
   });
 });

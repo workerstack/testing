@@ -1,0 +1,40 @@
+/** An exchange file's fields in the order the file states them. */
+export const FILE_ORDER = [
+  "at",
+  "durationMs",
+  "fixture",
+  "finalUrl",
+  "method",
+  "operationId",
+  "requestBody",
+  "requestHeaders",
+  "requestId",
+  "responseBody",
+  "responseHeaders",
+  "redirects",
+  "retryAfterExceeded",
+  "seq",
+  "status",
+  "url",
+] as const;
+
+/** An index line's fields in the order the line states them. */
+export const LINE_ORDER = [
+  "at",
+  "durationMs",
+  "file",
+  "method",
+  "requestBytes",
+  "requestId",
+  "responseBytes",
+  "seq",
+  "status",
+  "url",
+  "operationId",
+  "fixture",
+  "finalUrl",
+  "redirects",
+  "check",
+  "entity",
+  "phase",
+] as const;

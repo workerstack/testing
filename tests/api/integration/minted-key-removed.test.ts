@@ -70,15 +70,6 @@ const SPEC = {
   info: { title: "keys", version: "1" },
   openapi: "3.1.0",
   paths: {
-    "/login": {
-      post: {
-        operationId: "login",
-        responses: {
-          "200": { description: "ok", ...json({ properties: { token: { type: "string" } }, type: "object" }) },
-        },
-        security: [],
-      },
-    },
     "/keys": {
       get: {
         operationId: "listKeys",
@@ -100,6 +91,15 @@ const SPEC = {
         operationId: "getKey",
         parameters: [idParam],
         responses: { "200": { description: "ok", ...json(key) }, "404": { description: "none" } },
+      },
+    },
+    "/login": {
+      post: {
+        operationId: "login",
+        responses: {
+          "200": { description: "ok", ...json({ properties: { token: { type: "string" } }, type: "object" }) },
+        },
+        security: [],
       },
     },
     "/me": {

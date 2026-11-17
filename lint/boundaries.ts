@@ -33,21 +33,21 @@ type Bucket =
   | "index";
 
 const LAYER: Readonly<Record<Bucket, number>> = {
-  errors: 0,
-  "config-types": 0,
-  security: 1,
-  steps: 1,
-  spec: 2,
-  client: 3,
-  credentials: 3,
-  reference: 3,
-  runtime: 4,
-  run: 5,
-  config: 6,
-  report: 6,
-  conformance: 6,
   cli: 7,
+  client: 3,
+  config: 6,
+  "config-types": 0,
+  conformance: 6,
+  credentials: 3,
+  errors: 0,
   index: 7,
+  reference: 3,
+  report: 6,
+  run: 5,
+  runtime: 4,
+  security: 1,
+  spec: 2,
+  steps: 1,
 };
 
 // Buckets on one layer that may import each other.

@@ -25,12 +25,12 @@ beforeAll(async () => {
   };
 
   const configs: Record<string, unknown> = {
-    "valid.json": valid,
-    "invalid.json": { principals: PRINCIPALS },
-    "no-principals.json": { ...valid, principals: {} },
-    "missing-baseline.json": { ...valid, baseline: "nowhere.json" },
     "allow-unknown.json": { ...valid, allow: ["nothing.here"] },
+    "invalid.json": { principals: PRINCIPALS },
+    "missing-baseline.json": { ...valid, baseline: "nowhere.json" },
+    "no-principals.json": { ...valid, principals: {} },
     "overlay-unknown.json": { ...valid, overlay: { operations: { "nothing.here": {} } } },
+    "valid.json": valid,
   };
 
   for (const [name, body] of Object.entries(configs)) await writeFile(join(dir, name), JSON.stringify(body));

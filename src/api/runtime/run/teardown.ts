@@ -83,8 +83,8 @@ export async function unwind(ctx: RunContext): Promise<void> {
     ctx.state.teardown = merged(ctx.state.teardown, report);
   } catch (error) {
     findings.blocked("world.teardown" satisfies RunFindingId, "run", {
-      summary: `teardown stopped on an unexpected error with ${ledger.size} record(s) ledgered`,
       cause: errorText(error),
+      summary: `teardown stopped on an unexpected error with ${ledger.size} record(s) ledgered`,
     });
     ctx.state.teardown = merged(ctx.state.teardown, unshown(pending, messageOf(error)));
   }
@@ -108,8 +108,8 @@ function noteHookErrors({ state, findings }: RunContext, errors: readonly string
   if (errors.length === 0 || state.verifyHookFailed) return;
   state.verifyHookFailed = true;
   findings.gap("teardown.verify-hook" satisfies RunFindingId, "teardown", {
-    summary: "hooks.verifyRemoved threw",
     detail: `${errors.length} call(s) threw, so those records keep teardown's own verdict: ${errors[0]}`,
+    summary: "hooks.verifyRemoved threw",
   });
 }
 
@@ -131,10 +131,10 @@ export function reportUnremovable({ state, findings }: RunContext): void {
   if (unremovable.length === 0) return;
   const names = unremovable.join(", ");
   findings.gap("world.teardown" satisfies RunFindingId, names, {
-    summary: "records created during the run could not be removed",
     detail:
       `no delete operation is reachable for ${names}, so this run left ` +
       "fixtures behind. Declare x-cleanup to name the route that removes them.",
+    summary: "records created during the run could not be removed",
   });
 }
 

@@ -7,6 +7,10 @@ import { conv, pageSize, q } from "../../query/capabilities.ts";
 import { list } from "../../sets/list.ts";
 
 export const searchNarrowsResult: Check<{ field: string }> = defineCheck<{ field: string }>({
+  dependsOn: ["list.read-after-write"],
+  id: "search.q-narrows-result",
+  lists: true,
+  needs: "a free-text `q` parameter and declared searchable fields",
   plan: (ctx) => {
     const field = ctx.query?.searchable[0];
 
@@ -14,11 +18,6 @@ export const searchNarrowsResult: Check<{ field: string }> = defineCheck<{ field
       ? cannot()
       : ready({ field });
   },
-  dependsOn: ["list.read-after-write"],
-  id: "search.q-narrows-result",
-  lists: true,
-  needs: "a free-text `q` parameter and declared searchable fields",
-  subjects: subjectsOf.list,
   async run(ctx): Promise<Outcome> {
     const limit = pageSize(ctx);
     const all = await list(ctx, q(ctx, { limit }));
@@ -35,11 +34,12 @@ export const searchNarrowsResult: Check<{ field: string }> = defineCheck<{ field
     if (result.items.length === 0) return ASSERTED;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "free-text search returns records that cannot match",
       detail:
         `q= a token no record contains returned ${result.items.length} of ${all.items.length} ` +
         "records, so the search term is being ignored rather than applied.",
       evidence: [all.exchange, result.exchange],
+      summary: "free-text search returns records that cannot match",
     });
   },
+  subjects: subjectsOf.list,
 });

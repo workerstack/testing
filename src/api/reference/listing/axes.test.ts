@@ -5,7 +5,8 @@ import type { DefectName } from "../defects/table.ts";
 import { type Axes, axesOf, filterDropped } from "./axes.ts";
 
 const all: Axes = { searched: true, selected: true, sorted: true };
-const only = (axis: keyof Axes): Axes => ({ searched: false, selected: false, sorted: false, [axis]: true });
+const none: Axes = { searched: false, selected: false, sorted: false };
+const only = (axis: keyof Axes): Axes => ({ ...none, [axis]: true });
 const drops = (defect: DefectName, axes: Axes): boolean => filterDropped(new DefectSet([defect]), axes);
 
 describe("axesOf", () => {

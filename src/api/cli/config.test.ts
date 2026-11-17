@@ -78,7 +78,7 @@ describe("readConfig deferring env", () => {
         },
         spec: "s.yaml",
       },
-      unsetEnv: ["TESTING_API_CONFIG_TEST_UNSET", "TESTING_API_CONFIG_TEST_KEY"],
+      unsetEnv: ["TESTING_API_CONFIG_TEST_KEY", "TESTING_API_CONFIG_TEST_UNSET"],
     });
   });
 

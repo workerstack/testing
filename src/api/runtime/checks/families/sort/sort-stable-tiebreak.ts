@@ -15,6 +15,10 @@ export const sortStableTiebreak: Check<{ primary: string; tiebreak: string }> = 
   primary: string;
   tiebreak: string;
 }>({
+  dependsOn: ["pagination.page-walk-covers-set", "sort.order-is-applied"],
+  id: "sort.stable-tiebreak",
+  lists: true,
+  needs: "a declared stableTiebreak and a tie on the primary key",
   plan: (ctx) => {
     const tiebreak = resolvedCaps(ctx).sort?.stableTiebreak ?? ctx.query?.stableTiebreak;
 
@@ -26,11 +30,6 @@ export const sortStableTiebreak: Check<{ primary: string; tiebreak: string }> = 
 
     return ready({ primary, tiebreak });
   },
-  dependsOn: ["pagination.page-walk-covers-set", "sort.order-is-applied"],
-  id: "sort.stable-tiebreak",
-  lists: true,
-  needs: "a declared stableTiebreak and a tie on the primary key",
-  subjects: subjectsOf.list,
   async run(ctx, { primary, tiebreak }): Promise<Outcome> {
     const order = sortTerm(conv(ctx), { direction: "asc", field: primary });
 
@@ -60,9 +59,9 @@ export const sortStableTiebreak: Check<{ primary: string; tiebreak: string }> = 
 
     if (ids(first.items, ctx.identity).join(",") !== ids(second.items, ctx.identity).join(",")) {
       return ctx.findings.backend(this.id, ctx.entityName, {
-        summary: "the same order is not deterministic across two walks",
         detail: `order=${order} (stableTiebreak=${tiebreak}) returned two different sequences.`,
         evidence: [first.last.exchange, second.last.exchange],
+        summary: "the same order is not deterministic across two walks",
       });
     }
 
@@ -90,12 +89,13 @@ export const sortStableTiebreak: Check<{ primary: string; tiebreak: string }> = 
     if (broken.length === 0) return ASSERTED;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "ties are not broken by the declared tiebreak",
       detail:
         `order=${order} returned records tied on ${primary} (${broken.slice(0, 3).join(", ")}) in an ` +
         `order the declared stableTiebreak "${tiebreak}" does not explain. Pagination over such an ` +
         "order can repeat or drop records at a page boundary.",
       evidence: [first.last.exchange],
+      summary: "ties are not broken by the declared tiebreak",
     });
   },
+  subjects: subjectsOf.list,
 });

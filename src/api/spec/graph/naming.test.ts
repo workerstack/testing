@@ -16,7 +16,7 @@ const entitiesAfter = (paths: Record<string, unknown>) => {
   const { operations } = operationsOf(paths);
   separateSameNamedCollections(operations);
 
-  return operations.map((op) => [op.operationId, op.entity]);
+  return Object.fromEntries(operations.map((op) => [op.operationId, op.entity]));
 };
 
 describe("separateSameNamedCollections", () => {
@@ -52,37 +52,25 @@ describe("separateSameNamedCollections by depth", () => {
   it("reaches further up, past versions, until the names differ, and stops when it runs out", () => {
     expect(
       entitiesAfter({
+        "/members": { get: { operationId: "c", responses: ok(list(member)) } },
+        "/tags": { get: { operationId: "tags", responses: ok(list(member)) } },
+        "/v1": { get: { operationId: "root", responses: ok(list(member)) } },
         "/v1/a/{x}/team/{t}/members": { get: { operationId: "a", responses: ok(list(member)) } },
         "/v2/b/{y}/team/{t}/members": { get: { operationId: "b", responses: ok(list(member)) } },
-        "/members": { get: { operationId: "c", responses: ok(list(member)) } },
-        "/v1": { get: { operationId: "root", responses: ok(list(member)) } },
-        "/tags": { get: { operationId: "tags", responses: ok(list(member)) } },
       }),
-    ).toEqual([
-      ["a", "a-team-member"],
-      ["b", "b-team-member"],
-      ["c", "member"],
-      ["root", null],
-      ["tags", "tag"],
-    ]);
+    ).toEqual({ a: "a-team-member", b: "b-team-member", c: "member", root: null, tags: "tag" });
     expect(
       entitiesAfter({
         "/team/{t}/members": { get: { operationId: "a", responses: ok(list(member)) } },
         "/team/{t}/x/{y}/members": { get: { operationId: "b", responses: ok(list(member)) } },
       }),
-    ).toEqual([
-      ["a", "team-member"],
-      ["b", "x-member"],
-    ]);
+    ).toEqual({ a: "team-member", b: "x-member" });
     expect(
       entitiesAfter({
         "/v1/team/members": { get: { operationId: "a", responses: ok(list(member)) } },
         "/v2/team/members": { get: { operationId: "b", responses: ok(list(member)) } },
       }),
-    ).toEqual([
-      ["a", "team-member"],
-      ["b", "team-member"],
-    ]);
+    ).toEqual({ a: "team-member", b: "team-member" });
   });
 
   it("leaves tagged names, and names no segment carries, as they are", () => {

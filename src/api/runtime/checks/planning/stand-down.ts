@@ -39,10 +39,10 @@ export function standDownForFeatureGate(
   if (!isDocumentedFeatureGateDenial(op, exchange.status, exchange.responseBody)) return false;
   // The 403 body is judged against its schema by schema.error-response-matches-document.
   ctx.findings.gap(check, ctx.entityName, {
-    summary: `${op.operationId} did not apply`,
     detail:
       `${describeFeatureGate(op, exchange.responseBody)}. The check that needed a 2xx stands ` +
       "down rather than treat the documented 403 as a defect.",
+    summary: `${op.operationId} did not apply`,
   });
 
   return true;

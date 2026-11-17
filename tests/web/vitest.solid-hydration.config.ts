@@ -9,9 +9,9 @@ import { freePort } from "../../src/web/port.ts";
 export default defineProject({
   plugins: [solid({ refresh: false, solid: { hydratable: true } }), solidHydration()],
   test: {
-    name: "solid-hydration",
-    include: ["solid/**/*.hydration.test.tsx"],
     api: { port: await freePort() },
     browser: { enabled: true, headless: true, instances: [{ browser: "chromium" }], provider: playwright() },
+    include: ["solid/**/*.hydration.test.tsx"],
+    name: "solid-hydration",
   },
 });

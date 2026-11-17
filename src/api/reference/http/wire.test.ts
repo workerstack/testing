@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { referenceRequest, respond } from "./wire.ts";
+import { referenceRequest, respond, respondAsBuilt } from "./wire.ts";
 
 describe("respond", () => {
   it("serializes the body as JSON with its byte length", () => {
@@ -15,6 +15,21 @@ describe("respond", () => {
   it("adds extra headers, which may override the defaults", () => {
     const answer = respond(429, [], { "content-type": "text/plain", "retry-after": "0" });
     expect(answer.headers).toEqual({ "content-length": "2", "content-type": "text/plain", "retry-after": "0" });
+  });
+});
+
+describe("respondAsBuilt", () => {
+  it("keeps the keys in the order the body was built in", () => {
+    const body = Object.fromEntries([
+      ["/zebras", 1],
+      ["/apples", 2],
+    ]);
+
+    expect(respondAsBuilt(200, body)).toStrictEqual({
+      body: '{"/zebras":1,"/apples":2}',
+      headers: { "content-length": "25", "content-type": "application/json" },
+      status: 200,
+    });
   });
 });
 

@@ -85,14 +85,14 @@ const sending = (resolution: Resolution): Sending => {
 describe("createCredentialSource: alternatives", () => {
   it("sends the first alternative the principal can satisfy, with its scopes", async () => {
     const { calls, source } = sourceOf();
-    const jwt = sending(await source.resolve({ route: ROUTE, actor: { principal: "alpha" }, operationId: "row.list" }));
+    const jwt = sending(await source.resolve({ actor: { principal: "alpha" }, operationId: "row.list", route: ROUTE }));
     expect(jwt).toMatchObject({ principal: "alpha", schemes: ["jwt"], sentValues: { jwt: "alpha-jwt-1" } });
     expect(jwt.sends).toEqual({ jwt: { cookies: {}, headers: { Authorization: "Bearer alpha-jwt-1" }, query: {} } });
     expect(jwt.secrets).toEqual({ cookies: [], headers: ["Authorization"], query: [], values: ["alpha-jwt-1"] });
     const keyOnly = sourceOf({ security: { apiKey: security["apiKey"] } as SecurityConfig });
 
     const key = sending(
-      await keyOnly.source.resolve({ route: ROUTE, actor: { principal: "alpha" }, operationId: "row.list" }),
+      await keyOnly.source.resolve({ actor: { principal: "alpha" }, operationId: "row.list", route: ROUTE }),
     );
 
     expect(key.sends).toEqual({
@@ -109,7 +109,7 @@ describe("createCredentialSource: alternatives", () => {
     const source = createCredentialSource({ model, principals: { alpha: {} }, security: pair, store });
 
     const both = sending(
-      await source.resolve({ route: ROUTE, actor: { principal: "alpha" }, operationId: "zones.list" }),
+      await source.resolve({ actor: { principal: "alpha" }, operationId: "zones.list", route: ROUTE }),
     );
 
     expect(both.schemes).toEqual(["api_email", "api_key"]);
@@ -158,12 +158,12 @@ describe("createCredentialSource: nothing to send", () => {
   it("names what it cannot satisfy, and what the store blocked", async () => {
     const none = sourceOf({ security: {} });
     const unsatisfied = { kind: "unsatisfied", reason: "no credential for jwt; no credential for apiKey" };
-    expect(await none.source.resolve({ route: ROUTE, actor: { principal: "alpha" }, operationId: "row.list" })).toEqual(
+    expect(await none.source.resolve({ actor: { principal: "alpha" }, operationId: "row.list", route: ROUTE })).toEqual(
       unsatisfied,
     );
     const { source } = sourceOf({ blocked: new Set(["jwt"]) });
     const blocked = { kind: "blocked", reason: "could not acquire jwt" };
-    expect(await source.resolve({ route: ROUTE, actor: { principal: "alpha" }, operationId: "row.list" })).toEqual(
+    expect(await source.resolve({ actor: { principal: "alpha" }, operationId: "row.list", route: ROUTE })).toEqual(
       blocked,
     );
   });
@@ -173,16 +173,16 @@ describe("createCredentialSource: a named scheme", () => {
   it("sends the named scheme, with the scopes the operation asks of it", async () => {
     const { calls, source } = sourceOf();
     const named = { principal: "alpha", scheme: "apiKey" };
-    expect(sending(await source.resolve({ route: ROUTE, actor: named, operationId: "row.list" })).schemes).toEqual([
+    expect(sending(await source.resolve({ actor: named, operationId: "row.list", route: ROUTE })).schemes).toEqual([
       "apiKey",
     ]);
-    expect(sending(await source.resolve({ route: ROUTE, actor: named })).schemes).toEqual(["apiKey"]);
+    expect(sending(await source.resolve({ actor: named, route: ROUTE })).schemes).toEqual(["apiKey"]);
     expect(calls).toEqual(["acquire alpha apiKey [rows:read]", "acquire alpha apiKey []"]);
   });
 
   it("cannot send a scheme the principal has no recipe for", async () => {
     const { source } = sourceOf({ security: {} });
-    const resolution = await source.resolve({ route: ROUTE, actor: { principal: "alpha", scheme: "jwt" } });
+    const resolution = await source.resolve({ actor: { principal: "alpha", scheme: "jwt" }, route: ROUTE });
     expect(resolution).toEqual({ kind: "unsatisfied", reason: "no credential for jwt" });
   });
 });
@@ -224,7 +224,7 @@ describe("createCredentialSource: refresh", () => {
     const { calls, source } = sourceOf();
 
     const first = sending(
-      await source.resolve({ route: ROUTE, actor: { principal: "alpha" }, operationId: "row.list" }),
+      await source.resolve({ actor: { principal: "alpha" }, operationId: "row.list", route: ROUTE }),
     );
 
     const renewed = sending(await first.refresh());
@@ -237,7 +237,7 @@ describe("createCredentialSource: refresh", () => {
     const { calls, source } = sourceOf();
 
     const first = sending(
-      await source.resolve({ route: ROUTE, actor: { principal: "alpha" }, operationId: "row.list" }),
+      await source.resolve({ actor: { principal: "alpha" }, operationId: "row.list", route: ROUTE }),
     );
 
     first.block("refused where the old one was accepted");
@@ -246,7 +246,7 @@ describe("createCredentialSource: refresh", () => {
 
   it("is blocked when the renewal fails", async () => {
     const { source } = sourceOf();
-    const key = sending(await source.resolve({ route: ROUTE, actor: { principal: "alpha", scheme: "apiKey" } }));
+    const key = sending(await source.resolve({ actor: { principal: "alpha", scheme: "apiKey" }, route: ROUTE }));
     expect(await key.refresh()).toEqual({ kind: "blocked", reason: "could not acquire apiKey" });
   });
 });
@@ -294,14 +294,14 @@ describe("createCredentialSource: a held value, sent as given", () => {
   it("places it as the principal's own credential, its secrets named, and asks the store nothing", async () => {
     const { calls, source } = sourceOf();
     const actor = { principal: "alpha", scheme: "apiKey", value: "session-1" };
-    expect(await source.resolve({ route: ROUTE, actor })).toEqual({
+    expect(await source.resolve({ actor, route: ROUTE })).toEqual({
       kind: "held",
       principal: "alpha",
       schemes: ["apiKey"],
       secrets: expect.objectContaining({ headers: ["Authorization"], values: expect.arrayContaining(["session-1"]) }),
       sends: { apiKey: { cookies: {}, headers: { Authorization: "ApiKey session-1" }, query: {} } },
     });
-    const unknown = await source.resolve({ route: ROUTE, actor: { ...actor, scheme: "nope" } });
+    const unknown = await source.resolve({ actor: { ...actor, scheme: "nope" }, route: ROUTE });
     expect(unknown).toEqual({ kind: "unsatisfied", reason: 'the document declares no "nope" scheme' });
     expect(calls).toEqual([]);
   });
@@ -310,14 +310,14 @@ describe("createCredentialSource: a held value, sent as given", () => {
 describe("createCredentialSource: forged", () => {
   it("places a forged value exactly like the scheme's credential, under the config's format", async () => {
     const { calls, source } = sourceOf();
-    const forged = await source.resolve({ route: ROUTE, actor: { forged: { scheme: "apiKey", value: "forged-1" } } });
+    const forged = await source.resolve({ actor: { forged: { scheme: "apiKey", value: "forged-1" } }, route: ROUTE });
     expect(forged).toEqual({
       kind: "forged",
       schemes: ["apiKey"],
       sends: { apiKey: { cookies: {}, headers: { Authorization: "ApiKey forged-1" }, query: {} } },
     });
     const bare = sourceOf({ security: {} });
-    const jwt = await bare.source.resolve({ route: ROUTE, actor: { forged: { scheme: "jwt", value: "f" } } });
+    const jwt = await bare.source.resolve({ actor: { forged: { scheme: "jwt", value: "f" } }, route: ROUTE });
     expect(jwt).toMatchObject({ sends: { jwt: { headers: { Authorization: "Bearer f" } } } });
     expect(calls).toEqual([]);
   });
@@ -325,22 +325,22 @@ describe("createCredentialSource: forged", () => {
   it("names what a derived value places as secrets, and a garbage one as none", async () => {
     const { source } = sourceOf();
     const derived = { forged: { derived: true, scheme: "apiKey", value: "derived-1" } } as const;
-    expect(await source.resolve({ route: ROUTE, actor: derived })).toMatchObject({
+    expect(await source.resolve({ actor: derived, route: ROUTE })).toMatchObject({
       kind: "forged",
       secrets: { headers: ["Authorization"], values: expect.arrayContaining(["derived-1"]) },
     });
-    const garbage = await source.resolve({ route: ROUTE, actor: { forged: { scheme: "apiKey", value: "x" } } });
+    const garbage = await source.resolve({ actor: { forged: { scheme: "apiKey", value: "x" } }, route: ROUTE });
     expect(garbage).not.toHaveProperty("secrets");
   });
 
   it("cannot forge a scheme the document does not declare, or one the API tester cannot send", async () => {
     const { source } = sourceOf();
-    const unknown = await source.resolve({ route: ROUTE, actor: { forged: { scheme: "nope", value: "f" } } });
+    const unknown = await source.resolve({ actor: { forged: { scheme: "nope", value: "f" } }, route: ROUTE });
     expect(unknown).toEqual({ kind: "unsatisfied", reason: 'the document declares no "nope" scheme' });
     const mtls = { ...anyrow, components: { securitySchemes: { tls: { type: "mutualTLS" } } } } as OpenApiDocument;
     const model = buildModel(mtls);
     const tls = createCredentialSource({ model, principals, security: {}, store: fakeStore(model, {}).store });
-    const refused = await tls.resolve({ route: ROUTE, actor: { forged: { scheme: "tls", value: "f" } } });
+    const refused = await tls.resolve({ actor: { forged: { scheme: "tls", value: "f" } }, route: ROUTE });
     expect(refused).toMatchObject({
       kind: "unsatisfied",
       reason: expect.stringMatching(/cannot send the "tls" scheme/),
@@ -353,7 +353,7 @@ describe("createCredentialSource: a dedicated credential's probe principal", () 
     const { calls, source } = sourceOf({ principals: { ...principals, "alpha#probe-1": {} } });
 
     const sent = sending(
-      await source.resolve({ route: ROUTE, actor: { principal: "alpha#probe-1", scheme: "apiKey" } }),
+      await source.resolve({ actor: { principal: "alpha#probe-1", scheme: "apiKey" }, route: ROUTE }),
     );
 
     expect(sent.principal).toBe("alpha");
@@ -392,7 +392,7 @@ describe("createCredentialSource: a secondary origin", () => {
     const { calls, source } = originSource();
 
     const placed = sending(
-      await source.resolve({ route: ROUTE, actor: { principal: "alpha" }, operationId: "file.list" }),
+      await source.resolve({ actor: { principal: "alpha" }, operationId: "file.list", route: ROUTE }),
     );
 
     expect(placed).toMatchObject({ schemes: ["fileKey"], sentValues: { fileKey: "alpha-jwt-1" } });
@@ -406,15 +406,15 @@ describe("createCredentialSource: a secondary origin", () => {
 
   it("sends nothing for an origin scheme the config does not map", async () => {
     const { source } = originSource();
-    const resolution = await source.resolve({ route: ROUTE, actor: { principal: "alpha" }, operationId: "other.list" });
+    const resolution = await source.resolve({ actor: { principal: "alpha" }, operationId: "other.list", route: ROUTE });
     expect(resolution).toEqual({ kind: "unsatisfied", reason: "no credential for other" });
-    const forged = await source.resolve({ route: ROUTE, actor: { forged: { scheme: "fileKey", value: "f" } } });
+    const forged = await source.resolve({ actor: { forged: { scheme: "fileKey", value: "f" } }, route: ROUTE });
     expect(forged).toMatchObject({ sends: { fileKey: { query: { k: "f" } } } });
   });
 
   it("cannot place a mapped credential under a scheme the origin's document does not declare", async () => {
     const { source } = originSource();
-    const resolution = await source.resolve({ route: ROUTE, actor: { principal: "alpha" }, operationId: "ghost.list" });
+    const resolution = await source.resolve({ actor: { principal: "alpha" }, operationId: "ghost.list", route: ROUTE });
     expect(resolution).toEqual({ kind: "unsatisfied", reason: 'the document declares no "ghost" scheme' });
   });
 });
@@ -439,7 +439,7 @@ describe("createCredentialSource: a recipe only an origin's scheme is for", () =
     });
 
     const placed = sending(
-      await source.resolve({ route: ROUTE, actor: { principal: "alpha" }, operationId: "other.list" }),
+      await source.resolve({ actor: { principal: "alpha" }, operationId: "other.list", route: ROUTE }),
     );
 
     expect(placed.sends["other"]?.headers).toEqual({ Authorization: "Token alpha-fileToken-1" });

@@ -12,12 +12,12 @@ function stage(properties: Record<string, unknown>, update: Partial<OperationMod
   const model = modelOf(widgetDoc({ item: { properties, type: "object" } }));
 
   const { ctx } = contextFor(model, "listWidgets", {
-    respond: widgetApi(),
     fields: {
       createOp: op(model, "createWidget"),
       readOp: op(model, "getWidget"),
       updateOp: { ...op(model, "updateWidget"), ...update },
     },
+    respond: widgetApi(),
   });
 
   return { ctx, model };
@@ -43,7 +43,7 @@ describe("pickPayloadField", () => {
   });
 
   it("takes the string branch of a union, and a null branch makes it nullable", () => {
-    const union = { oneOf: [null, { type: "string", maxLength: 50, minLength: 2 }, { type: "null" }] };
+    const union = { oneOf: [null, { maxLength: 50, minLength: 2, type: "string" }, { type: "null" }] };
     expect(picked({ plain: { type: "string" }, union })).toEqual({
       maxLength: 50,
       minLength: 2,
@@ -67,9 +67,9 @@ describe("pickPayloadField", () => {
       made: { type: "string" },
       nothing: null,
       owner_id: { type: "string" },
-      secret: { readOnly: true, type: "string" },
       // Taken and never returned: no read could show it survived.
       sealed: { type: "string", writeOnly: true },
+      secret: { readOnly: true, type: "string" },
       stamp: { type: "string" },
       status: { enum: ["a"], type: "string" },
       tiny: { maxLength: 7, type: "string" },

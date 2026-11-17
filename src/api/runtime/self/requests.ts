@@ -38,8 +38,8 @@ export async function sendUpdate(
   body: Record<string, unknown>,
 ): Promise<Exchange> {
   return caller.client.request(op.method, path, {
-    body,
     as: { principal: caller.principal },
+    body,
     operationId: op.operationId,
   });
 }

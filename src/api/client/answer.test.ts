@@ -242,11 +242,11 @@ describe("an exchange sent as a probe", () => {
           kind: "sends",
           lapsed: () => false,
           principal: "alpha",
+          refresh: async () => ({ kind: "anonymous" }),
           schemes: [],
           secrets: { cookies: [], headers: [], query: [], values: [] },
           sends: {},
           sentValues: {},
-          refresh: async () => ({ kind: "anonymous" }),
         }),
       },
     );

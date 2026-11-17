@@ -2,9 +2,14 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Output that only repeated the order an object's keys were written in now lists them by name: an object query or form parameter (`{ R: 100, G: 200, B: 150 }` in form style sends `color=B,150,G,200,R,100`), the JSON body `curl` prints, config problems, unset variables, `testing api init`'s security schemes, and the fields a finding lists from a server's answer. Reports, CLI help, spec routes, defect tables and logfmt fields keep their order, now from an explicit list.
+
 ### Fixed
 
 - The reference SQLite store now refuses a blob in a declared column with an error that names the column, instead of handing the bytes back as a field value no schema declares.
+- A scenario step's `bind` or `saveAs` entry may read any sibling of the same `bind` or `saveAs`, whatever order they are written in; entries that read each other in a cycle are refused before the run and stop it during one. The field a write check changes follows the order the document's schema declares, not the order of keys in the server's answer.
 
 ## [0.35.0] - 2026-11-09
 

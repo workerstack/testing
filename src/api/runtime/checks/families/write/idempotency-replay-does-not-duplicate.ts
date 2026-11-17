@@ -38,6 +38,11 @@ export const idempotentReplay: Check<{
   header: string;
   schema: JsonSchema;
 }>({
+  dependsOn: ["pagination.page-walk-covers-set", "list.read-after-write", "create.persists-submitted-fields"],
+  id: "idempotency.replay-does-not-duplicate",
+  lists: true,
+  mutates: true,
+  needs: "a create operation declaring an idempotency-key header",
   plan: (ctx) => {
     const createOp = ctx.createOp;
     const header = createOp?.idempotencyHeader;
@@ -49,12 +54,6 @@ export const idempotentReplay: Check<{
       ? cannot("a create operation with a request body to replay")
       : ready({ createOp, header, schema });
   },
-  dependsOn: ["pagination.page-walk-covers-set", "list.read-after-write", "create.persists-submitted-fields"],
-  id: "idempotency.replay-does-not-duplicate",
-  lists: true,
-  mutates: true,
-  needs: "a create operation declaring an idempotency-key header",
-  subjects: subjectsOf.create,
   async run(ctx, { createOp, header, schema }): Promise<Outcome> {
     const body = validBody(ctx, schema);
     // The nonce keeps a second run from replaying the first run's request — and getting the
@@ -96,6 +95,7 @@ export const idempotentReplay: Check<{
 
     return judgeReplay({ acknowledged, before, check: this.id, ctx, first, firstId, header, key, second });
   },
+  subjects: subjectsOf.create,
 });
 
 /** One create and its replay under the same key, as sent and answered. */
@@ -157,12 +157,12 @@ function judgeReplay(replay: Replay): Promise<Outcome> | Outcome {
   if (firstId === secondId) return judgeGrowth(replay);
 
   return ctx.findings.backend(check, ctx.entityName, {
-    summary: "replaying a request with the same idempotency key created a second record",
     detail:
       `two identical POSTs carrying ${header}: "${key}" produced ${ctx.entityName} ${firstId} ` +
       `and ${secondId}. The header is declared, so clients will retry on timeouts assuming ` +
       "it protects them; every such retry silently duplicates the record.",
     evidence: [first, second],
+    summary: "replaying a request with the same idempotency key created a second record",
   });
 }
 
@@ -188,11 +188,11 @@ async function judgeGrowth(replay: Replay): Promise<Outcome> {
     ctx.recordCreated?.({ entity: ctx.entityName, id, scope: { ...ctx.scope } }, second.principal);
 
   return ctx.findings.backend(check, ctx.entityName, {
-    summary: "replaying a request with the same idempotency key grew the collection",
     detail:
       `the replay carrying ${header}: "${key}" answered with the original ${ctx.entityName} ${firstId}, ` +
       `yet the collection went from ${before.items.length} to ${after.items.length} records. The ` +
       "response hides a duplicate the retry still made.",
     evidence: [first, second, before.last.exchange, after.last.exchange],
+    summary: "replaying a request with the same idempotency key grew the collection",
   });
 }

@@ -41,7 +41,10 @@ describe("callerRootPaths", () => {
     const update = paths["/v1/me/account"]?.["put"] as Json & { requestBody: Json; responses: Json };
     expect(update).toMatchObject({ operationId: "account.update" });
     expect(Object.keys(update).filter((key) => key.startsWith("x-"))).toEqual([]);
-    expect(JSON.stringify(update.requestBody)).toContain('"password":{"minLength":8,"type":"string"}');
+    expect(update.requestBody).toHaveProperty("content.application/json.schema.properties.password", {
+      minLength: 8,
+      type: "string",
+    });
     expect(Object.keys(update.responses)).toEqual(["200", "400", "401"]);
   });
 
@@ -57,7 +60,10 @@ describe("callerRootPaths", () => {
   });
 
   it("marks the register's staff flag x-privileged, and lists each sign-up with it", () => {
-    expect(JSON.stringify(paths["/v1/register"]?.["post"])).toContain('"staff":{"type":"boolean","x-privileged":true}');
+    expect(paths["/v1/register"]?.["post"]).toHaveProperty(
+      "requestBody.content.application/json.schema.properties.staff",
+      { type: "boolean", "x-privileged": true },
+    );
     const list = paths["/v1/signups"]?.["get"] as Json & { responses: Record<string, Json> };
     expect(list).toMatchObject({
       operationId: "signup.list",
@@ -67,11 +73,15 @@ describe("callerRootPaths", () => {
     expect(paths["/v1/register"]?.["post"]).toMatchObject({ "x-invalidate": ["GET /v1/signups"] });
     expect(paths["/v1/signups/{account_id}"]?.["delete"]).toMatchObject({ "x-invalidate": ["GET /v1/signups"] });
     expect(Object.keys(list.responses)).toEqual(["200", "401"]);
-    expect(JSON.stringify(list.responses)).toContain(
-      '"signups":{"items":{"additionalProperties":false,"properties":{"account_id":{"type":"string"},' +
-        '"email":{"type":"string"},"staff":{"type":"boolean"}},"required":["account_id","email","staff"],' +
-        '"type":"object"},"type":"array"}',
-    );
+    expect(list.responses).toHaveProperty("200.content.application/json.schema.properties.signups", {
+      items: {
+        additionalProperties: false,
+        properties: { account_id: { type: "string" }, email: { type: "string" }, staff: { type: "boolean" } },
+        required: ["account_id", "email", "staff"],
+        type: "object",
+      },
+      type: "array",
+    });
   });
 
   it("reads the caller's project as the root", () => {

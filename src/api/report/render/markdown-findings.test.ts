@@ -63,7 +63,7 @@ describe("findingSections", () => {
 
     const lines = findingSections(
       [
-        finding({ verdict: "SPEC_BUG", entity: "row", summary: "drift" }),
+        finding({ entity: "row", summary: "drift", verdict: "SPEC_BUG" }),
         finding({ evidence, fixture: "a.png", summary: "broken" }),
       ],
       new Redactor(),

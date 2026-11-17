@@ -29,6 +29,10 @@ export const filterIsNullSelectsNulls: Check<{
   nullTerm: Record<string, string>;
   notNullTerm: Record<string, string>;
 }>({
+  dependsOn: ["query.filter-selects-from-whole-set", ...FOUNDATIONS],
+  id: "filter.is-null-selects-nulls",
+  lists: true,
+  needs: "a field that allows `is` and a cohort that contains a null",
   plan: (ctx) => {
     const unverified = storedFieldsUnknown(ctx);
 
@@ -44,11 +48,6 @@ export const filterIsNullSelectsNulls: Check<{
 
     return ready({ field, notNullTerm, nullTerm });
   },
-  dependsOn: ["query.filter-selects-from-whole-set", ...FOUNDATIONS],
-  id: "filter.is-null-selects-nulls",
-  lists: true,
-  needs: "a field that allows `is` and a cohort that contains a null",
-  subjects: subjectsOf.list,
   async run(ctx, { field, notNullTerm, nullTerm }): Promise<Outcome> {
     const expectedOf = () =>
       new Set(
@@ -85,14 +84,15 @@ export const filterIsNullSelectsNulls: Check<{
 
     if (!sameSet(expectedNulls, gotNulls) || overlap.length > 0) {
       ctx.findings.backend(this.id, ctx.entityName, {
-        summary: "is.null / is.notnull do not partition on nulls",
         detail: `is.null returned ${gotNulls.size} record(s); ${expectedNulls.size} cohort rows are null. ${
           overlap.length > 0 ? `${overlap.length} appear on both sides.` : ""
         }`,
         evidence: [nulls.last.exchange, present.last.exchange],
+        summary: "is.null / is.notnull do not partition on nulls",
       });
     }
 
     return ASSERTED;
   },
+  subjects: subjectsOf.list,
 });

@@ -15,20 +15,6 @@ import { overlapPlan, projectionPlan, type Subset } from "./plans.ts";
 export const filterSearchSelectCompose: Check<
   Subset & { token: string; extra: string; projection: Record<string, string> }
 > = defineCheck<Subset & { token: string; extra: string; projection: Record<string, string> }>({
-  plan: (ctx) =>
-    andThen(
-      when(
-        filterable(ctx) &&
-          conv(ctx).search !== undefined &&
-          conv(ctx).select !== undefined &&
-          (ctx.query?.searchable.length ?? 0) > 0 &&
-          ctx.records.length > 2,
-      ),
-      () =>
-        andThen(overlapPlan(ctx), (overlap) =>
-          andThen(projectionPlan(ctx), (projected) => ready({ ...overlap, ...projected })),
-        ),
-    ),
   dependsOn: [
     "list.read-after-write",
     "create.persists-submitted-fields",
@@ -43,7 +29,20 @@ export const filterSearchSelectCompose: Check<
   id: "query.filter-search-select-compose",
   lists: true,
   needs: "a filterable field, a search parameter, a select parameter, and more than two records",
-  subjects: subjectsOf.list,
+  plan: (ctx) =>
+    andThen(
+      when(
+        filterable(ctx) &&
+          conv(ctx).search !== undefined &&
+          conv(ctx).select !== undefined &&
+          (ctx.query?.searchable.length ?? 0) > 0 &&
+          ctx.records.length > 2,
+      ),
+      () =>
+        andThen(overlapPlan(ctx), (overlap) =>
+          andThen(projectionPlan(ctx), (projected) => ready({ ...overlap, ...projected })),
+        ),
+    ),
   async run(ctx, { extra, field, projection, term, token }): Promise<Outcome> {
     const limit = pageSize(ctx);
 
@@ -95,7 +94,6 @@ export const filterSearchSelectCompose: Check<
     if (moved !== null) return moved;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "adding a select changes which records a filter and a search return",
       detail:
         `filter on "${field}" with q=${JSON.stringify(token)} matched ${expected.size}; ` +
         `the same request with select=${[ctx.identity, extra].join(",")} matched ${got.size}. ${
@@ -105,6 +103,8 @@ export const filterSearchSelectCompose: Check<
         }A projection must change columns, never the intersection a filter and a search ` +
         `already agreed on.`,
       evidence: [pair.last.exchange, triple.last.exchange],
+      summary: "adding a select changes which records a filter and a search return",
     });
   },
+  subjects: subjectsOf.list,
 });

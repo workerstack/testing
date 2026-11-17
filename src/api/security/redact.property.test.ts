@@ -150,8 +150,8 @@ describe("Redactor.json, by property", () => {
     fc.assert(
       fc.property(withTree, secretKey, ([values, value], key) => {
         const redactor = redactorOf(values);
-        const out = redactor.json({ [key]: value, keep: value });
-        expect(out).toEqual({ [key]: REDACTED, keep: redactor.json(value) });
+        const out = redactor.json({ keep: value, [key]: value });
+        expect(out).toEqual({ keep: redactor.json(value), [key]: REDACTED });
         expect(redactor.json(out)).toEqual(out);
       }),
     );
@@ -194,9 +194,9 @@ describe("Redactor.textBody and headers, by property", () => {
       fc.property(fc.constantFrom("X-Tenant", "Authorization"), casing, secret, (name, recase, value) => {
         const redactor = new Redactor();
         redactor.registerHeader(name);
-        const out = redactor.headers({ [recase(name)]: `Bearer ${value}`, accept: value });
+        const out = redactor.headers({ accept: value, [recase(name)]: `Bearer ${value}` });
         const kept = name === "Authorization" ? `Bearer ${REDACTED}` : REDACTED;
-        expect(out).toEqual({ [recase(name)]: kept, accept: value });
+        expect(out).toEqual({ accept: value, [recase(name)]: kept });
         expect(redactor.headers(out)).toEqual(out);
       }),
     );

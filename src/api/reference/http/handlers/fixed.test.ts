@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { isRecord } from "../../../config/types/raw.ts";
+import { buildSpec } from "../../spec/build.ts";
 import { api, BETA } from "../__fixtures__/api.ts";
 
 const operations = (spec: Record<string, unknown>) =>
@@ -14,6 +16,18 @@ describe("the document route", () => {
     expect(status).toBe(200);
     expect(body["openapi"]).toMatch(/^3\./);
     expect(operations(body).some((operation) => "x-entity" in operation)).toBe(true);
+  });
+
+  // A client reads the document's paths in its order, so the route keeps the order the reference
+  // builds them in, the entities' own routes first, rather than one by name.
+  it("serves the paths in the order the reference builds them", async () => {
+    const { call } = await api();
+    const { body } = await call("GET", "/v1/openapi/spec", { token: null });
+    const spec = buildSpec();
+    const served = Object.keys(isRecord(body["paths"]) ? body["paths"] : {});
+
+    expect(served).toStrictEqual(Object.keys(isRecord(spec["paths"]) ? spec["paths"] : {}));
+    expect(served).not.toStrictEqual(served.toSorted());
   });
 
   it("serves the document without the API tester's tags when untagged", async () => {

@@ -15,7 +15,7 @@ const declaring = (invalidate: readonly string[]) => notesDoc({ invalidate });
 function stage(respond: Responder, fields: Partial<Listed> = {}, doc = declaring(FOREIGN)) {
   const model = modelOf(doc);
 
-  return contextFor(model, "notes.list", { respond, fields: { createOp: op(model, "notes.create"), ...fields } });
+  return contextFor(model, "notes.list", { fields: { createOp: op(model, "notes.create"), ...fields }, respond });
 }
 
 async function drive(staged: ReturnType<typeof stage>) {

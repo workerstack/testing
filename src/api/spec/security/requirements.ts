@@ -30,10 +30,13 @@ function alternativesOf(declared: Declared): Requirement[][] {
   if (declared.length === 0) return [[]];
 
   return declared.map((set) =>
-    Object.entries(set).map(([scheme, scopes]) => ({
-      scheme,
-      scopes: Array.isArray(scopes) ? scopes.map(String) : [],
-    })),
+    Object.keys(set)
+      .toSorted()
+      .map((scheme) => {
+        const scopes = set[scheme];
+
+        return { scheme, scopes: Array.isArray(scopes) ? scopes.map(String) : [] };
+      }),
   );
 }
 

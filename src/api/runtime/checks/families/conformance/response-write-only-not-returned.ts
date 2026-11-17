@@ -33,16 +33,15 @@ function answers(op: OperationModel): boolean {
 export const writeOnlyNotReturned: Check<{ fields: Map<string, JsonSchema> }> = defineCheck<{
   fields: Map<string, JsonSchema>;
 }>({
+  id: WRITE_ONLY,
+  judgesTranscript: true,
+  needs: "a property the record's schema or a write's body marks writeOnly, and an item read or a listing",
   plan: (ctx) => {
     if (ctx.readOp === undefined && ctx.listOp === undefined) return cannot();
     const fields = writeOnlyFields(ctx);
 
     return fields.size === 0 ? cannot() : ready({ fields });
   },
-  id: WRITE_ONLY,
-  judgesTranscript: true,
-  needs: "a property the record's schema or a write's body marks writeOnly, and an item read or a listing",
-  subjects: (entity, model) => ownOps(entity, model, answers),
   async run(ctx, { fields }): Promise<Outcome> {
     const judged = new Set<string>();
     const leaks = new Map<string, { exchange: Exchange; names: string[] }>();
@@ -66,11 +65,11 @@ export const writeOnlyNotReturned: Check<{ fields: Map<string, JsonSchema> }> = 
 
     for (const [operationId, { exchange, names }] of leaks) {
       const claim = {
-        summary: `${operationId} answered a field the document marks writeOnly: ${names.join(", ")}`,
         detail:
           `${operationId} returned ${exchange.status} carrying ${names.join(", ")}, which the document marks ` +
           "writeOnly: a value a client sends and the server never returns.",
         evidence: [exchange],
+        summary: `${operationId} answered a field the document marks writeOnly: ${names.join(", ")}`,
       };
 
       const findings = ctx.findings.attributed([operationId]);
@@ -82,6 +81,7 @@ export const writeOnlyNotReturned: Check<{ fields: Map<string, JsonSchema> }> = 
 
     return outcome;
   },
+  subjects: (entity, model) => ownOps(entity, model, answers),
 });
 
 /** The writeOnly properties of the record's schema and of each write's request body, by name. */

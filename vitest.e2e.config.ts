@@ -4,10 +4,10 @@ import { defineConfig } from "vitest/config";
 // (`bun run test:e2e` builds first); slow by nature, so it stays out of `test`.
 export default defineConfig({
   test: {
+    fileParallelism: false,
     globalSetup: ["tests/api/support/temp-root.ts"],
+    hookTimeout: 300_000,
     include: ["tests/api/e2e/**/*.test.ts"],
     testTimeout: 240_000,
-    hookTimeout: 300_000,
-    fileParallelism: false,
   },
 });

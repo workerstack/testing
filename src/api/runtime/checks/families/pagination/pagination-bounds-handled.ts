@@ -23,6 +23,10 @@ export const paginationBoundsHandled: Check<{
   limit: string | undefined;
   page: string | undefined;
 }>({
+  dependsOn: ["list.read-after-write", "pagination.page-walk-covers-set"],
+  id: "pagination.bounds-handled",
+  lists: true,
+  needs: "a page-size or page-number parameter, and at least one record",
   plan: (ctx) => {
     const { limit, page } = conv(ctx);
 
@@ -30,11 +34,6 @@ export const paginationBoundsHandled: Check<{
 
     return ready({ limit, page });
   },
-  dependsOn: ["list.read-after-write", "pagination.page-walk-covers-set"],
-  id: "pagination.bounds-handled",
-  lists: true,
-  needs: "a page-size or page-number parameter, and at least one record",
-  subjects: subjectsOf.list,
   async run(ctx, { limit, page }): Promise<Outcome> {
     if (limit !== undefined) {
       for (const value of ["0", "-1", "2.5", "abc"]) {
@@ -42,11 +41,11 @@ export const paginationBoundsHandled: Check<{
 
         if (result.exchange.status >= 500) {
           return ctx.findings.backend(this.id, ctx.entityName, {
-            summary: `a page size of ${value} crashes the listing`,
             detail:
               `?${limit}=${value} returned ${result.exchange.status}; an out-of-range page size must be ` +
               "refused with a 4xx, or served as a sane size.",
             evidence: [result.exchange],
+            summary: `a page size of ${value} crashes the listing`,
           });
         }
       }
@@ -66,9 +65,9 @@ export const paginationBoundsHandled: Check<{
 
     if (status >= 500) {
       return ctx.findings.backend(this.id, ctx.entityName, {
-        summary: "a page past the end crashes the listing",
         detail: `?${page}=${beyond}, past the last of ${whole.items.length} record(s), returned ${status}.`,
         evidence: [result.exchange],
+        summary: "a page past the end crashes the listing",
       });
     }
 
@@ -77,11 +76,12 @@ export const paginationBoundsHandled: Check<{
     if (result.items.length === 0) return asserted("a page past the end is served empty");
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "a page past the end of the collection returns records",
       detail:
         `?${page}=${beyond} lies past the last of ${whole.items.length} record(s) at ${size} per page, ` +
         `yet returned ${result.items.length}. A client that pages until an empty page never stops.`,
       evidence: [whole.last.exchange, result.exchange],
+      summary: "a page past the end of the collection returns records",
     });
   },
+  subjects: subjectsOf.list,
 });

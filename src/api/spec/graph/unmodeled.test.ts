@@ -49,14 +49,14 @@ describe("recordUnmodeled", () => {
 
   it("records one gap per callback an operation declares, under the operation's id", () => {
     const paths = {
-      "/subscriptions": { post: { callbacks: { onEvent: {}, onError: {} }, operationId: "subscribe" } },
       "/plain": { put: { callbacks: { onDone: {} } } },
+      "/subscriptions": { post: { callbacks: { onError: {}, onEvent: {} }, operationId: "subscribe" } },
     };
 
     expect(gapsOf({ paths })).toEqual([
-      callback("subscribe", "onEvent"),
-      callback("subscribe", "onError"),
       callback("PUT /plain", "onDone"),
+      callback("subscribe", "onError"),
+      callback("subscribe", "onEvent"),
     ]);
   });
 

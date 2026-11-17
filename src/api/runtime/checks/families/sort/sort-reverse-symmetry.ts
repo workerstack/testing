@@ -13,17 +13,6 @@ import { ids } from "../../sets/list.ts";
 import type { SetRead } from "../../sets/read.ts";
 
 export const sortReverseSymmetry: Check<{ field: string }> = defineCheck<{ field: string }>({
-  plan: (ctx) => {
-    if (ctx.records.length <= 1) return cannot();
-
-    // A nullable sort key exercises null ordering, where the interesting bugs live.
-    const field =
-      nullableField(ctx, ctx.query?.sortable ?? []) ??
-      ctx.query?.sortable.find((f) => f !== ctx.identity) ??
-      ctx.query?.sortable[0];
-
-    return field === undefined ? cannot() : ready({ field });
-  },
   // The property is asserted over a *nullable* sort key, because that is where null-ordering
   // bugs live. A backend that drops submitted fields leaves that column uniformly null, and a
   // sort over one repeated value is symmetric no matter how badly the backend sorts.
@@ -39,7 +28,17 @@ export const sortReverseSymmetry: Check<{ field: string }> = defineCheck<{ field
   id: "sort.reverse-symmetry",
   lists: true,
   needs: "an `order` parameter supporting asc and desc",
-  subjects: subjectsOf.list,
+  plan: (ctx) => {
+    if (ctx.records.length <= 1) return cannot();
+
+    // A nullable sort key exercises null ordering, where the interesting bugs live.
+    const field =
+      nullableField(ctx, ctx.query?.sortable ?? []) ??
+      ctx.query?.sortable.find((f) => f !== ctx.identity) ??
+      ctx.query?.sortable[0];
+
+    return field === undefined ? cannot() : ready({ field });
+  },
   async run(ctx, { field }): Promise<Outcome> {
     const limit = pageSize(ctx);
     // Gathered across pages: a collection larger than one page would otherwise leave this
@@ -73,9 +72,9 @@ export const sortReverseSymmetry: Check<{ field: string }> = defineCheck<{ field
       { first: ascending, second: descending },
       {
         first: () =>
-          collectSet(ctx, limit, {}, { order: sortTerm(conv(ctx), { direction: "asc", field }), fresh: true }),
+          collectSet(ctx, limit, {}, { fresh: true, order: sortTerm(conv(ctx), { direction: "asc", field }) }),
         second: () =>
-          collectSet(ctx, limit, {}, { order: sortTerm(conv(ctx), { direction: "desc", field }), fresh: true }),
+          collectSet(ctx, limit, {}, { fresh: true, order: sortTerm(conv(ctx), { direction: "desc", field }) }),
       },
     );
 
@@ -86,6 +85,7 @@ export const sortReverseSymmetry: Check<{ field: string }> = defineCheck<{ field
 
     return judgeReversal(ctx, this.id, field, settled);
   },
+  subjects: subjectsOf.list,
 });
 
 // The listed values of `field`, nulls left out, as comparable text.
@@ -108,9 +108,9 @@ function judgeReversal(
 
   if (forward.length !== backward.length) {
     return ctx.findings.backend(check, ctx.entityName, {
-      summary: "ascending and descending sorts return different numbers of records",
       detail: `order=${field}.asc returned ${forward.length}, order=${field}.desc returned ${backward.length}`,
       evidence: [ascending.last.exchange, descending.last.exchange],
+      summary: "ascending and descending sorts return different numbers of records",
     });
   }
 
@@ -124,13 +124,13 @@ function judgeReversal(
     const onlyAsc = forward.filter((id) => !backward.includes(id));
     const onlyDesc = backward.filter((id) => !forward.includes(id));
     ctx.findings.backend(check, ctx.entityName, {
-      summary: "ascending and descending sorts return different sets",
       detail:
         `order=${field}.asc and order=${field}.desc disagree about which records exist. ` +
         `Only ascending: ${onlyAsc.slice(0, 3).join(", ") || "—"}. ` +
         `Only descending: ${onlyDesc.slice(0, 3).join(", ") || "—"}. ` +
         "Sort direction must reorder a collection, never change its membership.",
       evidence: [ascending.last.exchange, descending.last.exchange],
+      summary: "ascending and descending sorts return different sets",
     });
 
     return ASSERTED;
@@ -145,10 +145,10 @@ function judgeReversal(
   if (up.join("\u0000") === down.toReversed().join("\u0000")) return ASSERTED;
 
   return ctx.findings.backend(check, ctx.entityName, {
-    summary: "descending order is not ascending order reversed",
     detail:
       `order=${field}.asc gives ${up.slice(0, 4).join(", ")}…, but order=${field}.desc reversed gives ` +
       `${down.toReversed().slice(0, 4).join(", ")}…. One direction applies a different ordering than the other.`,
     evidence: [ascending.last.exchange, descending.last.exchange],
+    summary: "descending order is not ascending order reversed",
   });
 }

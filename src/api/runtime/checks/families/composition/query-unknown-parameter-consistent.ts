@@ -18,17 +18,16 @@ import { readSet } from "../../sets/read.ts";
  * typo — and each answer compared, as a whole set, with the listing asked for without it.
  */
 export const unknownParameterConsistent: Check<{ names: string[] }> = defineCheck<{ names: string[] }>({
+  dependsOn: ["list.read-after-write", "pagination.page-walk-covers-set"],
+  id: "query.unknown-parameter-consistent",
+  lists: true,
+  needs: "a listing and at least one record",
   plan: (ctx) => {
     if (ctx.records.length === 0) return cannot();
     const real = conv(ctx).limit ?? conv(ctx).page ?? conv(ctx).order ?? "limit";
 
     return ready({ names: ["testing_unknown_parameter", `${real}_testing_typo`] });
   },
-  dependsOn: ["list.read-after-write", "pagination.page-walk-covers-set"],
-  id: "query.unknown-parameter-consistent",
-  lists: true,
-  needs: "a listing and at least one record",
-  subjects: subjectsOf.list,
   async run(ctx, { names }): Promise<Outcome> {
     const baseline = await readSet(ctx, {}, { fresh: true });
 
@@ -44,9 +43,9 @@ export const unknownParameterConsistent: Check<{ names: string[] }> = defineChec
 
       if (exchange.status >= 500) {
         return ctx.findings.backend(this.id, ctx.entityName, {
-          summary: "an unknown query parameter crashes the listing",
           detail: `adding ?${name}=1, a parameter the document does not declare, returned ${exchange.status}.`,
           evidence: [exchange],
+          summary: "an unknown query parameter crashes the listing",
         });
       }
 
@@ -65,12 +64,12 @@ export const unknownParameterConsistent: Check<{ names: string[] }> = defineChec
 
       if (!sameSet(setOf(probe.items, ctx.identity), expected)) {
         return ctx.findings.backend(this.id, ctx.entityName, {
-          summary: "an unknown query parameter silently changes the result",
           detail:
             `adding ?${name}=1, a parameter the document does not declare, returned ${probe.items.length} ` +
             `record(s) where the plain listing returns ${expected.size}, with no error. A caller who ` +
             "misspells a parameter gets a different answer and no way to know.",
           evidence: [baseline.last.exchange, exchange],
+          summary: "an unknown query parameter silently changes the result",
         });
       }
 
@@ -81,16 +80,17 @@ export const unknownParameterConsistent: Check<{ names: string[] }> = defineChec
 
     if (policies.size > 1) {
       return ctx.findings.backend(this.id, ctx.entityName, {
-        summary: "unknown query parameters are handled inconsistently",
         detail: `${answers
           .map((answer) => `?${answer.name}=1 was ${answer.policy} (${answer.exchange.status})`)
           .join(
             "; ",
           )}. One unknown name refused and another ignored leaves callers guessing which mistakes are caught.`,
         evidence: answers.map((answer) => answer.exchange),
+        summary: "unknown query parameters are handled inconsistently",
       });
     }
 
     return asserted(`unknown query parameters are ${answers[0]?.policy ?? "ignored"} on the listing`);
   },
+  subjects: subjectsOf.list,
 });

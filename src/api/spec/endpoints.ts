@@ -7,7 +7,9 @@ import type { Endpoint, OpenApiDocument, OperationObject, ParameterObject } from
 export function listEndpoints(doc: OpenApiDocument): Endpoint[] {
   const out: Endpoint[] = [];
 
-  for (const [path, item] of Object.entries(doc.paths ?? {})) {
+  // In document order: the author's, which a check that samples "the first in document order" follows.
+  // A document is untrusted input, so a path item is read as unknown until it is shown to be an object.
+  for (const [path, item] of Object.entries<unknown>(doc.paths ?? {})) {
     if (item === null || typeof item !== "object") continue;
 
     for (const method of PATH_ITEM_METHODS) {

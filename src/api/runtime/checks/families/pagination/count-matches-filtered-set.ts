@@ -11,6 +11,13 @@ import { envelopeValue, list } from "../../sets/list.ts";
 export const countMatchesWalk: Check<{ countTerm: Record<string, string> }> = defineCheck<{
   countTerm: Record<string, string>;
 }>({
+  // Compares the reported total against the *filtered* set. Where the filter is ignored the two
+  // agree trivially — both describe the whole collection — so the count cannot be judged until
+  // filtering itself is known to work.
+  dependsOn: ["query.filter-selects-from-whole-set", "list.read-after-write", "filter.equality-selects-exactly-one"],
+  id: "count.matches-filtered-set",
+  lists: true,
+  needs: "a total-count field and a `filter` parameter",
   plan: (ctx) => {
     if (ctx.records.length <= 1 || !filterable(ctx) || !identityIsFilterable(ctx)) return cannot();
     const targetId = idOf(ctx.records[0], ctx.identity);
@@ -22,14 +29,6 @@ export const countMatchesWalk: Check<{ countTerm: Record<string, string> }> = de
       ? cannot("a filter grammar that can express equality on the identity")
       : ready({ countTerm });
   },
-  // Compares the reported total against the *filtered* set. Where the filter is ignored the two
-  // agree trivially — both describe the whole collection — so the count cannot be judged until
-  // filtering itself is known to work.
-  dependsOn: ["query.filter-selects-from-whole-set", "list.read-after-write", "filter.equality-selects-exactly-one"],
-  id: "count.matches-filtered-set",
-  lists: true,
-  needs: "a total-count field and a `filter` parameter",
-  subjects: subjectsOf.list,
   async run(ctx, { countTerm }): Promise<Outcome> {
     const filtered = await list(ctx, { ...q(ctx, { limit: pageSize(ctx) }), ...countTerm });
 
@@ -42,11 +41,12 @@ export const countMatchesWalk: Check<{ countTerm: Record<string, string> }> = de
     if (reported === filtered.items.length) return ASSERTED;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "reported count disagrees with the filtered result",
       detail:
         `filter selected ${filtered.items.length} record(s) but count reported ${reported}. ` +
         "A count that ignores the active filter makes every paginated UI show wrong totals.",
       evidence: [filtered.exchange],
+      summary: "reported count disagrees with the filtered result",
     });
   },
+  subjects: subjectsOf.list,
 });

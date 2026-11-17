@@ -18,6 +18,10 @@ export const querySearchAndSelectCompose: Check<{
   requested: string[];
   projection: Record<string, string>;
 }>({
+  dependsOn: ["pagination.page-walk-covers-set", "search.q-narrows-result", "select.projection-honored"],
+  id: "query.search-and-select-compose",
+  lists: true,
+  needs: "searchable and selectable fields",
   plan: (ctx) => {
     if (conv(ctx).search === undefined || conv(ctx).select === undefined) return cannot();
     const query = ctx.query;
@@ -35,11 +39,6 @@ export const querySearchAndSelectCompose: Check<{
 
     return projection === null ? cannot() : ready({ field, projection, requested, token });
   },
-  dependsOn: ["pagination.page-walk-covers-set", "search.q-narrows-result", "select.projection-honored"],
-  id: "query.search-and-select-compose",
-  lists: true,
-  needs: "searchable and selectable fields",
-  subjects: subjectsOf.list,
   async run(ctx, { projection, token }): Promise<Outcome> {
     const searched = await listAll(ctx, q(ctx, { limit: pageSize(ctx), search: token }));
     const combined = await listAll(ctx, { ...q(ctx, { limit: pageSize(ctx), search: token }), ...projection });
@@ -63,9 +62,10 @@ export const querySearchAndSelectCompose: Check<{
     if (moved !== null) return moved;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "adding a select changes which records a search returns",
       detail: `q=${JSON.stringify(token)} alone matched ${searched.items.length}; with select it matched ${combined.items.length}.`,
       evidence: [searched.exchange, combined.exchange],
+      summary: "adding a select changes which records a search returns",
     });
   },
+  subjects: subjectsOf.list,
 });

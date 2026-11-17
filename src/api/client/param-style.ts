@@ -40,9 +40,16 @@ function shapeOf(value: unknown, encode: Encode): Shape {
   if (Array.isArray(value)) return { items: value.map((item) => encode(textOf(item))) };
 
   if (typeof value !== "object" || value === null) return { scalar: encode(String(value)) };
-  const entries = Object.entries(value).filter(([, item]) => item !== undefined);
 
-  return { entries: entries.map(([key, item]): Pair => [encode(key), encode(textOf(item))]) };
+  const byName = new Map<string, unknown>(Object.entries(value));
+
+  const pairs = [...byName.keys()].toSorted().flatMap((key): Pair[] => {
+    const item = byName.get(key);
+
+    return item === undefined ? [] : [[encode(key), encode(textOf(item))]];
+  });
+
+  return { entries: pairs };
 }
 
 // The style and explode a parameter is written with, the document's or the OAS default. deepObject

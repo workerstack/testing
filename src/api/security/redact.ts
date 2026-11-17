@@ -205,9 +205,12 @@ export class Redactor {
     if (value === null || typeof value !== "object") return value;
     const out: Record<string, unknown> = {};
 
-    for (const [key, child] of Object.entries(value)) {
+    // By name: a redacted copy reads the same whatever order the body was built in.
+    const children = new Map<string, unknown>(Object.entries(value));
+
+    for (const key of [...children.keys()].toSorted()) {
       if (isSecretJsonKey(key)) seen.redacted = true;
-      out[key] = isSecretJsonKey(key) ? REDACTED : this.#json(child, seen);
+      out[key] = isSecretJsonKey(key) ? REDACTED : this.#json(children.get(key), seen);
     }
 
     return out;

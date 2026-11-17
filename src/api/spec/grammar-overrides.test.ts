@@ -22,8 +22,8 @@ const model = () =>
             "x-query": { grammar: TEMPLATE, sortGrammar: SORT_TEMPLATE },
           },
         },
-        "/tags": { get: { operationId: "tags.list", parameters: [query("sort")], responses: ok(list(member)) } },
         "/ping": { get: { operationId: "ping", responses: ok({ type: "object" }) } },
+        "/tags": { get: { operationId: "tags.list", parameters: [query("sort")], responses: ok(list(member)) } },
       }),
     ).doc,
   );

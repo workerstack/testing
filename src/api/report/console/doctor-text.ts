@@ -1,3 +1,4 @@
+import { entriesByName } from "../../config/types/entries-by-name.ts";
 import { formatUniqueSets } from "../../spec/extensions/unique.ts";
 import type { SpecModel } from "../../spec/graph/types.ts";
 import { bypassRows } from "./bypass.ts";
@@ -45,17 +46,18 @@ export function summaryLines(facts: DoctorFacts, config?: DoctorConfig): string[
 // acts on.
 export function tagLines(model: SpecModel, facts: DoctorFacts): string[] {
   const declared = declaredTags(model);
-  const locked = Object.entries(TAG_UNLOCKS).filter(([tag]) => !declared.has(tag));
+
+  // The tables are lookups, so the lines list the tags by name, not in the order a table was written.
+  const locked = entriesByName(TAG_UNLOCKS).filter(([tag]) => !declared.has(tag));
+
   const lockedChecks = locked.reduce((sum, [, checks]) => sum + checks.length, 0);
 
-  const applies: Record<keyof typeof TAG_SHARPENS, boolean> = {
-    "x-query": facts.listable.length > 0,
-    "x-tenant": model.operations.some((op) => op.tenantSource !== null),
-  };
+  const applies = new Map([
+    ["x-query", facts.listable.length > 0],
+    ["x-tenant", model.operations.some((op) => op.tenantSource !== null)],
+  ]);
 
-  const vague = (Object.entries(TAG_SHARPENS) as Array<[keyof typeof TAG_SHARPENS, string]>).filter(
-    ([tag]) => !declared.has(tag) && applies[tag],
-  );
+  const vague = entriesByName(TAG_SHARPENS).filter(([tag]) => !declared.has(tag) && applies.get(tag) === true);
 
   return [
     ...block(

@@ -22,8 +22,8 @@ const spec = {
   info: { title: "file", version: "1" },
   openapi: "3.1.0",
   paths: {
-    "/v1/request": { post: { operationId: "file.request", responses: ok } },
     "/v1/file": { get: { operationId: "file.download", responses: ok } },
+    "/v1/request": { post: { operationId: "file.request", responses: ok } },
   },
 } as unknown as OpenApiDocument;
 

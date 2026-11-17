@@ -61,7 +61,7 @@ describe("stringFor", () => {
 
   it("searches a pattern for an unknown format, and refuses one nothing matches", () => {
     expect(stringFor({ format: "color", pattern: "^#[0-9]{6}$" }, at())).toBe("#000000");
-    expect(refused({ pattern: "^[0-9]{3}$", maxLength: 2 })).toBe("/s no string found for pattern ^[0-9]{3}$");
+    expect(refused({ maxLength: 2, pattern: "^[0-9]{3}$" })).toBe("/s no string found for pattern ^[0-9]{3}$");
   });
 
   it("makes plain text, a run of B at the boundary", () => {

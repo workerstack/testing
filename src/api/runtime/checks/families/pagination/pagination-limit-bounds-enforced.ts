@@ -15,6 +15,10 @@ export const limitBoundsEnforced: Check<{ limitParam: string; max: number }> = d
   limitParam: string;
   max: number;
 }>({
+  dependsOn: ["pagination.limit-bounds-page-size"],
+  id: "pagination.limit-bounds-enforced",
+  lists: true,
+  needs: "a declared limitOutOfRange: reject, and a page size with a maximum",
   plan: (ctx) => {
     const max = ctx.query?.maxLimit;
     const limitParam = conv(ctx).limit;
@@ -25,11 +29,6 @@ export const limitBoundsEnforced: Check<{ limitParam: string; max: number }> = d
 
     return ready({ limitParam, max });
   },
-  dependsOn: ["pagination.limit-bounds-page-size"],
-  id: "pagination.limit-bounds-enforced",
-  lists: true,
-  needs: "a declared limitOutOfRange: reject, and a page size with a maximum",
-  subjects: subjectsOf.list,
   async run(ctx, { limitParam, max }): Promise<Outcome> {
     for (const size of [0, max + 1]) {
       // Deliberately out of range: these are the requests that may break the documented bound.
@@ -37,9 +36,9 @@ export const limitBoundsEnforced: Check<{ limitParam: string; max: number }> = d
 
       if (result.exchange.status >= 500) {
         return ctx.findings.backend(this.id, ctx.entityName, {
-          summary: "an out-of-range page size produces a server error",
           detail: `${limitParam}=${size} returned ${result.exchange.status}; a refused input should be 4xx.`,
           evidence: [result.exchange],
+          summary: "an out-of-range page size produces a server error",
         });
       }
 
@@ -51,14 +50,15 @@ export const limitBoundsEnforced: Check<{ limitParam: string; max: number }> = d
       if (refused !== null) return refused;
 
       return ctx.findings.backend(this.id, ctx.entityName, {
-        summary: "an out-of-range page size is served",
         detail:
           `${limitParam}=${size} returned ${result.exchange.status}; the document declares that a page size ` +
           `outside 1..${max} is refused.`,
         evidence: [result.exchange],
+        summary: "an out-of-range page size is served",
       });
     }
 
     return ASSERTED;
   },
+  subjects: subjectsOf.list,
 });

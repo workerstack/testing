@@ -11,6 +11,10 @@ export const limitRespectsMax: Check<{ max: number; limitParam: string }> = defi
   max: number;
   limitParam: string;
 }>({
+  dependsOn: ["pagination.limit-bounds-page-size"],
+  id: "pagination.limit-respects-documented-max",
+  lists: true,
+  needs: "a declared maxLimit, and more records than it",
   plan: (ctx) => {
     const max = ctx.query?.maxLimit;
     const limitParam = conv(ctx).limit;
@@ -21,11 +25,6 @@ export const limitRespectsMax: Check<{ max: number; limitParam: string }> = defi
 
     return ready({ limitParam, max });
   },
-  dependsOn: ["pagination.limit-bounds-page-size"],
-  id: "pagination.limit-respects-documented-max",
-  lists: true,
-  needs: "a declared maxLimit, and more records than it",
-  subjects: subjectsOf.list,
   async run(ctx, { limitParam, max }): Promise<Outcome> {
     // Deliberately past the cap — the one request that may break the documented bound.
     const result = await list(asProbe(ctx), { [limitParam]: max + 50 });
@@ -36,11 +35,12 @@ export const limitRespectsMax: Check<{ max: number; limitParam: string }> = defi
     if (result.items.length <= max) return ASSERTED;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "page size exceeds the documented maximum",
       detail:
         `limit=${max + 50} returned ${result.items.length} records; the document caps limit at ` +
         `${max}. Either the cap is not enforced or the document overstates it.`,
       evidence: [result.exchange],
+      summary: "page size exceeds the documented maximum",
     });
   },
+  subjects: subjectsOf.list,
 });

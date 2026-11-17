@@ -149,8 +149,8 @@ describe("createdRecord, unconfirmed", () => {
         client,
         createOp,
         exchange: exchange("POST", "/v1/pay", { body, status: 200 }),
-        principal: "alpha",
         model,
+        principal: "alpha",
         scope,
         sent: { amount: 1 },
       });

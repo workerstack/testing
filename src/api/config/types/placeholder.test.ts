@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { isBytes, PLACEHOLDER, placeholderNames, PRINCIPAL_PLACEHOLDER, WHOLE_PLACEHOLDER } from "./placeholder.ts";
+import {
+  bindOrder,
+  isBytes,
+  PLACEHOLDER,
+  placeholderNames,
+  PRINCIPAL_PLACEHOLDER,
+  WHOLE_PLACEHOLDER,
+} from "./placeholder.ts";
 
 describe("isBytes", () => {
   it("knows a buffer, a typed view and a blob, and nothing else", () => {
@@ -38,5 +45,37 @@ describe("the three patterns", () => {
     expect(plain).toEqual([true, true, false, false, false, false, false]);
     expect(read(WHOLE_PLACEHOLDER, (name) => `{${name}}`)).toEqual(plain);
     expect(read(PRINCIPAL_PLACEHOLDER, (name) => `{principal.${name}}`)).toEqual(plain);
+  });
+});
+
+const CHAIN = {
+  cyclic: [],
+  order: ["a", "b", "c"],
+  pairs: [
+    ["a", "x"],
+    ["b", "{a}"],
+    ["c", "{b}"],
+  ],
+};
+
+describe("bindOrder", () => {
+  it("puts each entry after the siblings it reads, whatever order the keys were written in", () => {
+    const written = Object.fromEntries([
+      ["c", "{b}"],
+      ["b", "{a}"],
+      ["a", "x"],
+    ]);
+
+    expect(bindOrder(written)).toStrictEqual(CHAIN);
+    expect(bindOrder({ a: "x", b: "{a}", c: "{b}" })).toStrictEqual(CHAIN);
+  });
+
+  it("names entries that read each other, and reads of itself or outside names as no dependency", () => {
+    expect(bindOrder({ a: "{a}" })).toStrictEqual({ cyclic: [], order: ["a"], pairs: [["a", "{a}"]] });
+    expect(bindOrder({ a: "{b}", b: "{a}", c: "{outside}" })).toStrictEqual({
+      cyclic: ["a", "b"],
+      order: ["c"],
+      pairs: [["c", "{outside}"]],
+    });
   });
 });

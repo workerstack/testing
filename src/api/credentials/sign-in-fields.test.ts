@@ -11,7 +11,7 @@ describe("signInFields", () => {
       login: {
         from: "$.token",
         steps: [
-          { body: { user: { handle: "{principal.email}" }, secret: "{principal.password}" }, operationId: "login" },
+          { body: { secret: "{principal.password}", user: { handle: "{principal.email}" } }, operationId: "login" },
         ],
       },
     };

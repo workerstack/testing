@@ -153,12 +153,11 @@ async function referenceStages(): Promise<Stage[]> {
     const schema = itemSchemaOf({ listOp, model, readOp: ops(entity.read) });
 
     const staged = contextFor(model, anchor, {
-      respond: () => {},
       fields: {
-        entityName: entity.name,
         actors: [actor, peer],
         createOp: ops(entity.create),
         deleteOp: ops(entity.delete),
+        entityName: entity.name,
         identity,
         peer,
         peerScope: peer.scope,
@@ -167,6 +166,7 @@ async function referenceStages(): Promise<Stage[]> {
         records: cohort(schema, identity),
         updateOp: ops(entity.update),
       },
+      respond: () => {},
     });
 
     const ctx: WriteContext = { ...staged.ctx, listOp };

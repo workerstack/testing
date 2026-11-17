@@ -45,15 +45,15 @@ describe("deriveCollectionShape: envelopes", () => {
         has_more: { type: "boolean" },
         items: list(),
         next_cursor: { type: "string" },
-        page_size: { type: "integer" },
         pageNumber: { type: "integer" },
+        page_size: { type: "integer" },
         total: { type: "integer" },
       },
       type: "object",
     } as JsonSchema;
 
     expect(deriveCollectionShape(envelope)).toEqual({
-      envelopeKeys: ["has_more", "next_cursor", "page_size", "pageNumber", "total"],
+      envelopeKeys: ["has_more", "next_cursor", "pageNumber", "page_size", "total"],
       itemSchema: item,
       key: "items",
       pagination: {
@@ -101,7 +101,7 @@ describe("deriveCollectionShape: choosing the rows", () => {
     expect(deriveCollectionShape(null)).toBeNull();
     expect(deriveCollectionShape({ type: "object" })).toBeNull();
     expect(deriveCollectionShape({ properties: null })).toBeNull();
-    expect(deriveCollectionShape({ properties: { name: { type: "string" }, odd: null, flag: true } })).toBeNull();
+    expect(deriveCollectionShape({ properties: { flag: true, name: { type: "string" }, odd: null } })).toBeNull();
     expect(deriveCollectionShape({ properties: { rows: list(null) } })).toBeNull();
     expect(deriveCollectionShape({ properties: { errors: list() } })).toBeNull();
   });

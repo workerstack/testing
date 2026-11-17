@@ -1,4 +1,4 @@
-import { type DefectName, DEFECTS } from "../../reference/defects/table.ts";
+import { type DefectName, DEFECT_ORDER } from "../../reference/defects/table.ts";
 import { DIALECTS } from "../../reference/dialect/presets.ts";
 import type { Backend } from "./engines.ts";
 
@@ -224,8 +224,7 @@ const ONE_ENGINE: ReadonlySet<DefectName> = /* @__PURE__ */ new Set<DefectName>(
 /** Every defect this backend and dialect can exhibit, narrowed to `filter` when one is given. */
 export function defectsFor(backend: Backend, dialect: string, filter?: readonly string[]): DefectName[] {
   return (
-    (Object.keys(DEFECTS) as DefectName[])
-      .filter((name) => filter === undefined || filter.length === 0 || filter.includes(name))
+    DEFECT_ORDER.filter((name) => filter === undefined || filter.length === 0 || filter.includes(name))
       // A defect the backend structurally cannot exhibit is not a miss: the in-memory store has
       // no physical column names, so a DDL/read mismatch has nowhere to happen.
       .filter((name) => backend !== "memory" || !SQL_ONLY.has(name))

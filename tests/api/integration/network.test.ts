@@ -61,7 +61,7 @@ describe("classifyNetworkError", () => {
     expect(classifyNetworkError(net("ERR_TLS_CERT_ALTNAME_INVALID"))).toBeNull();
     expect(classifyNetworkError(new SyntaxError("nope"))).toBeNull();
     expect(classifyNetworkError(null)).toBeNull();
-    expect(classifyNetworkError({ code: "", name: "", message: "", cause: { code: "ENOTFOUND" } })).toBe("dns");
+    expect(classifyNetworkError({ cause: { code: "ENOTFOUND" }, code: "", message: "", name: "" })).toBe("dns");
     const cycle: { cause?: unknown } = {};
     cycle.cause = cycle;
     expect(classifyNetworkError(cycle)).toBeNull();
@@ -223,7 +223,7 @@ describe("Client records a status-0 network exchange and retries", () => {
 
       if (hits === 1) throw net("ECONNRESET");
 
-      return new Response("{}", { status: 200, headers: { "content-type": "application/json" } });
+      return new Response("{}", { headers: { "content-type": "application/json" }, status: 200 });
     };
 
     await withFetch(impl, async () => {

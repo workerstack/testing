@@ -137,7 +137,7 @@ describe("scratchRecord, when no record can be made", () => {
 });
 
 describe("updateRequest", () => {
-  const current = { id: "n1", name: "a", rank: 2, extra: "kept out" };
+  const current = { extra: "kept out", id: "n1", name: "a", rank: 2 };
 
   it("sends only the changes through a PATCH", async () => {
     const { ctx } = notesContext();

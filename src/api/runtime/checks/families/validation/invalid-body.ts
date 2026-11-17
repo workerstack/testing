@@ -41,6 +41,7 @@ export function invalidChoice(
 
   if (typeof ordinary !== "object" || ordinary.properties === undefined) return null;
 
+  // In the order the schema declares them: the document's author's order, which the docs promise.
   const properties = Object.entries(ordinary.properties as Record<string, JsonSchema>).filter(
     ([name]) => !kept.has(name),
   );

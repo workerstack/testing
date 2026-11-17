@@ -33,31 +33,6 @@ const DOCUMENT = {
   info: { title: "inferred", version: "1" },
   openapi: "3.1.0",
   paths: {
-    "/projects/{project_id}/jobs": {
-      post: { operationId: "job.create", parameters: [PROJECT], responses: ok, ...on("job", "create") },
-    },
-    "/projects/{project_id}/jobs/{job_id}": {
-      delete: { operationId: "job.delete", parameters: [PROJECT, JOB], responses: ok, ...on("job", "delete") },
-      get: { operationId: "job.get", parameters: [PROJECT, JOB], responses: ok, ...on("job", "read") },
-    },
-    "/projects/{project_id}/jobs/start": { post: action("job.start") },
-    "/projects/{project_id}/jobs/notify": { post: action("job.notify") },
-    "/projects/{project_id}/jobs/{job_id}/retry": {
-      post: { ...action("job.retry"), parameters: [PROJECT, JOB] },
-    },
-    "/projects/{project_id}/jobs/kick": {
-      post: action("job.kick", "job", { "x-effects": [{ count: 1, entity: "job", op: "create" }] }),
-    },
-    "/projects/{project_id}/jobs/queue": {
-      post: action("job.queue", "job", {
-        "x-async": { idFrom: "$.job_id", poll: "GET /projects/{project_id}/jobs/{job_id}", until: "status.eq.done" },
-      }),
-    },
-    "/projects/{project_id}/batches/start": { post: action("batch.start", "batch") },
-    "/projects/{project_id}/batches": {
-      post: { operationId: "batch.create", parameters: [PROJECT], responses: ok, ...on("batch", "create") },
-    },
-    "/ping": { post: { operationId: "misc.ping", responses: ok } },
     "/invites/{token}/accept": {
       post: {
         operationId: "invite.accept",
@@ -65,6 +40,31 @@ const DOCUMENT = {
         responses: ok,
         ...on("job", "action"),
       },
+    },
+    "/ping": { post: { operationId: "misc.ping", responses: ok } },
+    "/projects/{project_id}/batches": {
+      post: { operationId: "batch.create", parameters: [PROJECT], responses: ok, ...on("batch", "create") },
+    },
+    "/projects/{project_id}/batches/start": { post: action("batch.start", "batch") },
+    "/projects/{project_id}/jobs": {
+      post: { operationId: "job.create", parameters: [PROJECT], responses: ok, ...on("job", "create") },
+    },
+    "/projects/{project_id}/jobs/kick": {
+      post: action("job.kick", "job", { "x-effects": [{ count: 1, entity: "job", op: "create" }] }),
+    },
+    "/projects/{project_id}/jobs/notify": { post: action("job.notify") },
+    "/projects/{project_id}/jobs/queue": {
+      post: action("job.queue", "job", {
+        "x-async": { idFrom: "$.job_id", poll: "GET /projects/{project_id}/jobs/{job_id}", until: "status.eq.done" },
+      }),
+    },
+    "/projects/{project_id}/jobs/start": { post: action("job.start") },
+    "/projects/{project_id}/jobs/{job_id}": {
+      delete: { operationId: "job.delete", parameters: [PROJECT, JOB], responses: ok, ...on("job", "delete") },
+      get: { operationId: "job.get", parameters: [PROJECT, JOB], responses: ok, ...on("job", "read") },
+    },
+    "/projects/{project_id}/jobs/{job_id}/retry": {
+      post: { ...action("job.retry"), parameters: [PROJECT, JOB] },
     },
   },
 } as unknown as OpenApiDocument;
@@ -140,8 +140,8 @@ describe("an inferred create", () => {
   it("ledgers the job an untagged job.start answers, marked inferred, and tears it down", async () => {
     const unrelated = post("job.notify", "/projects/a/jobs/notify?x=1", {
       body: { notification_id: "n_1" },
-      seq: 3,
       sent: { m: "hi" },
+      seq: 3,
     });
 
     const { client, ledger, model, observe, recorded, sent } = setup({ [STARTED]: 200 }, [unrelated]);
@@ -215,7 +215,7 @@ describe("an inferred create: the evidence it needs", () => {
 
     const earlier = [
       post("job.notify", "/projects/a/jobs/notify", { body: { note: "job_000071" }, seq: 1 }),
-      post("job.notify", "/projects/a/jobs/notify", { body: {}, seq: 1, sent: { about: ["job_000071"] } }),
+      post("job.notify", "/projects/a/jobs/notify", { body: {}, sent: { about: ["job_000071"] }, seq: 1 }),
       post("job.notify", "/projects/a/jobs/job_000071/notify?x=1", { body: {}, seq: 1 }),
     ];
 
@@ -228,7 +228,7 @@ describe("an inferred create: the evidence it needs", () => {
 
     const self = setup({ [STARTED]: 200 });
     await self.observe(
-      post("job.start", "/projects/a/jobs/start", { body: answer, seq: 2, sent: { job_id: "job_000071" } }),
+      post("job.start", "/projects/a/jobs/start", { body: answer, sent: { job_id: "job_000071" }, seq: 2 }),
     );
     expect(self.ledger.entries()).toEqual([]);
     const later = setup({ [STARTED]: 200 }, [post("job.notify", "/projects/a/jobs/notify", { body: answer, seq: 9 })]);

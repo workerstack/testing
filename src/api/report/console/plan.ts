@@ -4,6 +4,7 @@ import { describeRequested } from "../../runtime/scope/plan.ts";
 import { type ScopePlan } from "../../runtime/scope/types.ts";
 import { formatUniqueSets } from "../../spec/extensions/unique.ts";
 import type { EntityModel, SpecModel } from "../../spec/graph/types.ts";
+import { inOrder } from "../../spec/in-order.ts";
 import {
   type DeclaredGrammar,
   declaredGrammars,
@@ -40,12 +41,25 @@ function viewRoots(model: SpecModel, view: PlanView): Roots {
   });
 }
 
+/** The plan's fields in the order `plan --json` states them. */
+const PLAN_ORDER = [
+  "entities",
+  "grammars",
+  "operations",
+  "prefixRoots",
+  "unmadeIds",
+  "scope",
+  "security",
+  "unique",
+  "unsetEnv",
+] as const;
+
 function planJson(model: SpecModel, grammars: DeclaredGrammar[], view: PlanView): string {
   const { authCreates = new Set(), scope, unsetEnv } = view;
   const entities = modeledEntities(model, authCreates);
 
   return `${JSON.stringify(
-    {
+    inOrder(PLAN_ORDER, {
       entities: entities.map((entity) => ({
         ...entity,
         estimatedRequests: estimateRequests(entity, model),
@@ -59,7 +73,7 @@ function planJson(model: SpecModel, grammars: DeclaredGrammar[], view: PlanView)
         .filter((entity) => entity.unique !== null)
         .map((entity) => ({ entity: entity.name, unique: entity.unique })),
       ...(unsetEnv === undefined ? {} : { unsetEnv }),
-    },
+    }),
     null,
     2,
   )}\n`;

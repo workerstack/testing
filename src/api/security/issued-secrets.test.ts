@@ -13,7 +13,7 @@ describe("issuedSecrets", () => {
   it("takes 16 characters or more whatever they are, 12 to 15 only when not letters alone, nothing shorter", () => {
     expect(issuedSecrets({ secret: "ABCDEFGHIJKLMNOP" })).toEqual(["ABCDEFGHIJKLMNOP"]);
     expect(issuedSecrets({ api_secret: "ab12cd34ef56" })).toEqual(["ab12cd34ef56"]);
-    expect(issuedSecrets({ password_hint: "Abcdefghijklm", token_type: "Bearer", secret: "short1" })).toEqual([]);
+    expect(issuedSecrets({ password_hint: "Abcdefghijklm", secret: "short1", token_type: "Bearer" })).toEqual([]);
   });
 
   it("leaves a value under any other key, and a body with no object in it", () => {

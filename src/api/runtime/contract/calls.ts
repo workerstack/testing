@@ -14,10 +14,10 @@ import { parametersOf } from "./params.ts";
 import { bodyOf, guardedSend, pathValues, queryValues } from "./request.ts";
 import type { ContractCall, ContractInput } from "./types.ts";
 
-export async function runContractCalls(input: ContractInput): Promise<void> {
-  const { model, grades } = input;
+function pendingOf(input: ContractInput): OperationModel[] {
+  const { grades, model } = input;
 
-  const pending = model.operations.filter(
+  return model.operations.filter(
     (op) =>
       !op.destructive &&
       !input.owned.has(op.operationId) &&
@@ -25,6 +25,11 @@ export async function runContractCalls(input: ContractInput): Promise<void> {
       !grades.judged(op.operationId) &&
       !grades.evidence.has(op.operationId),
   );
+}
+
+export async function runContractCalls(input: ContractInput): Promise<void> {
+  const { grades } = input;
+  const pending = pendingOf(input);
 
   if (pending.length === 0) return;
   input.checksRun.add(CONTRACT_CHECK_ID);

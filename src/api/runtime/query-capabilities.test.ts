@@ -118,11 +118,11 @@ describe("live harvest and hook", () => {
 
   it("resolves without harvest when no *From is declared", async () => {
     const caps = await resolveEntityCapabilities({
-      principal: "alpha",
       client: clientWith({}),
       entityName: "row",
       hook: async () => null,
       model: modelWith([]),
+      principal: "alpha",
       scope: {},
       tag: {
         filterable: ["id"],
@@ -159,10 +159,10 @@ describe("live harvest of type paths", () => {
     const sent: RequestOptions[] = [];
 
     const caps = await resolveEntityCapabilities({
-      principal: "alpha",
       client: clientWith({ names: ["id", "n"], types: ["text", 1] }, sent),
       entityName: "row",
       model: modelWith([{ id: "table.get", method: "GET", path: "/v1/tables/{id}" }]),
+      principal: "alpha",
       scope: { id: "t1" },
       tag: {
         catalog: {
@@ -197,7 +197,6 @@ describe("live harvest across every axis", () => {
     };
 
     const caps = await resolveEntityCapabilities({
-      principal: "alpha",
       client: clientWith(body),
       entity: {
         filterableFrom: {
@@ -220,6 +219,7 @@ describe("live harvest across every axis", () => {
       },
       itemSchema: { properties: { id: { type: "string" } }, type: "object" },
       model: modelWith([{ id: "table.get", method: "GET", path: "/v1/tables/{id}" }]),
+      principal: "alpha",
       scope: { id: "t1" },
       tag: {
         filterable: ["id"],
@@ -246,10 +246,10 @@ describe("live harvest across every axis", () => {
 describe("live harvest by route", () => {
   it("resolves harvest by route and skips a harvest with no target", async () => {
     const caps = await resolveEntityCapabilities({
-      principal: "alpha",
       client: clientWith({ columns: [{ name: "n" }] }),
       entityName: "row",
       model: modelWith([{ id: "meta", method: "GET", path: "/v1/meta" }]),
+      principal: "alpha",
       scope: {},
       tag: {
         catalog: {
@@ -275,10 +275,10 @@ describe("live harvest failures and route ids", () => {
   it("throws when harvest names an unknown operation", async () => {
     await expect(
       resolveEntityCapabilities({
-        principal: "alpha",
         client: clientWith({}),
         entityName: "row",
         model: modelWith([]),
+        principal: "alpha",
         scope: {},
         tag: {
           catalog: { filterableFrom: { operationId: "missing.get", path: "$.x" } },
@@ -292,10 +292,10 @@ describe("live harvest failures and route ids", () => {
     ).rejects.toThrow(/missing.get/);
     await expect(
       resolveEntityCapabilities({
-        principal: "alpha",
         client: clientWith({}),
         entityName: "row",
         model: modelWith([]),
+        principal: "alpha",
         scope: {},
         tag: {
           catalog: { filterableFrom: { operationId: "NOT A ROUTE", path: "$.x" } },
@@ -311,10 +311,10 @@ describe("live harvest failures and route ids", () => {
 
   it("harvests without a typePath and accepts GET /path operation ids", async () => {
     const caps = await resolveEntityCapabilities({
-      principal: "alpha",
       client: clientWith({ names: ["a", 1] }),
       entityName: "row",
       model: modelWith([{ id: "meta", method: "GET", path: "/v1/meta" }]),
+      principal: "alpha",
       scope: {},
       tag: {
         catalog: parseQueryCatalog({

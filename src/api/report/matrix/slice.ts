@@ -17,7 +17,7 @@ export type SliceEntity = {
 
 export function entitySlice(entity: SliceEntity, catalog: CheckCatalog, rows: ReportRows): EntityMatrix {
   const nodes = catalog.ids.map((id) => graphNode({ entity: entity.name, id }, catalog, rows));
-  const counts: Record<CellStatus, number> = { blocked: 0, failed: 0, passed: 0, "out-of-scope": 0, skipped: 0 };
+  const counts: Record<CellStatus, number> = { blocked: 0, failed: 0, "out-of-scope": 0, passed: 0, skipped: 0 };
 
   for (const node of nodes) counts[node.status] += 1;
 

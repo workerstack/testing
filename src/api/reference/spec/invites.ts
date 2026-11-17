@@ -90,9 +90,10 @@ function revokeOperation(ctx: SpecContext, table: EntityDef): Json {
 }
 
 export function invitePaths(ctx: SpecContext, table: EntityDef): Json {
-  return {
-    [`${table.itemPath}/invites`]: { post: inviteOperation(ctx, table) },
-    "/v1/invites/{token}/accept": { post: acceptOperation(ctx, table) },
-    [`${table.itemPath}/grants/{grant_id}`]: { delete: revokeOperation(ctx, table) },
-  };
+  // Entries, not a literal: the routes are listed in the order a reader sees them.
+  return Object.fromEntries([
+    [`${table.itemPath}/invites`, { post: inviteOperation(ctx, table) }],
+    ["/v1/invites/{token}/accept", { post: acceptOperation(ctx, table) }],
+    [`${table.itemPath}/grants/{grant_id}`, { delete: revokeOperation(ctx, table) }],
+  ]);
 }

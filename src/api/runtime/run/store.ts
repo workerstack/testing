@@ -104,6 +104,8 @@ function runPorts(loaded: Loaded, wiring: PortWiring): CredentialPorts {
           return answerOf(await auth(input.secrets).request(op.method, path, sent));
         }),
     },
+    records: credentialRecords({ client: () => wiring.clients().client, model, scopeOf: wiring.scopeOf }),
+    secrets: { register: (value) => wiring.redactor.registerSecret(value) },
     steps: {
       run: (steps, { secrets, ...at }) =>
         noted(() => {
@@ -113,8 +115,6 @@ function runPorts(loaded: Loaded, wiring: PortWiring): CredentialPorts {
           return stepRunner({ ...shared, originClients: origins }).run(steps, at);
         }),
     },
-    records: credentialRecords({ client: () => wiring.clients().client, model, scopeOf: wiring.scopeOf }),
-    secrets: { register: (value) => wiring.redactor.registerSecret(value) },
     tokens: {
       post: (url, form, hop) => noted(() => postForm(auth(OAUTH2_TOKENS), { form, url, ...hop })),
     },

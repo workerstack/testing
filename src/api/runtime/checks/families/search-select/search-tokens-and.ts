@@ -7,6 +7,10 @@ import { conv, pageSize, q } from "../../query/capabilities.ts";
 import { listAll, sameSet, setOf, unlessMoved } from "../../sets/compare.ts";
 
 export const searchTokensAnd: Check<{ a: string; b: string }> = defineCheck<{ a: string; b: string }>({
+  dependsOn: ["pagination.page-walk-covers-set", "search.q-narrows-result"],
+  id: "search.tokens-and",
+  lists: true,
+  needs: "searchable fields and two tokens that split the cohort",
   plan: (ctx) => {
     const field = ctx.query?.searchable[0];
 
@@ -30,11 +34,6 @@ export const searchTokensAnd: Check<{ a: string; b: string }> = defineCheck<{ a:
       ? cannot("two discriminating search tokens in the cohort")
       : ready({ a, b });
   },
-  dependsOn: ["pagination.page-walk-covers-set", "search.q-narrows-result"],
-  id: "search.tokens-and",
-  lists: true,
-  needs: "searchable fields and two tokens that split the cohort",
-  subjects: subjectsOf.list,
   async run(ctx, { a, b }): Promise<Outcome> {
     const limit = pageSize(ctx);
     const onlyA = await listAll(ctx, q(ctx, { limit, search: a }));
@@ -68,9 +67,10 @@ export const searchTokensAnd: Check<{ a: string; b: string }> = defineCheck<{ a:
     if (moved !== null) return moved;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "two search tokens are not applied as AND",
       detail: `q="${a} ${b}" returned ${got.size}; the intersection of each token is ${expected.size}.`,
       evidence: [onlyA.exchange, onlyB.exchange, both.exchange],
+      summary: "two search tokens are not applied as AND",
     });
   },
+  subjects: subjectsOf.list,
 });

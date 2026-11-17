@@ -35,6 +35,18 @@ const actsAsPut: Override = (server) => (method, path, options) => {
   return { body: replaced, status: 200 };
 };
 
+/** `actsAsPut`, with every read answering the record's keys in reverse. */
+function reversedActsAsPut(server: NotesServer): Responder {
+  return (method, path, options) => {
+    const record = server.records.get(path.slice("/notes/".length));
+
+    if (method === "GET" && record !== undefined)
+      return { body: Object.fromEntries(Object.entries(record).toReversed()), status: 200 };
+
+    return actsAsPut(server)(method, path, options);
+  };
+}
+
 // Every write bumps `rev` on every record: drift the whole collection shares.
 const revisesAll: Override = (server) => (method, path, options) => {
   if (method === "GET") return undefined;
@@ -134,6 +146,16 @@ describe("patch.minimality verdicts", () => {
     expect(findings.findings[0]?.evidence.map((e) => e.method)).toEqual(["GET", "PATCH", "GET"]);
     // The control is read again only once something moved.
     expect(paths(sent).at(-1)).toBe("GET /notes/c1");
+  });
+
+  it("names what moved by name, whatever order the answer wrote its keys in", async () => {
+    const { ctx, findings } = backend(reversedActsAsPut);
+
+    await runCheck(patchMinimality, ctx);
+    const listed = /other field\(s\): (.*)\. PATCH/.exec(findings.findings[0]?.detail ?? "")?.[1] ?? "";
+    const names = listed.split("; ").map((change) => change.split(" ")[0] ?? "");
+    expect(names.length).toBeGreaterThan(1);
+    expect(names).toStrictEqual(names.toSorted());
   });
 
   it("passes when what moved also moved on the untouched control record", async () => {

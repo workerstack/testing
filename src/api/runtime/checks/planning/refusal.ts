@@ -32,11 +32,11 @@ export function judgeRefusal(
 
   if (status >= 500) {
     return ctx.findings.backend(check, ctx.entityName, {
-      summary: "a request that should be refused drew a server error",
       detail:
         `${exchange.method} ${exchange.url} returned ${status}; invalid input should be refused with ` +
         `${reasons.flatMap((reason) => REFUSED_FOR[reason]).join(" or ")}, not crash the handler.`,
       evidence: [exchange],
+      summary: "a request that should be refused drew a server error",
     });
   }
 

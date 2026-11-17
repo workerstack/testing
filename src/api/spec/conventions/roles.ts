@@ -14,9 +14,9 @@ const ALIASES: Readonly<Record<Role, readonly string[]>> = {
   limit: ["limit", "per_page", "page_size", "pagesize", "count", "max_results", "top", "size"],
   offset: ["offset", "skip", "start", "from"],
   order: ["order", "order_by", "sort", "sort_by", "ordering"],
-  searchMode: ["search_mode", "searchmode", "search_type", "mode"],
   page: ["page", "page_number", "pagenum", "p"],
   search: ["q", "search", "query_text", "term", "keyword", "text", "search_term", "searchterm"],
+  searchMode: ["search_mode", "searchmode", "search_type", "mode"],
   select: ["select", "fields", "field", "include_fields", "projection", "only"],
 };
 

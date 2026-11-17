@@ -12,12 +12,12 @@ function stage(respond: Responder, options: WidgetDocOptions = {}, update: Parti
   const updateOp = model.byOperationId.get("updateWidget");
 
   return contextFor(model, "listWidgets", {
-    respond,
     fields: {
       createOp: op(model, "createWidget"),
       readOp: model.byOperationId.get("getWidget"),
       updateOp: updateOp === undefined ? undefined : { ...updateOp, ...update },
     },
+    respond,
   });
 }
 

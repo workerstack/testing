@@ -68,9 +68,9 @@ function plannedMembers(
   }).slice(0, options.cohortSize ?? 7);
 
   return ensureDistinctUniqueValues(generated, createOp.unique ?? [], {
-    schema: plan.schema,
     defs: model.defs,
     distinct: new Set((createOp.unique ?? []).flat()),
+    schema: plan.schema,
     ...(options.nonce === undefined ? {} : { nonce: options.nonce }),
   });
 }

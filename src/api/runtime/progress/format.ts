@@ -1,16 +1,41 @@
 /** A progress snapshot as one logfmt line, one TSV row, or one JSON line. */
 
-import { progressFields } from "./fields.ts";
+import { inOrder } from "../../spec/in-order.ts";
+import { progressFields, type ProgressFields } from "./fields.ts";
 import type { ProgressSnapshot } from "./types.ts";
 
-function logfmt(pairs: Record<string, string>): string {
-  return Object.entries(pairs)
-    .map(([key, value]) => {
-      if (value !== "" && !/[\s="\\]/.test(value)) return `${key}=${value}`;
+/** The logfmt keys in the order a line reads: the instant first, then the columns as the TSV header lists them. */
+export const LOGFMT_ORDER: readonly (keyof ProgressFields | "ts")[] = [
+  "ts",
+  "status",
+  "done",
+  "total",
+  "phase",
+  "entity",
+  "check",
+  "msg",
+  "req",
+  "find",
+  "method",
+  "path",
+  "http",
+  "req_id",
+  "last_at",
+  "last_ms",
+  "req_b",
+  "res_b",
+  "idle_ms",
+  "elapsed_ms",
+];
 
-      return `${key}=${JSON.stringify(value)}`;
-    })
-    .join(" ");
+function logfmt(pairs: Record<(typeof LOGFMT_ORDER)[number], string>): string {
+  return LOGFMT_ORDER.map((key) => {
+    const value = pairs[key];
+
+    if (value !== "" && !/[\s="\\]/.test(value)) return `${key}=${value}`;
+
+    return `${key}=${JSON.stringify(value)}`;
+  }).join(" ");
 }
 
 /** A column's dash, the "no value" of the text formats, as JSON's `null`. */
@@ -25,28 +50,7 @@ function numberOrNull(value: string): number | null {
 export function formatProgressLine(snap: ProgressSnapshot, now: number = Date.now()): string {
   const f = progressFields(snap, now);
 
-  return logfmt({
-    ts: new Date(now).toISOString(),
-    status: f.status,
-    done: f.done,
-    total: f.total,
-    phase: f.phase,
-    entity: f.entity,
-    check: f.check,
-    msg: f.msg,
-    req: f.req,
-    find: f.find,
-    method: f.method,
-    path: f.path,
-    http: f.http,
-    req_id: f.req_id,
-    last_at: f.last_at,
-    last_ms: f.last_ms,
-    req_b: f.req_b,
-    res_b: f.res_b,
-    idle_ms: f.idle_ms,
-    elapsed_ms: f.elapsed_ms,
-  });
+  return logfmt({ ...f, ts: new Date(now).toISOString() });
 }
 
 export function formatProgressTsv(snap: ProgressSnapshot, now: number = Date.now()): string {
@@ -76,31 +80,58 @@ export function formatProgressTsv(snap: ProgressSnapshot, now: number = Date.now
   ].join("\t");
 }
 
+/** The JSON line's fields in the order a reader tailing `progress.jsonl` sees them. */
+const JSONL_ORDER = [
+  "check",
+  "done",
+  "elapsed_ms",
+  "entity",
+  "find",
+  "http",
+  "idle_ms",
+  "last_at",
+  "last_ms",
+  "method",
+  "req_id",
+  "req_b",
+  "res_b",
+  "msg",
+  "path",
+  "phase",
+  "req",
+  "status",
+  "total",
+  "ts",
+  "ts_ms",
+] as const;
+
 export function formatProgressJsonl(snap: ProgressSnapshot, now: number = Date.now()): string {
   const f = progressFields(snap, now);
   const inflight = snap.inflight !== undefined;
 
-  return JSON.stringify({
-    check: textOrNull(f.check),
-    done: snap.entityIndex ?? null,
-    elapsed_ms: Number(f.elapsed_ms),
-    entity: snap.entity ?? null,
-    find: snap.findings,
-    http: inflight ? null : (snap.last?.status ?? null),
-    idle_ms: numberOrNull(f.idle_ms),
-    last_at: textOrNull(f.last_at),
-    last_ms: numberOrNull(f.last_ms),
-    method: textOrNull(f.method),
-    req_id: f.req_id === "" ? null : textOrNull(f.req_id),
-    req_b: numberOrNull(f.req_b),
-    res_b: numberOrNull(f.res_b),
-    msg: textOrNull(f.msg),
-    path: textOrNull(f.path),
-    phase: snap.phase,
-    req: snap.requests,
-    status: f.status,
-    total: snap.entityTotal ?? null,
-    ts: new Date(now).toISOString(),
-    ts_ms: now,
-  });
+  return JSON.stringify(
+    inOrder(JSONL_ORDER, {
+      check: textOrNull(f.check),
+      done: snap.entityIndex ?? null,
+      elapsed_ms: Number(f.elapsed_ms),
+      entity: snap.entity ?? null,
+      find: snap.findings,
+      http: inflight ? null : (snap.last?.status ?? null),
+      idle_ms: numberOrNull(f.idle_ms),
+      last_at: textOrNull(f.last_at),
+      last_ms: numberOrNull(f.last_ms),
+      method: textOrNull(f.method),
+      msg: textOrNull(f.msg),
+      path: textOrNull(f.path),
+      phase: snap.phase,
+      req: snap.requests,
+      req_b: numberOrNull(f.req_b),
+      req_id: f.req_id === "" ? null : textOrNull(f.req_id),
+      res_b: numberOrNull(f.res_b),
+      status: f.status,
+      total: snap.entityTotal ?? null,
+      ts: new Date(now).toISOString(),
+      ts_ms: now,
+    }),
+  );
 }

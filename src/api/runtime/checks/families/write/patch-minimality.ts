@@ -22,6 +22,9 @@ export const patchMinimality: Check<{
   updateOp: OperationModel;
   readOp: OperationModel;
 }>({
+  id: "patch.minimality",
+  mutates: true,
+  needs: "a create, a PATCH update and an item route",
   plan: (ctx) => {
     const { createOp, updateOp, readOp } = ctx;
 
@@ -32,10 +35,6 @@ export const patchMinimality: Check<{
 
     return ready({ createOp, readOp, updateOp });
   },
-  mutates: true,
-  id: "patch.minimality",
-  needs: "a create, a PATCH update and an item route",
-  subjects: subjectsOf.update,
   async run(ctx, { createOp, readOp, updateOp }): Promise<Outcome> {
     const made = await scratchRecord(ctx, this.id);
 
@@ -71,8 +70,8 @@ export const patchMinimality: Check<{
       return ctx.findings.unresolved(this.id, ctx.entityName, `no other valid value for "${field}" can be made`);
 
     const patched = await ctx.client.request("PATCH", fillPath(updateOp.path, params), {
-      body: { [field]: next },
       as: { principal: ctx.actor.id },
+      body: { [field]: next },
     });
 
     if (standDownForFeatureGate(ctx, updateOp, patched, this.id))
@@ -85,9 +84,11 @@ export const patchMinimality: Check<{
 
     if (current === undefined) return ctx.findings.unresolved(this.id, ctx.entityName, NO_RECORD);
 
-    const moved = Object.keys(original).filter(
-      (key) => key !== field && !drifting.has(key) && JSON.stringify(baseline[key]) !== JSON.stringify(current[key]),
-    );
+    const moved = Object.keys(original)
+      .toSorted()
+      .filter(
+        (key) => key !== field && !drifting.has(key) && JSON.stringify(baseline[key]) !== JSON.stringify(current[key]),
+      );
 
     const collateral = moved.length === 0 ? moved : await withoutControlDrift({ read, readOp }, control, moved);
 
@@ -95,11 +96,12 @@ export const patchMinimality: Check<{
     return collateral.length === 0
       ? ASSERTED
       : ctx.findings.backend(this.id, ctx.entityName, {
-          summary: "PATCH changed fields the request did not mention",
           detail: collateralDetail(field, collateral, { after: current, before: baseline }),
           evidence: [before, patched, after],
+          summary: "PATCH changed fields the request did not mention",
         });
   },
+  subjects: subjectsOf.update,
 });
 
 /** What a PATCH of `field` changed besides it, as the finding states it. */

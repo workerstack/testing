@@ -37,7 +37,7 @@ describe("readEffects", () => {
     expect(
       readEffects({
         responses: {},
-        "x-effects": [null, "nope", { entity: "table" }, { entity: "table", op: "create", min: 1 }],
+        "x-effects": [null, "nope", { entity: "table" }, { entity: "table", min: 1, op: "create" }],
       } as never),
     ).toEqual([{ entity: "table", min: 1, op: "create" }]);
     const gaps = new GapCollector();
@@ -83,7 +83,7 @@ function extractServer(world: TableWorld, extractRoute: Route, extra: { echo: bo
 }
 
 function extractedTable(id: string) {
-  return { id, table_id: id, name: "extracted" };
+  return { id, name: "extracted", table_id: id };
 }
 
 async function runWithRows(rowCount: number) {

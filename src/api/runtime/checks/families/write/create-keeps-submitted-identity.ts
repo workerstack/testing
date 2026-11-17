@@ -49,6 +49,9 @@ async function createExchanges(ctx: CheckContext, max: number): Promise<Exchange
  * id it was sent; a create that answers with an identity must answer with the one it was sent.
  */
 export const createKeepsSubmittedIdentity: Check<{ readOp: OperationModel }> = defineCheck<{ readOp: OperationModel }>({
+  dependsOn: [],
+  id: "create.keeps-submitted-identity",
+  needs: "a create that takes the record's identity from the client, and an item read",
   plan: (ctx) => {
     const createOp = ctx.createOp;
     const readOp = ctx.readOp;
@@ -64,10 +67,6 @@ export const createKeepsSubmittedIdentity: Check<{ readOp: OperationModel }> = d
 
     return ready({ readOp });
   },
-  dependsOn: [],
-  id: "create.keeps-submitted-identity",
-  needs: "a create that takes the record's identity from the client, and an item read",
-  subjects: subjectsOf.create,
   async run(ctx, { readOp }): Promise<Outcome> {
     const creates = await sampledCreates(ctx);
 
@@ -87,6 +86,7 @@ export const createKeepsSubmittedIdentity: Check<{ readOp: OperationModel }> = d
 
     return ASSERTED;
   },
+  subjects: subjectsOf.create,
 });
 
 /** One observed create and the identity it was sent. */
@@ -135,11 +135,11 @@ async function judgeCreate(
     if (String(answered) === String(sent)) return undefined;
 
     return ctx.findings.backend(check, ctx.entityName, {
-      summary: "create answers with an identity other than the one it was sent",
       detail:
         `"${ctx.identity}" was sent ${JSON.stringify(sent)} and the create answered ${JSON.stringify(answered)}. ` +
         "A client that chose the id can no longer find its record by it.",
       evidence: [created],
+      summary: "create answers with an identity other than the one it was sent",
     });
   }
 
@@ -153,11 +153,11 @@ async function judgeCreate(
   if (read.status >= 200 && read.status < 300 && idOf(record, ctx.identity) === String(sent)) return undefined;
 
   return ctx.findings.backend(check, ctx.entityName, {
-    summary: "create acknowledged a record that is not under the identity it was sent",
     detail:
       `"${ctx.identity}" was sent ${JSON.stringify(sent)}; the create answered ${created.status} without an ` +
       `identity, and the read under that id returned ${read.status}. The record exists, if at all, under an id ` +
       "the client was never told.",
     evidence: [created, read],
+    summary: "create acknowledged a record that is not under the identity it was sent",
   });
 }

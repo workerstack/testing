@@ -5,7 +5,7 @@ import { credentialHeaderNames, stripCredentials, stripQuery } from "./strip.ts"
 describe("redirect stripping", () => {
   it("drops the known credential headers and a principal's own, any case, and nothing else", () => {
     const names = credentialHeaderNames(["X-Tenant-Key"]);
-    const headers = { Authorization: "Bearer t", "x-tenant-key": "k", cookie: "s=1", accept: "json" };
+    const headers = { Authorization: "Bearer t", accept: "json", cookie: "s=1", "x-tenant-key": "k" };
     stripCredentials(headers, names);
     expect(headers).toEqual({ accept: "json" });
   });

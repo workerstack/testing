@@ -51,7 +51,7 @@ function judge(transcripts: Exchange[][], over: Partial<ServerErrorInput> = {}):
 describe("reportServerErrors", () => {
   it("reports every unreported 5xx once per operation, graded and attributed to it", () => {
     const first = crash("/rows", 500, { operationId: "rows.list" });
-    const again = crash("/rows", 503, { responseHeaders: { "Retry-After": "1" }, operationId: "rows.list" });
+    const again = crash("/rows", 503, { operationId: "rows.list", responseHeaders: { "Retry-After": "1" } });
 
     const { checksRun, findings, grades } = judge([
       [first, crash("/rows", 200, { operationId: "rows.list" })],
@@ -120,7 +120,7 @@ describe("what reportServerErrors leaves alone", () => {
       [
         [
           reported,
-          crash("/rows", 500, { superseded: true, operationId: "rows.list" }),
+          crash("/rows", 500, { operationId: "rows.list", superseded: true }),
           crash("/version", 500, { check: TARGET_VERSION_READ }),
         ],
       ],

@@ -95,6 +95,46 @@ describe("queryDeclaration with a catalog", () => {
   });
 });
 
+// The same record with its keys in the reverse of the order they were written in.
+function reversed<V>(record: Readonly<Record<string, V>>): Record<string, V> {
+  return Object.fromEntries(Object.entries(record).toReversed());
+}
+
+const RELATIONS = { project: { entity: "project", fields: ["name"], via: "project_id" }, ...ROW.relations };
+
+describe("queryDeclaration over records written in any order", () => {
+  const catalog = TABLE.filterCatalog;
+
+  it("lists a catalog's filterable fields by name", () => {
+    const opsByField = reversed(catalog?.opsByField ?? {});
+    const table: EntityDef = { ...TABLE, filterCatalog: { ...catalog, opsByField } };
+    expect(rows(queryDeclaration(CTX, table, POSTGREST)["filterable"]).map((row) => row["field"])).toStrictEqual([
+      "created_at",
+      "deleted_at",
+      "description",
+      "id",
+      "name",
+      "position",
+      "project_id",
+      "row_count",
+      "slug",
+      "status",
+      "updated_at",
+    ]);
+  });
+
+  it("lists the nested relations by name", () => {
+    const select = queryDeclaration(CTX, { ...ROW, relations: reversed(RELATIONS) }, POSTGREST)["select"];
+    expect(select).toStrictEqual({
+      nested: true,
+      relations: [
+        { fields: ["name"], name: "project" },
+        { fields: ["name", "status"], name: "table" },
+      ],
+    });
+  });
+});
+
 describe("queryDeclaration per dialect and shape", () => {
   it("declares the template grammars a dialect carries", () => {
     const query = queryDeclaration(CTX, TABLE, TEMPLATE);

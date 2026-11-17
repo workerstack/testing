@@ -7,12 +7,11 @@ import { pageable, q } from "../../query/capabilities.ts";
 import { envelopeValue, list } from "../../sets/list.ts";
 
 export const hasMoreIsAccurate: Check = defineCheck({
-  plan: (ctx) => when(pageable(ctx) && ctx.records.length > 2),
   dependsOn: ["pagination.limit-bounds-page-size"],
   id: "pagination.has-more-is-accurate",
   lists: true,
   needs: "a way to page forward, and a more-pages signal in the body or a Link header",
-  subjects: subjectsOf.list,
+  plan: (ctx) => when(pageable(ctx) && ctx.records.length > 2),
   async run(ctx): Promise<Outcome> {
     const first = await list(ctx, q(ctx, { limit: 1, page: 1 }));
 
@@ -28,11 +27,12 @@ export const hasMoreIsAccurate: Check = defineCheck({
     if (flag === moreExist) return ASSERTED;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
+      detail: `page 1 at limit=1 reported hasMore=${flag}, but page 2 returned ${second.items.length} record(s). Callers that trust the flag will ${flag ? "request an empty page" : "silently stop after the first page"}`,
+      evidence: [first.exchange, second.exchange],
       summary: flag
         ? "hasMore claims further pages exist when none do"
         : "hasMore claims no further pages while the next page returns records",
-      detail: `page 1 at limit=1 reported hasMore=${flag}, but page 2 returned ${second.items.length} record(s). Callers that trust the flag will ${flag ? "request an empty page" : "silently stop after the first page"}`,
-      evidence: [first.exchange, second.exchange],
     });
   },
+  subjects: subjectsOf.list,
 });

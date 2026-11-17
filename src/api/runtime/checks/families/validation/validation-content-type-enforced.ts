@@ -13,12 +13,11 @@ import { subjectsOf } from "../../planning/subjects.ts";
 import { type CreateBody, createBodyPlan } from "./bodies.ts";
 
 export const contentTypeEnforced: Check<CreateBody> = defineCheck<CreateBody>({
+  id: "validation.content-type-enforced",
+  mutates: true,
+  needs: "a documented 415 response",
   plan: (ctx) =>
     ctx.createOp !== undefined && documentsStatus(ctx.createOp.statuses, 415) ? createBodyPlan(ctx) : cannot(),
-  mutates: true,
-  id: "validation.content-type-enforced",
-  needs: "a documented 415 response",
-  subjects: subjectsOf.create,
   async run(ctx, { createOp, schema }): Promise<Outcome> {
     // The body the endpoint would parse, under a label it does not accept: a server that skips
     // the check must then process it, rather than refuse it for some unrelated reason.
@@ -26,9 +25,9 @@ export const contentTypeEnforced: Check<CreateBody> = defineCheck<CreateBody>({
     const declaredMediaType = declaredMediaTypeOf(ctx.model.rawOperations.get(createOp.operationId));
 
     const exchange = await asProbe(ctx).client.request("POST", fillPath(createOp.path, ctx.scope), {
+      as: { principal: ctx.actor.id },
       body: asText(encoded.body),
       contentType: "text/plain",
-      as: { principal: ctx.actor.id },
     });
 
     if (standDownForFeatureGate(ctx, createOp, exchange, this.id))
@@ -38,14 +37,15 @@ export const contentTypeEnforced: Check<CreateBody> = defineCheck<CreateBody>({
     if (refused !== null) return refused;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "a request labeled with an undeclared content type was processed",
       detail:
         `the operation documents 415 and declares ${declaredMediaType}, but the same body sent as ` +
         `text/plain was processed (${exchange.status}). Content negotiation is documented ` +
         "but not implemented.",
       evidence: [exchange],
+      summary: "a request labeled with an undeclared content type was processed",
     });
   },
+  subjects: subjectsOf.create,
 });
 
 /** The media type the operation declares for its request body, as a finding names it. */

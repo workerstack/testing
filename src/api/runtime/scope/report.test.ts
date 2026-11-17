@@ -69,8 +69,8 @@ describe("buildScopeReport", () => {
 
     const transcript = [
       call({ method: "GET", operationId: "table.list", status: 200, url: "http://api.test/v1/projects/p/tables" }),
-      call({ method: "POST", status: 500, requestId: "r2", url: "http://api.test/v1/projects/p/tables" }),
-      call({ method: "POST", status: 409, requestId: "r3", url: "http://api.test/v1/projects/p/tables" }),
+      call({ method: "POST", requestId: "r2", status: 500, url: "http://api.test/v1/projects/p/tables" }),
+      call({ method: "POST", requestId: "r3", status: 409, url: "http://api.test/v1/projects/p/tables" }),
       call({ method: "GET", status: 200, url: "http://api.test/v1/projects/p/tables/t" }),
       call({ method: "GET", status: 200, url: "http://api.test/elsewhere" }),
       call({ method: "GET", operationId: "gone", status: 200, url: "http://api.test/v1/projects/p/tables/t" }),

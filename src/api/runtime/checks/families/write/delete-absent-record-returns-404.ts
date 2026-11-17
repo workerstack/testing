@@ -13,16 +13,15 @@ export const deleteMissingIs404: Check<{ deleteOp: OperationModel; missing: stri
   deleteOp: OperationModel;
   missing: string;
 }>({
+  id: "delete.absent-record-returns-404",
+  mutates: true,
+  needs: "a delete operation",
   plan: (ctx) => {
     if (ctx.deleteOp === undefined) return cannot();
     const missing = absentId(ctx);
 
     return missing === null ? cannot(NO_ABSENT_ID) : ready({ deleteOp: ctx.deleteOp, missing });
   },
-  mutates: true,
-  id: "delete.absent-record-returns-404",
-  needs: "a delete operation",
-  subjects: subjectsOf.delete,
   async run(ctx, { deleteOp, missing }): Promise<Outcome> {
     const params = { ...ctx.scope, ...itemParamFor(ctx, missing) };
 
@@ -37,9 +36,9 @@ export const deleteMissingIs404: Check<{ deleteOp: OperationModel; missing: stri
 
     if (exchange.status >= 500) {
       return ctx.findings.backend(this.id, ctx.entityName, {
-        summary: "deleting a nonexistent record crashes",
         detail: `DELETE of an id that was never created returned ${exchange.status}; it should be 404.`,
         evidence: [exchange],
+        summary: "deleting a nonexistent record crashes",
       });
     }
 
@@ -52,11 +51,12 @@ export const deleteMissingIs404: Check<{ deleteOp: OperationModel; missing: stri
     }
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "deleting a nonexistent record reports success",
       detail:
         `DELETE of an id that was never created returned ${exchange.status}. Callers cannot ` +
         "distinguish a real deletion from a no-op, which hides broken client state.",
       evidence: [exchange],
+      summary: "deleting a nonexistent record reports success",
     });
   },
+  subjects: subjectsOf.delete,
 });

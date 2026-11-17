@@ -9,17 +9,17 @@
 import { defineConfig, env } from "../../../../../src/api/index.ts";
 
 export default defineConfig({
-  spec: "https://raw.githubusercontent.com/square/connect-api-specification/0689c901bdfe1ff73f47aa28b17ccd6e0c40bf2d/api.json",
   baseUrl: "https://connect.squareupsandbox.com",
-  maxRps: 2,
   // The version this document describes, as its own x-additional-headers names it.
   globalHeaders: { "Square-Version": "2026-09-16" },
+  maxRps: 2,
+  ops: ["ListCustomers", "CreateCustomer", "RetrieveCustomer", "UpdateCustomer", "DeleteCustomer", "SearchCustomers"],
+  principals: {
+    alpha: {},
+  },
   security: {
     // Scopes the sandbox token carries; operations needing others are untested.
     oauth2: { holds: ["CUSTOMERS_READ", "CUSTOMERS_WRITE"], static: env("TESTING_API_SQUARE_TOKEN") },
   },
-  principals: {
-    alpha: {},
-  },
-  ops: ["ListCustomers", "CreateCustomer", "RetrieveCustomer", "UpdateCustomer", "DeleteCustomer", "SearchCustomers"],
+  spec: "https://raw.githubusercontent.com/square/connect-api-specification/0689c901bdfe1ff73f47aa28b17ccd6e0c40bf2d/api.json",
 });

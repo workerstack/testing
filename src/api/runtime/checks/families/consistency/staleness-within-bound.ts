@@ -33,6 +33,9 @@ export const stalenessWithinBound: Check<{ readOp: OperationModel; kinds: WriteK
   readOp: OperationModel;
   kinds: WriteKind[];
 }>({
+  id: ID,
+  mutates: true,
+  needs: "a create, an item read, and an update or a delete",
   plan: (ctx) => {
     const { createOp, readOp } = ctx;
 
@@ -43,10 +46,6 @@ export const stalenessWithinBound: Check<{ readOp: OperationModel; kinds: WriteK
       ? cannot("an update or a delete whose effect the read can show")
       : ready({ kinds, readOp });
   },
-  mutates: true,
-  id: ID,
-  needs: "a create, an item read, and an update or a delete",
-  subjects: subjectsOf.writeAndRead,
   async run(ctx, { kinds, readOp }): Promise<Outcome> {
     const boundMs = readOp.consistency?.stalenessMs ?? null;
     const measured: Measured[] = [];
@@ -63,6 +62,7 @@ export const stalenessWithinBound: Check<{ readOp: OperationModel; kinds: WriteK
 
     return judge(ctx, measured, boundMs);
   },
+  subjects: subjectsOf.writeAndRead,
 });
 
 async function measure(

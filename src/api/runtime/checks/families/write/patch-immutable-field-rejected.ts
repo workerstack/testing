@@ -19,6 +19,9 @@ export const immutableRejected: Check<{
   updateOp: OperationModel;
   readOp: OperationModel;
 }>({
+  id: "patch.immutable-field-rejected",
+  mutates: true,
+  needs: "fields declared immutable via x-immutable",
   plan: (ctx) => {
     const { updateOp, readOp } = ctx;
 
@@ -27,10 +30,6 @@ export const immutableRejected: Check<{
 
     return field === undefined ? cannot() : ready({ field, readOp, updateOp });
   },
-  mutates: true,
-  id: "patch.immutable-field-rejected",
-  needs: "fields declared immutable via x-immutable",
-  subjects: subjectsOf.update,
   async run(ctx, { field, readOp, updateOp }): Promise<Outcome> {
     // Its own record: an immutable field is very often the tenant or parent key, and a backend
     // that accepts the write moves the record out of the scope every later check reads.
@@ -77,11 +76,12 @@ export const immutableRejected: Check<{
     if (!accepted) return ASSERTED;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "a field declared immutable accepted a write",
       detail:
         `${update.method} set "${field}" to a client-supplied value and the change persisted. ` +
         "Server-owned fields must reject writes, not absorb them.",
       evidence: [patched, after],
+      summary: "a field declared immutable accepted a write",
     });
   },
+  subjects: subjectsOf.update,
 });

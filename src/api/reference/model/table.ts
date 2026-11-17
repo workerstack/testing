@@ -7,8 +7,8 @@ export const TABLE: EntityDef = {
   defaultLimit: 20,
   defaultOrder: "created_at.desc",
   fields: [
-    { generated: true, immutable: true, name: "id", required: true, sortable: true, filterable: true, type: "string" },
-    { generated: true, immutable: true, name: "project_id", required: true, filterable: true, type: "string" },
+    { filterable: true, generated: true, immutable: true, name: "id", required: true, sortable: true, type: "string" },
+    { filterable: true, generated: true, immutable: true, name: "project_id", required: true, type: "string" },
     {
       filterable: true,
       maxLength: 128,
@@ -18,7 +18,7 @@ export const TABLE: EntityDef = {
       sortable: true,
       type: "string",
     },
-    { filterable: true, name: "slug", searchable: true, sortable: true, maxLength: 64, type: "string" },
+    { filterable: true, maxLength: 64, name: "slug", searchable: true, sortable: true, type: "string" },
     {
       enum: ["active", "draft", "archived"],
       filterable: true,
@@ -39,15 +39,6 @@ export const TABLE: EntityDef = {
     // listing" is a claim no observation can contradict.
     { filterable: true, generated: true, name: "row_count", sortable: true, type: "integer" },
   ],
-  identity: "id",
-  itemParam: "table_id",
-  itemPath: "/v1/projects/{project_id}/tables/{table_id}",
-  maxLimit: 100,
-  name: "table",
-  parents: ["project_id"],
-  plural: "tables",
-  softDeleteField: "deleted_at",
-  unique: [["name"]],
   filterCatalog: {
     aliases: { ne: "neq" },
     emptyIn: "match-none",
@@ -68,4 +59,13 @@ export const TABLE: EntityDef = {
     },
     selectUnknown: "reject",
   },
+  identity: "id",
+  itemParam: "table_id",
+  itemPath: "/v1/projects/{project_id}/tables/{table_id}",
+  maxLimit: 100,
+  name: "table",
+  parents: ["project_id"],
+  plural: "tables",
+  softDeleteField: "deleted_at",
+  unique: [["name"]],
 };

@@ -39,7 +39,7 @@ async function stoppedBy(ctx: RunContext, entity: string, ids: string[], error: 
   if (reason !== undefined) return { kind: "unresolved", reason };
 
   return attributed.gap(ROOT_READ_CHECK_ID, entity, {
-    summary: `check "${ROOT_READ_CHECK_ID}" could not complete`,
     detail: messageOf(error),
+    summary: `check "${ROOT_READ_CHECK_ID}" could not complete`,
   });
 }

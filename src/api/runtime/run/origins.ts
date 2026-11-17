@@ -51,9 +51,9 @@ export function loadOriginClients(loaded: Loaded, wiring: OriginWiring): Map<str
 
     const client = new Client({
       baseUrl: origin.baseUrl,
+      cacheBypass: options.cache?.bypass ?? true,
       credentials,
       fence,
-      cacheBypass: options.cache?.bypass ?? true,
       headers: options.globalHeaders ?? {},
       httpHooks: progress.httpHooks,
       maxInFlight: options.maxInFlight ?? 4,

@@ -10,6 +10,11 @@ describe("afterUnauthorized", () => {
     const events: string[] = [];
 
     const result = await afterUnauthorized(answer(401), {
+      refused: async () => {
+        events.push("refused");
+
+        return false;
+      },
       renew: async () => {
         events.push("renew");
 
@@ -19,11 +24,6 @@ describe("afterUnauthorized", () => {
         events.push("send");
 
         return answer(200, 2);
-      },
-      refused: async () => {
-        events.push("refused");
-
-        return false;
       },
       supersede: (exchange) => events.push(`supersede ${exchange.seq}`),
     });
@@ -55,12 +55,12 @@ describe("afterUnauthorized", () => {
     const renewals: string[] = [];
 
     const never = {
-      renew: async () => (renewals.push("asked"), false),
       refused: async (exchange: Exchange) => {
         renewals.push(`refused ${exchange.seq}`);
 
         return false;
       },
+      renew: async () => (renewals.push("asked"), false),
       send: () => Promise.reject(new Error("sent")),
       supersede: () => {
         throw new Error("superseded");

@@ -12,13 +12,13 @@ function probeOf(
   const model = modelOf(widgetDoc(options));
 
   const { ctx, sent } = contextFor(model, "listWidgets", {
-    respond,
     fields: {
       createOp: op(model, "createWidget"),
       deleteOp: model.byOperationId.get("deleteWidget"),
       readOp: op(model, "getWidget"),
       updateOp: model.byOperationId.get("updateWidget"),
     },
+    respond,
   });
 
   const field = { maxLength: undefined, minLength: undefined, name: "note" };

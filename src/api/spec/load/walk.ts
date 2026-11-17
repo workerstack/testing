@@ -192,7 +192,9 @@ function mappingTargets(ctx: Dereferencing, mapping: unknown): [string, unknown]
   const schemas = ctx.doc.components?.schemas ?? {};
   const out: [string, unknown][] = [];
 
-  for (const [value, ref] of Object.entries(mapping)) {
+  for (const value of Object.keys(mapping).toSorted()) {
+    const ref = mapping[value];
+
     if (typeof ref !== "string") continue;
     const pointer = ref.startsWith("#") ? ref : Object.hasOwn(schemas, ref) ? `#/components/schemas/${ref}` : "";
     const target = pointer === "" ? undefined : finalTarget(ctx, pointer);

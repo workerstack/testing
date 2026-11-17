@@ -65,8 +65,8 @@ async function runLane(run: LaneRun, lane: readonly EntityModel[]): Promise<void
         // An error the API tester did not expect must not skip teardown: it is reported, and the run
         // carries on to remove what it made and write its report.
         ctx.findings.blocked("run.error" satisfies RunFindingId, entity.name, {
-          summary: `testing "${entity.name}" stopped on an unexpected error`,
           cause: errorText(error),
+          summary: `testing "${entity.name}" stopped on an unexpected error`,
         });
       }
 
@@ -90,16 +90,16 @@ function noteStop(run: LaneRun): void {
   if (options.signal?.aborted === true) {
     state.interrupted = true;
     findings.gap("run.interrupted" satisfies RunFindingId, "run", {
-      summary: `stopped before ${remaining}`,
       detail: "the run was interrupted; what was tested is reported, and what the API tester created is removed",
+      summary: `stopped before ${remaining}`,
     });
 
     return;
   }
 
   findings.blocked("net.unreachable" satisfies RunFindingId, "run", {
-    summary: `skipped ${remaining}`,
     cause: "network down",
+    summary: `skipped ${remaining}`,
   });
 }
 

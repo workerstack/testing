@@ -33,7 +33,7 @@ describe("testing/index-purity", () => {
   });
 
   it("leaves files that are not an index, and indexes outside src, alone", () => {
-    const fixture = { "src/api/runtime/main.ts": "export const d = 1\n", "lint/index.ts": "export default {}\n" };
+    const fixture = { "lint/index.ts": "export default {}\n", "src/api/runtime/main.ts": "export const d = 1\n" };
     expect(reportsOf(rule, fixture)).toEqual([]);
   });
 

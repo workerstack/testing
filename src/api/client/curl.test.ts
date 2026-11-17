@@ -38,7 +38,7 @@ describe("toCurl", () => {
 
     const curl = toCurl(
       exchange({
-        requestHeaders: { "x-api-key": "k", authorization: "Bearer abc", "x-note": "id s3cr3t-value" },
+        requestHeaders: { authorization: "Bearer abc", "x-api-key": "k", "x-note": "id s3cr3t-value" },
       }),
       { redactor },
     );
@@ -49,7 +49,7 @@ describe("toCurl", () => {
   });
 
   it("hides exactly the named headers when given a list", () => {
-    const curl = toCurl(exchange({ requestHeaders: { authorization: "Bearer abc", "X-Custom": "c" } }), {
+    const curl = toCurl(exchange({ requestHeaders: { "X-Custom": "c", authorization: "Bearer abc" } }), {
       redact: ["x-custom"],
       redactor: new Redactor(),
     });
@@ -62,9 +62,20 @@ describe("toCurl", () => {
 describe("toCurl bodies", () => {
   it("sends JSON and text bodies with -d, scrubbed", () => {
     const redactor = new Redactor();
-    expect(toCurl(exchange({ requestBody: { password: "p", a: 1 } }), { redactor })).toContain(
-      `-d '{"password":"<redacted>","a":1}'`,
+    expect(toCurl(exchange({ requestBody: { a: 1, password: "p" } }), { redactor })).toContain(
+      `-d '{"a":1,"password":"<redacted>"}'`,
     );
+    expect(
+      toCurl(
+        exchange({
+          requestBody: Object.fromEntries([
+            ["password", "p"],
+            ["a", 1],
+          ]),
+        }),
+        { redactor },
+      ),
+    ).toContain(`-d '{"a":1,"password":"<redacted>"}'`);
     expect(toCurl(exchange({ requestBody: "it's" }), { redactor })).toContain(`-d 'it'\\''s'`);
   });
 

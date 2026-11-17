@@ -48,6 +48,10 @@ export const sortMultiKeyTiebreak: Check<{
   secondary: string;
   tied: Record_[];
 }>({
+  dependsOn: ["sort.order-is-applied", "sort.reverse-symmetry"],
+  id: "sort.multi-key-tiebreak",
+  lists: true,
+  needs: "two sortable fields and rows that tie on the first and differ on the second",
   plan: (ctx) => {
     const max = resolvedCaps(ctx).sort?.maxKeys;
 
@@ -64,11 +68,6 @@ export const sortMultiKeyTiebreak: Check<{
 
     return pair === null ? cannot() : ready(pair);
   },
-  dependsOn: ["sort.order-is-applied", "sort.reverse-symmetry"],
-  id: "sort.multi-key-tiebreak",
-  lists: true,
-  needs: "two sortable fields and rows that tie on the first and differ on the second",
-  subjects: subjectsOf.list,
   async run(ctx, { primary, secondary, tied }): Promise<Outcome> {
     const conventions = conv(ctx);
 
@@ -97,9 +96,10 @@ export const sortMultiKeyTiebreak: Check<{
     if (sortedUnder(ctx, secondary, seconds) !== null) return ASSERTED;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "the second sort key is not applied on ties",
       detail: `order=${order} left ties on "${primary}" unordered by "${secondary}".`,
       evidence: [result.last.exchange],
+      summary: "the second sort key is not applied on ties",
     });
   },
+  subjects: subjectsOf.list,
 });

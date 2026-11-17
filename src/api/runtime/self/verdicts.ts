@@ -27,9 +27,9 @@ const isOk = (status: number): boolean => status >= 200 && status < 300;
 
 export function answeredWithoutToken(ctx: SelfRun, anonymous: Exchange): Outcome {
   return ctx.findings.security(SELF_CHECK_ID, ctx.entity.name, {
-    summary: "the caller route answered without a token",
     detail: `${ctx.probe.operationId} returned ${anonymous.status} with no credential. The signed-up caller is the record, so no token is a 401.`,
     evidence: [anonymous],
+    summary: "the caller route answered without a token",
   });
 }
 
@@ -40,9 +40,9 @@ export function updatedAlone(ctx: SelfRun, anonymous: Exchange, wrote: Exchange)
   if (isOk(wrote.status)) return ASSERTED;
 
   return ctx.findings.backend(SELF_CHECK_ID, ctx.entity.name, {
-    summary: "updating the caller failed",
     detail: `${ctx.probe.operationId} returned ${wrote.status} for the signed-up caller.`,
     evidence: [anonymous, wrote],
+    summary: "updating the caller failed",
   });
 }
 
@@ -52,9 +52,9 @@ export function readRefused(ctx: SelfRun, op: OperationModel, anonymous: Exchang
   if (read.status === 200) return null;
 
   return ctx.findings.backend(SELF_CHECK_ID, ctx.entity.name, {
-    summary: "reading the caller failed",
     detail: `${op.operationId} returned ${read.status} for the signed-up caller. The read is that caller and returns 200.`,
     evidence: [anonymous, read],
+    summary: "reading the caller failed",
   });
 }
 
@@ -67,9 +67,9 @@ export function echoMissed(
   if (created === null || callerEchoed(created.body, read.responseBody)) return null;
 
   return ctx.findings.backend(SELF_CHECK_ID, ctx.entity.name, {
-    summary: "the create did not show up on the next read",
     detail: `${created.exchange.operationId} sent ${JSON.stringify(created.body)}, and the next ${readOp.operationId} returned ${JSON.stringify(read.responseBody)}.`,
     evidence: [created.exchange, read],
+    summary: "the create did not show up on the next read",
   });
 }
 
@@ -116,9 +116,9 @@ export function writeRefused(ctx: SelfRun, update: UpdateProbe, read: Exchange, 
   if (isOk(wrote.status)) return null;
 
   return ctx.findings.backend(SELF_CHECK_ID, ctx.entity.name, {
-    summary: "updating the caller failed",
     detail: `${update.op.operationId} returned ${wrote.status} when setting ${update.field.name}.`,
     evidence: [read, wrote],
+    summary: "updating the caller failed",
   });
 }
 
@@ -131,9 +131,9 @@ export function notStuck(ctx: SelfRun, update: UpdateProbe, wrote: Exchange, aga
   const readOp = ctx.probe;
 
   return ctx.findings.backend(SELF_CHECK_ID, ctx.entity.name, {
-    summary: "an update to the caller did not stick",
     detail: `${update.op.operationId} set ${update.field.name} to ${JSON.stringify(update.value)}, and the next ${readOp.operationId} returned ${again.status} with ${JSON.stringify(after.where === "top" ? after.current : after.values)}.`,
     evidence: [wrote, again],
+    summary: "an update to the caller did not stick",
   });
 }
 

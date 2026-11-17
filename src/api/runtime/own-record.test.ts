@@ -111,7 +111,7 @@ describe("guardWrite", () => {
   });
 
   it("drops without a schema to read, and needs nothing then", () => {
-    expect(guardWrite(signIn, selfWrite, { body: { password: "p", note: "n" } })).toEqual({
+    expect(guardWrite(signIn, selfWrite, { body: { note: "n", password: "p" } })).toEqual({
       body: { note: "n" },
       dropped: ["password"],
     });

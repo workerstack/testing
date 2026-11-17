@@ -33,9 +33,9 @@ type Seen = Extract<Observation, { status: "ok" }>;
 /** A gap on the invocation's subject. */
 export function reportGap(run: Reporter, title: string, detail: string): void {
   run.ctx.findings.gap(run.check, subject(run.ctx.entityName, run.op.operationId, run.fixture), {
-    summary: title,
     detail,
     fixture: run.fixture,
+    summary: title,
   });
 }
 
@@ -175,7 +175,6 @@ function reportUnheld(
 
   if (effect.op === "create" || effect.op === "append") {
     ctx.findings.backend(action.check, where, {
-      summary: `${op.operationId} did not produce the "${effect.entity}" records it declares`,
       detail:
         `x-effects declares ${describeEffectHold(effect)} on "${effect.entity}", but the ` +
         `collection went from ${sizes.prior} to ${now} ` +
@@ -183,6 +182,7 @@ function reportUnheld(
         "not occur means callers cannot rely on the operation having done anything.",
       evidence,
       fixture,
+      summary: `${op.operationId} did not produce the "${effect.entity}" records it declares`,
     });
 
     return;
@@ -190,23 +190,23 @@ function reportUnheld(
 
   if (effect.op === "delete") {
     ctx.findings.backend(action.check, where, {
-      summary: `${op.operationId} did not remove the "${effect.entity}" records it declares`,
       detail:
         `x-effects declares ${describeEffectHold(effect)} on "${effect.entity}", but the collection ` +
         `went from ${sizes.prior} to ${now}`,
       evidence,
       fixture,
+      summary: `${op.operationId} did not remove the "${effect.entity}" records it declares`,
     });
 
     return;
   }
 
   ctx.findings.backend(action.check, where, {
-    summary: `${op.operationId} changed the size of "${effect.entity}" while declaring ${effect.op}`,
     detail:
       `x-effects declares ${effect.op}, which must not add or remove records, but the ` +
       `collection went from ${sizes.prior} to ${now}`,
     evidence,
     fixture,
+    summary: `${op.operationId} changed the size of "${effect.entity}" while declaring ${effect.op}`,
   });
 }

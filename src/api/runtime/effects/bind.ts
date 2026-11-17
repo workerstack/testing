@@ -18,7 +18,7 @@ export function readActionBind(value: unknown): ActionBind | null {
   if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
   const rec: RawOf<ActionBind> = value;
 
-  return { path: bindStrings(rec.path), body: bindStrings(rec.body), query: bindStrings(rec.query) };
+  return { body: bindStrings(rec.body), path: bindStrings(rec.path), query: bindStrings(rec.query) };
 }
 
 export function readBefore(value: unknown): string | undefined {

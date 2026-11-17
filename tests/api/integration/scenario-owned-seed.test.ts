@@ -53,20 +53,20 @@ const spec: OpenApiDocument = {
   openapi: "3.1.0",
   paths: {
     "/v1/prefs": {
-      post: {
-        operationId: "prefs.set",
-        requestBody: tokenBody,
-        responses: {
-          "201": { content: { "application/json": { schema: pref } }, description: "set" },
-          "401": { description: "bad token" },
-        },
-      },
       // Untagged, as a real API often is: the model derives the entity from the path.
       get: {
         operationId: "prefs.get",
         parameters: [{ in: "query", name: "token", required: true, schema: { type: "string" } }],
         responses: {
           "200": { content: { "application/json": { schema: prefs } }, description: "ok" },
+          "401": { description: "bad token" },
+        },
+      },
+      post: {
+        operationId: "prefs.set",
+        requestBody: tokenBody,
+        responses: {
+          "201": { content: { "application/json": { schema: pref } }, description: "set" },
           "401": { description: "bad token" },
         },
       },

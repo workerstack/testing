@@ -67,7 +67,7 @@ describe("satisfy: scopes", () => {
   it("takes a static or hook credential only when it holds every scope", () => {
     const holds = recipesOf({ key: { holds: ["rows:read", "rows:write", "admin"], static: "k" } });
     expect(satisfy(scoped, holds)).toEqual({ alternative: [need("key", "rows:read", "rows:write")] });
-    const partial = recipesOf({ key: { hook: true, holds: ["rows:read"] } });
+    const partial = recipesOf({ key: { holds: ["rows:read"], hook: true } });
     expect(satisfy(scoped, partial)).toEqual({ unsatisfied: "no credential for key holding rows:write" });
     const none = recipesOf({ key: { static: "k" } });
     expect(satisfy(scoped, none)).toEqual({ unsatisfied: "no credential for key holding rows:read, rows:write" });

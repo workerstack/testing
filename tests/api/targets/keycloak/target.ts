@@ -14,10 +14,10 @@ const VIEW_ROLES = ["view-realm", "view-users", "view-clients", "query-users", "
 
 // What each realm holds before the run, so its lists have rows on both sides of each filter.
 const USERS = [
-  { enabled: true, emailVerified: true, firstName: "Ada", lastName: "Lovelace" },
-  { enabled: true, emailVerified: false, firstName: "Alan", lastName: "Turing" },
-  { enabled: false, emailVerified: true, firstName: "Grace", lastName: "Hopper" },
-  { enabled: false, emailVerified: false, firstName: "Edsger", lastName: "Dijkstra" },
+  { emailVerified: true, enabled: true, firstName: "Ada", lastName: "Lovelace" },
+  { emailVerified: false, enabled: true, firstName: "Alan", lastName: "Turing" },
+  { emailVerified: true, enabled: false, firstName: "Grace", lastName: "Hopper" },
+  { emailVerified: false, enabled: false, firstName: "Edsger", lastName: "Dijkstra" },
 ];
 
 const GROUPS = ["engineering", "operations", "support"];
@@ -55,7 +55,6 @@ function adminClient(token: string) {
 
 const target: Target = {
   baseUrl: "http://127.0.0.1:18080",
-  readyWithinMs: 180_000,
   async prepare(baseUrl) {
     await answers(`${baseUrl}/realms/master`, 180_000, (status) => status === 200);
 
@@ -127,6 +126,7 @@ const target: Target = {
 
     return env;
   },
+  readyWithinMs: 180_000,
 };
 
 export default target;

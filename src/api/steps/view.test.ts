@@ -73,7 +73,7 @@ describe("stepsOf observes", () => {
       covers: ["auth.logout"],
       id: "early",
       steps: [
-        { assert: { from: "$", omits: "x", observes: ["auth.logout"] }, operationId: "a.b" },
+        { assert: { from: "$", observes: ["auth.logout"], omits: "x" }, operationId: "a.b" },
         { operationId: "auth.logout" },
       ],
     };

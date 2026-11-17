@@ -1,7 +1,7 @@
 /** The document's `components`: its shared schemas and its security schemes. */
 
 import { errorSchemas } from "./errors.ts";
-import { paymentSchemas } from "./query-route.ts";
+import { PAYMENT_BRANCHES, paymentSchemas } from "./query-route.ts";
 import { itemSchema, schemaName } from "./schemas.ts";
 import { SECURITY_SCHEMES } from "./security.ts";
 import type { Json, SpecContext } from "./types.ts";
@@ -25,7 +25,9 @@ function componentSchemas(ctx: SpecContext): Json {
     type: "object",
   };
   // The search's discriminated union refers to its branches here, where a discriminator's mapping can name them.
-  Object.assign(schemas, paymentSchemas());
+  const payment = paymentSchemas();
+
+  for (const branch of PAYMENT_BRANCHES) schemas[branch] = payment[branch];
 
   if (ctx.shape.specLayout === true)
     for (const entity of ctx.entities) schemas[schemaName(entity)] = itemSchema(entity);

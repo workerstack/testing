@@ -11,13 +11,12 @@ import { conv, q } from "../../query/capabilities.ts";
 import { list } from "../../sets/list.ts";
 
 export const malformedFilterNot5xx: Check = defineCheck({
-  // Malformed syntax needs a filter expression to be malformed in: per-field equality has none, and a
-  // request without one would pass for a refusal it never was.
-  plan: (ctx) => when(conv(ctx).filter !== undefined),
   id: "error.malformed-filter-not-5xx",
   lists: true,
   needs: "a filter expression parameter to send malformed syntax to",
-  subjects: subjectsOf.list,
+  // Malformed syntax needs a filter expression to be malformed in: per-field equality has none, and a
+  // request without one would pass for a refusal it never was.
+  plan: (ctx) => when(conv(ctx).filter !== undefined),
   async run(ctx): Promise<Outcome> {
     const result = await list(asProbe(ctx), q(ctx, { filter: "((((", limit: 10 }));
 
@@ -43,15 +42,16 @@ export const malformedFilterNot5xx: Check = defineCheck({
       }, so whether a refused filter answers a 4xx is untested`,
     );
   },
+  subjects: subjectsOf.list,
 });
 
 // A filter the backend should refuse made it crash.
 function crashed(ctx: Listed, check: string, { exchange, what }: { exchange: Exchange; what: string }): Outcome {
   return ctx.findings.backend(check, ctx.entityName, {
-    summary: "malformed filter input produces a server error",
     detail:
       `${what} returned ${exchange.status}. Bad client input must ` +
       "be rejected with a 4xx; a 5xx means the parser is throwing rather than validating.",
     evidence: [exchange],
+    summary: "malformed filter input produces a server error",
   });
 }

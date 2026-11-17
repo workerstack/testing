@@ -49,61 +49,61 @@ const R = "GET /rows";
 describe("requestCredential: resolving", () => {
   it("asks the source for the actor, the operation and whether it is a probe, on every attempt", async () => {
     const source = sourceOf({ kind: "anonymous" });
-    const wire = { credentials: source, controls: createControls(), redactor: new Redactor() };
+    const wire = { controls: createControls(), credentials: source, redactor: new Redactor() };
 
     const credential = requestCredential(wire, {
-      route: R,
       actor: { anonymous: true },
       operationId: "row.list",
       probe: true,
+      route: R,
     });
 
     expect(await credential.next()).toEqual(NOTHING_PLACED);
     await credential.next();
-    const unnamed = requestCredential(wire, { route: R, actor: { principal: "alpha" } });
+    const unnamed = requestCredential(wire, { actor: { principal: "alpha" }, route: R });
     await unnamed.next();
     expect(source.asked).toEqual([
-      { route: R, actor: { anonymous: true }, operationId: "row.list", probe: true },
-      { route: R, actor: { anonymous: true }, operationId: "row.list", probe: true },
-      { route: R, actor: { principal: "alpha" }, probe: false },
+      { actor: { anonymous: true }, operationId: "row.list", probe: true, route: R },
+      { actor: { anonymous: true }, operationId: "row.list", probe: true, route: R },
+      { actor: { principal: "alpha" }, probe: false, route: R },
     ]);
   });
 
   it("places nothing for an anonymous actor without a source, and refuses any other", async () => {
-    const wire = { credentials: undefined, controls: createControls(), redactor: new Redactor() };
-    expect(await requestCredential(wire, { route: R, actor: { anonymous: true } }).next()).toEqual(NOTHING_PLACED);
-    const alpha = requestCredential(wire, { route: R, actor: { principal: "alpha" } });
+    const wire = { controls: createControls(), credentials: undefined, redactor: new Redactor() };
+    expect(await requestCredential(wire, { actor: { anonymous: true }, route: R }).next()).toEqual(NOTHING_PLACED);
+    const alpha = requestCredential(wire, { actor: { principal: "alpha" }, route: R });
     await expect(alpha.next()).rejects.toEqual(
       new UnsatisfiedSecurity("unsatisfied", "this client holds no credentials"),
     );
   });
 
   it("names the acting principal when its operation sends nothing, so the exchange is still theirs", async () => {
-    const wire = { credentials: sourceOf({ kind: "anonymous" }), controls: createControls(), redactor: new Redactor() };
+    const wire = { controls: createControls(), credentials: sourceOf({ kind: "anonymous" }), redactor: new Redactor() };
     const own = { forged: false, principal: "alpha", schemes: [], sends: {} };
-    expect(await requestCredential(wire, { route: R, actor: { principal: "alpha" } }).next()).toEqual(own);
+    expect(await requestCredential(wire, { actor: { principal: "alpha" }, route: R }).next()).toEqual(own);
     const via = { principal: "alpha", via: { operationId: "row.list" } as Exchange };
-    expect(await requestCredential(wire, { route: R, actor: via }).next()).toEqual(own);
-    expect(await requestCredential(wire, { route: R, actor: { anonymous: true } }).next()).toEqual(NOTHING_PLACED);
+    expect(await requestCredential(wire, { actor: via, route: R }).next()).toEqual(own);
+    expect(await requestCredential(wire, { actor: { anonymous: true }, route: R }).next()).toEqual(NOTHING_PLACED);
   });
 
   it("raises an unsatisfied or blocked resolution before anything is placed", async () => {
     const unsatisfied = sourceOf({ kind: "unsatisfied", reason: "no credential for jwt" });
-    const wire = { credentials: unsatisfied, controls: createControls(), redactor: new Redactor() };
+    const wire = { controls: createControls(), credentials: unsatisfied, redactor: new Redactor() };
 
-    const error = await requestCredential(wire, { route: R, actor: { principal: "alpha" } })
+    const error = await requestCredential(wire, { actor: { principal: "alpha" }, route: R })
       .next()
       .catch((caught: unknown) => caught);
 
     expect(error).toMatchObject({ kind: "unsatisfied", name: "UnsatisfiedSecurity", reason: "no credential for jwt" });
 
     const blocked = {
-      credentials: sourceOf({ kind: "blocked", reason: "login failed" }),
       controls: createControls(),
+      credentials: sourceOf({ kind: "blocked", reason: "login failed" }),
       redactor: new Redactor(),
     };
 
-    await expect(requestCredential(blocked, { route: R, actor: { principal: "alpha" } }).next()).rejects.toMatchObject({
+    await expect(requestCredential(blocked, { actor: { principal: "alpha" }, route: R }).next()).rejects.toMatchObject({
       kind: "blocked",
       message: "login failed",
     });
@@ -195,7 +195,7 @@ describe("requestCredential: renewing after a 401", () => {
     const source = sourceOf(sendingOf("v1", sendingOf("v2")));
 
     const credential = requestCredential(
-      { credentials: source, controls: createControls(), redactor: new Redactor() },
+      { controls: createControls(), credentials: source, redactor: new Redactor() },
       {
         actor: { principal: "alpha" },
         route: R,
@@ -215,7 +215,7 @@ describe("requestCredential: renewing after a 401", () => {
     const blocked: Resolution = { kind: "blocked", reason: "could not refresh" };
 
     const credential = requestCredential(
-      { credentials: sourceOf(sendingOf("v1", blocked)), controls: createControls(), redactor: new Redactor() },
+      { controls: createControls(), credentials: sourceOf(sendingOf("v1", blocked)), redactor: new Redactor() },
       {
         actor: { principal: "alpha" },
         route: R,
@@ -228,14 +228,14 @@ describe("requestCredential: renewing after a 401", () => {
   });
 
   it("never renews a probe, a forged value or nothing", async () => {
-    const wire = { credentials: sourceOf(sendingOf("v1")), controls: createControls(), redactor: new Redactor() };
-    const probe = requestCredential(wire, { route: R, actor: { principal: "alpha" }, probe: true });
+    const wire = { controls: createControls(), credentials: sourceOf(sendingOf("v1")), redactor: new Redactor() };
+    const probe = requestCredential(wire, { actor: { principal: "alpha" }, probe: true, route: R });
     await probe.next();
     expect(await probe.renew()).toBe(false);
     const forged: Resolution = { kind: "forged", schemes: ["jwt"], sends: {} };
 
     const forging = requestCredential(
-      { credentials: sourceOf(forged), controls: createControls(), redactor: new Redactor() },
+      { controls: createControls(), credentials: sourceOf(forged), redactor: new Redactor() },
       {
         actor: { forged: { scheme: "jwt", value: "f" } },
         route: R,
@@ -246,7 +246,7 @@ describe("requestCredential: renewing after a 401", () => {
     expect(await forging.renew()).toBe(false);
 
     const anonymous = requestCredential(
-      { credentials: sourceOf({ kind: "anonymous" }), controls: createControls(), redactor: new Redactor() },
+      { controls: createControls(), credentials: sourceOf({ kind: "anonymous" }), redactor: new Redactor() },
       {
         actor: { principal: "alpha" },
         route: R,

@@ -120,9 +120,9 @@ export function webhookSpec(tag: string | null): OpenApiDocument {
     info: { title: "Feature-gate harness", version: "1.0" },
     openapi: "3.1.0",
     paths: {
+      "/v1/orgs/{org_id}/invites": inviteCollection(),
       "/v1/orgs/{org_id}/webhooks": webhookCollection(tag),
       "/v1/orgs/{org_id}/webhooks/{webhook_id}": webhookItem(tag),
-      "/v1/orgs/{org_id}/invites": inviteCollection(),
     },
     ...bearerSecurity(),
   } as OpenApiDocument;

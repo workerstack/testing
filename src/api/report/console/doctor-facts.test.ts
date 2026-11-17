@@ -120,11 +120,11 @@ describe("doctorFacts and a run agree on what is testable", () => {
   // A list entity, an entity with only its item read, and one with neither a list nor a read.
   const { model } = modelOf(
     documentOf({
-      "/listed": { get: listOp("listed", "listed.list"), post: create("listed") },
-      "/listed/{id}": { get: readOp("listed", "listed.get") },
+      "/bare": { post: create("bare") },
       "/item": { post: create("item") },
       "/item/{id}": { get: readOp("item", "item.get") },
-      "/bare": { post: create("bare") },
+      "/listed": { get: listOp("listed", "listed.list"), post: create("listed") },
+      "/listed/{id}": { get: readOp("listed", "listed.get") },
     }),
   );
 

@@ -34,27 +34,6 @@ async function removeUser(address: string): Promise<void> {
 }
 
 export default defineConfig({
-  spec: "./openapi3.yml",
-  baseUrl: env("VAMPI_URL"),
-  seed: 42,
-  hooks: { teardownPrincipal: removeUser },
-  security: {
-    bearerAuth: {
-      login: {
-        steps: [
-          {
-            operationId: "api_views.users.login_user",
-            body: { username: "{principal.username}", password: "{principal.password}" },
-          },
-        ],
-        from: "$.auth_token",
-      },
-    },
-  },
-  principals: {
-    alpha: { tenant: "alpha", username: env("VAMPI_ALPHA_USER"), password: env("VAMPI_ALPHA_PASSWORD") },
-    beta: { tenant: "beta", username: env("VAMPI_BETA_USER"), password: env("VAMPI_BETA_PASSWORD") },
-  },
   // /createdb drops and reseeds every table, the principals included.
   allow: [
     "api_views.main.basic",
@@ -71,12 +50,21 @@ export default defineConfig({
     "api_views.books.add_new_book",
     "api_views.books.get_by_title",
   ],
+  baseUrl: env("VAMPI_URL"),
+  hooks: { teardownPrincipal: removeUser },
   overlay: {
     operations: {
-      "api_views.books.add_new_book": { "x-entity": { name: "book", action: "create", identity: "book_title" } },
+      "api_views.books.add_new_book": { "x-entity": { action: "create", identity: "book_title", name: "book" } },
       "api_views.books.get_all_books": {
-        "x-entity": { name: "book", action: "list", identity: "book_title", recordPath: "$.Books" },
+        "x-entity": { action: "list", identity: "book_title", name: "book", recordPath: "$.Books" },
       },
+      // A book belongs to the user who added it; only its owner may read its secret (README).
+      "api_views.books.get_by_title": {
+        "x-entity": { action: "read", identity: "book_title", name: "book" },
+        "x-tenant": "book_title",
+      },
+      // Every user with its `admin` flag: how a sign-up's privilege is read back.
+      "api_views.users.debug": { "x-entity": { action: "list", identity: "username", name: "user" } },
       // Mass assignment: register takes `admin`, which only an admin may grant.
       "api_views.users.register_user": {
         requestBody: {
@@ -84,15 +72,27 @@ export default defineConfig({
             "application/json": { schema: { properties: { admin: { type: "boolean", "x-privileged": true } } } },
           },
         },
-        "x-entity": { name: "user", action: "action" },
-      },
-      // Every user with its `admin` flag: how a sign-up's privilege is read back.
-      "api_views.users.debug": { "x-entity": { name: "user", action: "list", identity: "username" } },
-      // A book belongs to the user who added it; only its owner may read its secret (README).
-      "api_views.books.get_by_title": {
-        "x-entity": { name: "book", action: "read", identity: "book_title" },
-        "x-tenant": "book_title",
+        "x-entity": { action: "action", name: "user" },
       },
     },
   },
+  principals: {
+    alpha: { password: env("VAMPI_ALPHA_PASSWORD"), tenant: "alpha", username: env("VAMPI_ALPHA_USER") },
+    beta: { password: env("VAMPI_BETA_PASSWORD"), tenant: "beta", username: env("VAMPI_BETA_USER") },
+  },
+  security: {
+    bearerAuth: {
+      login: {
+        from: "$.auth_token",
+        steps: [
+          {
+            body: { password: "{principal.password}", username: "{principal.username}" },
+            operationId: "api_views.users.login_user",
+          },
+        ],
+      },
+    },
+  },
+  seed: 42,
+  spec: "./openapi3.yml",
 });

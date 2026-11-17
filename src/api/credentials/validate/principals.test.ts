@@ -37,7 +37,7 @@ describe("principalProblems", () => {
     expect(principalProblems({ principals: { alpha: { scope: "p1" } } }, schemes)).toEqual([
       "principals.alpha.scope must be a map of parameter → value",
     ]);
-    expect(principalProblems({ principals: { alpha: { scope: { project_id: 7, org: "o" } } } }, schemes)).toEqual([
+    expect(principalProblems({ principals: { alpha: { scope: { org: "o", project_id: 7 } } } }, schemes)).toEqual([
       "principals.alpha.scope.project_id must be a string",
     ]);
   });
@@ -164,7 +164,7 @@ describe("principal overrides, against a document with no schemes", () => {
 
 describe("fresh principals, against the document's signup", () => {
   const security = {
-    jwt: { login: { from: "$.t", steps: [{ body: { email: "{principal.email}", code: "{principal.code}" } }] } },
+    jwt: { login: { from: "$.t", steps: [{ body: { code: "{principal.code}", email: "{principal.email}" } }] } },
   };
 
   const signup = { operationId: "auth.signup", properties: ["email", "password"] };

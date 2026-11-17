@@ -76,8 +76,18 @@ describe("changedValue", () => {
 describe("pickWritableStringField", () => {
   it("picks the first non-empty string a write may change", () => {
     const { ctx } = notesContext();
-    const record = { created_at: "t", id: "n1", owner_id: "o", rank: 1, title: "", name: "a" };
+    const record = { created_at: "t", id: "n1", name: "a", owner_id: "o", rank: 1, title: "" };
     expect(pickWritableStringField(ctx, record)).toBe("name");
+  });
+
+  // The record is a server's answer, whose key order no document promises: the pick follows the
+  // order the item's schema declares, then the update's, then any other field by name.
+  it("picks in the order the document declares the fields, whatever order the answer wrote them in", () => {
+    const declared = itemOf(Object.fromEntries(["title", "name"].map((key) => [key, { type: "string" }])));
+    const undeclared = Object.fromEntries(["zone", "code"].map((key) => [key, key]));
+
+    expect(pickWritableStringField(declared, { name: "a", title: "t" })).toBe("title");
+    expect(pickWritableStringField(itemOf({}), undeclared)).toBe("code");
   });
 
   it("passes over a field the update is known to drop: update.persists-submitted-fields reports it", () => {
@@ -116,7 +126,7 @@ describe("pickWritableStringField", () => {
     const properties = { name: { type: "string" }, value: { type: "string", writeOnly: true } };
     create.requestBody = { content: { "application/json": { schema: { properties, type: "object" } } } };
     const { ctx } = notesContext(undefined, {}, modelOf(doc));
-    expect(pickWritableStringField(ctx, { value: "secret", name: "a" })).toBe("name");
+    expect(pickWritableStringField(ctx, { name: "a", value: "secret" })).toBe("name");
     expect(pickWritableStringField({ ...ctx, updateOp: undefined }, { value: "secret" })).toBeNull();
   });
 
@@ -220,7 +230,7 @@ describe("encodeOpBody", () => {
   it("sends the fields as they are for an operation without a request body", async () => {
     const { ctx } = notesContext();
     expect(
-      await encodeOpBody(ctx, ctx.listOp, { name: "a" }, { variant: "baseline", index: 0, uploads: ctx.uploads }),
+      await encodeOpBody(ctx, ctx.listOp, { name: "a" }, { index: 0, uploads: ctx.uploads, variant: "baseline" }),
     ).toEqual({
       body: { name: "a" },
     });

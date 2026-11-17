@@ -27,15 +27,19 @@ describe("authPaths", () => {
       "/v1/api-keys/{id}",
     ]);
     expect(
-      Object.entries(paths).flatMap(([, item]) => Object.values(item).map((operation) => operation["operationId"])),
+      Object.entries(paths).flatMap(([, item]) =>
+        Object.values(item)
+          .map((operation) => String(operation["operationId"]))
+          .toSorted(),
+      ),
     ).toEqual([
       "auth.token",
       "auth.login",
       "auth.refresh",
       "auth.revoke",
       "apiKey.create",
-      "apiKey.revoke",
       "apiKey.get",
+      "apiKey.revoke",
     ]);
   });
 

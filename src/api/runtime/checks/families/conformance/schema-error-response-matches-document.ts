@@ -24,6 +24,9 @@ export const errorSchemaHonored: Check<{
   validator: SchemaValidator;
   raw: OperationObject;
 }>({
+  id: "schema.error-response-matches-document",
+  judgesTranscript: true,
+  needs: "a documented error schema on the item route",
   plan: (ctx) => {
     const { readOp, validator } = ctx;
 
@@ -32,15 +35,6 @@ export const errorSchemaHonored: Check<{
 
     return raw === undefined ? cannot() : ready({ raw, readOp, validator });
   },
-  id: "schema.error-response-matches-document",
-  judgesTranscript: true,
-  needs: "a documented error schema on the item route",
-  subjects: (entity, model) => [
-    ...new Set([
-      ...subjectsOf.readAndGated(entity, model),
-      ...ownOps(entity, model, (op) => op.unique !== null && op.unique.length > 0),
-    ]),
-  ],
   async run(ctx, { raw, readOp, validator }): Promise<Outcome> {
     // An empty list has no id to miss. Probing one would grade the get without a row.
     if (ctx.createOp === undefined && ctx.records.length === 0) return standDown("the list returned no id");
@@ -57,6 +51,12 @@ export const errorSchemaHonored: Check<{
 
     return ASSERTED;
   },
+  subjects: (entity, model) => [
+    ...new Set([
+      ...subjectsOf.readAndGated(entity, model),
+      ...ownOps(entity, model, (op) => op.unique !== null && op.unique.length > 0),
+    ]),
+  ],
 });
 
 /** What judging an error body needs: the check, its context, and the validator. */
@@ -142,8 +142,8 @@ function judgeErrorBody(judge: ErrorJudge, subject: ErrorSubject, exchange: Exch
 
   if (result.unchecked !== undefined) {
     subject.gaps.gap(check, ctx.entityName, {
-      summary: `${operationId} ${exchange.status} has a schema that cannot be compiled`,
       detail: `AJV refused the documented schema, so the body was not validated: ${result.unchecked}`,
+      summary: `${operationId} ${exchange.status} has a schema that cannot be compiled`,
     });
 
     return;
@@ -151,11 +151,11 @@ function judgeErrorBody(judge: ErrorJudge, subject: ErrorSubject, exchange: Exch
 
   if (result.ok) return;
   subject.drift.spec(check, ctx.entityName, {
-    summary: `${exchange.status} error body does not match its documented schema`,
     detail:
       `${operationId} returned ${exchange.status} with a body that fails the schema the ` +
       `document declares for it: ${result.errors.join("; ")}. Clients that parse errors ` +
       "from the spec will not understand this response.",
     evidence: [exchange],
+    summary: `${exchange.status} error body does not match its documented schema`,
   });
 }

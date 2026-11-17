@@ -18,11 +18,10 @@ import { isEventStream, subjectsOf } from "../../planning/subjects.ts";
 import { bodyForOp, forOperation, subject } from "./requests.ts";
 
 export const asyncReachesTerminalState: Check = defineCheck({
-  plan: (ctx) => when(ctx.asyncOps.length > 0),
-  mutates: true,
   id: "async.reaches-terminal-state",
+  mutates: true,
   needs: "an operation declaring x-async",
-  subjects: subjectsOf.async,
+  plan: (ctx) => when(ctx.asyncOps.length > 0),
   async run(all): Promise<Outcome> {
     const notes: string[] = [];
 
@@ -39,6 +38,7 @@ export const asyncReachesTerminalState: Check = defineCheck({
 
     return notes.length === 0 ? ASSERTED : asserted([...new Set(notes)].join("; "));
   },
+  subjects: subjectsOf.async,
 });
 
 /** One invocation of one async operation: what every step reports against. */
@@ -77,10 +77,10 @@ async function watchJob(run: Invocation, uploads: UploadContext): Promise<void> 
 
   if (streamed && fromStream !== null && (fromStream.id === undefined || fromStream.id === null)) {
     ctx.findings.backend(run.check, about(run), {
-      summary: `${op.operationId} job disappeared before completing`,
       detail: "the stream ended without a terminal frame and without a job id, so the poll route cannot be named.",
       evidence: [start],
       fixture: run.fixture,
+      summary: `${op.operationId} job disappeared before completing`,
     });
 
     return;
@@ -107,7 +107,7 @@ async function startJob(run: Invocation, uploads: UploadContext): Promise<Exchan
 
   const start = await ctx.client.request(op.method, fillPath(op.path, ctx.scope), {
     as: { principal: ctx.actor.id },
-    ...(body === undefined ? {} : await encodeOpBody(ctx, op, body, { variant: "baseline", index: 0, uploads })),
+    ...(body === undefined ? {} : await encodeOpBody(ctx, op, body, { index: 0, uploads, variant: "baseline" })),
   });
 
   if (standDownForFeatureGate(ctx, op, start, run.check)) return undefined;
@@ -126,9 +126,9 @@ async function startJob(run: Invocation, uploads: UploadContext): Promise<Exchan
 
   if (start.status >= 400) {
     ctx.findings.gap(run.check, about(run), {
-      summary: `${op.operationId} could not be started`,
       detail: `returned ${start.status}; the async lifecycle after it is untested`,
       fixture: run.fixture,
+      summary: `${op.operationId} could not be started`,
     });
 
     return undefined;
@@ -142,9 +142,9 @@ function judgeStreamedTerminal(run: Invocation, terminal: Record<string, unknown
 
   if (successWhen === undefined || matchesPredicate(terminal, successWhen)) return;
   run.ctx.findings.gap(run.check, about(run), {
-    summary: `${run.op.operationId} reached a non-success terminal state`,
     detail: `terminal state did not satisfy "${successWhen}"; downstream effects of this operation are untested`,
     fixture: run.fixture,
+    summary: `${run.op.operationId} reached a non-success terminal state`,
   });
 }
 
@@ -166,13 +166,13 @@ function judgePolled(run: Invocation, start: Exchange, outcome: AsyncOutcome): v
 
   if (outcome.state === "timed-out") {
     ctx.findings.backend(run.check, about(run), {
-      summary: `${op.operationId} never reached a terminal state`,
       detail:
         `polled ${spec.poll} ${outcome.polls} time(s) over ${Math.round(outcome.elapsedMs)}ms ` +
         `without satisfying "${spec.until ?? "any terminal state"}". A job that neither ` +
         "completes nor fails leaves callers polling forever.",
       evidence: [start, ...outcome.exchanges.slice(-2)],
       fixture: run.fixture,
+      summary: `${op.operationId} never reached a terminal state`,
     });
 
     return;
@@ -191,12 +191,12 @@ function judgePolled(run: Invocation, start: Exchange, outcome: AsyncOutcome): v
 
   if (outcome.state === "vanished") {
     ctx.findings.backend(run.check, about(run), {
-      summary: `${op.operationId} job disappeared before completing`,
       detail:
         `the poll route stopped serving the job after ${outcome.polls} poll(s). A job that ` +
         "vanishes is indistinguishable from one that never existed.",
       evidence: [start, ...outcome.exchanges.slice(-2)],
       fixture: run.fixture,
+      summary: `${op.operationId} job disappeared before completing`,
     });
 
     return;
@@ -215,8 +215,8 @@ function judgePolled(run: Invocation, start: Exchange, outcome: AsyncOutcome): v
   }
 
   ctx.findings.gap(run.check, about(run), {
-    summary: `${op.operationId} reached a non-success terminal state`,
     detail: `terminal state did not satisfy "${outcome.unmet}"; downstream effects of this operation are untested`,
     fixture: run.fixture,
+    summary: `${op.operationId} reached a non-success terminal state`,
   });
 }

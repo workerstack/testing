@@ -20,7 +20,7 @@ async function provisioned(signup: (body: Record<string, unknown>) => Answer, en
 describe("provision", () => {
   it("binds the signup's values into identity and holds the credential its answer carries", async () => {
     const { ctx, made, seen } = await provisioned((body) => ({
-      body: { access_token: "signed-up", id: 7, echo: Object.keys(body).length },
+      body: { access_token: "signed-up", echo: Object.keys(body).length, id: 7 },
       status: 201,
     }));
 

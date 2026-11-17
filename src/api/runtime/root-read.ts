@@ -59,9 +59,9 @@ export async function runRootRead(input: {
 
     if (anonymous.status !== 401) {
       return findings.security(ROOT_READ_CHECK_ID, input.entity.name, {
-        summary: "the parent read answered without a token",
         detail: `${op.operationId} returned ${anonymous.status} with no credential.`,
         evidence: [anonymous],
+        summary: "the parent read answered without a token",
       });
     }
 
@@ -73,9 +73,9 @@ export async function runRootRead(input: {
 
     if (read.status !== 200) {
       return findings.backend(ROOT_READ_CHECK_ID, input.entity.name, {
-        summary: "the parent read failed",
         detail: `${op.operationId} returned ${read.status} for ${path}.`,
         evidence: [anonymous, read],
+        summary: "the parent read failed",
       });
     }
   }

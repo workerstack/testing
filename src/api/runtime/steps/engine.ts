@@ -9,6 +9,7 @@ import { jwtClaims } from "../../credentials/jwt.ts";
 import { answerBody, describeAnswerType, readSaveAs } from "../cookies/save-as.ts";
 import { cookiesFromRecordedHeaders } from "../cookies/set-cookie.ts";
 import type { Exchange } from "../exchange.ts";
+import { bindEntries } from "./bind-entries.ts";
 import { interpolate } from "./interpolate.ts";
 import { claimsToken } from "./jwt.ts";
 import { resolveOutOfBandValue, triggerSentAt } from "./out-of-band.ts";
@@ -71,7 +72,7 @@ export async function runSteps(
 function bindLiterals(step: AuthStep, scope: Scope): void {
   const stepBind = "bind" in step ? step.bind : undefined;
 
-  for (const [name, literal] of Object.entries(stepBind ?? {})) scope[name] = String(interpolate(literal, scope));
+  for (const [name, literal] of bindEntries(stepBind, "bind")) scope[name] = String(interpolate(literal, scope));
 }
 
 /** The value an out-of-band step waits for, asked of the hook. */
@@ -148,7 +149,7 @@ function saveAnswer(ctx: StepContext, step: AuthStep, at: { answer: StepAnswer; 
   const { answer, turn } = at;
   const saveAs = "saveAs" in step ? step.saveAs : undefined;
 
-  for (const [name, template] of Object.entries(saveAs ?? {})) {
+  for (const [name, template] of bindEntries(saveAs, "saveAs")) {
     const path = String(interpolate(template, turn.scope));
 
     const value = readSaveAs(path, {

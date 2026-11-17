@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { RECORD_DEFECTS } from "./records.ts";
+import { RECORD_DEFECT_ORDER, RECORD_DEFECTS } from "./records.ts";
 
 describe("RECORD_DEFECTS", () => {
   it("holds the family of records, responses, storage and access, in the table's order", () => {
-    const names = Object.keys(RECORD_DEFECTS);
+    const names = RECORD_DEFECT_ORDER;
     expect(names.slice(0, 3)).toEqual(["SOFT_DELETE_LEAK", "IMMUTABLE_WRITABLE", "SELECT_IGNORED"]);
     expect(names.at(-1)).toBe("REVOKE_IGNORED");
   });

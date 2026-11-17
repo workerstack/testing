@@ -10,6 +10,10 @@ export const searchCaseInsensitive: Check<{ token: string; flipped: string }> = 
   token: string;
   flipped: string;
 }>({
+  dependsOn: ["pagination.page-walk-covers-set", "search.q-narrows-result"],
+  id: "search.case-insensitive",
+  lists: true,
+  needs: "a searchable string with a letter",
   plan: (ctx) => {
     if (conv(ctx).search === undefined) return cannot();
 
@@ -26,11 +30,6 @@ export const searchCaseInsensitive: Check<{ token: string; flipped: string }> = 
 
     return ready({ flipped, token });
   },
-  dependsOn: ["pagination.page-walk-covers-set", "search.q-narrows-result"],
-  id: "search.case-insensitive",
-  lists: true,
-  needs: "a searchable string with a letter",
-  subjects: subjectsOf.list,
   async run(ctx, { flipped, token }): Promise<Outcome> {
     const limit = pageSize(ctx);
     const query = (term: string) => q(ctx, { limit, search: term });
@@ -64,9 +63,9 @@ export const searchCaseInsensitive: Check<{ token: string; flipped: string }> = 
 
     if (resolvedCaps(ctx).searchCase === "insensitive") {
       return ctx.findings.backend(this.id, ctx.entityName, {
-        summary: "search is not case-insensitive",
         detail: `q=${JSON.stringify(token)} and q=${JSON.stringify(flipped)} selected different sets.`,
         evidence: [original.exchange, other.exchange],
+        summary: "search is not case-insensitive",
       });
     }
 
@@ -76,4 +75,5 @@ export const searchCaseInsensitive: Check<{ token: string; flipped: string }> = 
       "case-flipped search selected a different set; declare searchCase: insensitive to treat that as a defect",
     );
   },
+  subjects: subjectsOf.list,
 });

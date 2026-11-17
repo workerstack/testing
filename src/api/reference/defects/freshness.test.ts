@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { FRESHNESS_DEFECTS } from "./freshness.ts";
+import { FRESHNESS_DEFECT_ORDER, FRESHNESS_DEFECTS } from "./freshness.ts";
 
 describe("FRESHNESS_DEFECTS", () => {
   it("holds the cached-reads family: staleness past the bound, then an ignored bypass", () => {
-    expect(Object.keys(FRESHNESS_DEFECTS)).toEqual(["STALE_PAST_BOUND", "BYPASS_IGNORED"]);
+    expect(FRESHNESS_DEFECT_ORDER).toEqual(["STALE_PAST_BOUND", "BYPASS_IGNORED"]);
   });
 
   it("names each defect in upper snake case and describes it in one clause", () => {

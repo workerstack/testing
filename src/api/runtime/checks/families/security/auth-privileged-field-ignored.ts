@@ -77,7 +77,6 @@ export const privilegedFieldIgnored: OperationCheck<PrivilegedProbe> = defineChe
       );
     });
   },
-  subject: "operation",
   async run(ctx, probe) {
     if (probe.kind === "signup") return signUpAndJudge(ctx, probe);
     const reasons: string[] = [];
@@ -94,6 +93,7 @@ export const privilegedFieldIgnored: OperationCheck<PrivilegedProbe> = defineChe
 
     return standDown(reasons.join("; "));
   },
+  subject: "operation",
 });
 
 const CHECK = "auth.privileged-field-ignored";

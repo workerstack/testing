@@ -352,6 +352,11 @@ const SPEC = {
       },
     },
     "/v1/widgets/{id}": {
+      delete: {
+        operationId: "widget.delete",
+        responses: { "204": { description: "gone" } },
+        "x-entity": { action: "delete", identity: "id", name: "widget" },
+      },
       get: {
         operationId: "widget.read",
         responses: { "200": { content: { "application/json": { schema: ITEM } }, description: "ok" } },
@@ -364,11 +369,6 @@ const SPEC = {
         },
         responses: { "200": { content: { "application/json": { schema: ITEM } }, description: "ok" } },
         "x-entity": { action: "update", identity: "id", name: "widget" },
-      },
-      delete: {
-        operationId: "widget.delete",
-        responses: { "204": { description: "gone" } },
-        "x-entity": { action: "delete", identity: "id", name: "widget" },
       },
     },
     "/v1/widgets/{id}/extract": {

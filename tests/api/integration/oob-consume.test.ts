@@ -329,7 +329,7 @@ async function failsClosedOnMissingCookie(): Promise<void> {
 
 async function bindsResponseHeader(): Promise<void> {
   const app = await serve((_req, res) => {
-    res.writeHead(200, { "x-session": "hdr-tok", "content-type": "text/plain" });
+    res.writeHead(200, { "content-type": "text/plain", "x-session": "hdr-tok" });
     res.end("ok");
   });
 
@@ -384,7 +384,7 @@ describe("resolveOutOfBand extra fields", () => {
         kind: "email-verify",
         label: 'principal "a"',
         outOfBand: { attempts: 2, initialMs: 1, maxMs: 1 },
-        scope: { credential: "live", address: "a@x.test" },
+        scope: { address: "a@x.test", credential: "live" },
       },
     );
 

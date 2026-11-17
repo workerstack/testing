@@ -28,13 +28,12 @@ import { currentRecords, listOpFor, type Observation, observe } from "./observe.
 import { bodyForOp, forOperation } from "./requests.ts";
 
 export const declaredEffectsOccur: Check = defineCheck({
-  plan: (ctx) => when(ctx.effectOps.length > 0),
   // An effect is counted by reading whole sets before and after, across pages.
   dependsOn: ["list.read-after-write", "pagination.page-walk-covers-set"],
-  mutates: true,
   id: "effects.declared-effect-occurs",
+  mutates: true,
   needs: "an operation declaring x-effects",
-  subjects: subjectsOf.effects,
+  plan: (ctx) => when(ctx.effectOps.length > 0),
   async run(all): Promise<Outcome> {
     const tally: Tally = { judged: false };
 
@@ -50,6 +49,7 @@ export const declaredEffectsOccur: Check = defineCheck({
 
     return ASSERTED;
   },
+  subjects: subjectsOf.effects,
 });
 
 /**
@@ -175,7 +175,7 @@ async function runBefore(run: Invocation, uploads: UploadContext, prelude: Prelu
     operationId: beforeOp.operationId,
     ...(beforeFields === undefined
       ? {}
-      : await encodeOpBody(ctx, beforeOp, beforeFields, { variant: "baseline", index: 0, uploads })),
+      : await encodeOpBody(ctx, beforeOp, beforeFields, { index: 0, uploads, variant: "baseline" })),
   });
 
   if (beforeInvoked.status >= 400) {
@@ -250,7 +250,7 @@ async function invoke(
 
   const prepared = applyActionBind(
     at.binding.actionBind,
-    { records: at.current, beforeBody: at.binding.beforeBody },
+    { beforeBody: at.binding.beforeBody, records: at.current },
     op.hasRequestBody ? bodyForOp(ctx, op) : undefined,
   );
 
@@ -261,7 +261,7 @@ async function invoke(
     operationId: op.operationId,
     ...(fixture === undefined ? {} : { fixture }),
     ...(Object.keys(prepared.query).length === 0 ? {} : { query: prepared.query }),
-    ...(body === undefined ? {} : await encodeOpBody(ctx, op, body, { variant: "baseline", index: 0, uploads })),
+    ...(body === undefined ? {} : await encodeOpBody(ctx, op, body, { index: 0, uploads, variant: "baseline" })),
   });
 
   if (standDownForFeatureGate(ctx, op, invoked, run.check)) return undefined;

@@ -83,7 +83,7 @@ describe("collectSet", () => {
     const read = await collectSet(ctx, 2, { filter: "x" }, { order: "name.asc" });
     expect(read?.items).toEqual(rows(1));
     expect(pageQuery(sent, 0)).toEqual({ filter: "x", limit: 2, page: 1, sort: "name.asc" });
-    await collectSet(ctx, 2, { filter: "x" }, { order: "name.asc", fresh: true });
+    await collectSet(ctx, 2, { filter: "x" }, { fresh: true, order: "name.asc" });
     expect(walks(sent)).toEqual([sent[0], sent[0]]);
   });
 
@@ -208,7 +208,7 @@ describe("readSettled", () => {
 
 describe("unlessMoved", () => {
   const CHECK = "query.search-and-filter-compose";
-  const terms = [{ query: { filter: "a" } }, { query: { filter: "b" }, order: "id.desc", size: 1 }];
+  const terms = [{ query: { filter: "a" } }, { order: "id.desc", query: { filter: "b" }, size: 1 }];
 
   async function judged(respond: Responder, reads: Record_[][]) {
     const { ctx, findings, sent } = notesContext(respond);

@@ -23,15 +23,15 @@ export default defineConfig({
       {
         plugins: [solid({ refresh: false, solid: { hydratable: true } }), solidHydration()],
         test: {
-          name: "hydration",
-          include: ["hydration.test.tsx"],
           api: { port },
           browser: { enabled: true, headless: true, instances: [{ browser: "chromium" }], provider: playwright() },
+          include: ["hydration.test.tsx"],
+          name: "hydration",
         },
       },
       {
         plugins: [solid({ ssr: true })],
-        test: { name: "server", environment: "node", include: ["server.test.tsx"] },
+        test: { environment: "node", include: ["server.test.tsx"], name: "server" },
       },
     ],
   },

@@ -4,9 +4,10 @@ import { errorResponses } from "./errors.ts";
 import { jsonResponse, ok } from "./operation.ts";
 import type { Json, SpecContext } from "./types.ts";
 
-// An object of exactly these fields, every one required.
-function fields(properties: Json): Json {
-  return { additionalProperties: false, properties, required: Object.keys(properties), type: "object" };
+// An object of exactly these fields, every one required, listed in `order`: the list and the
+// properties name the same fields, so neither can drift from the other.
+function fields<K extends string>(order: readonly K[], properties: Record<K, Json>): Json {
+  return { additionalProperties: false, properties, required: [...order], type: "object" };
 }
 
 const STRING = { type: "string" };
@@ -14,13 +15,18 @@ const STRING = { type: "string" };
 // The one route a key is read back through, which minting and revoking it change.
 const KEY_READ = ["GET /v1/api-keys/{id}"];
 
-function jsonBody(properties: Json): Json {
-  return { content: { "application/json": { schema: fields(properties) } }, required: true };
+function jsonBody<K extends string>(order: readonly K[], properties: Record<K, Json>): Json {
+  return { content: { "application/json": { schema: fields(order, properties) } }, required: true };
 }
 
 // What a sign-in, or a refresh, answers.
 const session = (): Json =>
-  fields({ access_token: STRING, refresh_token: STRING, expires_in: { type: "integer" }, project_id: STRING });
+  fields(["access_token", "refresh_token", "expires_in", "project_id"], {
+    access_token: STRING,
+    expires_in: { type: "integer" },
+    project_id: STRING,
+    refresh_token: STRING,
+  });
 
 // The throttle's answer: when to try again.
 const THROTTLED: Json = {
@@ -29,10 +35,10 @@ const THROTTLED: Json = {
 };
 
 // A public sign-in: `body` for a JWT pair, throttled once one identity keeps failing.
-function signIn(ctx: SpecContext, id: string, body: Json): Json {
+function signIn(ctx: SpecContext, id: string, requestBody: Json): Json {
   return {
     operationId: id,
-    requestBody: jsonBody(body),
+    requestBody,
     responses: {
       [ok(ctx, 200)]: jsonResponse("A JWT pair", session()),
       ...errorResponses(ctx, [400, 401, 415]),
@@ -47,7 +53,7 @@ function signIn(ctx: SpecContext, id: string, body: Json): Json {
 function refreshOperation(ctx: SpecContext): Json {
   return {
     operationId: "auth.refresh",
-    requestBody: jsonBody({ refresh_token: STRING }),
+    requestBody: jsonBody(["refresh_token"], { refresh_token: STRING }),
     responses: { [ok(ctx, 200)]: jsonResponse("A new JWT pair", session()), ...errorResponses(ctx, [400, 401, 415]) },
     security: [],
     summary: "Rotate a refresh token; reusing a rotated one revokes its session",
@@ -58,9 +64,9 @@ function refreshOperation(ctx: SpecContext): Json {
 function revokeOperation(ctx: SpecContext): Json {
   return {
     operationId: "auth.revoke",
-    requestBody: jsonBody({ token: STRING }),
+    requestBody: jsonBody(["token"], { token: STRING }),
     responses: {
-      [ok(ctx, 200)]: jsonResponse("Revoked", fields({ revoked: { type: "boolean" } })),
+      [ok(ctx, 200)]: jsonResponse("Revoked", fields(["revoked"], { revoked: { type: "boolean" } })),
       ...errorResponses(ctx, [400, 401, 403, 415]),
     },
     summary: "Revoke one of the caller's access or refresh tokens",
@@ -83,9 +89,11 @@ function keyRoutes(ctx: SpecContext): string[] {
 
 // A key as it is read back, never with its value: named behind key-lifecycle.
 function keyRecord(ctx: SpecContext): Json {
-  const named = ctx.shape.keyLifecycle === true ? { name: { type: ["string", "null"] } } : {};
+  const scopes = { items: STRING, type: "array" };
 
-  return fields({ id: STRING, ...named, scopes: { items: STRING, type: "array" } });
+  if (ctx.shape.keyLifecycle !== true) return fields(["id", "scopes"], { id: STRING, scopes });
+
+  return fields(["id", "name", "scopes"], { id: STRING, name: { type: ["string", "null"] }, scopes });
 }
 
 function createKeyOperation(ctx: SpecContext): Json {
@@ -107,13 +115,13 @@ function createKeyOperation(ctx: SpecContext): Json {
           },
           required: true,
         }
-      : jsonBody({ scopes: scopeList });
+      : jsonBody(["scopes"], { scopes: scopeList });
 
   return {
     operationId: "apiKey.create",
     requestBody: body,
     responses: {
-      [ok(ctx, 201)]: jsonResponse("The new key, shown once", fields({ id: STRING, key: STRING })),
+      [ok(ctx, 201)]: jsonResponse("The new key, shown once", fields(["id", "key"], { id: STRING, key: STRING })),
       ...errorResponses(ctx, [400, 401, 415]),
     },
     summary: "Mint an API key in the caller's tenant, holding the scopes named",
@@ -128,7 +136,7 @@ function revokeKeyOperation(ctx: SpecContext): Json {
     operationId: "apiKey.revoke",
     parameters: [{ in: "path", name: "id", required: true, schema: STRING }],
     responses: {
-      [ok(ctx, 200)]: jsonResponse("Revoked", fields({ revoked: { type: "boolean" } })),
+      [ok(ctx, 200)]: jsonResponse("Revoked", fields(["revoked"], { revoked: { type: "boolean" } })),
       ...errorResponses(ctx, [401, 403, 404]),
     },
     summary: "Revoke an API key of the caller's tenant, its own or, for the tenant's admin, any; it is gone after",
@@ -171,7 +179,7 @@ function renameKeyOperation(ctx: SpecContext): Json {
   return {
     operationId: "apiKey.update",
     parameters: [{ in: "path", name: "id", required: true, schema: STRING }],
-    requestBody: jsonBody({ name: STRING }),
+    requestBody: jsonBody(["name"], { name: STRING }),
     responses: {
       [ok(ctx, 200)]: jsonResponse("The renamed key", keyRecord(ctx)),
       ...errorResponses(ctx, [400, 401, 403, 404, 415]),
@@ -185,18 +193,28 @@ function renameKeyOperation(ctx: SpecContext): Json {
 
 /** The sign-in operations, which need no credential, then revoking a token and the API key operations. */
 export function authPaths(ctx: SpecContext): Json {
-  return {
-    "/v1/auth/token": { post: signIn(ctx, "auth.token", { key: STRING }) },
-    "/v1/auth/login": { post: signIn(ctx, "auth.login", { email: STRING, password: STRING }) },
-    "/v1/auth/refresh": { post: refreshOperation(ctx) },
-    "/v1/auth/revoke": { post: revokeOperation(ctx) },
-    "/v1/api-keys":
-      ctx.shape.keyLifecycle === true
-        ? { get: listKeysOperation(ctx), post: createKeyOperation(ctx) }
-        : { post: createKeyOperation(ctx) },
-    "/v1/api-keys/{id}":
-      ctx.shape.keyLifecycle === true
+  const isKeyed = ctx.shape.keyLifecycle === true;
+
+  // In the order the document lists them.
+  const routes: readonly (readonly [string, Json])[] = [
+    ["/v1/auth/token", { post: signIn(ctx, "auth.token", jsonBody(["key"], { key: STRING })) }],
+    [
+      "/v1/auth/login",
+      { post: signIn(ctx, "auth.login", jsonBody(["email", "password"], { email: STRING, password: STRING })) },
+    ],
+    ["/v1/auth/refresh", { post: refreshOperation(ctx) }],
+    ["/v1/auth/revoke", { post: revokeOperation(ctx) }],
+    [
+      "/v1/api-keys",
+      isKeyed ? { get: listKeysOperation(ctx), post: createKeyOperation(ctx) } : { post: createKeyOperation(ctx) },
+    ],
+    [
+      "/v1/api-keys/{id}",
+      isKeyed
         ? { delete: revokeKeyOperation(ctx), get: readKeyOperation(ctx), patch: renameKeyOperation(ctx) }
         : { delete: revokeKeyOperation(ctx), get: readKeyOperation(ctx) },
-  };
+    ],
+  ];
+
+  return Object.fromEntries(routes);
 }

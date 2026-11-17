@@ -50,6 +50,7 @@ function renewalRefused(steps: string[]): CredentialPorts {
   return {
     operations: { call: () => unexpected("call") },
     records: { gone: () => unexpected("read"), removed: () => false },
+    secrets: { register: () => {} },
     steps: {
       run: async (run) => {
         const step = run.map((one) => ("operationId" in one ? one.operationId : "?")).join(",");
@@ -60,7 +61,6 @@ function renewalRefused(steps: string[]): CredentialPorts {
         return { answer: { body: { token: "token-1" }, cookies: {}, headers: {}, status: 200 }, scope: {} };
       },
     },
-    secrets: { register: () => {} },
     tokens: { post: () => unexpected("post") },
   };
 }
@@ -180,6 +180,7 @@ function issuing(through?: () => Promise<unknown>): CredentialPorts {
   return {
     operations: { call: () => unexpected("call") },
     records: { gone: () => unexpected("read"), removed: () => false },
+    secrets: { register: () => {} },
     steps: {
       run: async () => {
         await through?.();
@@ -188,7 +189,6 @@ function issuing(through?: () => Promise<unknown>): CredentialPorts {
         return { answer: { body: { token: `token-${issued}` }, cookies: {}, headers: {}, status: 200 }, scope: {} };
       },
     },
-    secrets: { register: () => {} },
     tokens: { post: () => unexpected("post") },
   };
 }

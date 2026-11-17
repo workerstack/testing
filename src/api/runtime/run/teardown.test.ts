@@ -239,8 +239,8 @@ describe("unwind edge cases", () => {
 
     const broken: RunContext = {
       ...ctx,
-      principals: { ...ctx.principals, fallbackDeleters: () => [] },
       model: null as never,
+      principals: { ...ctx.principals, fallbackDeleters: () => [] },
     };
 
     await unwind(broken);

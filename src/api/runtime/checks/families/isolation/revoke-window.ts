@@ -90,11 +90,11 @@ export function judgeRevoke(
 
   const stale = (bracket.stale as { exchange: Exchange }).exchange;
   ctx.findings.backend(check, ctx.entityName, {
-    summary: "revoking an invite does not remove access",
     detail:
       `${plan.delegate.id} can still read ${subjectLabel} after the grant was revoked: ${window}, past ` +
       `${declared}. A share that cannot be taken back within its bound is a standing leak.`,
     evidence: [...judged.evidence, stale],
+    summary: "revoking an invite does not remove access",
   });
 
   return ASSERTED;

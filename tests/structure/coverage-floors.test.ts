@@ -83,8 +83,8 @@ describe("coverage floors for modules that come and go", () => {
       { "coverage-floors.json": floors(90), "src/api/a.ts": "export const a = 1\n" },
       {
         "coverage-floors.json": "{}\n",
-        "src/api/b.ts": "export const b = 1\n",
         "src/api/b.test.ts": "",
+        "src/api/b.ts": "export const b = 1\n",
         "src/api/index.ts": "",
       },
     ]);

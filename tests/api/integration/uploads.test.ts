@@ -24,6 +24,20 @@ const SPEC = {
   openapi: "3.1.0",
   paths: {
     "/v1/documents": {
+      get: {
+        operationId: "document.list",
+        responses: {
+          "200": {
+            content: {
+              "application/json": {
+                schema: { properties: { documents: { items: DOCUMENT, type: "array" } }, type: "object" },
+              },
+            },
+            description: "every document",
+          },
+        },
+        "x-entity": { action: "list", identity: "id", name: "document" },
+      },
       post: {
         operationId: "document.upload",
         requestBody: {
@@ -46,20 +60,6 @@ const SPEC = {
           "400": { description: "no file" },
         },
         "x-entity": { action: "create", identity: "id", name: "document" },
-      },
-      get: {
-        operationId: "document.list",
-        responses: {
-          "200": {
-            content: {
-              "application/json": {
-                schema: { properties: { documents: { items: DOCUMENT, type: "array" } }, type: "object" },
-              },
-            },
-            description: "every document",
-          },
-        },
-        "x-entity": { action: "list", identity: "id", name: "document" },
       },
     },
   },

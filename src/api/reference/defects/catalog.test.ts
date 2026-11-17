@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { CATALOG_DEFECTS } from "./catalog.ts";
+import { CATALOG_DEFECT_ORDER, CATALOG_DEFECTS } from "./catalog.ts";
 
 describe("CATALOG_DEFECTS", () => {
   it("holds the family of what the declared catalog promises, in the table's order", () => {
-    const names = Object.keys(CATALOG_DEFECTS);
+    const names = CATALOG_DEFECT_ORDER;
     expect(names.slice(0, 3)).toEqual([
       "FILTER_ALIAS_MISMAPPED",
       "FILTER_CONDITION_CAP_IGNORED",

@@ -118,9 +118,10 @@ function inboxOperation(ctx: SpecContext, job: EntityDef): Json {
 export function jobPaths(ctx: SpecContext, job: EntityDef): Json {
   const project = job.collectionPath.replace("/jobs", "");
 
-  return {
-    [`${job.collectionPath}/start`]: { post: startOperation(ctx, job) },
-    [`${project}/notifications`]: { post: notifyOperation(ctx, job) },
-    [`${project}/inbox`]: { get: inboxOperation(ctx, job) },
-  };
+  // Entries, not a literal: the routes are listed in the order a reader sees them.
+  return Object.fromEntries([
+    [`${job.collectionPath}/start`, { post: startOperation(ctx, job) }],
+    [`${project}/notifications`, { post: notifyOperation(ctx, job) }],
+    [`${project}/inbox`, { get: inboxOperation(ctx, job) }],
+  ]);
 }

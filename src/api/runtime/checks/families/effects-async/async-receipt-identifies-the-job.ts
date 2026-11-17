@@ -8,11 +8,10 @@ import { subjectsOf } from "../../planning/subjects.ts";
 import { forOperation } from "./requests.ts";
 
 export const asyncReceiptIsResolvable: Check = defineCheck({
-  plan: (ctx) => when(ctx.asyncOps.some((op) => op.async?.idFrom !== undefined)),
   id: "async.receipt-identifies-the-job",
   judgesTranscript: true,
   needs: "x-async with an idFrom pointer",
-  subjects: subjectsOf.asyncReceipt,
+  plan: (ctx) => when(ctx.asyncOps.some((op) => op.async?.idFrom !== undefined)),
   async run(all): Promise<Outcome> {
     for (const op of all.asyncOps) {
       const ctx = forOperation(all, op);
@@ -56,14 +55,15 @@ export const asyncReceiptIsResolvable: Check = defineCheck({
       if (node !== undefined && node !== null) continue;
 
       ctx.findings.spec(this.id, ctx.entityName, {
-        summary: `${op.operationId} response does not carry the job identifier it declares`,
         detail:
           `x-async names "${spec.idFrom}" as the job id, but the response has no such value. ` +
           "Callers cannot poll for a job they cannot name.",
         evidence: [started],
+        summary: `${op.operationId} response does not carry the job identifier it declares`,
       });
     }
 
     return ASSERTED;
   },
+  subjects: subjectsOf.asyncReceipt,
 });

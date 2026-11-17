@@ -92,7 +92,7 @@ describe("placementOf on declared names, by property", () => {
 
     fc.assert(
       fc.property(header, ([placed, sent]) => {
-        const headers = { [sent]: "value", accept: "json" };
+        const headers = { accept: "json", [sent]: "value" };
         stripCredentials(headers, credentialHeaderNames([placed]));
         expect(headers).toEqual({ accept: "json" });
         const redactor = new Redactor();

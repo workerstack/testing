@@ -4,6 +4,7 @@
  */
 
 import type { ExternalStep, OutOfBandStep, ScenarioStep } from "../../config/types/steps.ts";
+import { bindEntries } from "../steps/bind-entries.ts";
 import { interpolate } from "../steps/interpolate.ts";
 import { resolveOutOfBandValue, triggerSentAt } from "../steps/out-of-band.ts";
 import { StepFailure } from "./failure.ts";
@@ -13,7 +14,7 @@ import type { ScenarioRun } from "./types.ts";
 import { isExternal, isOutOfBand } from "./validate.ts";
 
 export async function runStep(run: ScenarioRun, step: ScenarioStep, index: number): Promise<void> {
-  for (const [name, literal] of Object.entries("bind" in step && step.bind !== undefined ? step.bind : {}))
+  for (const [name, literal] of bindEntries("bind" in step ? step.bind : undefined, "bind"))
     run.scope[name] = String(interpolate(literal, run.scope));
 
   if (isOutOfBand(step)) return outOfBandStep(run, step);

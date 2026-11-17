@@ -13,6 +13,7 @@ export async function scenarios(ctx: RunContext): Promise<void> {
   progress.enter("scenario", `${ownScenarios.length} scenario(s)`);
   await runScenarios({
     accounts: scenarioAccounts(ctx),
+    blocked: new Map(principals.blocked.map((principal) => [principal.id, principal.reason])),
     checksRun: state.checksRun,
     client,
     defaultPrincipal: principals.alpha.id,
@@ -25,7 +26,6 @@ export async function scenarios(ctx: RunContext): Promise<void> {
     originClients: ctx.originClients,
     outOfBand: ctx.options.outOfBand ?? {},
     principals: new Map(principals.all.map((principal) => [principal.id, { scope: principal.scope }])),
-    blocked: new Map(principals.blocked.map((principal) => [principal.id, principal.reason])),
     scenarios: ownScenarios,
     skipped: (scenario) => externalExcluded(scenario, ctx.options.externals?.kinds, ctx.profile),
     stopped: () => stopped(ctx),

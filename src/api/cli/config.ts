@@ -36,8 +36,9 @@ export async function readConfig(path: string, forRun: boolean, options: ReadOpt
 
   if (deferEnv) {
     const unset = new Set<string>();
+    const config = interpolate(loaded, process.env, { unset });
 
-    return { config: interpolate(loaded, process.env, { unset }), unsetEnv: [...unset] };
+    return { config, unsetEnv: [...unset].toSorted() };
   }
 
   try {

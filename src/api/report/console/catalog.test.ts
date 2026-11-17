@@ -15,7 +15,7 @@ describe("entityQueryCatalogs from the document", () => {
     expect(table?.grammar).toBeUndefined();
     expect(table?.checks).toContain("filter.in-is-union-of-eq");
     const notice = catalogs.find((row) => row.entity === "notice");
-    expect(Object.keys(notice ?? {})).toEqual([
+    expect(Object.keys(notice ?? {}).toSorted()).toStrictEqual([
       "aliases",
       "checks",
       "entity",

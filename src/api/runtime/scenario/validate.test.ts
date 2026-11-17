@@ -80,7 +80,7 @@ describe("assertScenarios", () => {
             steps: [
               { method: "GET", path: "/health" },
               { outOfBand: { address: "a@b.c", as: "code", kind: "otp" } },
-              { external: "pay", as: "paid" },
+              { as: "paid", external: "pay" },
               { operationId: "notes.list", origin: "" },
             ],
           },

@@ -97,8 +97,8 @@ async function judged(refuses: boolean, declared: boolean) {
   });
 
   return {
-    ran: result.checksRun.includes("pagination.limit-bounds-enforced"),
     found: result.findings.filter((f) => isRootCause(f) && f.check === "pagination.limit-bounds-enforced"),
+    ran: result.checksRun.includes("pagination.limit-bounds-enforced"),
   };
 }
 

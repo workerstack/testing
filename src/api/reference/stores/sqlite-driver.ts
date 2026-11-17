@@ -13,6 +13,8 @@
  * still needed `--experimental-sqlite`), which has taken down the CLI and the Postgres path once each.
  */
 
+import { sortedJson } from "../../spec/sorted-json.ts";
+
 export type SqlValue = string | number | null | Uint8Array;
 
 export type SqlRow = Record<string, SqlValue>;
@@ -91,7 +93,7 @@ export function d1Driver(config: D1Config): SqliteDriver {
 
   async function send(sql: string, params: SqlValue[]): Promise<SqlRow[]> {
     const response = await fetch(endpoint, {
-      body: JSON.stringify({ params: params.map(encode), sql }),
+      body: sortedJson({ params: params.map(encode), sql }),
       headers: {
         authorization: `Bearer ${config.apiToken}`,
         "content-type": "application/json",

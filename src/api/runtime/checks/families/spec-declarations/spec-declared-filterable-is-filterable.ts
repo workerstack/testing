@@ -2,14 +2,13 @@ import { filterTerm } from "../../../../spec/conventions/filter.ts";
 import type { EffectiveFilterField } from "../../../../spec/query/effective.ts";
 import type { FILTER_OPS } from "../../../../spec/query/ops.ts";
 import type { JsonSchema } from "../../../../spec/types.ts";
-import type { Exchange } from "../../../exchange.ts";
-import { ASSERTED, type Outcome } from "../../../finding.ts";
+import type { Outcome } from "../../../finding.ts";
 import { filterSentinel } from "../../../generate/identifiers.ts";
 import type { Check } from "../../core/check.ts";
 import type { Listed } from "../../core/context.ts";
 import { defineCheck } from "../../core/define.ts";
 import { when } from "../../core/plan.ts";
-import { declarationAnswer } from "../../planning/declarations.ts";
+import { declarationOutcome } from "../../planning/declarations.ts";
 import { subjectsOf } from "../../planning/subjects.ts";
 import { asTermValue, canUseOp, conv, q, resolvedCaps, schemaType } from "../../query/capabilities.ts";
 import { list } from "../../sets/list.ts";
@@ -30,13 +29,6 @@ import { list } from "../../sets/list.ts";
  * stands down, which is right when the field was merely inferred and wrong when it was declared.
  */
 export const declaredFilterableWorks: Check = defineCheck({
-  plan: (ctx) =>
-    when(
-      conv(ctx).filter !== undefined &&
-        ctx.query?.source === "tag" &&
-        ctx.query.filterable.length > 0 &&
-        ctx.records.length > 0,
-    ),
   dependsOn: [
     "list.read-after-write",
     // The evidence is a *rejection*. A backend that silently drops unknown filter fields never
@@ -51,12 +43,15 @@ export const declaredFilterableWorks: Check = defineCheck({
   id: "spec.declared-filterable-is-filterable",
   lists: true,
   needs: "x-query naming filterable fields",
-  subjects: subjectsOf.list,
+  plan: (ctx) =>
+    when(
+      conv(ctx).filter !== undefined &&
+        ctx.query?.source === "tag" &&
+        ctx.query.filterable.length > 0 &&
+        ctx.records.length > 0,
+    ),
   async run(ctx): Promise<Outcome> {
     const conventions = conv(ctx);
-    const rejected: Array<{ field: string; status: number; exchange: Exchange }> = [];
-    const unknown: string[] = [];
-    let probed = 0;
 
     // Every field at once; the answers are judged in declaration order.
     const answers = await Promise.all(
@@ -76,48 +71,22 @@ export const declaredFilterableWorks: Check = defineCheck({
       }),
     );
 
-    for (const answered of answers) {
-      if (answered === null) continue;
-      const { field, result } = answered;
-      probed += 1;
-      // Only a rejection counts. A filter that returns the wrong rows is a backend defect
-      // other checks own; this one is strictly about the capability existing.
-      const answer = declarationAnswer(result.exchange.status);
-
-      if (answer === "refused") rejected.push({ exchange: result.exchange, field, status: result.exchange.status });
-
-      if (answer === "unknown") unknown.push(`${field} (${result.exchange.status})`);
-    }
-
-    if (probed === 0) {
-      return ctx.findings.unresolved(
-        this.id,
-        ctx.entityName,
-        "no declared filterable field holds a non-null value in the cohort, so none could be probed",
-      );
-    }
-
-    if (rejected.length === 0 && unknown.length > 0) {
-      return ctx.findings.unresolved(
-        this.id,
-        ctx.entityName,
-        `probes were turned away without a verdict: ${unknown.join(", ")}`,
-      );
-    }
-
-    if (rejected.length === 0) return ASSERTED;
-
-    return ctx.findings.spec(this.id, ctx.entityName, {
-      summary: "the document declares a filter the backend does not accept",
-      detail:
-        `x-query lists ${rejected.length} field(s) as filterable that the backend rejects: ` +
-        `${rejected.map((r) => `${r.field} (${r.status})`).join(", ")}. ` +
-        "Every client generated from this document will offer a filter that fails at runtime. " +
-        "Either the column needs an index or the declaration needs removing — but the " +
-        "document and the backend currently disagree about what this API can do.",
-      evidence: rejected.slice(0, 3).map((item) => item.exchange),
-    });
+    return declarationOutcome(
+      ctx,
+      answers.filter((answered) => answered !== null),
+      {
+        consequence:
+          "Every client generated from this document will offer a filter that fails at runtime. " +
+          "Either the column needs an index or the declaration needs removing — but the " +
+          "document and the backend currently disagree about what this API can do.",
+        id: this.id,
+        kind: "filterable",
+        noProbe: "no declared filterable field holds a non-null value in the cohort, so none could be probed",
+        summary: "the document declares a filter the backend does not accept",
+      },
+    );
   },
+  subjects: subjectsOf.list,
 });
 
 /** What a capability probe sends: an operator and a value for it. */

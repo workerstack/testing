@@ -64,16 +64,16 @@ export function buildModel(doc: OpenApiDocument, options: BuildOptions = {}): Sp
   return {
     byOperationId,
     byRoute,
+    defs,
     entities,
     gaps,
     hasAuthOperations: operations.some((o) => /auth|login|token|session/i.test(o.path)),
     operations,
     // First wins, like `byOperationId`.
     rawOperations: new Map(endpoints.toReversed().map((e) => [e.operationId, e.op])),
-    defs,
     roots: collectRoots(operations, entities),
-    securitySchemes: Object.keys(doc.components?.securitySchemes ?? {}),
     schemes: readSchemes(doc),
+    securitySchemes: Object.keys(doc.components?.securitySchemes ?? {}).toSorted(),
   };
 }
 

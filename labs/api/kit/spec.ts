@@ -37,11 +37,11 @@ export function buildSpec(world: World): Json {
     paths["/v1/invites/{token}/accept"] = { post: acceptOperation(world) };
 
   return {
+    // The bearer token auth.token issues, which every other route wants (http.ts `authenticate`).
+    components: { securitySchemes: { bearer: { scheme: "bearer", type: "http" } } },
     info: { title: world.title, version: "1.0" },
     openapi: "3.1.0",
     paths,
-    // The bearer token auth.token issues, which every other route wants (http.ts `authenticate`).
-    components: { securitySchemes: { bearer: { scheme: "bearer", type: "http" } } },
     security: [{ bearer: [] }],
   };
 }
@@ -66,8 +66,8 @@ function entityPaths(routes: Routes): Json {
   const { entity, item, list } = routes;
 
   const paths: Json = {
-    [list]: { get: listOperation(routes), post: createOperation(routes) },
     [item]: { delete: deleteOperation(routes), get: readOperation(routes), patch: updateOperation(routes) },
+    [list]: { get: listOperation(routes), post: createOperation(routes) },
   };
 
   if (entity.invite === true) {
@@ -101,8 +101,8 @@ function entityTag(entity: Entity, action: string): Json {
 function listOperation({ entity, params, world }: Routes): Json {
   const page = objectSchema(
     {
-      [entity.plural]: { items: itemSchema(entity), type: "array" },
       count: { type: "integer" },
+      [entity.plural]: { items: itemSchema(entity), type: "array" },
       hasMore: { type: "boolean" },
       limit: { type: "integer" },
       nextCursor: { type: ["string", "null"] },

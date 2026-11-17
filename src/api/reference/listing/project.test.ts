@@ -9,7 +9,7 @@ import { project } from "./project.ts";
 const ROW_VALUE: Row = { id: "r1", label: "x", table_id: "t1" };
 
 const embed = async (relation: string, row: Row): Promise<Row | null> =>
-  row["table_id"] === undefined ? null : { name: `${relation}-name`, status: "active", secret: 1 };
+  row["table_id"] === undefined ? null : { name: `${relation}-name`, secret: 1, status: "active" };
 
 /** What a fieldset is projected from: the sample row, with no defect and the embed on, unless given. */
 type Projecting = {

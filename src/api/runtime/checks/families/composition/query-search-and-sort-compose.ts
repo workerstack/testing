@@ -17,6 +17,10 @@ export const querySearchAndSortCompose: Check<{
   sortField: string;
   token: string;
 }>({
+  dependsOn: ["pagination.page-walk-covers-set", "search.q-narrows-result", "sort.order-is-applied"],
+  id: "query.search-and-sort-compose",
+  lists: true,
+  needs: "searchable and sortable fields",
   plan: (ctx) => {
     if (conv(ctx).search === undefined || conv(ctx).order === undefined) return cannot();
     const searchField = ctx.query?.searchable[0];
@@ -32,18 +36,13 @@ export const querySearchAndSortCompose: Check<{
 
     return ready({ searchField, sortField, token });
   },
-  dependsOn: ["pagination.page-walk-covers-set", "search.q-narrows-result", "sort.order-is-applied"],
-  id: "query.search-and-sort-compose",
-  lists: true,
-  needs: "searchable and sortable fields",
-  subjects: subjectsOf.list,
   async run(ctx, { sortField, token }): Promise<Outcome> {
     const search = q(ctx, { limit: pageSize(ctx), search: token });
 
     const sorted = q(ctx, {
       limit: pageSize(ctx),
-      search: token,
       order: sortTerm(conv(ctx), { direction: "asc", field: sortField }),
+      search: token,
     });
 
     const first = await listAll(ctx, search);
@@ -72,9 +71,9 @@ export const querySearchAndSortCompose: Check<{
 
     if (!sameSet(setOf(searched.items, ctx.identity), setOf(combined.items, ctx.identity))) {
       return ctx.findings.backend(this.id, ctx.entityName, {
-        summary: "adding a sort changes which records a search returns",
         detail: `q=${JSON.stringify(token)} membership changed when order=${sortField} was added.`,
         evidence: [searched.exchange, combined.exchange],
+        summary: "adding a sort changes which records a search returns",
       });
     }
 
@@ -86,16 +85,17 @@ export const querySearchAndSortCompose: Check<{
       if (descending === null) return ASSERTED;
 
       return ctx.findings.backend(this.id, ctx.entityName, {
-        summary: "search results are not ordered",
         detail: `q + order=${sortField}.asc and .desc returned the same sequence of ${sortField} values.`,
         evidence: [combined.exchange, descending.exchange],
+        summary: "search results are not ordered",
       });
     }
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "search results are not ordered",
       detail: `q + order=${sortField}.asc did not keep ${sortField} ascending.`,
       evidence: [combined.exchange],
+      summary: "search results are not ordered",
     });
   },
+  subjects: subjectsOf.list,
 });

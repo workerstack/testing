@@ -14,12 +14,11 @@ import { envelopeValue, list } from "../../sets/list.ts";
  * shows a number contradicted by the rows directly beneath.
  */
 export const countIsConsistentWithPage: Check = defineCheck({
-  plan: (ctx) => when(ctx.records.length > 0),
   dependsOn: ["list.read-after-write"],
   id: "count.consistent-with-returned-page",
   lists: true,
   needs: "a total-count field in the list envelope",
-  subjects: subjectsOf.list,
+  plan: (ctx) => when(ctx.records.length > 0),
   async run(ctx): Promise<Outcome> {
     const result = await list(ctx, q(ctx, { limit: pageSize(ctx) }));
 
@@ -36,13 +35,14 @@ export const countIsConsistentWithPage: Check = defineCheck({
     if (reported >= returned) return ASSERTED;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "reported count is smaller than the number of records returned",
       detail:
         `the response carries count=${reported} while returning ${returned} record(s) in the same ` +
         `body${envelopeValue(ctx, result, "hasMore") === true ? " and hasMore=true" : ""}. The total is being ` +
         "computed by a query that disagrees with the one producing the rows, so any caller " +
         "rendering a result count contradicts the list it is labeling.",
       evidence: [result.exchange],
+      summary: "reported count is smaller than the number of records returned",
     });
   },
+  subjects: subjectsOf.list,
 });

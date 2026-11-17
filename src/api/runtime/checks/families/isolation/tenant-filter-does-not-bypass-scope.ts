@@ -20,6 +20,13 @@ export const crossTenantFilterBypass: Check<{
   peer: string;
   peerScope: Record<string, string>;
 }>({
+  // The probe filters, so anything that stops a filter from selecting over the whole collection
+  // hides the very record whose visibility is in question — a leak that cannot be observed is
+  // not a leak that can be reported.
+  dependsOn: ["query.filter-selects-from-whole-set"],
+  id: "tenant.filter-does-not-bypass-scope",
+  lists: true,
+  needs: "a second principal, a filter, and a tenant tagged or inferred from the path",
   plan: (ctx) => {
     const { peer, peerScope } = ctx;
     const target = ctx.records[0];
@@ -36,14 +43,6 @@ export const crossTenantFilterBypass: Check<{
 
     return ready({ id, peer: peer.id, peerScope, tenantTerm });
   },
-  // The probe filters, so anything that stops a filter from selecting over the whole collection
-  // hides the very record whose visibility is in question — a leak that cannot be observed is
-  // not a leak that can be reported.
-  dependsOn: ["query.filter-selects-from-whole-set"],
-  id: "tenant.filter-does-not-bypass-scope",
-  lists: true,
-  needs: "a second principal, a filter, and a tenant tagged or inferred from the path",
-  subjects: subjectsOf.list,
   async run(ctx, { id, peer, peerScope, tenantTerm }): Promise<Outcome> {
     const result = await list(
       ctx,
@@ -66,11 +65,11 @@ export const crossTenantFilterBypass: Check<{
 
     if (tenantDeclared) {
       return ctx.findings.security(this.id, ctx.entityName, {
-        summary: "a filter reaches records outside the caller's tenant",
         detail:
           `${detail} The list declares x-tenant: "${ctx.listOp.tenantParam}", so this crosses ` +
           "a boundary the document states exists.",
         evidence: [result.exchange],
+        summary: "a filter reaches records outside the caller's tenant",
       });
     }
 
@@ -89,4 +88,5 @@ export const crossTenantFilterBypass: Check<{
 
     return ASSERTED;
   },
+  subjects: subjectsOf.list,
 });

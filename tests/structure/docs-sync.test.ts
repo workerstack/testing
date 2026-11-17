@@ -66,54 +66,54 @@ const mentions = (text: string, token: string): boolean =>
   new RegExp(`(?<![\\w-])${token.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w-])`).test(text);
 
 const SURFACES: Readonly<Record<string, Surface>> = {
+  "CLI flags": {
+    doc: "commands.md",
+    names: () => Object.keys(FLAGS),
+    undocumented: [],
+    written: (name) => `--${name}`,
+  },
   "check ids": {
     doc: "checks.md",
     names: () => CHECKS.map((check) => check.id),
-    written: code,
     undocumented: [],
-  },
-  "run-level finding ids": {
-    doc: "checks.md",
-    names: () => [...RUN_FINDING_IDS],
     written: code,
-    undocumented: [],
   },
   defects: {
     doc: "reference-defects.md",
     names: () => Object.keys(DEFECTS),
+    undocumented: [],
     written: code,
-    undocumented: [],
-  },
-  "CLI flags": {
-    doc: "commands.md",
-    names: () => Object.keys(FLAGS),
-    written: (name) => `--${name}`,
-    undocumented: [],
-  },
-  "top-level config fields": {
-    doc: "configuration/reference.md",
-    names: () => Object.keys(configRules()),
-    written: code,
-    undocumented: [],
-  },
-  "x-* tags": {
-    doc: "tags.md",
-    names: tagsRead,
-    written: code,
-    undocumented: [],
   },
   "public exports": {
     doc: "api.md",
     names: () => publicExports(),
+    undocumented: [],
     // An export may be named in prose or in an example's code.
     written: (name) => name,
+  },
+  "run-level finding ids": {
+    doc: "checks.md",
+    names: () => [...RUN_FINDING_IDS],
     undocumented: [],
+    written: code,
   },
   "steps exports": {
     doc: "steps.md",
     names: () => publicExports(["src", "api", "steps", "index.ts"]),
-    written: (name) => name,
     undocumented: [],
+    written: (name) => name,
+  },
+  "top-level config fields": {
+    doc: "configuration/reference.md",
+    names: () => Object.keys(configRules()),
+    undocumented: [],
+    written: code,
+  },
+  "x-* tags": {
+    doc: "tags.md",
+    names: tagsRead,
+    undocumented: [],
+    written: code,
   },
 };
 

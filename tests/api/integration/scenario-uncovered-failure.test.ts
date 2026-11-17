@@ -23,8 +23,8 @@ const spec: OpenApiDocument = {
   openapi: "3.1.0",
   paths: {
     "/v1/arm": { post: { operationId: "arm.set", responses: ok } },
-    "/v1/state": { get: { operationId: "state.get", responses: ok } },
     "/v1/redeem": { post: { operationId: "offer.redeem", responses: ok } },
+    "/v1/state": { get: { operationId: "state.get", responses: ok } },
   },
 } as OpenApiDocument;
 

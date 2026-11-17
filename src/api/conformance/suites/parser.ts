@@ -1,6 +1,7 @@
 import { messageOf } from "../../errors/message.ts";
 import { buildModel } from "../../spec/graph/build.ts";
 import { dereference } from "../../spec/load/dereference.ts";
+import { sortedJson } from "../../spec/sorted-json.ts";
 import type { OpenApiDocument } from "../../spec/types.ts";
 import type { ParserResult } from "../harness/result.ts";
 import { type SpecFixture, specFixtures } from "../specs.ts";
@@ -63,8 +64,8 @@ function scopesNotAList(model: Model): string[] {
   const problems: string[] = [];
   const scopes = model.byOperationId.get("RevokeToken")?.security.alternatives;
 
-  if (JSON.stringify(scopes) !== JSON.stringify([[{ scheme: "oauth2", scopes: [] }]]))
-    problems.push(`RevokeToken's requirement read as ${JSON.stringify(scopes)}, expected oauth2 with no scopes`);
+  if (sortedJson(scopes) !== sortedJson([[{ scheme: "oauth2", scopes: [] }]]))
+    problems.push(`RevokeToken's requirement read as ${sortedJson(scopes)}, expected oauth2 with no scopes`);
 
   if (!model.gaps.gaps.some((gap) => gap.tag === "security" && gap.operationId === "RevokeToken"))
     problems.push("RevokeToken has no gap for the oauth2 scopes that are not a list");

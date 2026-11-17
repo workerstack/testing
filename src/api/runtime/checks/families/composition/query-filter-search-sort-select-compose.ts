@@ -12,6 +12,20 @@ export const queryFilterSearchSortSelectCompose: Check<
   Subset & { token: string; sortField: string; requested: string[]; projection: Record<string, string> }
 > = defineCheck<Subset & { token: string; sortField: string; requested: string[]; projection: Record<string, string> }>(
   {
+    dependsOn: [
+      "query.filter-selects-from-whole-set",
+      "query.search-and-filter-compose",
+      "query.axes-compose",
+      "query.filter-and-select-compose",
+      "query.sort-and-select-compose",
+      "query.filter-sort-select-compose",
+      "query.filter-search-sort-compose",
+      "query.filter-search-select-compose",
+      "pagination.page-walk-covers-set",
+    ],
+    id: "query.filter-search-sort-select-compose",
+    lists: true,
+    needs: "all four list axes declared and at least three records",
     plan: (ctx) => {
       const c = conv(ctx);
 
@@ -32,21 +46,6 @@ export const queryFilterSearchSortSelectCompose: Check<
         );
       });
     },
-    dependsOn: [
-      "query.filter-selects-from-whole-set",
-      "query.search-and-filter-compose",
-      "query.axes-compose",
-      "query.filter-and-select-compose",
-      "query.sort-and-select-compose",
-      "query.filter-sort-select-compose",
-      "query.filter-search-sort-compose",
-      "query.filter-search-select-compose",
-      "pagination.page-walk-covers-set",
-    ],
-    id: "query.filter-search-sort-select-compose",
-    lists: true,
-    needs: "all four list axes declared and at least three records",
-    subjects: subjectsOf.list,
     async run(ctx, { projection, sortField, term, token }): Promise<Outcome> {
       const conventions = conv(ctx);
       const searched = q(ctx, { search: token });
@@ -57,7 +56,7 @@ export const queryFilterSearchSortSelectCompose: Check<
           ctx,
           pageSize(ctx),
           { ...term, ...projection, ...searched },
-          { order: sortTerm(conventions, { direction: "asc", field: sortField }), fresh },
+          { fresh, order: sortTerm(conventions, { direction: "asc", field: sortField }) },
         );
 
       const firstBase = await readBase();
@@ -95,10 +94,11 @@ export const queryFilterSearchSortSelectCompose: Check<
       if (sameSet(setOf(base.items, ctx.identity), setOf(combined.items, ctx.identity))) return ASSERTED;
 
       return ctx.findings.backend(this.id, ctx.entityName, {
-        summary: "filter ∩ search membership changes when sort and select join",
         detail: `the four-axis listing returned ${combined.items.length}; filter+search alone returned ${base.items.length}.`,
         evidence: [base.last.exchange, combined.last.exchange],
+        summary: "filter ∩ search membership changes when sort and select join",
       });
     },
+    subjects: subjectsOf.list,
   },
 );

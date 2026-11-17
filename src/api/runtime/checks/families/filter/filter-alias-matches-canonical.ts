@@ -18,12 +18,11 @@ import { readSettled, sameSet, setOf } from "../../sets/compare.ts";
 import type { SetRead } from "../../sets/read.ts";
 
 export const filterAliasMatchesCanonical: Check = defineCheck({
-  plan: (ctx) => when(Object.keys(resolvedCaps(ctx).aliases).length > 0 && filterable(ctx)),
   dependsOn: ["query.filter-selects-from-whole-set", ...FOUNDATIONS, "filter.equality-selects-exactly-one"],
   id: "filter.alias-matches-canonical",
   lists: true,
   needs: "a declared filter operator alias",
-  subjects: subjectsOf.list,
+  plan: (ctx) => when(Object.keys(resolvedCaps(ctx).aliases).length > 0 && filterable(ctx)),
   async run(ctx): Promise<Outcome> {
     const caps = resolvedCaps(ctx);
     const conventions = conv(ctx);
@@ -62,13 +61,14 @@ export const filterAliasMatchesCanonical: Check = defineCheck({
 
       if (!agree(reads)) {
         return ctx.findings.backend(this.id, ctx.entityName, {
-          summary: `alias ${alias} does not select the same set as ${target}`,
           detail: `${field.field}.${alias} and ${field.field}.${target} disagreed on membership.`,
           evidence: [left.last.exchange, right.last.exchange],
+          summary: `alias ${alias} does not select the same set as ${target}`,
         });
       }
     }
 
     return ASSERTED;
   },
+  subjects: subjectsOf.list,
 });

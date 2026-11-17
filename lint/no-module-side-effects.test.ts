@@ -6,8 +6,8 @@ import { oxlintReports, reportsOf } from "./rule-harness.ts";
 const MESSAGE = "module scope runs no code: mark a pure call /* @__PURE__ */ or move it into a function";
 
 const OUTSIDE_SRC = {
-  "src/api/runtime/a.test.ts": "run()\n",
   "scripts/a.ts": "run()\n",
+  "src/api/runtime/a.test.ts": "run()\n",
   "tests/api/support/a.ts": "run()\n",
 };
 

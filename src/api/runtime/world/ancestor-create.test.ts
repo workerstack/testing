@@ -26,12 +26,12 @@ function seeding(respond: Responder, table: Record<string, unknown> = {}, option
 
   return {
     createOp: op(model, "table.create"),
-    sent: fake.sent,
     seeding: {
       client: fake.client,
       model,
       options: { principal: "alpha", roots: { project_id: "p1" }, seed: 1, ...options },
     },
+    sent: fake.sent,
   };
 }
 
@@ -192,8 +192,8 @@ describe("createOne, refused", () => {
     const { client } = fakeClient(() => ({ body: { ok: true }, status: 200 }));
 
     const options = {
-      principal: "alpha",
       onUnidentified: (entity: string) => unidentified.push(entity),
+      principal: "alpha",
       roots: {},
       seed: 1,
     };

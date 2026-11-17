@@ -48,7 +48,7 @@ describe("recordsFromList", () => {
 
   it("reads each row's record inside it when the rows wrap their record", () => {
     const hits = { key: "hits", within: ["document"] };
-    const body = { hits: [{ document: { id: "a" }, highlights: [] }, { document: { id: "b" } }], found: 2 };
+    const body = { found: 2, hits: [{ document: { id: "a" }, highlights: [] }, { document: { id: "b" } }] };
     expect(recordsFromList(body, hits)).toEqual([{ id: "a" }, { id: "b" }]);
     expect(recordsFromList([{ a: { b: { id: 3 } } }], { key: null, within: ["a", "b"] })).toEqual([{ id: 3 }]);
   });

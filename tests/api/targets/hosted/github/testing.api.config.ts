@@ -11,19 +11,10 @@
 import { defineConfig, env } from "../../../../../src/api/index.ts";
 
 export default defineConfig({
-  spec: "https://raw.githubusercontent.com/github/rest-api-description/v2.1.0/descriptions/api.github.com/api.github.com.json",
   baseUrl: "https://api.github.com",
+  globalHeaders: { "X-GitHub-Api-Version": "2022-11-28" },
   // GitHub's secondary rate limits punish bursts of writes.
   maxRps: 1,
-  globalHeaders: { "X-GitHub-Api-Version": "2022-11-28" },
-  overlay: {
-    security: [{ bearer: [] }],
-    securitySchemes: { bearer: { scheme: "bearer", type: "http" } },
-  },
-  security: { bearer: { static: env("TESTING_API_GITHUB_TOKEN") } },
-  principals: {
-    alpha: { scope: { owner: env("TESTING_API_GITHUB_OWNER"), repo: env("TESTING_API_GITHUB_REPO") } },
-  },
   ops: [
     "issues/list-labels-for-repo",
     "issues/create-label",
@@ -36,4 +27,13 @@ export default defineConfig({
     "issues/update-milestone",
     "issues/delete-milestone",
   ],
+  overlay: {
+    security: [{ bearer: [] }],
+    securitySchemes: { bearer: { scheme: "bearer", type: "http" } },
+  },
+  principals: {
+    alpha: { scope: { owner: env("TESTING_API_GITHUB_OWNER"), repo: env("TESTING_API_GITHUB_REPO") } },
+  },
+  security: { bearer: { static: env("TESTING_API_GITHUB_TOKEN") } },
+  spec: "https://raw.githubusercontent.com/github/rest-api-description/v2.1.0/descriptions/api.github.com/api.github.com.json",
 });

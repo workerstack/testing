@@ -4,7 +4,7 @@ import { unique } from "./text.ts";
 import type { CellStatus, EntityMatrix, InvalidateLink } from "./types.ts";
 
 export function totalCounts(entities: readonly EntityMatrix[]): Record<CellStatus, number> {
-  const counts: Record<CellStatus, number> = { blocked: 0, failed: 0, passed: 0, "out-of-scope": 0, skipped: 0 };
+  const counts: Record<CellStatus, number> = { blocked: 0, failed: 0, "out-of-scope": 0, passed: 0, skipped: 0 };
 
   for (const entity of entities)
     for (const status of Object.keys(counts) as CellStatus[]) counts[status] += entity.counts[status];

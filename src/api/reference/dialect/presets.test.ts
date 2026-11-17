@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { deriveCollectionShape } from "../../spec/collection/shape.ts";
 import { isAliasOf } from "../../spec/conventions/roles.ts";
-import { CLASSIC, DIALECTS, JSONAPI, LINKED, PLAIN, POSTGREST, TEMPLATE } from "./presets.ts";
+import { CLASSIC, DIALECT_ORDER, DIALECTS, JSONAPI, LINKED, PLAIN, POSTGREST, TEMPLATE } from "./presets.ts";
 
 describe("DIALECTS", () => {
   it("names every preset by its own name", () => {
@@ -16,6 +16,10 @@ describe("DIALECTS", () => {
     });
 
     for (const [name, dialect] of Object.entries(DIALECTS)) expect(dialect.name).toBe(name);
+  });
+
+  it("lists exactly the presets' names, each once", () => {
+    expect([...DIALECT_ORDER].toSorted()).toStrictEqual(Object.keys(DIALECTS).toSorted());
   });
 
   it("spells the canonical grammar with cursors, and the classic one with nothing in common", () => {

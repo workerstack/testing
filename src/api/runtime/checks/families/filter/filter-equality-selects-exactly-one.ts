@@ -17,6 +17,10 @@ export const equalityFilterSelectsOne: Check<{
   field: string;
   term: Record<string, string>;
 }>({
+  dependsOn: ["query.filter-selects-from-whole-set", "list.read-after-write"],
+  id: "filter.equality-selects-exactly-one",
+  lists: true,
+  needs: "a `filter` parameter that accepts the identity field",
   plan: (ctx) => {
     const target = ctx.records[0];
 
@@ -31,11 +35,6 @@ export const equalityFilterSelectsOne: Check<{
       ? cannot("a filter grammar that can express equality on the identity")
       : ready({ field, id, term });
   },
-  dependsOn: ["query.filter-selects-from-whole-set", "list.read-after-write"],
-  id: "filter.equality-selects-exactly-one",
-  lists: true,
-  needs: "a `filter` parameter that accepts the identity field",
-  subjects: subjectsOf.list,
   async run(ctx, { field, id, term }): Promise<Outcome> {
     const result = await list(ctx, { ...q(ctx, { limit: pageSize(ctx) }), ...term });
 
@@ -49,9 +48,10 @@ export const equalityFilterSelectsOne: Check<{
     if (got.length === 1 && got[0] === id) return ASSERTED;
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "equality filter on the identity does not select exactly one record",
       detail: `filter=${field}.eq.${id} returned ${got.length} records (${got.slice(0, 5).join(", ")})`,
       evidence: [result.exchange],
+      summary: "equality filter on the identity does not select exactly one record",
     });
   },
+  subjects: subjectsOf.list,
 });

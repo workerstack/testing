@@ -52,8 +52,8 @@ describe("demoteNonEntities", () => {
 
   it("reads a verb-like last segment as an operation, not a collection", () => {
     const { entities, views } = demoted({
-      "/pet/{id}": { get: { operationId: "pet.get", responses: ok(member) } },
       "/pet/findByStatus": { get: { operationId: "pet.find", responses: ok(list(member)) } },
+      "/pet/{id}": { get: { operationId: "pet.get", responses: ok(member) } },
     });
 
     expect(entities["pet.find"]).toEqual(["pet", "action"]);

@@ -57,8 +57,8 @@ describe("checkContext", () => {
     expect(checks).toMatchObject({
       actor: { id: "alpha" },
       entityName: "note",
-      peerScope: undefined,
       identity: "id",
+      peerScope: undefined,
       records: [{ id: "n1" }],
       scope: { a: "1" },
     });

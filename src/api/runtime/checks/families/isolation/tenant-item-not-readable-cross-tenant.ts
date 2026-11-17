@@ -18,6 +18,8 @@ export const crossTenantItemRead: Check<{
   readOp: OperationModel;
   peer: Actor;
 }>({
+  id: "tenant.item-not-readable-cross-tenant",
+  needs: "a second principal in a different tenant, and a tenant tagged or inferred from the path",
   plan: (ctx) => {
     const { peer, readOp } = ctx;
     const target = ctx.records[0];
@@ -28,9 +30,6 @@ export const crossTenantItemRead: Check<{
 
     return id === undefined ? cannot(NO_IDENTITY) : ready({ id, peer, readOp });
   },
-  id: "tenant.item-not-readable-cross-tenant",
-  needs: "a second principal in a different tenant, and a tenant tagged or inferred from the path",
-  subjects: subjectsOf.read,
   async run(ctx, { id, peer, readOp }): Promise<Outcome> {
     // The actor's record, asked for by the peer under the peer's own scope.
     const params = { ...(ctx.peerScope ?? ctx.scope), ...itemParamFor(ctx, id) };
@@ -56,11 +55,11 @@ export const crossTenantItemRead: Check<{
 
     if (tenantDeclared) {
       return ctx.findings.security(this.id, ctx.entityName, {
-        summary: "a record is readable by a principal in another tenant",
         detail:
           `${detail} The operation declares x-tenant: "${readOp.tenantParam}", so this ` +
           "crosses a boundary the document states exists.",
         evidence: [exchange],
+        summary: "a record is readable by a principal in another tenant",
       });
     }
 
@@ -79,4 +78,5 @@ export const crossTenantItemRead: Check<{
 
     return ASSERTED;
   },
+  subjects: subjectsOf.read,
 });

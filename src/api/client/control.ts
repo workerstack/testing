@@ -93,10 +93,6 @@ export function createControls(): Controls {
 
       return verdict;
     },
-    renewal: (sent) => valuesOf(sent).some((value) => renewals.has(value)),
-    renewed(sent) {
-      for (const value of valuesOf(sent)) renewals.add(value);
-    },
     note(exchange, read) {
       const { principal, schemes, status } = exchange;
 
@@ -105,6 +101,10 @@ export function createControls(): Controls {
       if (principal === undefined || exchange.forged === true) return;
 
       for (const scheme of schemes ?? []) accepted.set(pairOf(principal, scheme), read);
+    },
+    renewal: (sent) => valuesOf(sent).some((value) => renewals.has(value)),
+    renewed(sent) {
+      for (const value of valuesOf(sent)) renewals.add(value);
     },
   };
 }

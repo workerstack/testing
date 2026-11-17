@@ -10,8 +10,8 @@ import { renderConfidenceMarkdown } from "../confidence.ts";
 const STATUS_MARK: Record<OperationStatus, string> = {
   blocked: "○",
   failed: "✗",
-  passed: "✓",
   inconclusive: "?",
+  passed: "✓",
   untested: "○",
 };
 

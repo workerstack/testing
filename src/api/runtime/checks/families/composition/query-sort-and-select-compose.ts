@@ -18,6 +18,10 @@ export const querySortAndSelectCompose: Check<{
   requested: string[];
   projection: Record<string, string>;
 }>({
+  dependsOn: ["sort.order-is-applied", "select.projection-honored", "select.requested-fields-present"],
+  id: "query.sort-and-select-compose",
+  lists: true,
+  needs: "sortable and selectable fields",
   plan: (ctx) => {
     if (conv(ctx).order === undefined || conv(ctx).select === undefined || ctx.records.length <= 1) return cannot();
 
@@ -31,11 +35,6 @@ export const querySortAndSelectCompose: Check<{
 
     return projection === null ? cannot() : ready({ field, projection, requested });
   },
-  dependsOn: ["sort.order-is-applied", "select.projection-honored", "select.requested-fields-present"],
-  id: "query.sort-and-select-compose",
-  lists: true,
-  needs: "sortable and selectable fields",
-  subjects: subjectsOf.list,
   async run(ctx, { field, projection, requested }): Promise<Outcome> {
     const query = { ...q(ctx, { limit: 20, order: sortTerm(conv(ctx), { direction: "asc", field }) }), ...projection };
     const result = await list(ctx, query);
@@ -53,19 +52,20 @@ export const querySortAndSelectCompose: Check<{
       if (descending === null) return ASSERTED;
 
       return ctx.findings.backend(this.id, ctx.entityName, {
-        summary: "sort and select do not compose",
         detail: `order=${field}.asc and order=${field}.desc returned the same sequence under the projection.`,
         evidence: [result.exchange, descending.exchange],
+        summary: "sort and select do not compose",
       });
     }
 
     return ctx.findings.backend(this.id, ctx.entityName, {
-      summary: "sort and select do not compose",
       detail:
         extras.length > 0
           ? `select leaked ${extras.slice(0, 5).join(", ")}.`
           : `order=${field}.asc did not hold under the projection.`,
       evidence: [result.exchange],
+      summary: "sort and select do not compose",
     });
   },
+  subjects: subjectsOf.list,
 });

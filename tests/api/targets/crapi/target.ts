@@ -23,14 +23,6 @@ async function post(url: string, body: unknown): Promise<{ status: number; body:
 
 const target: Target = {
   baseUrl: "http://127.0.0.1:18888",
-  // crAPI's published test signing key, which the identity service mounts (README.md).
-  vendored: [
-    {
-      path: "keys/jwks.json",
-      sha256: "45729121905a42591c12a056d0082298ab9bc4dc995ee61ce8886e47650fa4b4",
-      url: "https://raw.githubusercontent.com/OWASP/crAPI/1b338594a6876062d3f97ad4a2929c39c0f4f3f3/deploy/docker/keys/jwks.json",
-    },
-  ],
   async prepare(baseUrl) {
     await answers(`${baseUrl}/`, 300_000);
     const env: Record<string, string> = { CRAPI_URL: baseUrl };
@@ -52,6 +44,14 @@ const target: Target = {
     return env;
   },
   readyWithinMs: 300_000,
+  // crAPI's published test signing key, which the identity service mounts (README.md).
+  vendored: [
+    {
+      path: "keys/jwks.json",
+      sha256: "45729121905a42591c12a056d0082298ab9bc4dc995ee61ce8886e47650fa4b4",
+      url: "https://raw.githubusercontent.com/OWASP/crAPI/1b338594a6876062d3f97ad4a2929c39c0f4f3f3/deploy/docker/keys/jwks.json",
+    },
+  ],
 };
 
 export default target;

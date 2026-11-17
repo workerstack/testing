@@ -108,7 +108,7 @@ function queuePasses(run: MatrixRun): Array<Promise<PassAnswer>> {
     const answers = await Promise.all([
       pool.run({ backend: pass.backend, dialect: pass.dialect, kind: "baselines" }),
       ...chunked(defects).map((chunk) =>
-        pool.run({ backend: pass.backend, dialect: pass.dialect, defects: chunk, kind: "defects" }),
+        pool.run({ backend: pass.backend, defects: chunk, dialect: pass.dialect, kind: "defects" }),
       ),
     ]);
 
@@ -199,7 +199,7 @@ function queueExtras(run: MatrixRun, answers: Array<Promise<PassAnswer>>): Extra
     !matrix.legs.has("scope") || index === -1
       ? undefined
       : (answers[index] as Promise<PassAnswer>).then((answer) => {
-          const names = Object.keys(toolkit.defects.DEFECTS);
+          const names = toolkit.defects.DEFECT_ORDER;
 
           const lanes = Array.from({ length: matrix.jobs }, (_, lane) =>
             names.filter((_name, at) => at % matrix.jobs === lane),

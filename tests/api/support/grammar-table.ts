@@ -106,7 +106,7 @@ export function grammarTable(): Record<string, unknown> {
 
   for (const grammar of SELECT_GRAMMARS) {
     for (const select of ["select", "fields", "fields[articles]", undefined]) {
-      const at = conventions("postgrest", "filter", { selectGrammar: grammar, select });
+      const at = conventions("postgrest", "filter", { select, selectGrammar: grammar });
       table[`selectTerm|${grammar}|${select ?? "no-select-param"}`] = selectTerm(at, ["id", "name"], "articles");
     }
   }

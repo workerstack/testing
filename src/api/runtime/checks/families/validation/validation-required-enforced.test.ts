@@ -11,8 +11,8 @@ const schema = {
 };
 
 const gated = {
-  "x-feature-gate": "pro",
   responses: { "201": { description: "made" }, "403": { description: "gated" } },
+  "x-feature-gate": "pro",
 };
 
 async function probe(answer: Answer, create: Record<string, unknown> = {}) {

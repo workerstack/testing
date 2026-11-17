@@ -8,8 +8,6 @@ export const EXIT = {
   clean: 0,
   /** At least one root-cause finding — or, under `--ops`, a target that failed. */
   defects: 1,
-  /** The command line or config was wrong; nothing ran. */
-  usage: 2,
   /** The API tester could not do what it was asked: the network went away, nothing was graded, a target
    * was never judged, or the API tester itself threw. */
   failed: 3,
@@ -18,6 +16,8 @@ export const EXIT = {
    * creator, or present by `hooks.verifyRemoved` — or a create that answered 2xx with no id the API tester
    * could read. An entity with no delete operation alone is a gap, not this. */
   leftovers: 4,
+  /** The command line or config was wrong; nothing ran. */
+  usage: 2,
 } as const;
 
 type RunOutcome = "clean" | "defects" | "failed" | "leftovers";
